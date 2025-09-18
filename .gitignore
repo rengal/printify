@@ -1,0 +1,86 @@
+# =============================
+# .NET / Visual Studio / Rider
+# =============================
+
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Rr]elease*/
+[Dd]ebug*/
+out/
+artifacts/
+
+# IDE settings
+.vs/
+.vscode/
+.idea/
+*.sln.iml
+
+# User-specific files
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.csproj.user
+*.vbproj.user
+*.vcxproj.user
+*.jfm
+*.swp
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+NuGet.Config
+project.lock.json
+project.assets.json
+
+# Tests / coverage
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+
+# Logs
+*.log
+
+# ReSharper / Rider
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# NCrunch
+_NCrunch_*/
+.*crunch*.local.xml
+*.ncrunchsolution
+*.ncrunchproject
+nCrunchTemp_*
+
+# SpecFlow
+*.feature.cs
+*.feature.vb
+GeneratedFiles/
+
+# Entity Framework
+App_Data/
+*.mdf
+*.ldf
+
+# Azure publish
+*.publishsettings
+*.pubxml
+*.pubxml.user
+PublishProfiles/
+
+# Cache / temp
+*.cache
+*.tmp
+*.temp
+
+# OS junk
+.DS_Store
+Thumbs.db
+

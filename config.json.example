@@ -1,0 +1,13 @@
+﻿{
+  "listener": {
+    "url": "http://0.0.0.0:9100"
+  },
+  "page": {
+    "width_dots": 512
+  },
+  "storage": {
+    "provider": "sqlite",
+    "databasePath": "printify.db",
+    "retention_days": 90
+  }
+}
