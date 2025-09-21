@@ -223,6 +223,22 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                         continue;
                     }
 
+                    // Command: ESC a n - select justification.
+                    // ASCII: ESC a n
+                    // HEX: 1B 61 0xNN (00=left, 01=center, 02=right)
+                    if (command == (byte)'a' && index + 2 < data.Length)
+                    {
+                        FlushText(allowEmpty: false);
+                        var justificationValue = data[index + 2];
+                        if (TryGetJustification(justificationValue, out var justification))
+                        {
+                            elements.Add(new SetJustification(++sequence, justification));
+                        }
+
+                        index += 2;
+                        continue;
+                    }
+
 
                     // Command: ESC @ - reset printer.
                     // ASCII: ESC @
@@ -313,6 +329,100 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                         elements.Add(new PrinterStatus(++sequence, status, null));
                         index += 2;
                         continue;
+                    }
+
+                    // Command: GS h n - set barcode height.
+                    // ASCII: GS h n
+                    // HEX: 1D 68 0xNN
+                    if (command == 0x68 && index + 2 < data.Length)
+                    {
+                        FlushText(allowEmpty: false);
+                        var height = data[index + 2];
+                        elements.Add(new SetBarcodeHeight(++sequence, height));
+                        index += 2;
+                        continue;
+                    }
+
+                    // Command: GS w n - set barcode module width.
+                    // ASCII: GS w n
+                    // HEX: 1D 77 0xNN
+                    if (command == 0x77 && index + 2 < data.Length)
+                    {
+                        FlushText(allowEmpty: false);
+                        var width = data[index + 2];
+                        elements.Add(new SetBarcodeModuleWidth(++sequence, width));
+                        index += 2;
+                        continue;
+                    }
+
+                    // Command: GS H n - set barcode label position.
+                    // ASCII: GS H n
+                    // HEX: 1D 48 0xNN
+                    if (command == 0x48 && index + 2 < data.Length)
+                    {
+                        FlushText(allowEmpty: false);
+                        var positionValue = data[index + 2];
+                        if (TryGetBarcodeLabelPosition(positionValue, out var position))
+                        {
+                            elements.Add(new SetBarcodeLabelPosition(++sequence, position));
+                        }
+
+                        index += 2;
+                        continue;
+                    }
+
+                    // Command: GS k m d... - print barcode.
+                    // ASCII: GS k m d1... or GS k m k d1...
+                    // HEX: 1D 6B 0xMM ...
+                    if (command == 0x6B && index + 2 < data.Length)
+                    {
+                        FlushText(allowEmpty: false);
+                        var barcodeType = data[index + 2];
+                        if (!TryResolveBarcodeSymbology(barcodeType, out var symbology, out var usesLengthIndicator))
+                        {
+                            index += 2;
+                            continue;
+                        }
+
+                        if (usesLengthIndicator)
+                        {
+                            if (index + 3 >= data.Length)
+                            {
+                                index += 2;
+                                continue;
+                            }
+
+                            var length = data[index + 3];
+                            var payloadStart = index + 4;
+                            if (payloadStart + length > data.Length)
+                            {
+                                index += 3;
+                                continue;
+                            }
+
+                            var payload = data.Slice(payloadStart, length).ToArray();
+                            var content = currentEncoding.GetString(payload);
+                            elements.Add(new PrintBarcode(++sequence, symbology, content));
+                            index += 3 + length;
+                            continue;
+                        }
+                        else
+                        {
+                            var payloadStart = index + 3;
+                            var terminatorIndex = FindNullTerminator(data, payloadStart);
+                            if (terminatorIndex == -1)
+                            {
+                                index = data.Length - 1;
+                                continue;
+                            }
+
+                            var payloadLength = terminatorIndex - payloadStart;
+                            var payload = payloadLength > 0 ? data.Slice(payloadStart, payloadLength).ToArray() : Array.Empty<byte>();
+                            var content = currentEncoding.GetString(payload);
+                            elements.Add(new PrintBarcode(++sequence, symbology, content));
+                            index = terminatorIndex;
+                            continue;
+                        }
                     }
 
                     // Command: GS B n - enable/disable reverse (white-on-black) mode.
@@ -470,6 +580,103 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
         elements.Add(new RasterImage(++sequence, widthDots, height, mode, blobId, metadata.ContentType, metadata.ContentLength, metadata.Checksum));
     }
 
+    private static bool TryGetJustification(byte value, out TextJustification justification)
+    {
+        switch (value)
+        {
+            case 0:
+                justification = TextJustification.Left;
+                return true;
+            case 1:
+                justification = TextJustification.Center;
+                return true;
+            case 2:
+                justification = TextJustification.Right;
+                return true;
+            default:
+                justification = default;
+                return false;
+        }
+    }
+
+    private static bool TryGetBarcodeLabelPosition(byte value, out BarcodeLabelPosition position)
+    {
+        if (value <= 3)
+        {
+            position = (BarcodeLabelPosition)value;
+            return true;
+        }
+
+        position = default;
+        return false;
+    }
+
+    private static bool TryResolveBarcodeSymbology(byte value, out BarcodeSymbology symbology, out bool usesLengthIndicator)
+    {
+        switch (value)
+        {
+            case 0x00:
+            case 0x41:
+                symbology = BarcodeSymbology.UpcA;
+                usesLengthIndicator = value >= 0x41;
+                return true;
+            case 0x01:
+            case 0x42:
+                symbology = BarcodeSymbology.UpcE;
+                usesLengthIndicator = value >= 0x42;
+                return true;
+            case 0x02:
+            case 0x43:
+                symbology = BarcodeSymbology.Ean13;
+                usesLengthIndicator = value >= 0x43;
+                return true;
+            case 0x03:
+            case 0x44:
+                symbology = BarcodeSymbology.Ean8;
+                usesLengthIndicator = value >= 0x44;
+                return true;
+            case 0x04:
+            case 0x45:
+                symbology = BarcodeSymbology.Code39;
+                usesLengthIndicator = value >= 0x45;
+                return true;
+            case 0x05:
+            case 0x46:
+                symbology = BarcodeSymbology.Itf;
+                usesLengthIndicator = value >= 0x46;
+                return true;
+            case 0x06:
+            case 0x47:
+                symbology = BarcodeSymbology.Codabar;
+                usesLengthIndicator = value >= 0x47;
+                return true;
+            case 0x48:
+                symbology = BarcodeSymbology.Code93;
+                usesLengthIndicator = true;
+                return true;
+            case 0x49:
+                symbology = BarcodeSymbology.Code128;
+                usesLengthIndicator = true;
+                return true;
+            default:
+                symbology = default;
+                usesLengthIndicator = false;
+                return false;
+        }
+    }
+
+    private static int FindNullTerminator(ReadOnlySpan<byte> data, int startIndex)
+    {
+        for (var index = startIndex; index < data.Length; index++)
+        {
+            if (data[index] == 0)
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
     private void UpdateCodePage(string codePage)
     {
         try
@@ -496,6 +703,3 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
         return value >= 0x20 && value != 0x7F;
     }
 }
-
-
-

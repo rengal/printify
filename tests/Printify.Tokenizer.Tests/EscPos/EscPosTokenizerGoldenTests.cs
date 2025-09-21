@@ -1,4 +1,4 @@
-﻿namespace Printify.Tokenizer.Tests.EscPos;
+namespace Printify.Tokenizer.Tests.EscPos;
 
 using System;
 using System.Collections.Generic;
@@ -35,6 +35,21 @@ public sealed class EscPosTokenizerGoldenTests
             new SetFont(8, 0, true, true),
             new TextLine(9, Pad("font 2", 21)),
             new PageCut(10)
+        },
+        ["case03"] = new Element[]
+        {
+            new ResetPrinter(1),
+            new SetFont(2, 0, false, false),
+            new SetCodePage(3, "866"),
+            new SetFont(4, 0, false, false),
+            new SetJustification(5, TextJustification.Right),
+            new SetBarcodeHeight(6, 101),
+            new SetBarcodeModuleWidth(7, 3),
+            new SetBarcodeLabelPosition(8, BarcodeLabelPosition.Below),
+            new PrintBarcode(9, BarcodeSymbology.Ean13, "1234567890128"),
+            new SetJustification(10, TextJustification.Left),
+            new TextLine(11, string.Empty),
+            new PageCut(12)
         }
     };
 
