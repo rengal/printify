@@ -5,7 +5,7 @@ using Printify.Contracts.Elements;
 using Printify.Contracts.Service;
 using Xunit;
 
-public sealed class EscPosTokenizerPulseTests
+public sealed class PulseTests
 {
     [Fact]
     public void EmitsPulseForEscSequence()

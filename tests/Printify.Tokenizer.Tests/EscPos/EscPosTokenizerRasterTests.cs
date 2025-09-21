@@ -12,7 +12,7 @@ using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using Xunit;
 
-public sealed class EscPosTokenizerRasterTests
+public sealed class RasterTests
 {
     private const byte ModeSingleDensity = 0x00;
 

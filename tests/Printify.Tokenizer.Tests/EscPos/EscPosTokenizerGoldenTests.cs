@@ -10,7 +10,7 @@ using Printify.Contracts.Service;
 using Printify.Tokenizer.Tests;
 using Xunit;
 
-public sealed class EscPosTokenizerGoldenTests
+public sealed class GoldenTests
 {
     private static readonly IReadOnlyDictionary<string, Element[]> Expectations = new Dictionary<string, Element[]>(StringComparer.OrdinalIgnoreCase)
     {

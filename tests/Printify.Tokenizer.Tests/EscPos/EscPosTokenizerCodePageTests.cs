@@ -5,7 +5,7 @@ using Contracts;
 using Contracts.Elements;
 using Xunit;
 
-public sealed class EscPosTokenizerCodePageTests
+public sealed class CodePageTests
 {
     [Fact]
     public void ProcessesAllCodePagesSequentially()

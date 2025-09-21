@@ -7,7 +7,7 @@ using Contracts.Elements;
 using Contracts.Service;
 using Xunit;
 
-public sealed class EscPosTokenizerSessionTests
+public sealed class SessionTests
 {
     /// <summary>
     /// Scenario: Completing the session should finalize the document and mark the session as completed.

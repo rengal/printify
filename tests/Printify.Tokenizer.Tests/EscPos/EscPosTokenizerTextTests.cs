@@ -6,7 +6,7 @@ using Printify.Contracts.Elements;
 using Printify.Contracts.Service;
 using Xunit;
 
-public sealed class EscPosTokenizerTextTests
+public sealed class TextTests
 {
     /// <summary>
     /// Scenario: Feeding text followed by LF should flush a single text line element into the active session.

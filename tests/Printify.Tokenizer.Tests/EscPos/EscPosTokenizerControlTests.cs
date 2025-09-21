@@ -6,7 +6,7 @@ using Printify.Contracts.Elements;
 using Printify.Contracts.Service;
 using Xunit;
 
-public sealed class EscPosTokenizerControlTests
+public sealed class ControlTests
 {
     /// <summary>
     /// Scenario: ESC i sequence should emit a page cut even without newline before it.
