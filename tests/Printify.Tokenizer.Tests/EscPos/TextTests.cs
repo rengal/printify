@@ -1,9 +1,8 @@
 ﻿namespace Printify.Tokenizer.Tests.EscPos;
 
 using System.Text;
-using Printify.Contracts;
-using Printify.Contracts.Elements;
-using Printify.Contracts.Service;
+using Contracts;
+using Contracts.Elements;
 using Xunit;
 
 public sealed class TextTests
@@ -24,7 +23,6 @@ public sealed class TextTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new TextLine(1, "ABC")
@@ -46,7 +44,6 @@ public sealed class TextTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new TextLine(1, "ABC")
@@ -70,7 +67,6 @@ public sealed class TextTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new TextLine(1, "ABC")
@@ -92,7 +88,6 @@ public sealed class TextTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new TextLine(1, "ABC"),
@@ -116,7 +111,6 @@ public sealed class TextTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new TextLine(1, "ABC")
@@ -139,7 +133,6 @@ public sealed class TextTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new TextLine(1, longText)

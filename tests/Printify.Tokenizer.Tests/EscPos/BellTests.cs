@@ -4,21 +4,15 @@ using Contracts;
 using Contracts.Elements;
 using Xunit;
 
-public sealed class PulseTests
+public sealed class BellTests
 {
     [Fact]
-    public void EmitsPulseForEscSequence()
+    public void EmitsBellOnBelCharacter()
     {
         using var context = EscPosTestHelper.CreateContext();
         var session = context.Tokenizer.CreateSession();
 
-        session.Feed([
-            EscPosTokenizer.Esc,
-            (byte)'p',
-            0x01,
-            0x05,
-            0x0A
-        ]);
+        session.Feed(new[] { EscPosTokenizer.Bell });
         session.Complete(CompletionReason.DataTimeout);
 
         DocumentAssertions.Equal(
@@ -26,7 +20,7 @@ public sealed class PulseTests
             Protocol.EscPos,
             expectedElements: new Element[]
             {
-                new Pulse(1, PulsePin.Drawer2, 10, 20)
+                new Bell(1)
             });
     }
 }

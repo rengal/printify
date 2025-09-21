@@ -1,11 +1,10 @@
 ﻿namespace Printify.Tokenizer.Tests.EscPos;
 
-using Printify.Contracts;
-using Printify.Contracts.Elements;
-using Printify.Contracts.Service;
+using Contracts;
+using Contracts.Elements;
 using Xunit;
 
-public sealed class EscPosTokenizerPageCutTests
+public sealed class PagecutTests
 {
     [Fact]
     public void EmitsPageCutForEscSequence()
@@ -22,10 +21,9 @@ public sealed class EscPosTokenizerPageCutTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
-                new PageCut(1)
+                new Pagecut(1)
             });
     }
 
@@ -45,10 +43,9 @@ public sealed class EscPosTokenizerPageCutTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
-                new PageCut(1)
+                new Pagecut(1)
             });
     }
 }

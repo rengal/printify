@@ -26,7 +26,6 @@ public sealed class SessionTests
         DocumentAssertions.Equal(
             document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new TextLine(1, "ABC")
@@ -59,7 +58,6 @@ public sealed class SessionTests
         DocumentAssertions.Equal(
             document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: Array.Empty<Element>());
 
         Assert.Throws<InvalidOperationException>(() => session.Complete(CompletionReason.DataTimeout));

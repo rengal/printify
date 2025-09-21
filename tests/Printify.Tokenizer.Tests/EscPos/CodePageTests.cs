@@ -41,7 +41,6 @@ public sealed class CodePageTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements);
     }
 }

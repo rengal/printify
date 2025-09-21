@@ -1,9 +1,8 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
-using System.Linq;
-using Printify.Contracts;
-using Printify.Contracts.Elements;
-using Printify.Contracts.Service;
+using Contracts;
+using Contracts.Elements;
+using Contracts.Service;
 using Xunit;
 
 public sealed class ControlTests
@@ -30,10 +29,9 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
-                new PageCut(1)
+                new Pagecut(1)
             });
     }
 
@@ -60,7 +58,6 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new PrinterStatus(1, 0x42, null)
@@ -91,10 +88,9 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
-                new PageCut(1)
+                new Pagecut(1)
             });
     }
 
@@ -116,7 +112,6 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new ResetPrinter(1)
@@ -159,7 +154,6 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new SetBoldMode(1, true),
@@ -203,7 +197,6 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new SetUnderlineMode(1, true),
@@ -247,7 +240,6 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new SetReverseMode(1, true),

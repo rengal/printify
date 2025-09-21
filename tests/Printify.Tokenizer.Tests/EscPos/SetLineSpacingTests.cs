@@ -1,11 +1,10 @@
 ﻿namespace Printify.Tokenizer.Tests.EscPos;
 
-using Printify.Contracts;
-using Printify.Contracts.Elements;
-using Printify.Contracts.Service;
+using Contracts;
+using Contracts.Elements;
 using Xunit;
 
-public sealed class EscPosTokenizerSetLineSpacingTests
+public sealed class SetLineSpacingTests
 {
     [Fact]
     public void EmitsSetLineSpacingForEsc3()
@@ -23,7 +22,6 @@ public sealed class EscPosTokenizerSetLineSpacingTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new SetLineSpacing(1, 0x40)
@@ -45,7 +43,6 @@ public sealed class EscPosTokenizerSetLineSpacingTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new SetLineSpacing(1, 30)

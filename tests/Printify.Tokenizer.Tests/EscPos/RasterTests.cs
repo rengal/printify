@@ -1,15 +1,12 @@
 ﻿namespace Printify.Tokenizer.Tests.EscPos;
 
 using System;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Printify.Contracts;
-using Printify.Contracts.Elements;
-using Printify.Contracts.Service;
+using Contracts;
+using Contracts.Elements;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using Xunit;
 
 public sealed class RasterTests
@@ -34,7 +31,6 @@ public sealed class RasterTests
         DocumentAssertions.Equal(
             document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new RasterImage(1, 8, 8, ModeSingleDensity, raster.BlobId, raster.ContentType, raster.ContentLength, raster.Checksum)
@@ -76,7 +72,6 @@ public sealed class RasterTests
         DocumentAssertions.Equal(
             document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements: new Element[]
             {
                 new RasterImage(1, 8, 8, ModeSingleDensity, raster.BlobId, raster.ContentType, raster.ContentLength, raster.Checksum)

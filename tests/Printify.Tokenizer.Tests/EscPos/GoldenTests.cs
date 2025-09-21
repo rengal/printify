@@ -21,7 +21,7 @@ public sealed class GoldenTests
             new SetCodePage(3, "866"),
             new SetFont(4, 0, false, false),
             new TextLine(5, Pad("font 0", 42)),
-            new PageCut(6)
+            new Pagecut(6)
         },
         ["case02"] = new Element[]
         {
@@ -34,7 +34,7 @@ public sealed class GoldenTests
             new TextLine(7, Pad("font 1", 28)),
             new SetFont(8, 0, true, true),
             new TextLine(9, Pad("font 2", 21)),
-            new PageCut(10)
+            new Pagecut(10)
         },
         ["case03"] = new Element[]
         {
@@ -49,7 +49,7 @@ public sealed class GoldenTests
             new PrintBarcode(9, BarcodeSymbology.Ean13, "1234567890128"),
             new SetJustification(10, TextJustification.Left),
             new TextLine(11, string.Empty),
-            new PageCut(12)
+            new Pagecut(12)
         },
         ["case04"] = new Element[]
         {
@@ -63,14 +63,14 @@ public sealed class GoldenTests
             new StoreQrData(8, "https://google.com"),
             new PrintQrCode(9, "https://google.com"),
             new TextLine(10, string.Empty),
-            new PageCut(11)
+            new Pagecut(11)
         },
         ["case05"] = new Element[]
         {
             new ResetPrinter(1),
             new SetFont(2, 0, false, false),
             new StoredLogo(3, 0),
-            new PageCut(4)
+            new Pagecut(4)
         }
     };
 
@@ -116,7 +116,6 @@ public sealed class GoldenTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedSourceIp: null,
             expectedElements);
     }
 }

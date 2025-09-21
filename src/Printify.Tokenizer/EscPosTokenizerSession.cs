@@ -190,7 +190,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                     if (command == (byte)'i' || command == (byte)'m')
                     {
                         FlushText(allowEmpty: false);
-                        elements.Add(new PageCut(++sequence));
+                        elements.Add(new Pagecut(++sequence));
                         index += 1;
                         continue;
                     }
@@ -558,7 +558,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                         FlushText(allowEmpty: false);
                         var skip = index + 3 < data.Length ? 3 : 2;
                         index += skip;
-                        elements.Add(new PageCut(++sequence));
+                        elements.Add(new Pagecut(++sequence));
                         continue;
                     }
                 }
