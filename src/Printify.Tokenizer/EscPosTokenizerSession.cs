@@ -199,6 +199,30 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                         continue;
                     }
 
+                    // Command: ESC E n - enable/disable emphasized (bold) mode.
+                    // ASCII: ESC E n
+                    // HEX: 1B 45 0xNN (00=off, 01=on)
+                    if (command == (byte)'E' && index + 2 < data.Length)
+                    {
+                        FlushText(allowEmpty: false);
+                        var enabled = data[index + 2] != 0;
+                        elements.Add(new SetBoldMode(++sequence, enabled));
+                        index += 2;
+                        continue;
+                    }
+
+                    // Command: ESC - n - enable/disable underline mode.
+                    // ASCII: ESC - n
+                    // HEX: 1B 2D 0xNN (00=off, 01=on)
+                    if (command == 0x2D && index + 2 < data.Length)
+                    {
+                        FlushText(allowEmpty: false);
+                        var enabled = data[index + 2] != 0;
+                        elements.Add(new SetUnderlineMode(++sequence, enabled));
+                        index += 2;
+                        continue;
+                    }
+
 
                     // Command: ESC @ - reset printer.
                     // ASCII: ESC @
@@ -287,6 +311,18 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                         FlushText(allowEmpty: false);
                         var status = data[index + 2];
                         elements.Add(new PrinterStatus(++sequence, status, null));
+                        index += 2;
+                        continue;
+                    }
+
+                    // Command: GS B n - enable/disable reverse (white-on-black) mode.
+                    // ASCII: GS B n
+                    // HEX: 1D 42 0xNN (00=off, 01=on)
+                    if (command == 0x42 && index + 2 < data.Length)
+                    {
+                        FlushText(allowEmpty: false);
+                        var enabled = data[index + 2] != 0;
+                        elements.Add(new SetReverseMode(++sequence, enabled));
                         index += 2;
                         continue;
                     }
@@ -460,5 +496,6 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
         return value >= 0x20 && value != 0x7F;
     }
 }
+
 
 

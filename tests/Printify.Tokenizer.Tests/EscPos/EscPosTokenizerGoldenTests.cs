@@ -16,13 +16,32 @@ public sealed class EscPosTokenizerGoldenTests
     {
         ["case01"] = new Element[]
         {
-            new TextLine(1, "Hello")
+            new ResetPrinter(1),
+            new SetFont(2, 0, false, false),
+            new SetCodePage(3, "866"),
+            new SetFont(4, 0, false, false),
+            new TextLine(5, Pad("font 0", 42)),
+            new PageCut(6)
         },
         ["case02"] = new Element[]
         {
-            new PageCut(1)
+            new ResetPrinter(1),
+            new SetFont(2, 0, false, false),
+            new SetCodePage(3, "866"),
+            new SetFont(4, 0, false, false),
+            new TextLine(5, Pad("font 0", 42)),
+            new SetFont(6, 1, true, true),
+            new TextLine(7, Pad("font 1", 28)),
+            new SetFont(8, 0, true, true),
+            new TextLine(9, Pad("font 2", 21)),
+            new PageCut(10)
         }
     };
+
+    private static string Pad(string text, int totalLength)
+    {
+        return text.PadRight(totalLength);
+    }
 
     public static IEnumerable<object[]> Cases
     {
