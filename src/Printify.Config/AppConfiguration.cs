@@ -1,4 +1,4 @@
-﻿using Printify.Contracts.Configuration;
+using Printify.Contracts.Configuration;
 
 namespace Printify.Config;
 
@@ -12,4 +12,10 @@ public sealed class AppConfiguration : IAppConfiguration
     public PageConfiguration Page { get; init; } = new();
 
     public StorageConfiguration Storage { get; init; } = new();
+
+    /// <inheritdoc />
+    public double BytesPerSecond { get; init; }
+
+    /// <inheritdoc />
+    public int MaxBufferSize { get; init; }
 }

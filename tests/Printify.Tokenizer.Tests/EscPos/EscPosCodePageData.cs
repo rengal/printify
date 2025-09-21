@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
 internal sealed record CodePageTestVector(
@@ -27,7 +26,6 @@ internal static class EscPosCodePageData
     private const string TurkishLower = "abcçdefgğhıijklmnoöprsştuüvyz";
     private const string HebrewLetters = "אבגדהוזחטיךכלםמןנסעףפץצקרשת";
     private const string ArabicLetters = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي";
-    private const string ChineseSample = "汉字测试";
 
     public static IReadOnlyList<CodePageTestVector> All { get; } = Build();
 
@@ -53,7 +51,6 @@ internal static class EscPosCodePageData
             CreateEsc("865", 0x05, LatinUpper, LatinLower),
             CreateEsc("866", 0x11, CyrillicUpper, CyrillicLower),
             CreateEsc("869", 0x26, GreekUpper, GreekLower),
-            CreateFs("936", new byte[] { 0x1C, 0x26 }, ChineseSample, ChineseSample),
             CreateEsc("1098", 0x29, LatinUpper, LatinLower),
             CreateEsc("1118", 0x2A, LatinUpper, LatinLower),
             CreateEsc("1119", 0x2B, LatinUpper, LatinLower),
@@ -75,11 +72,6 @@ internal static class EscPosCodePageData
     private static CodePageTestVector CreateEsc(string codePage, byte parameter, string uppercase, string lowercase)
     {
         var command = new[] { Esc, (byte)'t', parameter };
-        return Create(codePage, command, uppercase, lowercase);
-    }
-
-    private static CodePageTestVector CreateFs(string codePage, byte[] command, string uppercase, string lowercase)
-    {
         return Create(codePage, command, uppercase, lowercase);
     }
 

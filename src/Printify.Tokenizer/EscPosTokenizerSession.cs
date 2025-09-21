@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Globalization;
 using System.Text;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
@@ -64,6 +65,13 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
 
+    private readonly double bytesPerSecond;
+    private readonly int maxBufferBytes;
+    private readonly int busyThresholdBytes;
+    private double bufferedBytes;
+    private long lastDrainSampleMs;
+    private bool hasOverflow;
+
     private readonly IClock clock;
     private readonly IBlobStorage blobStorage;
     private readonly List<Element> elements = new List<Element>();
@@ -81,8 +89,13 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(clock);
+        bytesPerSecond = Math.Max(0d, options.BytesPerSecond);
+        maxBufferBytes = Math.Max(0, options.MaxBufferBytes);
+        busyThresholdBytes = Math.Max(0, options.BusyThresholdBytes);
         this.clock = clock;
         this.blobStorage = blobStorage ?? throw new ArgumentNullException(nameof(blobStorage));
+        this.clock.Start();
+        lastDrainSampleMs = this.clock.ElapsedMs;
     }
 
     public int Sequence
@@ -100,6 +113,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
         get { return elements; }
     }
 
+    /// <inheritdoc />
     public Document? Document
     {
         get
@@ -118,12 +132,38 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
         get { return isCompleted; }
     }
 
+    /// <inheritdoc />
+    public bool IsBufferBusy
+    {
+        get
+        {
+            // Drain the simulated buffer before processing the newly received bytes.
+        UpdateBufferState();
+            if (bytesPerSecond <= 0 && maxBufferBytes <= 0)
+            {
+                return false;
+            }
+
+            var threshold = busyThresholdBytes > 0 ? busyThresholdBytes : 1;
+            return bufferedBytes >= threshold;
+        }
+    }
+
+    /// <inheritdoc />
+    public bool HasOverflow
+    {
+        get { return hasOverflow; }
+    }
+
     public void Feed(ReadOnlySpan<byte> data)
     {
         if (isCompleted)
         {
             throw new InvalidOperationException("Cannot feed a completed tokenizer session.");
         }
+
+        // Drain the simulated buffer before processing the newly received bytes.
+        UpdateBufferState();
 
         for (var index = 0; index < data.Length; index++)
         {
@@ -593,6 +633,9 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
             throw new InvalidOperationException("Tokenizer session has already been completed.");
         }
 
+        // Drain the buffer to capture the latest busy state before finalizing.
+        UpdateBufferState();
+
         CommitPendingText();
         FlushText(allowEmpty: false);
 
@@ -602,8 +645,81 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
         isCompleted = true;
     }
 
+    private void RegisterPrintingBytes(int count)
+    {
+        if (count <= 0)
+        {
+            return;
+        }
+
+        // Skip bookkeeping when no drain rate or buffer limit is configured.
+        if (bytesPerSecond <= 0 && maxBufferBytes <= 0)
+        {
+            return;
+        }
+
+        UpdateBufferState();
+
+        bufferedBytes += count;
+
+        if (maxBufferBytes > 0 && bufferedBytes > maxBufferBytes)
+        {
+            TriggerOverflow();
+        }
+    }
+
+    private void UpdateBufferState()
+    {
+        var currentMs = clock.ElapsedMs;
+
+        if (bufferedBytes <= 0)
+        {
+            lastDrainSampleMs = currentMs;
+            return;
+        }
+
+        if (bytesPerSecond <= 0)
+        {
+            lastDrainSampleMs = currentMs;
+            return;
+        }
+
+        var elapsedMs = currentMs - lastDrainSampleMs;
+        if (elapsedMs <= 0)
+        {
+            return;
+        }
+
+        var drained = bytesPerSecond * (elapsedMs / 1000.0);
+        if (drained > 0)
+        {
+            // Reduce the buffered byte count while keeping it non-negative.
+            bufferedBytes = Math.Max(0d, bufferedBytes - drained);
+        }
+
+        lastDrainSampleMs = currentMs;
+    }
+
+    private void TriggerOverflow()
+    {
+        if (!hasOverflow)
+        {
+            hasOverflow = true;
+            var message = string.Format(CultureInfo.InvariantCulture, "Simulated buffer overflow after {0:0} bytes", bufferedBytes);
+            elements.Add(new PrinterError(++sequence, message));
+        }
+
+        if (maxBufferBytes > 0)
+        {
+            bufferedBytes = Math.Min(bufferedBytes, maxBufferBytes);
+        }
+    }
+
     private void AppendPrintable(byte value)
     {
+        // Account for bytes that will be printed so busy/overflow tracking stays accurate.
+        RegisterPrintingBytes(1);
+
         if (!activeTextLineIndex.HasValue)
         {
             textBytes.Clear();
