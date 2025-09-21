@@ -64,6 +64,13 @@ public sealed class EscPosTokenizerGoldenTests
             new PrintQrCode(9, "https://google.com"),
             new TextLine(10, string.Empty),
             new PageCut(11)
+        },
+        ["case05"] = new Element[]
+        {
+            new ResetPrinter(1),
+            new SetFont(2, 0, false, false),
+            new StoredLogo(3, 0),
+            new PageCut(4)
         }
     };
 

@@ -537,9 +537,13 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                 continue;
             }
 
-            if (value == Fs)
+        if (value == Fs)
+        {
+            if (index + 1 < data.Length)
             {
-                if (index + 1 < data.Length && data[index + 1] == FsSelectChinese)
+                var fsCommand = data[index + 1];
+
+                if (fsCommand == FsSelectChinese)
                 {
                     // Command: FS & - select Chinese (GB2312) character set.
                     // ASCII: FS &
@@ -551,8 +555,21 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                     continue;
                 }
 
-                continue;
+                if (fsCommand == (byte)'p' && index + 3 < data.Length)
+                {
+                    // Command: FS p m n - print stored logo by identifier.
+                    // ASCII: FS p m n
+                    // HEX: 1C 70 0xMM 0xNN
+                    FlushText(allowEmpty: false);
+                    var logoId = data[index + 3];
+                    elements.Add(new StoredLogo(++sequence, logoId));
+                    index += 3;
+                    continue;
+                }
             }
+
+            continue;
+        }
 
             if (value == EscPosTokenizer.Bell)
             {
