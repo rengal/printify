@@ -75,6 +75,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
     private Document? document;
     private string currentCodePage = "437";
     private Encoding currentEncoding = Encoding.GetEncoding(437);
+    private string? pendingQrData;
 
     public EscPosTokenizerSession(TokenizerSessionOptions options, IClock clock, IBlobStorage blobStorage)
     {
@@ -298,6 +299,89 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                 if (index + 1 < data.Length)
                 {
                     var command = data[index + 1];
+                    // Command: GS ( k - QR configuration and print workflow.
+                    // ASCII: GS ( k
+                    // HEX: 1D 28 6B pL pH cn fn [data]
+                    if (command == 0x28 && index + 3 < data.Length)
+                    {
+                        var parameterLength = data[index + 3] | (data[index + 4] << 8);
+                        if (index + 5 + parameterLength <= data.Length && parameterLength >= 2)
+                        {
+                            var cn = data[index + 5];
+                            var fn = data[index + 6];
+                            var payloadLength = parameterLength - 2;
+                            var payloadSpan = payloadLength > 0 ? data.Slice(index + 7, payloadLength) : ReadOnlySpan<byte>.Empty;
+                            var handled = false;
+
+                            if (cn == 0x31)
+                            {
+                                switch (fn)
+                                {
+                                    case 0x41:
+                                        if (payloadSpan.Length > 0 && TryGetQrModel(payloadSpan[0], out var model))
+                                        {
+                                            FlushText(allowEmpty: false);
+                                            elements.Add(new SetQrModel(++sequence, model));
+                                            handled = true;
+                                        }
+
+                                        break;
+
+                                    case 0x43:
+                                        if (payloadSpan.Length > 0)
+                                        {
+                                            FlushText(allowEmpty: false);
+                                            elements.Add(new SetQrModuleSize(++sequence, payloadSpan[0]));
+                                            handled = true;
+                                        }
+
+                                        break;
+
+                                    case 0x45:
+                                        if (payloadSpan.Length > 0 && TryGetQrErrorCorrection(payloadSpan[0], out var level))
+                                        {
+                                            FlushText(allowEmpty: false);
+                                            elements.Add(new SetQrErrorCorrection(++sequence, level));
+                                            handled = true;
+                                        }
+
+                                        break;
+
+                                    case 0x50:
+                                    {
+                                        var contentSpan = payloadSpan.Length > 1 ? payloadSpan.Slice(1) : ReadOnlySpan<byte>.Empty;
+                                        var content = contentSpan.Length > 0 ? currentEncoding.GetString(contentSpan) : string.Empty;
+                                        pendingQrData = content;
+                                        FlushText(allowEmpty: false);
+                                        elements.Add(new StoreQrData(++sequence, content));
+                                        handled = true;
+                                        break;
+                                    }
+
+                                    case 0x51:
+                                    {
+                                        var content = pendingQrData ?? string.Empty;
+                                        FlushText(allowEmpty: false);
+                                        elements.Add(new PrintQrCode(++sequence, content));
+                                        handled = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            index += 4 + parameterLength;
+                            if (handled)
+                            {
+                                continue;
+                            }
+
+                            continue;
+                        }
+
+                        index += 4 + parameterLength;
+                        continue;
+                    }
+
 
                     // Command: GS v 0 m xL xH yL yH [data] - raster bit image print.
                     // ASCII: GS v 0
@@ -595,6 +679,58 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                 return true;
             default:
                 justification = default;
+                return false;
+        }
+    }
+
+    private static bool TryGetQrModel(byte value, out QrModel model)
+    {
+        switch (value)
+        {
+            case 0x31:
+            case 0x01:
+                model = QrModel.Model1;
+                return true;
+            case 0x32:
+            case 0x02:
+                model = QrModel.Model2;
+                return true;
+            case 0x33:
+            case 0x03:
+                model = QrModel.Micro;
+                return true;
+            default:
+                model = default;
+                return false;
+        }
+    }
+
+    private static bool TryGetQrErrorCorrection(byte value, out QrErrorCorrectionLevel level)
+    {
+        switch (value)
+        {
+            case (byte)'L':
+            case 0x30:
+            case 0x00:
+                level = QrErrorCorrectionLevel.Low;
+                return true;
+            case (byte)'M':
+            case 0x31:
+            case 0x01:
+                level = QrErrorCorrectionLevel.Medium;
+                return true;
+            case (byte)'Q':
+            case 0x32:
+            case 0x02:
+                level = QrErrorCorrectionLevel.Quartile;
+                return true;
+            case (byte)'H':
+            case 0x33:
+            case 0x03:
+                level = QrErrorCorrectionLevel.High;
+                return true;
+            default:
+                level = default;
                 return false;
         }
     }

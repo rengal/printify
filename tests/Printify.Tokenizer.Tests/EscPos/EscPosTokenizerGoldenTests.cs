@@ -50,6 +50,20 @@ public sealed class EscPosTokenizerGoldenTests
             new SetJustification(10, TextJustification.Left),
             new TextLine(11, string.Empty),
             new PageCut(12)
+        },
+        ["case04"] = new Element[]
+        {
+            new ResetPrinter(1),
+            new SetFont(2, 0, false, false),
+            new SetCodePage(3, "866"),
+            new SetJustification(4, TextJustification.Left),
+            new SetQrModel(5, QrModel.Model2),
+            new SetQrModuleSize(6, 7),
+            new SetQrErrorCorrection(7, QrErrorCorrectionLevel.Low),
+            new StoreQrData(8, "https://google.com"),
+            new PrintQrCode(9, "https://google.com"),
+            new TextLine(10, string.Empty),
+            new PageCut(11)
         }
     };
 
