@@ -137,8 +137,8 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
     {
         get
         {
-            // Drain the simulated buffer before processing the newly received bytes.
-        UpdateBufferState();
+            // Advance the simulated buffer state using the injected clock before sampling busy status.
+            UpdateBufferState();
             if (bytesPerSecond <= 0 && maxBufferBytes <= 0)
             {
                 return false;
