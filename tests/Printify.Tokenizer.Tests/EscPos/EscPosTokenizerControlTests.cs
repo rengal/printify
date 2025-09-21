@@ -1,5 +1,6 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
+using System.Linq;
 using Printify.Contracts;
 using Printify.Contracts.Elements;
 using Printify.Contracts.Service;
@@ -252,6 +253,45 @@ public sealed class EscPosTokenizerControlTests
                 new SetReverseMode(1, true),
                 new SetReverseMode(2, false)
             });
+    }
+
+    /// <summary>
+    /// Scenario: Simulated buffer overflow is reported when the accumulated printed bytes exceed MaxBufferBytes.
+    /// </summary>
+    [Fact]
+    public void TriggersOverflowWhenMaxBufferExceeded()
+    {
+        using var context = EscPosTestHelper.CreateContext();
+
+        // Create session with a very small max buffer and no drain to force overflow deterministically.
+        var options = new TokenizerSessionOptions
+        {
+            MaxBufferBytes = 10,
+            BytesPerSecond = 0,
+            BusyThresholdBytes = 1
+        };
+
+        var session = context.Tokenizer.CreateSession(options);
+
+        // Feed exactly MaxBufferBytes printable bytes one at a time — should NOT trigger overflow yet.
+        for (var i = 0; i < 10; i++)
+        {
+            session.Feed(new[] { (byte)'A' });
+            // Ensure overflow hasn't been triggered while at or below the limit.
+            Assert.False(session.HasOverflow);
+            // Ensure no PrinterError element was emitted yet.
+            Assert.DoesNotContain(session.Elements, e => e is PrinterError);
+        }
+
+        // Feed a single additional printable byte to exceed the configured MaxBufferBytes.
+        session.Feed(new[] { (byte)'A' });
+
+        // Now overflow should have been detected and an error element added.
+        Assert.True(session.HasOverflow);
+        Assert.Contains(session.Elements, e => e is PrinterError);
+
+        // Finalize session to flush final state.
+        session.Complete(CompletionReason.DataTimeout);
     }
 }
 

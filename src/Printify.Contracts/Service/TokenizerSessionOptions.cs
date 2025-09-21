@@ -8,6 +8,6 @@ namespace Printify.Contracts.Service;
 public sealed record TokenizerSessionOptions(
     TimeSpan? IdleTimeout = null,
     int BusyThresholdBytes = 1,
-    int MaxBufferBytes = 128 * 1024,
-    double BytesPerSecond = 0
+    int? MaxBufferBytes = 128 * 1024,
+    double? BytesPerSecond = 0d
 );
