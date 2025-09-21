@@ -1,6 +1,7 @@
 ﻿using Printify.BlobStorage.FileSystem;
 using Printify.Contracts.Service;
 using Printify.Core.Service;
+using Printify.Listener;
 using Printify.Tokenizer;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,7 @@ builder.Services.Configure<FileSystemBlobStorageOptions>(options =>
 builder.Services.AddSingleton<IBlobStorage, FileSystemBlobStorage>();
 builder.Services.AddSingleton<IClockFactory, StopwatchClockFactory>();
 builder.Services.AddSingleton<ITokenizer, EscPosTokenizer>();
+builder.Services.AddSingleton<IListenerService, ListenerService>();
 
 var app = builder.Build();
 

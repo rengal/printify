@@ -10,6 +10,7 @@
     <ProjectReference Include="..\Printify.Contracts\Printify.Contracts.csproj" />
     <ProjectReference Include="..\Printify.Core\Printify.Core.csproj" />
     <ProjectReference Include="..\Printify.BlobStorage.FileSystem\Printify.BlobStorage.FileSystem.csproj" />
+    <ProjectReference Include="..\Printify.Listener\Printify.Listener.csproj" />
     <ProjectReference Include="..\Printify.Tokenizer\Printify.Tokenizer.csproj" />
   </ItemGroup>
 
