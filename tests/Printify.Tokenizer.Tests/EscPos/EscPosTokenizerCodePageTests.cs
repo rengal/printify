@@ -1,10 +1,8 @@
 ﻿namespace Printify.Tokenizer.Tests.EscPos;
 
 using System.Collections.Generic;
-using System.Linq;
-using Printify.Contracts;
-using Printify.Contracts.Elements;
-using Printify.Contracts.Service;
+using Contracts;
+using Contracts.Elements;
 using Xunit;
 
 public sealed class EscPosTokenizerCodePageTests

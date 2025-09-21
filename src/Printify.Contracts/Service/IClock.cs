@@ -3,17 +3,22 @@ using System;
 namespace Printify.Contracts.Service;
 
 /// <summary>
-/// Stopwatch-like clock abstraction to measure elapsed intervals.
+/// Clock abstraction used by tokenizer sessions and tests to control time in a deterministic manner.
 /// </summary>
 public interface IClock
 {
     /// <summary>
-    /// Starts or restarts interval measurement.
+    /// Start the clock. Implementations may initialize or reset internal counters here.
     /// </summary>
     void Start();
 
     /// <summary>
-    /// Elapsed time in milliseconds since the last <see cref="Start"/>.
+    /// Current elapsed milliseconds since <see cref="Start"/> was called.
     /// </summary>
     long ElapsedMs { get; }
+
+    /// <summary>
+    /// Advance the clock by the specified duration. Tests use this to simulate time passage.
+    /// </summary>
+    void Advance(TimeSpan delta);
 }

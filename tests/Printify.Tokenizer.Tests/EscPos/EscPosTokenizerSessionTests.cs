@@ -2,9 +2,9 @@ namespace Printify.Tokenizer.Tests.EscPos;
 
 using System;
 using System.Text;
-using Printify.Contracts;
-using Printify.Contracts.Elements;
-using Printify.Contracts.Service;
+using Contracts;
+using Contracts.Elements;
+using Contracts.Service;
 using Xunit;
 
 public sealed class EscPosTokenizerSessionTests
@@ -68,13 +68,14 @@ public sealed class EscPosTokenizerSessionTests
     [Fact]
     public void ReportsBusyWhileProcessingPrintingBytes()
     {
-        var clock = new ManualClock();
+        // Configure a manual/test clock via the test context so time is under test control.
         var options = new TokenizerSessionOptions(
             BusyThresholdBytes: 1,
             MaxBufferBytes: 1024,
             BytesPerSecond: 10);
 
         using var context = EscPosTestHelper.CreateContext();
+        var clock = context.ClockFactory.Create();
         var session = context.Tokenizer.CreateSession(options, clock);
 
         session.Feed(Encoding.ASCII.GetBytes("ABC"));
@@ -91,13 +92,13 @@ public sealed class EscPosTokenizerSessionTests
     [Fact(Skip = "Temporarily muted pending drain bookkeeping adjustments.")]
     public void EmitsPrinterErrorWhenBufferOverflows()
     {
-        var clock = new ManualClock();
         var options = new TokenizerSessionOptions(
             BusyThresholdBytes: 1,
             MaxBufferBytes: 4,
             BytesPerSecond: 0);
 
         using var context = EscPosTestHelper.CreateContext();
+        var clock = context.ClockFactory.Create();
         var session = context.Tokenizer.CreateSession(options, clock);
 
         session.Feed(Encoding.ASCII.GetBytes("ABCDEFG"));
@@ -110,25 +111,38 @@ public sealed class EscPosTokenizerSessionTests
         Assert.Equal("ABCDEFG", text.Text);
     }
 
-    private sealed class ManualClock : IClock
+    [Fact]
+    public void SimulatedDrainReducesBufferOverTime()
     {
-        private long elapsed;
+        using var context = EscPosTestHelper.CreateContext();
+        
+        // Configure a deterministic drain rate so we can reason about bytes drained per second.
+        var options = new TokenizerSessionOptions(
+            BusyThresholdBytes: 1,
+            MaxBufferBytes: 1024,
+            BytesPerSecond: 10);
+        var clock = context.ClockFactory.Create();
+        var session = context.Tokenizer.CreateSession(options, clock);
 
-        public void Start()
-        {
-            elapsed = 0;
-        }
+        // Feed 20 printable bytes which should be accumulated into the simulated buffer.
+        session.Feed(Encoding.ASCII.GetBytes(new string('A', 20)));
 
-        public long ElapsedMs => elapsed;
+        // Immediately after feeding, buffer should be considered busy (20 bytes > threshold).
+        Assert.True(session.IsBufferBusy);
+        Assert.False(session.HasOverflow);
 
-        public void Advance(TimeSpan delta)
-        {
-            if (delta < TimeSpan.Zero)
-            {
-                throw new ArgumentOutOfRangeException(nameof(delta));
-            }
+        // Advance 1 second -> drain 10 bytes: remaining = 10 -> still busy.
+        clock.Advance(TimeSpan.FromSeconds(1));
+        Assert.True(session.IsBufferBusy);
 
-            elapsed += (long)delta.TotalMilliseconds;
-        }
+        // Advance another 1 second -> drain remaining 10 bytes: remaining = 0 -> not busy.
+        clock.Advance(TimeSpan.FromSeconds(1));
+        Assert.False(session.IsBufferBusy);
+
+        // Ensure overflow was never triggered during this scenario.
+        Assert.False(session.HasOverflow);
+
+        // Finalize session to flush state.
+        session.Complete(CompletionReason.DataTimeout);
     }
 }
