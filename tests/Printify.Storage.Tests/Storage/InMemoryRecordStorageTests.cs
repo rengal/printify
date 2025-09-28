@@ -3,12 +3,10 @@ namespace Printify.Storage.Tests.Storage;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Xunit;
 using Printify.Contracts;
 using Printify.Contracts.Elements;
 using Printify.Contracts.Service;
-using Printify.TestServcies.Storage;
+using Printify.TestServcies;
 
 public sealed class InMemoryRecordStorageTests
 {
@@ -18,8 +16,8 @@ public sealed class InMemoryRecordStorageTests
     [Fact]
     public async Task AddDocumentAsync_AssignsSequentialIdentifiers()
     {
-        await using var provider = BuildServiceProvider();
-        var storage = provider.GetRequiredService<IRecordStorage>();
+        await using var context = TestServices.CreateStorageContext();
+        var storage = context.Storage;
         var firstDocument = CreateDocument(DateTimeOffset.UnixEpoch.AddMinutes(1));
         var secondDocument = CreateDocument(DateTimeOffset.UnixEpoch.AddMinutes(2));
 
@@ -46,8 +44,8 @@ public sealed class InMemoryRecordStorageTests
     [Fact]
     public async Task ListDocumentsAsync_ReturnsNewestFirstAndSupportsBeforeId()
     {
-        await using var provider = BuildServiceProvider();
-        var storage = provider.GetRequiredService<IRecordStorage>();
+        await using var context = TestServices.CreateStorageContext();
+        var storage = context.Storage;
 
         await storage.AddDocumentAsync(CreateDocument(DateTimeOffset.UnixEpoch.AddMinutes(1)));
         await storage.AddDocumentAsync(CreateDocument(DateTimeOffset.UnixEpoch.AddMinutes(2)));
@@ -72,8 +70,8 @@ public sealed class InMemoryRecordStorageTests
     [Fact]
     public async Task ListDocumentsAsync_FiltersBySourceIp()
     {
-        await using var provider = BuildServiceProvider();
-        var storage = provider.GetRequiredService<IRecordStorage>();
+        await using var context = TestServices.CreateStorageContext();
+        var storage = context.Storage;
 
         await storage.AddDocumentAsync(CreateDocument(DateTimeOffset.UnixEpoch.AddMinutes(1), sourceIp: "10.0.0.1"));
         await storage.AddDocumentAsync(CreateDocument(DateTimeOffset.UnixEpoch.AddMinutes(2), sourceIp: "10.0.0.2"));
@@ -83,13 +81,6 @@ public sealed class InMemoryRecordStorageTests
 
         Assert.Equal(2, filtered.Count);
         Assert.All(filtered, d => Assert.Equal("10.0.0.1", d.SourceIp));
-    }
-
-    private static ServiceProvider BuildServiceProvider()
-    {
-        var services = new ServiceCollection();
-        services.AddTransient<IRecordStorage, InMemoryRecordStorage>();
-        return services.BuildServiceProvider();
     }
 
     private static Document CreateDocument(DateTimeOffset timestamp, string? sourceIp = null)

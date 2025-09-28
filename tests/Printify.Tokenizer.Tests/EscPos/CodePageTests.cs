@@ -1,5 +1,6 @@
-﻿namespace Printify.Tokenizer.Tests.EscPos;
+namespace Printify.Tokenizer.Tests.EscPos;
 
+using Printify.TestServcies;
 using System.Collections.Generic;
 using Contracts;
 using Contracts.Elements;
@@ -10,7 +11,7 @@ public sealed class CodePageTests
     [Fact]
     public void ProcessesAllCodePagesSequentially()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
         var expectedElements = new List<Element>();
         var sequence = 0;

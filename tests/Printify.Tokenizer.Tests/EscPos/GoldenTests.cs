@@ -1,5 +1,6 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
+using Printify.TestServcies;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -104,7 +105,7 @@ public sealed class GoldenTests
     [MemberData(nameof(Cases))]
     public void ParsesGoldenCases(string caseId, string base64)
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
 
         var bytes = Convert.FromBase64String(base64);

@@ -1,5 +1,6 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
+using Printify.TestServcies;
 using Contracts;
 using Contracts.Elements;
 using Contracts.Service;
@@ -13,7 +14,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsPageCutForEscSequence()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
         byte[] data =
         [
@@ -41,7 +42,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsPrinterStatusForGsSequence()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
         byte[] data =
         [
@@ -70,7 +71,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsPageCutForGsVSequence()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
         byte[] data =
         [
@@ -100,7 +101,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsResetForEscAtSequence()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([
@@ -124,7 +125,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsSetBoldModeToggleForEscE()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([
@@ -167,7 +168,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsSetUnderlineModeToggleForEscDash()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([
@@ -210,7 +211,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsSetReverseModeToggleForGsB()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([
@@ -253,7 +254,7 @@ public sealed class ControlTests
     [Fact]
     public void TriggersOverflowWhenMaxBufferExceeded()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
 
         // Create session with a very small max buffer and no drain to force overflow deterministically.
         var options = new TokenizerSessionOptions

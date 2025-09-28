@@ -1,5 +1,6 @@
-﻿namespace Printify.Tokenizer.Tests.EscPos;
+namespace Printify.Tokenizer.Tests.EscPos;
 
+using Printify.TestServcies;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,7 +17,7 @@ public sealed class RasterTests
     [Fact]
     public async Task EmitsRasterImageWithAllDotsSet()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
         var store = context.BlobStorage;
         var payload = Enumerable.Repeat((byte)0xFF, 8).ToArray();
@@ -57,7 +58,7 @@ public sealed class RasterTests
     [Fact]
     public async Task EmitsRasterImageWithNoDotsSet()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
         var store = context.BlobStorage;
         var payload = new byte[8];

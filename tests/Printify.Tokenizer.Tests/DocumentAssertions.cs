@@ -1,4 +1,4 @@
-﻿namespace Printify.Tokenizer.Tests;
+namespace Printify.Tokenizer.Tests;
 
 using System.Collections.Generic;
 using Contracts;

@@ -1,3 +1,4 @@
+using Printify.Contracts.Config;
 using Printify.Contracts.Configuration;
 
 namespace Printify.Config;

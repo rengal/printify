@@ -102,7 +102,7 @@ public sealed class ListenerService : BackgroundService, IListenerService
             // Read loop until client disconnects or host requested cancellation or idle timeout triggers.
             while (!hostCancellation.IsCancellationRequested && client.Connected)
             {
-                var readTask = stream.ReadAsync(buffer.AsMemory(0, buffer.Length), hostCancellation);
+                var readTask = stream.ReadAsync(buffer.AsMemory(0, buffer.Length), hostCancellation).AsTask();
                 var completed = await Task.WhenAny(readTask, Task.Delay(1000, hostCancellation)).ConfigureAwait(false);
 
                 if (completed == readTask)

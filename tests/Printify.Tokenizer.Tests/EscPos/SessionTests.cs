@@ -1,5 +1,6 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
+using Printify.TestServcies;
 using System;
 using System.Text;
 using Contracts;
@@ -15,7 +16,7 @@ public sealed class SessionTests
     [Fact]
     public void MarksCompletionOnComplete()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
         session.Feed(Encoding.ASCII.GetBytes("ABC"));
 
@@ -38,7 +39,7 @@ public sealed class SessionTests
     [Fact]
     public void DocumentIsUnavailableBeforeCompletion()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
 
         Assert.Throws<InvalidOperationException>(() => _ = session.Document);
@@ -50,7 +51,7 @@ public sealed class SessionTests
     [Fact]
     public void CompleteTwiceThrows()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
 
         session.Complete(CompletionReason.ClientDisconnected);
@@ -72,7 +73,7 @@ public sealed class SessionTests
             MaxBufferBytes: 1024,
             BytesPerSecond: 10);
 
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var clock = context.ClockFactory.Create();
         var session = context.Tokenizer.CreateSession(options, clock);
 
@@ -95,7 +96,7 @@ public sealed class SessionTests
             MaxBufferBytes: 4,
             BytesPerSecond: 0);
 
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var clock = context.ClockFactory.Create();
         var session = context.Tokenizer.CreateSession(options, clock);
 
@@ -112,7 +113,7 @@ public sealed class SessionTests
     [Fact]
     public void SimulatedDrainReducesBufferOverTime()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         
         // Configure a deterministic drain rate so we can reason about bytes drained per second.
         var options = new TokenizerSessionOptions(

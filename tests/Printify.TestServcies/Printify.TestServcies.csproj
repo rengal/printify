@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Printify.Contracts\Printify.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Printify.Tokenizer\Printify.Tokenizer.csproj" />
+    <ProjectReference Include="..\..\src\Printify.Listener\Printify.Listener.csproj" />
   </ItemGroup>
 
   <ItemGroup>

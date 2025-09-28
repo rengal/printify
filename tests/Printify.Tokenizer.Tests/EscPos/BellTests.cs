@@ -1,5 +1,6 @@
-﻿namespace Printify.Tokenizer.Tests.EscPos;
+namespace Printify.Tokenizer.Tests.EscPos;
 
+using Printify.TestServcies;
 using Contracts;
 using Contracts.Elements;
 using Xunit;
@@ -9,7 +10,7 @@ public sealed class BellTests
     [Fact]
     public void EmitsBellOnBelCharacter()
     {
-        using var context = EscPosTestHelper.CreateContext();
+        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
         var session = context.Tokenizer.CreateSession();
 
         session.Feed(new[] { EscPosTokenizer.Bell });
