@@ -1,12 +1,14 @@
 using System.Security.Cryptography;
 using System.Globalization;
 using System.Text;
+using Microsoft.Extensions.Options;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using Printify.Contracts;
 using Printify.Contracts.Elements;
 using Printify.Contracts.Service;
+using Printify.Contracts.Config;
 
 namespace Printify.Tokenizer;
 
@@ -61,14 +63,12 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
 
-    private readonly double? drainBytesPerSecond;
-    private readonly int? maxBufferBytes;
-    private readonly int busyThresholdBytes;
+    private readonly BufferOptions bufferOptions;
     private double bufferedBytes;
     private long lastDrainSampleMs;
     private bool hasOverflow;
 
-    private bool IsBufferTrackingEnabled => drainBytesPerSecond.HasValue || maxBufferBytes.HasValue;
+    private bool IsBufferTrackingEnabled => bufferOptions.DrainRate.HasValue || bufferOptions.MaxCapacity.HasValue;
 
     private readonly IClock clock;
     private readonly IBlobStorage blobStorage;
@@ -83,13 +83,10 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
     private Encoding currentEncoding = Encoding.GetEncoding(437);
     private string? pendingQrData;
 
-    public EscPosTokenizerSession(TokenizerSessionOptions options, IClock clock, IBlobStorage blobStorage)
+    public EscPosTokenizerSession(IOptions<BufferOptions> bufferOptions, IClock clock, IBlobStorage blobStorage)
     {
-        ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(clock);
-        drainBytesPerSecond = options.BytesPerSecond.HasValue ? Math.Max(0d, options.BytesPerSecond.Value) : null;
-        maxBufferBytes = options.MaxBufferBytes.HasValue ? Math.Max(0, options.MaxBufferBytes.Value) : null;
-        busyThresholdBytes = Math.Max(0, options.BusyThresholdBytes);
+        this.bufferOptions = bufferOptions.Value;
         this.clock = clock;
         this.blobStorage = blobStorage ?? throw new ArgumentNullException(nameof(blobStorage));
         this.clock.Start();
@@ -131,12 +128,12 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                 return false;
             }
 
-            if (!drainBytesPerSecond.HasValue)
+            if (!bufferOptions.DrainRate.HasValue)
             {
                 return false;
             }
 
-            var threshold = busyThresholdBytes > 0 ? busyThresholdBytes : 1;
+            var threshold = bufferOptions.BusyThreshold is > 0 ? bufferOptions.BusyThreshold : 1;
             return bufferedBytes >= threshold;
         }
     }
@@ -650,7 +647,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
 
         bufferedBytes += count;
 
-        if (maxBufferBytes.HasValue && bufferedBytes > maxBufferBytes.Value)
+        if (bufferOptions.MaxCapacity.HasValue && bufferedBytes > bufferOptions.MaxCapacity.Value)
         {
             TriggerOverflow();
         }
@@ -673,14 +670,14 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
             return;
         }
 
-        if (!drainBytesPerSecond.HasValue)
+        if (!bufferOptions.DrainRate.HasValue)
         {
             bufferedBytes = 0;
             lastDrainSampleMs = currentMs;
             return;
         }
 
-        if (drainBytesPerSecond.Value <= 0)
+        if (bufferOptions.DrainRate.Value <= 0)
         {
             lastDrainSampleMs = currentMs;
             return;
@@ -692,7 +689,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
             return;
         }
 
-        var drained = drainBytesPerSecond.Value * (elapsedMs / 1000.0);
+        var drained = bufferOptions.DrainRate.Value * (elapsedMs / 1000.0);
         if (drained > 0)
         {
             // Reduce the buffered byte count while keeping it non-negative.
@@ -704,7 +701,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
 
     private void TriggerOverflow()
     {
-        if (!maxBufferBytes.HasValue)
+        if (!bufferOptions.MaxCapacity.HasValue)
         {
             return;
         }
@@ -716,9 +713,9 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
             elements.Add(new PrinterError(++sequence, message));
         }
 
-        if (maxBufferBytes.Value > 0)
+        if (bufferOptions.MaxCapacity.Value > 0)
         {
-            bufferedBytes = Math.Min(bufferedBytes, maxBufferBytes.Value);
+            bufferedBytes = Math.Min(bufferedBytes, bufferOptions.MaxCapacity.Value);
         }
         else
         {

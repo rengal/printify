@@ -1,6 +1,6 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
-using Printify.TestServcies;
+using TestServices;
 using System.Text;
 using Contracts;
 using Contracts.Elements;
@@ -14,7 +14,7 @@ public sealed class TextTests
     [Fact]
     public void FlushesTextLineOnLineFeed()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
         var data = Encoding.ASCII.GetBytes("ABC\n");
 
@@ -24,10 +24,10 @@ public sealed class TextTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new TextLine(1, "ABC")
-            });
+            ]);
     }
 
     /// <summary>
@@ -36,7 +36,7 @@ public sealed class TextTests
     [Fact]
     public void ProducesSingleTextElementForPlainText()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
 
         session.Feed(Encoding.ASCII.GetBytes("ABC"));
@@ -45,10 +45,10 @@ public sealed class TextTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new TextLine(1, "ABC")
-            });
+            ]);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public sealed class TextTests
     [Fact]
     public void CoalescesSequentialPlainTextFeeds()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
 
         session.Feed(Encoding.ASCII.GetBytes("A"));
@@ -68,10 +68,10 @@ public sealed class TextTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new TextLine(1, "ABC")
-            });
+            ]);
     }
 
     /// <summary>
@@ -80,7 +80,7 @@ public sealed class TextTests
     [Fact]
     public void SplitsLinesWithinSingleFeed()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
 
         session.Feed(Encoding.ASCII.GetBytes("ABC\nDEF\nG"));
@@ -89,12 +89,12 @@ public sealed class TextTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new TextLine(1, "ABC"),
                 new TextLine(2, "DEF"),
                 new TextLine(3, "G")
-            });
+            ]);
     }
 
     /// <summary>
@@ -103,7 +103,7 @@ public sealed class TextTests
     [Fact]
     public void FlushesTrailingTextWhenCompleting()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
         session.Feed(Encoding.ASCII.GetBytes("ABC"));
 
@@ -112,10 +112,10 @@ public sealed class TextTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new TextLine(1, "ABC")
-            });
+            ]);
     }
 
     /// <summary>
@@ -124,7 +124,7 @@ public sealed class TextTests
     [Fact]
     public void DoesNotSplitLongPlainText()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
         var longText = new string('A', 10_000);
 
@@ -134,9 +134,9 @@ public sealed class TextTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new TextLine(1, longText)
-            });
+            ]);
     }
 }

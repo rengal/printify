@@ -1,6 +1,6 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
-using Printify.TestServcies;
+using TestServices;
 using Contracts;
 using Contracts.Elements;
 using Xunit;
@@ -10,7 +10,7 @@ public sealed class SetFontTests
     [Fact]
     public void EmitsSetFontWithParsedAttributes()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([

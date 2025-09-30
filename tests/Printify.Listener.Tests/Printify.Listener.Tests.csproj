@@ -1,4 +1,4 @@
-<Project Sdk='Microsoft.NET.Sdk'>
+﻿<Project Sdk='Microsoft.NET.Sdk'>
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -10,7 +10,7 @@
   <ItemGroup>
     <ProjectReference Include='..\..\src\Printify.Contracts\Printify.Contracts.csproj' />
     <ProjectReference Include='..\..\src\Printify.Listener\Printify.Listener.csproj' />
-    <ProjectReference Include='..\Printify.TestServcies\Printify.TestServcies.csproj' />
+    <ProjectReference Include='..\Printify.TestServices\Printify.TestServices.csproj' />
   </ItemGroup>
 
   <ItemGroup>

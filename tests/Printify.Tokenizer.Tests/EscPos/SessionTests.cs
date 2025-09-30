@@ -1,12 +1,12 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
-using Printify.TestServcies;
+using TestServices;
 using System;
 using System.Text;
 using Contracts;
 using Contracts.Elements;
-using Contracts.Service;
 using Xunit;
+using Contracts.Config;
 
 public sealed class SessionTests
 {
@@ -16,7 +16,10 @@ public sealed class SessionTests
     [Fact]
     public void MarksCompletionOnComplete()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
+
+        Assert.NotNull(context.Tokenizer);
+
         var session = context.Tokenizer.CreateSession();
         session.Feed(Encoding.ASCII.GetBytes("ABC"));
 
@@ -27,10 +30,10 @@ public sealed class SessionTests
         DocumentAssertions.Equal(
             document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new TextLine(1, "ABC")
-            });
+            ]);
     }
 
     /// <summary>
@@ -39,7 +42,10 @@ public sealed class SessionTests
     [Fact]
     public void DocumentIsUnavailableBeforeCompletion()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
+
+        Assert.NotNull(context.Tokenizer);
+
         var session = context.Tokenizer.CreateSession();
 
         Assert.Throws<InvalidOperationException>(() => _ = session.Document);
@@ -51,7 +57,10 @@ public sealed class SessionTests
     [Fact]
     public void CompleteTwiceThrows()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
+
+        Assert.NotNull(context.Tokenizer);
+
         var session = context.Tokenizer.CreateSession();
 
         session.Complete(CompletionReason.ClientDisconnected);
@@ -59,7 +68,7 @@ public sealed class SessionTests
         DocumentAssertions.Equal(
             document,
             Protocol.EscPos,
-            expectedElements: Array.Empty<Element>());
+            expectedElements: []);
 
         Assert.Throws<InvalidOperationException>(() => session.Complete(CompletionReason.DataTimeout));
     }
@@ -68,14 +77,20 @@ public sealed class SessionTests
     public void ReportsBusyWhileProcessingPrintingBytes()
     {
         // Configure a manual/test clock via the test context so time is under test control.
-        var options = new TokenizerSessionOptions(
-            BusyThresholdBytes: 1,
-            MaxBufferBytes: 1024,
-            BytesPerSecond: 10);
+        var bufferOptions = new BufferOptions
+        {
+            BusyThreshold = 1,
+            MaxCapacity = 1024,
+            DrainRate = 10
+        };
 
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
-        var clock = context.ClockFactory.Create();
-        var session = context.Tokenizer.CreateSession(options, clock);
+        using var context = TestServiceContext.Create(bufferOptions: bufferOptions, tokenizer: typeof(EscPosTokenizer));
+
+        Assert.NotNull(context.Tokenizer);
+
+        var session = context.Tokenizer.CreateSession();
+
+        var clock = context.ClockFactory.Clocks.Single();
 
         session.Feed(Encoding.ASCII.GetBytes("ABC"));
 
@@ -88,40 +103,57 @@ public sealed class SessionTests
         Assert.False(session.IsBufferBusy);
     }
 
-    [Fact(Skip = "Temporarily muted pending drain bookkeeping adjustments.")]
+    [Fact]
     public void EmitsPrinterErrorWhenBufferOverflows()
     {
-        var options = new TokenizerSessionOptions(
-            BusyThresholdBytes: 1,
-            MaxBufferBytes: 4,
-            BytesPerSecond: 0);
+        var bufferOptions = new BufferOptions
+        {
+            BusyThreshold = 1,
+            MaxCapacity = 4,
+            DrainRate = 0
+        };
 
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
-        var clock = context.ClockFactory.Create();
-        var session = context.Tokenizer.CreateSession(options, clock);
+        using var context = TestServiceContext.Create(bufferOptions: bufferOptions, tokenizer: typeof(EscPosTokenizer));
+
+        Assert.NotNull(context.Tokenizer);
+
+        var session = context.Tokenizer.CreateSession();
 
         session.Feed(Encoding.ASCII.GetBytes("ABCDEFG"));
         session.Complete(CompletionReason.DataTimeout);
 
         Assert.True(session.HasOverflow);
-        var error = Assert.IsType<PrinterError>(session.Elements[0]);
-        Assert.Contains("overflow", error.Message, StringComparison.OrdinalIgnoreCase);
-        var text = Assert.IsType<TextLine>(session.Elements[1]);
-        Assert.Equal("ABCDEFG", text.Text);
+
+        Assert.True(session.IsCompleted);
+        var document = session.Document;
+        DocumentAssertions.Equal(
+            document,
+            Protocol.EscPos,
+            expectedElements:
+            [
+                new TextLine(1, "ABCDEFG"),
+                new PrinterError(2, string.Empty)
+            ]);
     }
 
     [Fact]
     public void SimulatedDrainReducesBufferOverTime()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
-        
         // Configure a deterministic drain rate so we can reason about bytes drained per second.
-        var options = new TokenizerSessionOptions(
-            BusyThresholdBytes: 1,
-            MaxBufferBytes: 1024,
-            BytesPerSecond: 10);
-        var clock = context.ClockFactory.Create();
-        var session = context.Tokenizer.CreateSession(options, clock);
+        var bufferOptions = new BufferOptions
+        {
+            BusyThreshold = 1,
+            MaxCapacity = 1024,
+            DrainRate = 10
+        };
+
+        using var context = TestServiceContext.Create(bufferOptions: bufferOptions, tokenizer: typeof(EscPosTokenizer));
+
+        Assert.NotNull(context.Tokenizer);
+
+        var session = context.Tokenizer.CreateSession();
+
+        var clock = context.ClockFactory.Clocks.Single();
 
         // Feed 20 printable bytes which should be accumulated into the simulated buffer.
         session.Feed(Encoding.ASCII.GetBytes(new string('A', 20)));

@@ -4,13 +4,15 @@ using Printify.Contracts.Service;
 using Printify.Core.Service;
 using Printify.Listener;
 using Printify.Tokenizer;
+using BufferOptions = Printify.Contracts.Config.BufferOptions;
+using ListenerOptions = Printify.Listener.ListenerOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Optional: load external config.json (git-ignored) to simplify ops without env vars
 builder.Configuration.AddJsonFile("config.json", optional: false, reloadOnChange: true);
 
-builder.Services.Configure<Listener>(builder.Configuration.GetSection("Listener"));
+builder.Services.Configure<ListenerOptions>(builder.Configuration.GetSection("Listener"));
 builder.Services.Configure<Page>(builder.Configuration.GetSection("Page"));
 builder.Services.Configure<Storage>(builder.Configuration.GetSection("Storage"));
 builder.Services.Configure<BufferOptions>(builder.Configuration.GetSection("Buffer"));

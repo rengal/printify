@@ -1,4 +1,6 @@
-﻿using Printify.Contracts.Service;
+﻿using Microsoft.Extensions.Options;
+using Printify.Contracts.Config;
+using Printify.Contracts.Service;
 
 namespace Printify.Tokenizer;
 
@@ -10,13 +12,13 @@ public sealed class EscPosTokenizer : ITokenizer
     public const byte Lf = 0x0A;
     public const byte Bell = 0x07;
 
+    private readonly IOptions<BufferOptions> bufferOptions;
     private readonly IClockFactory clockFactory;
     private readonly IBlobStorage blobStorage;
 
-    public EscPosTokenizer(IClockFactory clockFactory, IBlobStorage blobStorage)
+    public EscPosTokenizer(IOptions<BufferOptions> bufferOptions, IClockFactory clockFactory, IBlobStorage blobStorage)
     {
-        ArgumentNullException.ThrowIfNull(clockFactory);
-        ArgumentNullException.ThrowIfNull(blobStorage);
+        this.bufferOptions = bufferOptions;
         this.clockFactory = clockFactory;
         this.blobStorage = blobStorage;
     }
@@ -26,9 +28,9 @@ public sealed class EscPosTokenizer : ITokenizer
         get { return "escpos"; }
     }
 
-    public ITokenizerSession CreateSession(TokenizerSessionOptions? options = null, IClock? clock = null)
+    public ITokenizerSession CreateSession()
     {
-        var resolvedClock = clock ?? clockFactory.Create();
-        return new EscPosTokenizerSession(options ?? new TokenizerSessionOptions(), resolvedClock, blobStorage);
+        var clock = clockFactory.Create();
+        return new EscPosTokenizerSession(bufferOptions, clock, blobStorage);
     }
 }

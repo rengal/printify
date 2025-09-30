@@ -1,6 +1,6 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
-using Printify.TestServcies;
+using TestServices;
 using System;
 using System.Collections.Generic;
 using System.Text;

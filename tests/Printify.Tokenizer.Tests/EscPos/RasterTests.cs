@@ -1,6 +1,6 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
-using Printify.TestServcies;
+using TestServices;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -17,7 +17,7 @@ public sealed class RasterTests
     [Fact]
     public async Task EmitsRasterImageWithAllDotsSet()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        await using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
         var store = context.BlobStorage;
         var payload = Enumerable.Repeat((byte)0xFF, 8).ToArray();
@@ -32,10 +32,10 @@ public sealed class RasterTests
         DocumentAssertions.Equal(
             document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new RasterImage(1, 8, 8, ModeSingleDensity, raster.BlobId, raster.ContentType, raster.ContentLength, raster.Checksum)
-            });
+            ]);
 
         await using var blobStream = await store.GetAsync(raster.BlobId!);
         Assert.NotNull(blobStream);
@@ -58,7 +58,7 @@ public sealed class RasterTests
     [Fact]
     public async Task EmitsRasterImageWithNoDotsSet()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        await using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
         var store = context.BlobStorage;
         var payload = new byte[8];
@@ -73,10 +73,10 @@ public sealed class RasterTests
         DocumentAssertions.Equal(
             document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new RasterImage(1, 8, 8, ModeSingleDensity, raster.BlobId, raster.ContentType, raster.ContentLength, raster.Checksum)
-            });
+            ]);
 
         await using var blobStream = await store.GetAsync(raster.BlobId!);
         Assert.NotNull(blobStream);

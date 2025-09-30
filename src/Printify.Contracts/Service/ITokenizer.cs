@@ -13,10 +13,5 @@ public interface ITokenizer
     /// <summary>
     /// Creates a stateful tokenizer session.
     /// </summary>
-    /// <param name="options">Optional session settings that influence buffering, limits, and drain rate.</param>
-    /// <param name="clock">
-    /// Optional clock that drives time-based behaviors. Provide a manual clock in tests to advance time
-    /// deterministically; omit the argument to use the default stopwatch-backed clock in production.
-    /// </param>
-    ITokenizerSession CreateSession(TokenizerSessionOptions? options = null, IClock? clock = null);
+    ITokenizerSession CreateSession();
 }

@@ -1,31 +1,30 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
-using Printify.TestServcies;
+using TestServices;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Printify.Contracts;
-using Printify.Contracts.Elements;
-using Printify.Contracts.Service;
-using Printify.Tokenizer.Tests;
+using Contracts;
+using Contracts.Elements;
+using Tests;
 using Xunit;
 
 public sealed class GoldenTests
 {
     private static readonly IReadOnlyDictionary<string, Element[]> Expectations = new Dictionary<string, Element[]>(StringComparer.OrdinalIgnoreCase)
     {
-        ["case01"] = new Element[]
-        {
+        ["case01"] =
+        [
             new ResetPrinter(1),
             new SetFont(2, 0, false, false),
             new SetCodePage(3, "866"),
             new SetFont(4, 0, false, false),
             new TextLine(5, Pad("font 0", 42)),
             new Pagecut(6)
-        },
-        ["case02"] = new Element[]
-        {
+        ],
+        ["case02"] =
+        [
             new ResetPrinter(1),
             new SetFont(2, 0, false, false),
             new SetCodePage(3, "866"),
@@ -36,9 +35,9 @@ public sealed class GoldenTests
             new SetFont(8, 0, true, true),
             new TextLine(9, Pad("font 2", 21)),
             new Pagecut(10)
-        },
-        ["case03"] = new Element[]
-        {
+        ],
+        ["case03"] =
+        [
             new ResetPrinter(1),
             new SetFont(2, 0, false, false),
             new SetCodePage(3, "866"),
@@ -51,9 +50,9 @@ public sealed class GoldenTests
             new SetJustification(10, TextJustification.Left),
             new TextLine(11, string.Empty),
             new Pagecut(12)
-        },
-        ["case04"] = new Element[]
-        {
+        ],
+        ["case04"] =
+        [
             new ResetPrinter(1),
             new SetFont(2, 0, false, false),
             new SetCodePage(3, "866"),
@@ -65,14 +64,14 @@ public sealed class GoldenTests
             new PrintQrCode(9, "https://google.com"),
             new TextLine(10, string.Empty),
             new Pagecut(11)
-        },
-        ["case05"] = new Element[]
-        {
+        ],
+        ["case05"] =
+        [
             new ResetPrinter(1),
             new SetFont(2, 0, false, false),
             new StoredLogo(3, 0),
             new Pagecut(4)
-        }
+        ]
     };
 
     private static string Pad(string text, int totalLength)
@@ -92,11 +91,11 @@ public sealed class GoldenTests
 
             foreach (var path in Directory.EnumerateFiles(dataDirectory, "case*.b64").OrderBy(path => path, StringComparer.OrdinalIgnoreCase))
             {
-                yield return new object[]
-                {
-                    Path.GetFileNameWithoutExtension(path)!,
+                yield return
+                [
+                    Path.GetFileNameWithoutExtension(path),
                     File.ReadAllText(path)
-                };
+                ];
             }
         }
     }
@@ -105,7 +104,10 @@ public sealed class GoldenTests
     [MemberData(nameof(Cases))]
     public void ParsesGoldenCases(string caseId, string base64)
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
+
+        Assert.NotNull(context.Tokenizer);
+
         var session = context.Tokenizer.CreateSession();
 
         var bytes = Convert.FromBase64String(base64);

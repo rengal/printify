@@ -1,11 +1,11 @@
-namespace Printify.TestServcies.Tokenizers;
+namespace Printify.TestServices.Tokenizers;
 
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Printify.Contracts;
-using Printify.Contracts.Elements;
-using Printify.Contracts.Service;
+using Contracts;
+using Contracts.Elements;
+using Contracts.Service;
 
 /// <summary>
 /// Minimal tokenizer implementation for listener-focused tests.
@@ -27,7 +27,7 @@ public sealed class TestTokenizer : ITokenizer
 
     public string Protocol => "test";
 
-    public ITokenizerSession CreateSession(TokenizerSessionOptions? options = null, IClock? clock = null)
+    public ITokenizerSession CreateSession()
     {
         var session = new TestTokenizerSession();
         LastSession = session;
@@ -56,7 +56,7 @@ public sealed class TestTokenizerSession : ITokenizerSession
 
     public long TotalConsumed => collectedBytes.Count;
 
-    public IReadOnlyList<Element> Elements => Array.Empty<Element>();
+    public IReadOnlyList<Element> Elements => [];
 
     public Document? Document => null;
 

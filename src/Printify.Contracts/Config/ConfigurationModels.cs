@@ -5,7 +5,7 @@ namespace Printify.Contracts.Config;
 /// <summary>
 /// Listener endpoint configuration.
 /// </summary>
-public sealed class Listener
+public sealed class ListenerOptions
 {
     [ConfigurationKeyName("url")]
     public string Url { get; init; } = "http://0.0.0.0:9100";
@@ -36,17 +36,26 @@ public sealed class Storage
 }
 
 /// <summary>
-/// Buffer configuration (drain rate, maximum size
+/// Configuration for the simulated printer buffer: throughput, busy threshold, and capacity.
 /// </summary>
 public sealed class BufferOptions
 {
     /// <summary>
-    /// Simulated processing throughput expressed as bytes per second. When zero or negative, simulation is disabled.
+    /// Simulated drain rate of the buffer, expressed in <b>bytes per second</b>.
+    /// When set to 0 or <c>null</c>, the buffer drains instantly (no throttling).
     /// </summary>
-    public double? BytesPerSecond { get; init; } = null;
+    public double? DrainRate { get; init; }
 
     /// <summary>
-    /// Maximum size of the simulated printer buffer in bytes. When zero or negative, overflow simulation is disabled.
+    /// Threshold at which the buffer is considered "busy", in <b>bytes</b>.
+    /// Useful for simulating back-pressure or warnings.
+    /// If <c>null</c>, the buffer never enters a busy state.
     /// </summary>
-    public int? MaxBufferSize { get; init; } = null;
+    public int? BusyThreshold { get; init; }
+
+    /// <summary>
+    /// Maximum capacity of the buffer, in <b>bytes</b>.
+    /// When set to 0, negative, or <c>null</c>, overflow simulation is disabled.
+    /// </summary>
+    public int? MaxCapacity { get; init; }
 }

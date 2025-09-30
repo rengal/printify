@@ -17,9 +17,4 @@ public sealed class ListenerOptions
     /// Idle timeout to consider session completed if no data is received (seconds).
     /// </summary>
     public int IdleTimeoutSeconds { get; init; } = 30;
-
-    /// <summary>
-    /// Default tokenizer session options applied for each new connection.
-    /// </summary>
-    public TokenizerSessionOptions SessionOptions { get; init; } = new TokenizerSessionOptions();
 }

@@ -1,12 +1,10 @@
 namespace Printify.Storage.Tests.Storage;
 
 using System;
-using System.Linq;
 using System.Threading.Tasks;
-using Printify.Contracts;
-using Printify.Contracts.Elements;
-using Printify.Contracts.Service;
-using Printify.TestServcies;
+using Contracts;
+using Contracts.Elements;
+using TestServices;
 
 public sealed class InMemoryRecordStorageTests
 {
@@ -16,8 +14,8 @@ public sealed class InMemoryRecordStorageTests
     [Fact]
     public async Task AddDocumentAsync_AssignsSequentialIdentifiers()
     {
-        await using var context = TestServices.CreateStorageContext();
-        var storage = context.Storage;
+        await using var context = TestServiceContext.Create();
+        var storage = context.RecordStorage;
         var firstDocument = CreateDocument(DateTimeOffset.UnixEpoch.AddMinutes(1));
         var secondDocument = CreateDocument(DateTimeOffset.UnixEpoch.AddMinutes(2));
 
@@ -32,8 +30,8 @@ public sealed class InMemoryRecordStorageTests
 
         Assert.NotNull(firstRoundTrip);
         Assert.NotNull(secondRoundTrip);
-        Assert.Equal(firstId, firstRoundTrip!.Id);
-        Assert.Equal(secondId, secondRoundTrip!.Id);
+        Assert.Equal(firstId, firstRoundTrip.Id);
+        Assert.Equal(secondId, secondRoundTrip.Id);
         Assert.Equal(firstDocument.Elements.Count, firstRoundTrip.Elements.Count);
         Assert.Equal(secondDocument.Timestamp, secondRoundTrip.Timestamp);
     }
@@ -44,8 +42,8 @@ public sealed class InMemoryRecordStorageTests
     [Fact]
     public async Task ListDocumentsAsync_ReturnsNewestFirstAndSupportsBeforeId()
     {
-        await using var context = TestServices.CreateStorageContext();
-        var storage = context.Storage;
+        await using var context = TestServiceContext.Create();
+        var storage = context.RecordStorage;
 
         await storage.AddDocumentAsync(CreateDocument(DateTimeOffset.UnixEpoch.AddMinutes(1)));
         await storage.AddDocumentAsync(CreateDocument(DateTimeOffset.UnixEpoch.AddMinutes(2)));
@@ -70,8 +68,8 @@ public sealed class InMemoryRecordStorageTests
     [Fact]
     public async Task ListDocumentsAsync_FiltersBySourceIp()
     {
-        await using var context = TestServices.CreateStorageContext();
-        var storage = context.Storage;
+        await using var context = TestServiceContext.Create();
+        var storage = context.RecordStorage;
 
         await storage.AddDocumentAsync(CreateDocument(DateTimeOffset.UnixEpoch.AddMinutes(1), sourceIp: "10.0.0.1"));
         await storage.AddDocumentAsync(CreateDocument(DateTimeOffset.UnixEpoch.AddMinutes(2), sourceIp: "10.0.0.2"));
@@ -90,8 +88,6 @@ public sealed class InMemoryRecordStorageTests
             timestamp,
             Protocol.EscPos,
             sourceIp,
-            new Element[] { new FakeElement(0) });
+            [new TextLine(0, "Sample Text")]);
     }
-
-    private sealed record FakeElement(int SequenceValue) : Element(SequenceValue);
 }

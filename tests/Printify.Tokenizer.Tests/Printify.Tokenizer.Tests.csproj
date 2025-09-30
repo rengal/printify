@@ -10,7 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Printify.Contracts\Printify.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Printify.Tokenizer\Printify.Tokenizer.csproj" />
-    <ProjectReference Include="..\Printify.TestServcies\Printify.TestServcies.csproj" />
+    <ProjectReference Include="..\Printify.TestServices\Printify.TestServices.csproj" />
   </ItemGroup>
 
   <ItemGroup>

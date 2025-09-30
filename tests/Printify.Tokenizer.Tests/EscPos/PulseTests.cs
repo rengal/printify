@@ -1,6 +1,6 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
-using Printify.TestServcies;
+using TestServices;
 using Contracts;
 using Contracts.Elements;
 using Xunit;
@@ -10,7 +10,7 @@ public sealed class PulseTests
     [Fact]
     public void EmitsPulseForEscSequence()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([
@@ -25,9 +25,9 @@ public sealed class PulseTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new Pulse(1, PulsePin.Drawer2, 10, 20)
-            });
+            ]);
     }
 }

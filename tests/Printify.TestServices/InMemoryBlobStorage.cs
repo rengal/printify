@@ -1,11 +1,7 @@
-namespace Printify.TestServcies.Storage;
-
-using System;
 using System.Collections.Concurrent;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using Printify.Contracts.Service;
+
+namespace Printify.TestServices;
 
 /// <summary>
 /// Simple in-memory blob store used only for tests.
@@ -45,11 +41,11 @@ public sealed class InMemoryBlobStorage : IBlobStorage
 
     public ValueTask DeleteAsync(string blobId, CancellationToken cancellationToken = default)
     {
-        if (blobId != null)
-        {
-            store.TryRemove(blobId, out _);
-            metadataStore.TryRemove(blobId, out _);
-        }
+        if (string.IsNullOrEmpty(blobId))
+            throw new ArgumentException(nameof(blobId));
+
+        store.TryRemove(blobId, out _);
+        metadataStore.TryRemove(blobId, out _);
 
         return ValueTask.CompletedTask;
     }

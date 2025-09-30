@@ -1,20 +1,21 @@
+using Printify.Contracts.Config;
+
 namespace Printify.Tokenizer.Tests.EscPos;
 
-using Printify.TestServcies;
+using TestServices;
 using Contracts;
 using Contracts.Elements;
-using Contracts.Service;
 using Xunit;
 
 public sealed class ControlTests
 {
     /// <summary>
-    /// Scenario: ESC i sequence should emit a page cut even without newline before it.
+    /// Scenario: "ESC i" sequence should emit a page cut even without newline before it.
     /// </summary>
     [Fact]
     public void EmitsPageCutForEscSequence()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
         byte[] data =
         [
@@ -30,10 +31,10 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new Pagecut(1)
-            });
+            ]);
     }
 
     /// <summary>
@@ -42,7 +43,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsPrinterStatusForGsSequence()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
         byte[] data =
         [
@@ -59,10 +60,10 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new PrinterStatus(1, 0x42, null)
-            });
+            ]);
     }
 
     /// <summary>
@@ -71,7 +72,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsPageCutForGsVSequence()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
         byte[] data =
         [
@@ -89,10 +90,10 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new Pagecut(1)
-            });
+            ]);
     }
 
     /// <summary>
@@ -101,7 +102,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsResetForEscAtSequence()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([
@@ -113,10 +114,10 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new ResetPrinter(1)
-            });
+            ]);
     }
 
     /// <summary>
@@ -125,7 +126,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsSetBoldModeToggleForEscE()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([
@@ -155,11 +156,11 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new SetBoldMode(1, true),
                 new SetBoldMode(2, false)
-            });
+            ]);
     }
 
     /// <summary>
@@ -168,7 +169,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsSetUnderlineModeToggleForEscDash()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([
@@ -198,11 +199,11 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new SetUnderlineMode(1, true),
                 new SetUnderlineMode(2, false)
-            });
+            ]);
     }
 
     /// <summary>
@@ -211,7 +212,7 @@ public sealed class ControlTests
     [Fact]
     public void EmitsSetReverseModeToggleForGsB()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
+        using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([
@@ -241,11 +242,11 @@ public sealed class ControlTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new SetReverseMode(1, true),
                 new SetReverseMode(2, false)
-            });
+            ]);
     }
 
     /// <summary>
@@ -254,22 +255,22 @@ public sealed class ControlTests
     [Fact]
     public void TriggersOverflowWhenMaxBufferExceeded()
     {
-        using var context = TestServices.CreateTokenizerContext<EscPosTokenizer>();
-
         // Create session with a very small max buffer and no drain to force overflow deterministically.
-        var options = new TokenizerSessionOptions
+        var bufferOptions = new BufferOptions
         {
-            MaxBufferBytes = 10,
-            BytesPerSecond = 0,
-            BusyThresholdBytes = 1
+            MaxCapacity = 10,
+            DrainRate = 0,
+            BusyThreshold = 1
         };
 
-        var session = context.Tokenizer.CreateSession(options);
+        using var context = TestServiceContext.Create(bufferOptions: bufferOptions, tokenizer: typeof(EscPosTokenizer));
+
+        var session = context.Tokenizer.CreateSession();
 
         // Feed exactly MaxBufferBytes printable bytes one at a time — should NOT trigger overflow yet.
         for (var i = 0; i < 10; i++)
         {
-            session.Feed(new[] { (byte)'A' });
+            session.Feed([(byte)'A']);
             // Ensure overflow hasn't been triggered while at or below the limit.
             Assert.False(session.HasOverflow);
             // Ensure no PrinterError element was emitted yet.
@@ -277,7 +278,7 @@ public sealed class ControlTests
         }
 
         // Feed a single additional printable byte to exceed the configured MaxBufferBytes.
-        session.Feed(new[] { (byte)'A' });
+        session.Feed([(byte)'A']);
 
         // Now overflow should have been detected and an error element added.
         Assert.True(session.HasOverflow);

@@ -6,8 +6,9 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Contracts;
+using Contracts.Elements;
 using Contracts.Service;
 
 /// <summary>
@@ -15,39 +16,30 @@ using Contracts.Service;
 /// </summary>
 public sealed class ListenerService : BackgroundService, IListenerService
 {
-    private readonly ILogger<ListenerService> logger;
     private readonly ITokenizer tokenizer;
     private readonly IClockFactory clockFactory;
+    private readonly IRecordStorage recordStorage;
     private readonly ListenerOptions options;
 
     public ListenerService(
-        ILogger<ListenerService> logger,
         ITokenizer tokenizer,
         IClockFactory clockFactory,
+        IRecordStorage recordStorage,
         IOptions<ListenerOptions> options)
     {
-        this.logger = logger;
         this.tokenizer = tokenizer;
         this.clockFactory = clockFactory;
+        this.recordStorage = recordStorage;
         this.options = options.Value;
     }
 
-    /// <summary>
-    /// Host calls StartAsync which in BackgroundService kicks off ExecuteAsync.
-    /// Overriding allows this class to be discovered through IListenerService as well.
-    /// </summary>
     public override Task StartAsync(CancellationToken cancellationToken)
     {
-        // Delegate to base to start ExecuteAsync in the background.
         return base.StartAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// Host will call StopAsync on shutdown; override to ensure we propagate to base.
-    /// </summary>
     public override Task StopAsync(CancellationToken cancellationToken)
     {
-        // Delegate to base which signals ExecuteAsync to stop and waits for completion.
         return base.StopAsync(cancellationToken);
     }
 
@@ -55,7 +47,7 @@ public sealed class ListenerService : BackgroundService, IListenerService
     {
         var listener = new TcpListener(IPAddress.Any, options.Port);
         listener.Start();
-        logger.LogInformation("Listener started on port {Port}", options.Port);
+        Console.WriteLine($"Listener started on port {options.Port}");
 
         try
         {
@@ -71,35 +63,34 @@ public sealed class ListenerService : BackgroundService, IListenerService
                     break;
                 }
 
-                // Handle each client in background (fire-and-forget)
                 _ = Task.Run(() => HandleClientAsync(client, stoppingToken), CancellationToken.None);
             }
         }
         finally
         {
             listener.Stop();
-            logger.LogInformation("Listener stopped");
+            //logger.LogInformation("Listener stopped");
         }
     }
 
     private async Task HandleClientAsync(TcpClient client, CancellationToken hostCancellation)
     {
-        // Create a dedicated clock and tokenizer session for this connection.
+        var remoteEndpoint = client.Client.RemoteEndPoint as IPEndPoint;
+        var remoteIp = remoteEndpoint?.Address.ToString(); // Capture client IP for document metadata.
+
         var clock = clockFactory.Create();
         clock.Start();
 
-        var sessionOptions = options.SessionOptions;
-        var session = tokenizer.CreateSession(sessionOptions, clock);
+        var session = tokenizer.CreateSession();
 
         var stream = client.GetStream();
         var buffer = new byte[4096];
-        // Track last activity in ms using the injected clock.
         var lastActivityMs = clock.ElapsedMs;
         var idleTimeoutMs = Math.Max(0, options.IdleTimeoutSeconds) * 1000L;
+        CompletionReason? completionReason = null;
 
         try
         {
-            // Read loop until client disconnects or host requested cancellation or idle timeout triggers.
             while (!hostCancellation.IsCancellationRequested && client.Connected)
             {
                 var readTask = stream.ReadAsync(buffer.AsMemory(0, buffer.Length), hostCancellation).AsTask();
@@ -110,54 +101,42 @@ public sealed class ListenerService : BackgroundService, IListenerService
                     var bytesRead = await readTask.ConfigureAwait(false);
                     if (bytesRead == 0)
                     {
-                        // Client closed connection — mark session completed due to client disconnect.
-                        logger.LogDebug("Client disconnected, completing session (ClientDisconnected)");
-                        session.Complete(Printify.Contracts.Elements.CompletionReason.ClientDisconnected);
+                        //logger.LogDebug("Client disconnected, completing session (ClientDisconnected)");
+                        completionReason = CompletionReason.ClientDisconnected;
                         break;
                     }
 
-                    // Feed bytes into tokenizer session.
                     session.Feed(buffer.AsSpan(0, bytesRead));
                     lastActivityMs = clock.ElapsedMs;
                     continue;
                 }
 
-                // Periodic tick: check idle timeout using injected clock.
                 if (idleTimeoutMs > 0 && (clock.ElapsedMs - lastActivityMs) >= idleTimeoutMs)
                 {
-                    // Idle timeout reached — finalize session with DataTimeout.
-                    logger.LogDebug("Idle timeout reached, completing session (DataTimeout)");
-                    session.Complete(Printify.Contracts.Elements.CompletionReason.DataTimeout);
+                    //logger.LogDebug("Idle timeout reached, completing session (DataTimeout)");
+                    completionReason = CompletionReason.DataTimeout;
                     break;
                 }
             }
+
+            completionReason ??= CompletionReason.DataTimeout;
         }
         catch (OperationCanceledException)
         {
-            // Host shutdown — ensure session is completed.
-            try
-            {
-                session.Complete(Printify.Contracts.Elements.CompletionReason.DataTimeout);
-            }
-            catch
-            {
-                // ignore
-            }
+            completionReason ??= CompletionReason.DataTimeout;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error while processing client; completing session");
-            try
-            {
-                session.Complete(Printify.Contracts.Elements.CompletionReason.DataTimeout);
-            }
-            catch
-            {
-                // ignore
-            }
+            //logger.LogError(ex, "Error while processing client; completing session");
+            completionReason ??= CompletionReason.DataTimeout;
         }
         finally
         {
+            if (completionReason.HasValue)
+            {
+                await FinalizeSessionAsync(session, completionReason.Value, remoteIp, hostCancellation).ConfigureAwait(false);
+            }
+
             try
             {
                 client.Close();
@@ -168,4 +147,58 @@ public sealed class ListenerService : BackgroundService, IListenerService
             }
         }
     }
+
+    private async Task FinalizeSessionAsync(
+        ITokenizerSession session,
+        CompletionReason reason,
+        string? remoteIp,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            session.Complete(reason);
+        }
+        catch (Exception ex)
+        {
+            //logger.LogWarning(ex, "Tokenizer session failed to complete");
+            return;
+        }
+
+        if (!session.IsCompleted)
+        {
+            return;
+        }
+
+        Document? document;
+        try
+        {
+            document = session.Document;
+        }
+        catch (Exception ex)
+        {
+            //logger.LogWarning(ex, "Tokenizer session did not expose a document");
+            return;
+        }
+
+        if (document is null)
+        {
+            return;
+        }
+
+        var enrichedDocument = document with { Id = 0, SourceIp = remoteIp ?? document.SourceIp };
+
+        try
+        {
+            await recordStorage.AddDocumentAsync(enrichedDocument, cancellationToken).ConfigureAwait(false); // Persist document for downstream retrieval tests and UI.
+        }
+        catch (Exception ex)
+        {
+            //logger.LogError(ex, "Failed to persist document to record storage");
+        }
+    }
 }
+
+
+
+
+
