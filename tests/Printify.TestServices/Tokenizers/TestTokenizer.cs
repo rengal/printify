@@ -1,11 +1,13 @@
+using Printify.Contracts.Services;
+
 namespace Printify.TestServices.Tokenizers;
 
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Contracts;
-using Contracts.Elements;
-using Contracts.Service;
+using Contracts.Core;
+using Contracts.Documents;
+using Contracts.Documents.Elements;
 
 /// <summary>
 /// Minimal tokenizer implementation for listener-focused tests.

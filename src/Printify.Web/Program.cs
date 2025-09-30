@@ -1,6 +1,6 @@
 using Printify.BlobStorage.FileSystem;
 using Printify.Contracts.Config;
-using Printify.Contracts.Service;
+using Printify.Contracts.Services;
 using Printify.Core.Service;
 using Printify.Listener;
 using Printify.Tokenizer;

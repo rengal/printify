@@ -1,7 +1,6 @@
 namespace Printify.Listener;
 
 using System;
-using Printify.Contracts.Service;
 
 /// <summary>
 /// Configuration for the TCP listener and default session options.

@@ -2,8 +2,8 @@ namespace Printify.Tokenizer.Tests.EscPos;
 
 using TestServices;
 using Contracts;
-using Contracts.Elements;
 using Xunit;
+using Contracts.Documents.Elements;
 
 public sealed class PagecutTests
 {

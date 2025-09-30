@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Printify.Contracts.Config;
+using Printify.Contracts.Services;
 
 namespace Printify.TestServices;
 
@@ -7,7 +8,6 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Contracts.Service;
 using Listener;
 using System.Net.Sockets;
 using System.Net;

@@ -1,5 +1,5 @@
-using Printify.Contracts;
-using Printify.Contracts.Service;
+using Printify.Contracts.Documents;
+using Printify.Contracts.Services;
 
 namespace Printify.TestServices;
 

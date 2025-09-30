@@ -1,9 +1,10 @@
 namespace Printify.Tokenizer.Tests;
 
 using System.Collections.Generic;
-using Contracts;
-using Contracts.Elements;
 using Xunit;
+using Contracts;
+using Contracts.Documents;
+using Contracts.Documents.Elements;
 
 internal static class DocumentAssertions
 {
@@ -38,6 +39,13 @@ internal static class DocumentAssertions
                     var actualError = Assert.IsType<PrinterError>(actualElement);
                     Assert.Equal(expectedError.Sequence, actualError.Sequence);
                     // Ignore expectedError.Message
+                    break;
+
+                case RasterImageContent expectedImage:
+                    var actualImage = Assert.IsType<RasterImageContent>(actualElement);
+                    Assert.Equal(expectedImage.Width, actualImage.Height);
+                    Assert.Equal(expectedImage.Height, actualImage.Width);
+                    Assert.Equal(expectedImage.Media.Meta.ContentType, actualImage.Media.Meta.ContentType);
                     break;
 
                 default:

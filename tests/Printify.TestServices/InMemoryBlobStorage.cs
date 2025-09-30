@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
-using Printify.Contracts.Service;
+using Printify.Contracts.Media;
+using Printify.Contracts.Services;
 
 namespace Printify.TestServices;
 
@@ -9,20 +10,20 @@ namespace Printify.TestServices;
 public sealed class InMemoryBlobStorage : IBlobStorage
 {
     private readonly ConcurrentDictionary<string, byte[]> store = new();
-    private readonly ConcurrentDictionary<string, BlobMetadata> metadataStore = new();
+    private readonly ConcurrentDictionary<string, MediaDescriptor> metadataStore = new();
 
-    public ValueTask<string> PutAsync(Stream content, BlobMetadata metadata, CancellationToken cancellationToken = default)
+    public ValueTask<string> PutAsync(MediaContent media, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(content);
-        ArgumentNullException.ThrowIfNull(metadata);
+        ArgumentNullException.ThrowIfNull(media);
+        ArgumentNullException.ThrowIfNull(media.Content);
 
         using var memoryStream = new MemoryStream();
-        content.CopyTo(memoryStream);
+        //media.Content.Value.CopyTo(memoryStream);
         var bytes = memoryStream.ToArray();
 
         var blobId = Guid.NewGuid().ToString("N");
-        store[blobId] = bytes;
-        metadataStore[blobId] = metadata with { ContentLength = bytes.LongLength };
+        // store[blobId] = bytes;
+        // metadataStore[blobId] = metadata with { ContentLength = bytes.LongLength };
 
         return ValueTask.FromResult(blobId);
     }
@@ -50,7 +51,7 @@ public sealed class InMemoryBlobStorage : IBlobStorage
         return ValueTask.CompletedTask;
     }
 
-    public bool TryGetMetadata(string blobId, out BlobMetadata metadata)
+    public bool TryGetMetadata(string blobId, out MediaDescriptor metadata)
     {
         return metadataStore.TryGetValue(blobId, out metadata!);
     }

@@ -6,9 +6,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Contracts;
-using Contracts.Elements;
 using Tests;
 using Xunit;
+using Contracts.Documents.Elements;
 
 public sealed class GoldenTests
 {

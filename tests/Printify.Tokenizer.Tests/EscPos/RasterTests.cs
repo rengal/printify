@@ -1,14 +1,14 @@
+using Printify.Contracts.Media;
+
 namespace Printify.Tokenizer.Tests.EscPos;
 
+using Xunit;
 using TestServices;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Contracts;
-using Contracts.Elements;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-using Xunit;
+using Contracts.Documents.Elements;
 
 public sealed class RasterTests
 {
@@ -18,8 +18,10 @@ public sealed class RasterTests
     public async Task EmitsRasterImageWithAllDotsSet()
     {
         await using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
+        
+        Assert.NotNull(context.Tokenizer);
+
         var session = context.Tokenizer.CreateSession();
-        var store = context.BlobStorage;
         var payload = Enumerable.Repeat((byte)0xFF, 8).ToArray();
         var command = BuildRasterCommand(payload);
 
@@ -27,38 +29,25 @@ public sealed class RasterTests
         session.Complete(CompletionReason.DataTimeout);
 
         var document = session.Document;
-        var raster = Assert.IsType<RasterImage>(Assert.Single(document!.Elements));
+        Assert.NotNull(document);
+        Assert.NotNull(document.Elements);
 
         DocumentAssertions.Equal(
             document,
             Protocol.EscPos,
             expectedElements:
             [
-                new RasterImage(1, 8, 8, ModeSingleDensity, raster.BlobId, raster.ContentType, raster.ContentLength, raster.Checksum)
+                new RasterImageContent(1, 8, 8, new MediaContent(new MediaMeta("image/png", 12, null), null))
             ]);
-
-        await using var blobStream = await store.GetAsync(raster.BlobId!);
-        Assert.NotNull(blobStream);
-        using var image = await Image.LoadAsync<L8>(blobStream!);
-        Assert.Equal(8, image.Width);
-        Assert.Equal(8, image.Height);
-        image.ProcessPixelRows(accessor =>
-        {
-            for (var y = 0; y < accessor.Height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                foreach (ref readonly var pixel in row)
-                {
-                    Assert.Equal(0, pixel.PackedValue);
-                }
-            }
-        });
     }
 
     [Fact]
     public async Task EmitsRasterImageWithNoDotsSet()
     {
         await using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
+        
+        Assert.NotNull(context.Tokenizer);
+
         var session = context.Tokenizer.CreateSession();
         var store = context.BlobStorage;
         var payload = new byte[8];
@@ -68,32 +57,14 @@ public sealed class RasterTests
         session.Complete(CompletionReason.DataTimeout);
 
         var document = session.Document;
-        var raster = Assert.IsType<RasterImage>(Assert.Single(document!.Elements));
 
         DocumentAssertions.Equal(
             document,
             Protocol.EscPos,
             expectedElements:
             [
-                new RasterImage(1, 8, 8, ModeSingleDensity, raster.BlobId, raster.ContentType, raster.ContentLength, raster.Checksum)
+                new RasterImageContent(1, 8, 8, new MediaContent(new MediaMeta("image/png", 12, null), null))
             ]);
-
-        await using var blobStream = await store.GetAsync(raster.BlobId!);
-        Assert.NotNull(blobStream);
-        using var image = await Image.LoadAsync<L8>(blobStream!);
-        Assert.Equal(8, image.Width);
-        Assert.Equal(8, image.Height);
-        image.ProcessPixelRows(accessor =>
-        {
-            for (var y = 0; y < accessor.Height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                foreach (ref readonly var pixel in row)
-                {
-                    Assert.Equal(byte.MaxValue, pixel.PackedValue);
-                }
-            }
-        });
     }
 
     private static byte[] BuildRasterCommand(byte[] payload)

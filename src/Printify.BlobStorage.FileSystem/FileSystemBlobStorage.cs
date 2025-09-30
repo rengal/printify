@@ -1,12 +1,13 @@
-﻿namespace Printify.BlobStorage.FileSystem;
+﻿using Printify.Contracts.Services;
+
+namespace Printify.BlobStorage.FileSystem;
 
 using System;
 using System.IO;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
-using Printify.Contracts.Service;
+using Contracts.Media;
 
 /// <summary>
 /// File-system based blob storage that organises blobs in sharded directories.
@@ -28,26 +29,26 @@ public sealed class FileSystemBlobStorage : IBlobStorage
         Directory.CreateDirectory(rootPath);
     }
 
-    public async ValueTask<string> PutAsync(Stream content, BlobMetadata metadata, CancellationToken cancellationToken = default)
+    public async ValueTask<string> PutAsync(MediaContent media, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(content);
-        ArgumentNullException.ThrowIfNull(metadata);
+        ArgumentNullException.ThrowIfNull(media);
 
-        var blobId = Guid.NewGuid().ToString("N");
-        var dataPath = GetDataPath(blobId);
-        Directory.CreateDirectory(Path.GetDirectoryName(dataPath)!);
-
-        await using (var file = new FileStream(dataPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
-        {
-            await content.CopyToAsync(file, cancellationToken);
-        }
-
-        var actualLength = new FileInfo(dataPath).Length;
-        var effectiveMetadata = metadata with { ContentLength = actualLength };
-        var metadataPath = GetMetadataPath(blobId);
-        await File.WriteAllTextAsync(metadataPath, JsonSerializer.Serialize(effectiveMetadata), cancellationToken);
-
-        return blobId;
+        // var blobId = Guid.NewGuid().ToString("N");
+        // var dataPath = GetDataPath(blobId);
+        // Directory.CreateDirectory(Path.GetDirectoryName(dataPath)!);
+        //
+        // await using (var file = new FileStream(dataPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+        // {
+        //     await content.CopyToAsync(file, cancellationToken);
+        // }
+        //
+        // var actualLength = new FileInfo(dataPath).Length;
+        // var effectiveMetadata = metadata with { ContentLength = actualLength };
+        // var metadataPath = GetMetadataPath(blobId);
+        // await File.WriteAllTextAsync(metadataPath, JsonSerializer.Serialize(effectiveMetadata), cancellationToken);
+        //
+        // return blobId;
+        return string.Empty; //debugnow
     }
 
     public ValueTask<Stream?> GetAsync(string blobId, CancellationToken cancellationToken = default)

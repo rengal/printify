@@ -1,6 +1,6 @@
 using System;
 using System.Diagnostics;
-using Printify.Contracts.Service;
+using Printify.Contracts.Core;
 
 namespace Printify.Core.Service;
 

@@ -1,3 +1,5 @@
+using Printify.Contracts.Services;
+
 namespace Printify.Listener;
 
 using System;
@@ -7,9 +9,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Contracts;
-using Contracts.Elements;
-using Contracts.Service;
+using Contracts.Documents;
+using Contracts.Documents.Elements;
+using Contracts.Core;
 
 /// <summary>
 /// Background service that listens for TCP connections and creates one tokenizer session per client.

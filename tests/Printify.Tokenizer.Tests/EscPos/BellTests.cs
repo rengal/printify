@@ -3,7 +3,7 @@ using Printify.TestServices;
 namespace Printify.Tokenizer.Tests.EscPos;
 
 using Contracts;
-using Contracts.Elements;
+using Contracts.Documents.Elements;
 using Xunit;
 
 public sealed class BellTests

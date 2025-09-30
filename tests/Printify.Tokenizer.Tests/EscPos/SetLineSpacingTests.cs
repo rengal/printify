@@ -1,9 +1,9 @@
 namespace Printify.Tokenizer.Tests.EscPos;
 
+using Xunit;
 using TestServices;
 using Contracts;
-using Contracts.Elements;
-using Xunit;
+using Contracts.Documents.Elements;
 
 public sealed class SetLineSpacingTests
 {
@@ -11,6 +11,9 @@ public sealed class SetLineSpacingTests
     public void EmitsSetLineSpacingForEsc3()
     {
         using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
+
+        Assert.NotNull(context.Tokenizer);
+
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([

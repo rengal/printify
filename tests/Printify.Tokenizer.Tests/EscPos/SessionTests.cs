@@ -3,9 +3,9 @@ namespace Printify.Tokenizer.Tests.EscPos;
 using TestServices;
 using System;
 using System.Text;
-using Contracts;
-using Contracts.Elements;
 using Xunit;
+using Contracts;
+using Contracts.Documents.Elements;
 using Contracts.Config;
 
 public sealed class SessionTests

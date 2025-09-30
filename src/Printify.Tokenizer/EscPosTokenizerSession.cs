@@ -6,9 +6,11 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using Printify.Contracts;
-using Printify.Contracts.Elements;
-using Printify.Contracts.Service;
+using Printify.Contracts.Media;
 using Printify.Contracts.Config;
+using Printify.Contracts.Documents;
+using Printify.Contracts.Documents.Elements;
+using Printify.Contracts.Core;
 
 namespace Printify.Tokenizer;
 
@@ -71,7 +73,6 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
     private bool IsBufferTrackingEnabled => bufferOptions.DrainRate.HasValue || bufferOptions.MaxCapacity.HasValue;
 
     private readonly IClock clock;
-    private readonly IBlobStorage blobStorage;
     private readonly List<Element> elements = new List<Element>();
     private readonly List<byte> textBytes = new List<byte>();
     private int? activeTextLineIndex;
@@ -83,12 +84,11 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
     private Encoding currentEncoding = Encoding.GetEncoding(437);
     private string? pendingQrData;
 
-    public EscPosTokenizerSession(IOptions<BufferOptions> bufferOptions, IClock clock, IBlobStorage blobStorage)
+    public EscPosTokenizerSession(IOptions<BufferOptions> bufferOptions, IClock clock)
     {
         ArgumentNullException.ThrowIfNull(clock);
         this.bufferOptions = bufferOptions.Value;
         this.clock = clock;
-        this.blobStorage = blobStorage ?? throw new ArgumentNullException(nameof(blobStorage));
         this.clock.Start();
         lastDrainSampleMs = this.clock.ElapsedMs;
     }
@@ -423,7 +423,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                         {
                             var payload = data.Slice(index + 8, payloadLength).ToArray();
                             FlushText(allowEmpty: false);
-                            StoreRasterImage(payload, widthBytes, height, mode);
+                            StoreRasterImage(payload, widthBytes, height);
                             index += 7 + payloadLength;
                             continue;
                         }
@@ -767,7 +767,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
         }
     }
 
-    private void StoreRasterImage(byte[] payload, int widthBytes, int height, byte mode)
+    private void StoreRasterImage(byte[] payload, int widthBytes, int height)
     {
         if (payload.Length == 0 || widthBytes <= 0 || height <= 0)
         {
@@ -798,11 +798,17 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
         var buffer = pngStream.ToArray();
         var checksum = Convert.ToHexString(SHA256.HashData(buffer));
 
-        using var uploadStream = new MemoryStream(buffer, writable: false);
-        var metadata = new BlobMetadata("image/png", buffer.LongLength, checksum);
-        var blobId = blobStorage.PutAsync(uploadStream, metadata).GetAwaiter().GetResult();
+        var mediaMeta = new  MediaMeta("image/png", buffer.LongLength, checksum);
 
-        elements.Add(new RasterImage(++sequence, widthDots, height, mode, blobId, metadata.ContentType, metadata.ContentLength, metadata.Checksum));
+        var media = new MediaContent(mediaMeta, buffer.AsMemory());
+        elements.Add(new RasterImageContent(++sequence, widthDots, height, media));
+    }
+
+    private static string BuildBlobUrl(string blobId)
+    {
+        ArgumentNullException.ThrowIfNull(blobId);
+        // Return an app-relative URL so HTTP handlers can locate the stored raster payload.
+        return $"/media/{blobId}";
     }
 
     private static bool TryGetJustification(byte value, out TextJustification justification)

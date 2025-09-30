@@ -2,10 +2,10 @@ using Printify.Contracts.Config;
 
 namespace Printify.Tokenizer.Tests.EscPos;
 
+using Xunit;
 using TestServices;
 using Contracts;
-using Contracts.Elements;
-using Xunit;
+using Contracts.Documents.Elements;
 
 public sealed class ControlTests
 {
@@ -103,6 +103,9 @@ public sealed class ControlTests
     public void EmitsResetForEscAtSequence()
     {
         using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
+
+        Assert.NotNull(context.Tokenizer);
+
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([
@@ -127,6 +130,9 @@ public sealed class ControlTests
     public void EmitsSetBoldModeToggleForEscE()
     {
         using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
+
+        Assert.NotNull(context.Tokenizer);
+
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([
@@ -213,6 +219,9 @@ public sealed class ControlTests
     public void EmitsSetReverseModeToggleForGsB()
     {
         using var context = TestServiceContext.Create(tokenizer: typeof(EscPosTokenizer));
+
+        Assert.NotNull(context.Tokenizer);
+
         var session = context.Tokenizer.CreateSession();
 
         session.Feed([

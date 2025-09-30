@@ -3,8 +3,8 @@ namespace Printify.Tokenizer.Tests.EscPos;
 using TestServices;
 using System.Text;
 using Contracts;
-using Contracts.Elements;
 using Xunit;
+using Contracts.Documents.Elements;
 
 public sealed class TextTests
 {

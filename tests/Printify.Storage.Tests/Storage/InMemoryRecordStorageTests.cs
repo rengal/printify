@@ -1,9 +1,11 @@
+using Printify.Contracts.Documents.Elements;
+
 namespace Printify.Storage.Tests.Storage;
 
 using System;
 using System.Threading.Tasks;
 using Contracts;
-using Contracts.Elements;
+using Contracts.Documents;
 using TestServices;
 
 public sealed class InMemoryRecordStorageTests
