@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Concurrent;
+using System.IO;
+using System.Security.Cryptography;
 using Printify.Contracts.Media;
 using Printify.Contracts.Services;
 
@@ -15,15 +18,19 @@ public sealed class InMemoryBlobStorage : IBlobStorage
     public ValueTask<string> PutAsync(MediaContent media, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(media);
-        ArgumentNullException.ThrowIfNull(media.Content);
 
-        using var memoryStream = new MemoryStream();
-        //media.Content.Value.CopyTo(memoryStream);
-        var bytes = memoryStream.ToArray();
+        if (!media.Content.HasValue)
+        {
+            throw new InvalidOperationException("Media content must include bytes when storing blobs.");
+        }
 
+        var bytes = media.Content.Value.ToArray();
         var blobId = Guid.NewGuid().ToString("N");
-        // store[blobId] = bytes;
-        // metadataStore[blobId] = metadata with { ContentLength = bytes.LongLength };
+
+        var meta = EnsureMeta(media.Meta, bytes);
+
+        store[blobId] = bytes;
+        metadataStore[blobId] = new MediaDescriptor(meta, BuildUrl(blobId));
 
         return ValueTask.FromResult(blobId);
     }
@@ -42,8 +49,10 @@ public sealed class InMemoryBlobStorage : IBlobStorage
 
     public ValueTask DeleteAsync(string blobId, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrEmpty(blobId))
+        if (string.IsNullOrWhiteSpace(blobId))
+        {
             throw new ArgumentException(nameof(blobId));
+        }
 
         store.TryRemove(blobId, out _);
         metadataStore.TryRemove(blobId, out _);
@@ -54,5 +63,17 @@ public sealed class InMemoryBlobStorage : IBlobStorage
     public bool TryGetMetadata(string blobId, out MediaDescriptor metadata)
     {
         return metadataStore.TryGetValue(blobId, out metadata!);
+    }
+
+    private static MediaMeta EnsureMeta(MediaMeta meta, byte[] content)
+    {
+        var length = meta.Length ?? content.LongLength;
+        var checksum = meta.Checksum ?? Convert.ToHexString(SHA256.HashData(content));
+        return meta with { Length = length, Checksum = checksum };
+    }
+
+    private static string BuildUrl(string blobId)
+    {
+        return $"/media/{blobId}";
     }
 }

@@ -1,0 +1,17 @@
+{
+  "Listener": {
+    "Port": 9100,
+    "IdleTimeoutSeconds": 30
+  },
+  "Page": {
+    "Size": 50
+  },
+  "Storage": {
+    "RootPath": "storage"
+  },
+  "Buffer": {
+    "BusyThreshold": null,
+    "MaxCapacity": null,
+    "DrainRate": null
+  }
+}

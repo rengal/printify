@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Options;
 using Printify.Contracts.Config;
 using Printify.Contracts.Services;
+using Printify.Contracts.Documents.Services;
+using Printify.Application.Documents.Commands;
+using Printify.Application.Documents.Queries;
 
 namespace Printify.TestServices;
 
@@ -33,6 +36,8 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         services.TryAddSingleton<IRecordStorage, InMemoryRecordStorage>();
         services.TryAddSingleton<IBlobStorage, InMemoryBlobStorage>();
         services.TryAddSingleton<IClockFactory, TestClockFactory>();
+        services.TryAddSingleton<IDocumentCommandService, DocumentCommandService>();
+        services.TryAddSingleton<IDocumentQueryService, DocumentQueryService>();
         
         services.AddSingleton(Options.Create(bufferOptions));
         services.AddSingleton(Options.Create(listenerOptions));
