@@ -83,10 +83,11 @@ public sealed class InMemoryRecordStorageTests
         Assert.All(filtered, d => Assert.Equal("10.0.0.1", d.SourceIp));
     }
 
-    private static Document CreateDocument(DateTimeOffset timestamp, string? sourceIp = null)
+    private static Document CreateDocument(DateTimeOffset timestamp, string? sourceIp = null, long printerId = 1)
     {
         return new Document(
             0,
+            printerId,
             timestamp,
             Protocol.EscPos,
             sourceIp,

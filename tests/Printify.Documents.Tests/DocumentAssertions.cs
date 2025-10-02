@@ -10,6 +10,7 @@ public static class DocumentAssertions
         Assert.NotNull(actual);
 
         Assert.Equal(expected.Id, actual!.Id);
+        Assert.Equal(expected.PrinterId, actual.PrinterId);
         Assert.Equal(expected.Timestamp, actual.Timestamp);
         Assert.Equal(expected.Protocol, actual.Protocol);
         Assert.Equal(expected.SourceIp, actual.SourceIp);

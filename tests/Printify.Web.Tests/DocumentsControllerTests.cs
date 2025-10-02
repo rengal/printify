@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Printify.Contracts;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
-using Printify.Contracts.Documents.Queries;
 using Printify.Contracts.Documents.Services;
 using Printify.Contracts.Media;
 
@@ -15,14 +14,16 @@ namespace Printify.Web.Tests;
 
 public sealed class DocumentsControllerTests
 {
+    private const long DefaultPrinterId = 4242;
+
     [Fact]
     public async Task ListAsync_ReturnsSeededDocuments()
     {
         using var factory = new TestWebApplicationFactory();
         var client = factory.CreateClient();
 
-        await SeedAsync(factory, CreateTextDocument("Alpha", "10.0.0.1"));
-        await SeedAsync(factory, CreateTextDocument("Beta", "10.0.0.2"));
+        await SeedAsync(factory, CreateTextDocument("Alpha", "10.0.0.1", 501));
+        await SeedAsync(factory, CreateTextDocument("Beta", "10.0.0.2", 502));
 
         var response = await client.GetAsync("/api/documents?limit=10");
         var payload = await response.Content.ReadAsStringAsync();
@@ -45,13 +46,15 @@ public sealed class DocumentsControllerTests
         var client = factory.CreateClient();
 
         var payload = Enumerable.Range(0, 32).Select(value => (byte)value).ToArray();
-        var id = await SeedAsync(factory, CreateRasterDocument(payload));
+        const long printerId = 777;
+        var id = await SeedAsync(factory, CreateRasterDocument(payload, printerId));
 
         var response = await client.GetAsync($"/api/documents/{id}?includeContent=true");
         var body = await response.Content.ReadAsStringAsync();
         Assert.True(response.IsSuccessStatusCode, body);
 
         using var json = JsonDocument.Parse(body);
+        Assert.Equal(printerId, GetPropertyCaseInsensitive(json.RootElement, "PrinterId").GetInt64());
         var elements = GetPropertyCaseInsensitive(json.RootElement, "Elements");
         var raster = elements.EnumerateArray()
             .First(element => GetPropertyCaseInsensitive(element, "Sequence").GetInt32() == 1);
@@ -69,7 +72,7 @@ public sealed class DocumentsControllerTests
         var client = factory.CreateClient();
 
         var payload = Enumerable.Repeat((byte)0x5A, 16).ToArray();
-        var id = await SeedAsync(factory, CreateRasterDocument(payload));
+        var id = await SeedAsync(factory, CreateRasterDocument(payload, 888));
 
         var descriptorResponse = await client.GetAsync($"/api/documents/{id}");
         var descriptorBody = await descriptorResponse.Content.ReadAsStringAsync();
@@ -89,24 +92,24 @@ public sealed class DocumentsControllerTests
         Assert.Equal(payload, mediaPayload);
     }
 
-    private static async Task<long> SeedAsync(TestWebApplicationFactory factory, Document document)
+    private static async Task<long> SeedAsync(TestWebApplicationFactory factory, SaveDocumentRequest request)
     {
         using var scope = factory.Services.CreateScope();
         var commandService = scope.ServiceProvider.GetRequiredService<IResouceCommandService>();
-        return await commandService.CreateAsync(document);
+        return await commandService.CreateAsync(request);
     }
 
-    private static Document CreateTextDocument(string title, string? sourceIp)
+    private static SaveDocumentRequest CreateTextDocument(string title, string? sourceIp, long printerId)
     {
         var elements = new Element[]
         {
             new TextLine(0, title)
         };
 
-        return new Document(0, DateTimeOffset.UtcNow, Protocol.EscPos, sourceIp, elements);
+        return new SaveDocumentRequest(printerId, Protocol.EscPos, sourceIp, elements);
     }
 
-    private static Document CreateRasterDocument(byte[] payload)
+    private static SaveDocumentRequest CreateRasterDocument(byte[] payload, long printerId)
     {
         var elements = new Element[]
         {
@@ -114,7 +117,7 @@ public sealed class DocumentsControllerTests
             new RasterImageContent(1, 8, 4, new MediaContent(new MediaMeta("image/png", null, null), payload.AsMemory()))
         };
 
-        return new Document(0, DateTimeOffset.UtcNow, Protocol.EscPos, "127.0.0.1", elements);
+        return new SaveDocumentRequest(printerId, Protocol.EscPos, "127.0.0.1", elements);
     }
 
     private static JsonElement GetPropertyCaseInsensitive(JsonElement element, string name)

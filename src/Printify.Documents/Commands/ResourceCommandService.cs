@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Printify.Contracts.Documents;
@@ -27,24 +28,24 @@ public sealed class ResourceCommandService : IResouceCommandService
         this.blobStorage = blobStorage;
     }
 
-    public async ValueTask<long> CreateAsync(Document document, CancellationToken cancellationToken = default)
+    public async ValueTask<long> CreateAsync(SaveDocumentRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(request);
 
-        // Offload raster content before handing the document to record storage.
-        var elements = await TransformElementsAsync(document.Elements, cancellationToken).ConfigureAwait(false);
+        var elements = await TransformElementsAsync(request.Elements, cancellationToken).ConfigureAwait(false);
 
-        var sanitized = document with
-        {
-            Id = 0,
-            Elements = elements
-        };
+        var document = new Document(
+            0,
+            request.PrinterId,
+            DateTimeOffset.UtcNow,
+            request.Protocol,
+            request.SourceIp,
+            elements);
 
-        // Delegate final persistence to the underlying record storage abstraction.
-        return await recordStorage.AddDocumentAsync(sanitized, cancellationToken).ConfigureAwait(false);
+        return await recordStorage.AddDocumentAsync(document, cancellationToken).ConfigureAwait(false);
     }
 
-    private async ValueTask<IReadOnlyList<Element>> TransformElementsAsync(
+    private async ValueTask<Element[]> TransformElementsAsync(
         IReadOnlyList<Element> source,
         CancellationToken cancellationToken)
     {
@@ -69,7 +70,7 @@ public sealed class ResourceCommandService : IResouceCommandService
             transformed.Add(element);
         }
 
-        return transformed;
+        return transformed.ToArray();
     }
 
     private async ValueTask<RasterImageDescriptor> PersistRasterAsync(

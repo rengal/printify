@@ -16,23 +16,28 @@ namespace Printify.Documents.Tests;
 
 public sealed class DocumentServiceTests
 {
+    private const long DefaultPrinterId = 1001;
+
     [Fact]
     public async Task CreateAsync_OffloadsRasterToBlob()
     {
         await using var context = TestServiceContext.Create();
         var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
         var payload = Enumerable.Repeat((byte)0x5A, 32).ToArray();
-        var document = CreateDocument(payload, "Receipt A");
+        const long printerId = 123;
+        var request = CreateDocument(payload, "Receipt A", printerId);
 
-        var id = await commandService.CreateAsync(document);
+        var id = await commandService.CreateAsync(request);
 
         var stored = await context.RecordStorage.GetDocumentAsync(id);
         Assert.NotNull(stored);
+        Assert.Equal(printerId, stored!.PrinterId);
 
-        var expected = BuildDescriptorDocument(document, stored!.Id, payload, stored.Elements.OfType<RasterImageDescriptor>().Single().Media.Url);
+        var descriptor = stored.Elements.OfType<RasterImageDescriptor>().Single();
+        var expected = BuildDescriptorDocument(request, stored, payload, descriptor.Media.Url);
         DocumentAssertions.Equal(stored, expected);
 
-        var blobId = expected.Elements.OfType<RasterImageDescriptor>().Single().Media.Url.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
+        var blobId = descriptor.Media.Url.Split('/', StringSplitOptions.RemoveEmptyEntries)[^1];
         await using var blobStream = await context.BlobStorage.GetAsync(blobId);
         Assert.NotNull(blobStream);
         var blobBytes = await ReadAllAsync(blobStream!);
@@ -46,8 +51,8 @@ public sealed class DocumentServiceTests
         var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
         var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
 
-        await commandService.CreateAsync(CreateDocument(Enumerable.Repeat((byte)0x11, 16).ToArray(), "Alpha"));
-        await commandService.CreateAsync(CreateDocument(Enumerable.Repeat((byte)0x22, 24).ToArray(), "Beta"));
+        await commandService.CreateAsync(CreateDocument(Enumerable.Repeat((byte)0x11, 16).ToArray(), "Alpha", 201));
+        await commandService.CreateAsync(CreateDocument(Enumerable.Repeat((byte)0x22, 24).ToArray(), "Beta", 202));
 
         var result = await queryService.ListAsync(new ListQuery(10, null, null));
 
@@ -70,7 +75,7 @@ public sealed class DocumentServiceTests
 
         for (var index = 0; index < titles.Length; index++)
         {
-            ids[index] = await commandService.CreateAsync(CreateTextDocument(titles[index]));
+            ids[index] = await commandService.CreateAsync(CreateTextDocument(titles[index], printerId: index + 1));
         }
 
         var page1 = await queryService.ListAsync(new ListQuery(2, null, null));
@@ -99,9 +104,9 @@ public sealed class DocumentServiceTests
         var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
         var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
 
-        await commandService.CreateAsync(CreateTextDocument("alpha", "10.0.0.1"));
-        await commandService.CreateAsync(CreateTextDocument("beta", "10.0.0.2"));
-        await commandService.CreateAsync(CreateTextDocument("gamma", "10.0.0.1"));
+        await commandService.CreateAsync(CreateTextDocument("alpha", "10.0.0.1", 301));
+        await commandService.CreateAsync(CreateTextDocument("beta", "10.0.0.2", 302));
+        await commandService.CreateAsync(CreateTextDocument("gamma", "10.0.0.1", 303));
 
         var result = await queryService.ListAsync(new ListQuery(10, null, "10.0.0.1"));
 
@@ -116,44 +121,37 @@ public sealed class DocumentServiceTests
         var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
         var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
         var payload = Enumerable.Range(0, 48).Select(value => (byte)value).ToArray();
-        var document = CreateDocument(payload, "Receipt B");
+        const long printerId = 555;
+        var request = CreateDocument(payload, "Receipt B", printerId);
 
-        var id = await commandService.CreateAsync(document);
+        var id = await commandService.CreateAsync(request);
 
         var reloaded = await queryService.GetAsync(id, includeContent: true);
 
         Assert.NotNull(reloaded);
-        var raster = reloaded!.Elements.OfType<RasterImageContent>().Single();
+        Assert.Equal(printerId, reloaded!.PrinterId);
+        var raster = reloaded.Elements.OfType<RasterImageContent>().Single();
         Assert.True(raster.Media.Content.HasValue);
         Assert.Equal(payload.Length, raster.Media.Meta.Length);
         Assert.Equal(payload, raster.Media.Content.Value.ToArray());
     }
 
-    private static Document BuildDescriptorDocument(Document source, long assignedId, byte[] payload, string blobUrl)
+    private static Document BuildDescriptorDocument(SaveDocumentRequest request, Document stored, byte[] payload, string blobUrl)
     {
         var checksum = Convert.ToHexString(SHA256.HashData(payload));
-        var elements = new Element[]
-        {
-            source.Elements[0],
-            new RasterImageDescriptor(1, 8, 8, new MediaDescriptor(new MediaMeta("image/png", payload.Length, checksum), blobUrl))
-        };
+        var textLine = request.Elements[0];
+        var rasterRequest = request.Elements.OfType<RasterImageContent>().Single();
+        var descriptor = new RasterImageDescriptor(
+            rasterRequest.Sequence,
+            rasterRequest.Width,
+            rasterRequest.Height,
+            new MediaDescriptor(new MediaMeta("image/png", payload.LongLength, checksum), blobUrl));
 
-        return source with { Id = assignedId, Elements = elements };
+        var elements = new Element[] { textLine, descriptor };
+        return new Document(stored.Id, stored.PrinterId, stored.Timestamp, stored.Protocol, stored.SourceIp, elements);
     }
 
-    private static Document BuildContentDocument(Document source, long assignedId, byte[] payload)
-    {
-        var checksum = Convert.ToHexString(SHA256.HashData(payload));
-        var elements = new Element[]
-        {
-            source.Elements[0],
-            new RasterImageContent(1, 8, 8, new MediaContent(new MediaMeta("image/png", payload.Length, checksum), payload.AsMemory()))
-        };
-
-        return source with { Id = assignedId, Elements = elements };
-    }
-
-    private static Document CreateDocument(byte[] payload, string title)
+    private static SaveDocumentRequest CreateDocument(byte[] payload, string title, long printerId, string? sourceIp = "127.0.0.1")
     {
         var elements = new Element[]
         {
@@ -161,17 +159,17 @@ public sealed class DocumentServiceTests
             new RasterImageContent(1, 8, 8, new MediaContent(new MediaMeta("image/png", null, null), payload.AsMemory()))
         };
 
-        return new Document(0, DateTimeOffset.UtcNow, Protocol.EscPos, "127.0.0.1", elements);
+        return new SaveDocumentRequest(printerId, Protocol.EscPos, sourceIp, elements);
     }
 
-    private static Document CreateTextDocument(string title, string? sourceIp = null)
+    private static SaveDocumentRequest CreateTextDocument(string title, string? sourceIp = null, long printerId = DefaultPrinterId)
     {
         var elements = new Element[]
         {
             new TextLine(0, title)
         };
 
-        return new Document(0, DateTimeOffset.UtcNow, Protocol.EscPos, sourceIp, elements);
+        return new SaveDocumentRequest(printerId, Protocol.EscPos, sourceIp, elements);
     }
 
     private static async Task<byte[]> ReadAllAsync(Stream stream)
