@@ -7,7 +7,7 @@ namespace Printify.Contracts.Documents.Services;
 /// <summary>
 /// Command-side service responsible for persisting parsed documents and associated media payloads.
 /// </summary>
-public interface IDocumentCommandService
+public interface IResouceCommandService
 {
     /// <summary>
     /// Persists a parsed document and returns the generated identifier.

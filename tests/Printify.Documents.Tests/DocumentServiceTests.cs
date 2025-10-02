@@ -20,7 +20,7 @@ public sealed class DocumentServiceTests
     public async Task CreateAsync_OffloadsRasterToBlob()
     {
         await using var context = TestServiceContext.Create();
-        var commandService = context.Provider.GetRequiredService<IDocumentCommandService>();
+        var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
         var payload = Enumerable.Repeat((byte)0x5A, 32).ToArray();
         var document = CreateDocument(payload, "Receipt A");
 
@@ -43,8 +43,8 @@ public sealed class DocumentServiceTests
     public async Task ListAsync_ReturnsDescriptors()
     {
         await using var context = TestServiceContext.Create();
-        var commandService = context.Provider.GetRequiredService<IDocumentCommandService>();
-        var queryService = context.Provider.GetRequiredService<IDocumentQueryService>();
+        var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
+        var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
 
         await commandService.CreateAsync(CreateDocument(Enumerable.Repeat((byte)0x11, 16).ToArray(), "Alpha"));
         await commandService.CreateAsync(CreateDocument(Enumerable.Repeat((byte)0x22, 24).ToArray(), "Beta"));
@@ -62,8 +62,8 @@ public sealed class DocumentServiceTests
     public async Task ListAsync_PaginatesWithCursor()
     {
         await using var context = TestServiceContext.Create();
-        var commandService = context.Provider.GetRequiredService<IDocumentCommandService>();
-        var queryService = context.Provider.GetRequiredService<IDocumentQueryService>();
+        var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
+        var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
 
         var titles = new[] { "First", "Second", "Third", "Fourth", "Fifth" };
         var ids = new long[titles.Length];
@@ -96,8 +96,8 @@ public sealed class DocumentServiceTests
     public async Task ListAsync_FiltersBySourceIp()
     {
         await using var context = TestServiceContext.Create();
-        var commandService = context.Provider.GetRequiredService<IDocumentCommandService>();
-        var queryService = context.Provider.GetRequiredService<IDocumentQueryService>();
+        var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
+        var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
 
         await commandService.CreateAsync(CreateTextDocument("alpha", "10.0.0.1"));
         await commandService.CreateAsync(CreateTextDocument("beta", "10.0.0.2"));
@@ -113,8 +113,8 @@ public sealed class DocumentServiceTests
     public async Task GetAsync_WithIncludeContent_HydratesRasterPayload()
     {
         await using var context = TestServiceContext.Create();
-        var commandService = context.Provider.GetRequiredService<IDocumentCommandService>();
-        var queryService = context.Provider.GetRequiredService<IDocumentQueryService>();
+        var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
+        var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
         var payload = Enumerable.Range(0, 48).Select(value => (byte)value).ToArray();
         var document = CreateDocument(payload, "Receipt B");
 

@@ -92,7 +92,7 @@ public sealed class DocumentsControllerTests
     private static async Task<long> SeedAsync(TestWebApplicationFactory factory, Document document)
     {
         using var scope = factory.Services.CreateScope();
-        var commandService = scope.ServiceProvider.GetRequiredService<IDocumentCommandService>();
+        var commandService = scope.ServiceProvider.GetRequiredService<IResouceCommandService>();
         return await commandService.CreateAsync(document);
     }
 

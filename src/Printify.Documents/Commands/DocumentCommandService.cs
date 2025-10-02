@@ -13,7 +13,7 @@ namespace Printify.Application.Documents.Commands;
 /// <summary>
 /// Coordinates document persistence and media offloading to blob storage.
 /// </summary>
-public sealed class DocumentCommandService : IDocumentCommandService
+public sealed class DocumentCommandService : IResouceCommandService
 {
     private readonly IRecordStorage recordStorage;
     private readonly IBlobStorage blobStorage;

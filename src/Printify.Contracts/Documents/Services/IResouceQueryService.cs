@@ -8,7 +8,7 @@ namespace Printify.Contracts.Documents.Services;
 /// <summary>
 /// Query-side service that retrieves document metadata and full payloads from storage.
 /// </summary>
-public interface IDocumentQueryService
+public interface IResouceQueryService
 {
     /// <summary>
     /// Lists documents using cursor-based pagination.

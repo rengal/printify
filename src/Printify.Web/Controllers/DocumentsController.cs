@@ -10,9 +10,9 @@ namespace Printify.Web.Controllers;
 public sealed class DocumentsController : ControllerBase
 {
     private const int DefaultLimit = 20;
-    private readonly IDocumentQueryService queryService;
+    private readonly IResouceQueryService queryService;
 
-    public DocumentsController(IDocumentQueryService queryService)
+    public DocumentsController(IResouceQueryService queryService)
     {
         this.queryService = queryService;
     }
