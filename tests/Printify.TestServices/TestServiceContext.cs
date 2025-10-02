@@ -36,8 +36,8 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         services.TryAddSingleton<IRecordStorage, InMemoryRecordStorage>();
         services.TryAddSingleton<IBlobStorage, InMemoryBlobStorage>();
         services.TryAddSingleton<IClockFactory, TestClockFactory>();
-        services.TryAddSingleton<IResouceCommandService, DocumentCommandService>();
-        services.TryAddSingleton<IResouceQueryService, DocumentQueryService>();
+        services.TryAddSingleton<IResouceCommandService, ResourceCommandService>();
+        services.TryAddSingleton<IResouceQueryService, ResourceQueryService>();
         
         services.AddSingleton(Options.Create(bufferOptions));
         services.AddSingleton(Options.Create(listenerOptions));

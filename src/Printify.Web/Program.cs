@@ -24,9 +24,9 @@ builder.Services.AddSingleton<IBlobStorage, FileSystemBlobStorage>();
 builder.Services.AddSingleton<IRecordStorage, InMemoryRecordStorage>();
 builder.Services.AddSingleton<IClockFactory, StopwatchClockFactory>();
 builder.Services.AddSingleton<ITokenizer, EscPosTokenizer>();
-builder.Services.AddSingleton<IResouceCommandService, DocumentCommandService>();
+builder.Services.AddSingleton<IResouceCommandService, ResourceCommandService>();
 // Query service materializes descriptors and optional raster content for the API surface.
-builder.Services.AddSingleton<IResouceQueryService, DocumentQueryService>();
+builder.Services.AddSingleton<IResouceQueryService, ResourceQueryService>();
 
 builder.Services.AddSingleton<ListenerService>();
 builder.Services.AddSingleton<IListenerService>(sp => sp.GetRequiredService<ListenerService>());

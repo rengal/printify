@@ -16,12 +16,12 @@ namespace Printify.Application.Documents.Queries;
 /// <summary>
 /// Provides read-side operations for documents and associated media.
 /// </summary>
-public sealed class DocumentQueryService : IResouceQueryService
+public sealed class ResourceQueryService : IResouceQueryService
 {
     private readonly IRecordStorage recordStorage;
     private readonly IBlobStorage blobStorage;
 
-    public DocumentQueryService(IRecordStorage recordStorage, IBlobStorage blobStorage)
+    public ResourceQueryService(IRecordStorage recordStorage, IBlobStorage blobStorage)
     {
         ArgumentNullException.ThrowIfNull(recordStorage);
         ArgumentNullException.ThrowIfNull(blobStorage);
