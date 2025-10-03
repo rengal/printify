@@ -18,7 +18,7 @@ public sealed class DocumentsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<PagedResult<DocumentDescriptor>>> ListAsync(
+    public async Task<ActionResult<PagedResult<DocumentDescriptor>>> GetDocuments(
         [FromQuery] int? limit,
         [FromQuery] long? beforeId,
         [FromQuery] string? sourceIp,
@@ -26,17 +26,17 @@ public sealed class DocumentsController : ControllerBase
     {
         var resolvedLimit = limit.GetValueOrDefault(DefaultLimit);
         var query = new ListQuery(resolvedLimit, beforeId, sourceIp);
-        var result = await queryService.ListAsync(query, cancellationToken).ConfigureAwait(false);
+        var result = await queryService.ListDocumentsAsync(query, cancellationToken).ConfigureAwait(false);
         return Ok(result);
     }
 
     [HttpGet("{id:long}")]
-    public async Task<ActionResult<Document>> GetAsync(
+    public async Task<ActionResult<Document>> GetDocument(
         long id,
         [FromQuery] bool includeContent,
         CancellationToken cancellationToken)
     {
-        var document = await queryService.GetAsync(id, includeContent, cancellationToken).ConfigureAwait(false);
+        var document = await queryService.GetDocumentAsync(id, includeContent, cancellationToken).ConfigureAwait(false);
         if (document is null)
         {
             return NotFound();

@@ -1,4 +1,4 @@
-namespace Printify.Contracts.Resources;
+namespace Printify.Contracts.Printers;
 
 /// <summary>
 /// Payload required to register a printer for a user.

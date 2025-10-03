@@ -31,6 +31,7 @@ public sealed class DocumentsControllerTests
 
         using var json = JsonDocument.Parse(payload);
         var items = GetPropertyCaseInsensitive(json.RootElement, "Items");
+        Assert.Equal(2, items.GetArrayLength());
         var previews = items.EnumerateArray()
             .Select(element => GetPropertyCaseInsensitive(element, "PreviewText").GetString())
             .ToArray();
@@ -96,7 +97,7 @@ public sealed class DocumentsControllerTests
     {
         using var scope = factory.Services.CreateScope();
         var commandService = scope.ServiceProvider.GetRequiredService<IResouceCommandService>();
-        return await commandService.CreateAsync(request);
+        return await commandService.CreateDocumentAsync(request);
     }
 
     private static SaveDocumentRequest CreateTextDocument(string title, string? sourceIp, long printerId)

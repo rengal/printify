@@ -19,7 +19,7 @@ public sealed class DocumentServiceTests
     private const long DefaultPrinterId = 1001;
 
     [Fact]
-    public async Task CreateAsync_OffloadsRasterToBlob()
+    public async Task CreateDocumentAsync_OffloadsRasterToBlob()
     {
         await using var context = TestServiceContext.Create();
         var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
@@ -27,7 +27,7 @@ public sealed class DocumentServiceTests
         const long printerId = 123;
         var request = CreateDocument(payload, "Receipt A", printerId);
 
-        var id = await commandService.CreateAsync(request);
+        var id = await commandService.CreateDocumentAsync(request);
 
         var stored = await context.RecordStorage.GetDocumentAsync(id);
         Assert.NotNull(stored);
@@ -45,16 +45,16 @@ public sealed class DocumentServiceTests
     }
 
     [Fact]
-    public async Task ListAsync_ReturnsDescriptors()
+    public async Task ListDocumentsAsync_ReturnsDescriptors()
     {
         await using var context = TestServiceContext.Create();
         var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
         var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
 
-        await commandService.CreateAsync(CreateDocument(Enumerable.Repeat((byte)0x11, 16).ToArray(), "Alpha", 201));
-        await commandService.CreateAsync(CreateDocument(Enumerable.Repeat((byte)0x22, 24).ToArray(), "Beta", 202));
+        await commandService.CreateDocumentAsync(CreateDocument(Enumerable.Repeat((byte)0x11, 16).ToArray(), "Alpha", 201));
+        await commandService.CreateDocumentAsync(CreateDocument(Enumerable.Repeat((byte)0x22, 24).ToArray(), "Beta", 202));
 
-        var result = await queryService.ListAsync(new ListQuery(10, null, null));
+        var result = await queryService.ListDocumentsAsync(new ListQuery(10, null, null));
 
         Assert.Equal(2, result.Items.Count);
         Assert.False(result.HasMore);
@@ -64,7 +64,7 @@ public sealed class DocumentServiceTests
     }
 
     [Fact]
-    public async Task ListAsync_PaginatesWithCursor()
+    public async Task ListDocumentsAsync_PaginatesWithCursor()
     {
         await using var context = TestServiceContext.Create();
         var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
@@ -75,22 +75,22 @@ public sealed class DocumentServiceTests
 
         for (var index = 0; index < titles.Length; index++)
         {
-            ids[index] = await commandService.CreateAsync(CreateTextDocument(titles[index], printerId: index + 1));
+            ids[index] = await commandService.CreateDocumentAsync(CreateTextDocument(titles[index], printerId: index + 1));
         }
 
-        var page1 = await queryService.ListAsync(new ListQuery(2, null, null));
+        var page1 = await queryService.ListDocumentsAsync(new ListQuery(2, null, null));
         Assert.Equal(2, page1.Items.Count);
         Assert.True(page1.HasMore);
         Assert.Equal(ids[^1], page1.Items[0].Id);
         Assert.Equal(ids[^2], page1.Items[1].Id);
 
-        var page2 = await queryService.ListAsync(new ListQuery(2, page1.NextBeforeId, null));
+        var page2 = await queryService.ListDocumentsAsync(new ListQuery(2, page1.NextBeforeId, null));
         Assert.Equal(2, page2.Items.Count);
         Assert.True(page2.HasMore);
         Assert.Equal(ids[^3], page2.Items[0].Id);
         Assert.Equal(ids[^4], page2.Items[1].Id);
 
-        var page3 = await queryService.ListAsync(new ListQuery(2, page2.NextBeforeId, null));
+        var page3 = await queryService.ListDocumentsAsync(new ListQuery(2, page2.NextBeforeId, null));
         Assert.Single(page3.Items);
         Assert.False(page3.HasMore);
         Assert.Null(page3.NextBeforeId);
@@ -98,24 +98,24 @@ public sealed class DocumentServiceTests
     }
 
     [Fact]
-    public async Task ListAsync_FiltersBySourceIp()
+    public async Task ListDocumentsAsync_FiltersBySourceIp()
     {
         await using var context = TestServiceContext.Create();
         var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
         var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
 
-        await commandService.CreateAsync(CreateTextDocument("alpha", "10.0.0.1", 301));
-        await commandService.CreateAsync(CreateTextDocument("beta", "10.0.0.2", 302));
-        await commandService.CreateAsync(CreateTextDocument("gamma", "10.0.0.1", 303));
+        await commandService.CreateDocumentAsync(CreateTextDocument("alpha", "10.0.0.1", 301));
+        await commandService.CreateDocumentAsync(CreateTextDocument("beta", "10.0.0.2", 302));
+        await commandService.CreateDocumentAsync(CreateTextDocument("gamma", "10.0.0.1", 303));
 
-        var result = await queryService.ListAsync(new ListQuery(10, null, "10.0.0.1"));
+        var result = await queryService.ListDocumentsAsync(new ListQuery(10, null, "10.0.0.1"));
 
         Assert.Equal(2, result.Items.Count);
         Assert.All(result.Items, descriptor => Assert.Equal("10.0.0.1", descriptor.SourceIp));
     }
 
     [Fact]
-    public async Task GetAsync_WithIncludeContent_HydratesRasterPayload()
+    public async Task GetDocumentAsync_WithIncludeContent_HydratesRasterPayload()
     {
         await using var context = TestServiceContext.Create();
         var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
@@ -124,9 +124,9 @@ public sealed class DocumentServiceTests
         const long printerId = 555;
         var request = CreateDocument(payload, "Receipt B", printerId);
 
-        var id = await commandService.CreateAsync(request);
+        var id = await commandService.CreateDocumentAsync(request);
 
-        var reloaded = await queryService.GetAsync(id, includeContent: true);
+        var reloaded = await queryService.GetDocumentAsync(id, includeContent: true);
 
         Assert.NotNull(reloaded);
         Assert.Equal(printerId, reloaded!.PrinterId);

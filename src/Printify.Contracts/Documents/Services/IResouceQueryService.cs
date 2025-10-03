@@ -1,24 +1,20 @@
-using System.Threading;
-using System.Threading.Tasks;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Queries;
+using Printify.Contracts.Printers;
+using Printify.Contracts.Users;
 
 namespace Printify.Contracts.Documents.Services;
 
 /// <summary>
-/// Query-side service that retrieves document metadata and full payloads from storage.
+/// Query-side service that retrieves document metadata and related resources from storage.
 /// </summary>
 public interface IResouceQueryService
 {
-    /// <summary>
-    /// Lists documents using cursor-based pagination.
-    /// </summary>
-    ValueTask<PagedResult<DocumentDescriptor>> ListAsync(ListQuery query, CancellationToken cancellationToken = default);
+    ValueTask<PagedResult<DocumentDescriptor>> ListDocumentsAsync(ListQuery query, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Retrieves a single document by identifier.
-    /// </summary>
-    /// <param name="id">Document identifier.</param>
-    /// <param name="includeContent">Controls whether raster image bytes should be hydrated.</param>
-    ValueTask<Document?> GetAsync(long id, bool includeContent = false, CancellationToken cancellationToken = default);
+    ValueTask<Document?> GetDocumentAsync(long id, bool includeContent = false, CancellationToken cancellationToken = default);
+
+    ValueTask<User?> GetUserAsync(long id, CancellationToken cancellationToken = default);
+
+    ValueTask<Printer?> GetPrinterAsync(long id, CancellationToken cancellationToken = default);
 }

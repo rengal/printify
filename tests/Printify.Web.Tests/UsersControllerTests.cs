@@ -1,30 +1,32 @@
 using System.Net;
 using System.Net.Http.Json;
-using Printify.Contracts.Resources;
+using Microsoft.Extensions.DependencyInjection;
+using Printify.Contracts.Documents.Services;
+using Printify.Contracts.Users;
 
 namespace Printify.Web.Tests;
 
 public sealed class UsersControllerTests
 {
     [Fact]
-    public async Task Create_ReturnsNotImplemented()
+    public async Task Create_Then_Get_ReturnsPersistedUser()
     {
         using var factory = new TestWebApplicationFactory();
         var client = factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync("/api/users", new SaveUserRequest("Alice", "127.0.0.1"));
+        var request = new SaveUserRequest("Alice", "127.0.0.1");
+        var createResponse = await client.PostAsJsonAsync("/api/users", request);
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+        var created = await createResponse.Content.ReadFromJsonAsync<User>();
+        Assert.NotNull(created);
+        Assert.Equal(request.DisplayName, created!.DisplayName);
+        Assert.Equal(request.CreatedFromIp, created.CreatedFromIp);
+        Assert.True(created.Id > 0);
 
-        Assert.Equal(HttpStatusCode.NotImplemented, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Get_ReturnsNotImplemented()
-    {
-        using var factory = new TestWebApplicationFactory();
-        var client = factory.CreateClient();
-
-        var response = await client.GetAsync("/api/users/1");
-
-        Assert.Equal(HttpStatusCode.NotImplemented, response.StatusCode);
+        var getResponse = await client.GetAsync($"/api/users/{created.Id}");
+        Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+        var fetched = await getResponse.Content.ReadFromJsonAsync<User>();
+        Assert.NotNull(fetched);
+        Assert.Equal(created, fetched);
     }
 }

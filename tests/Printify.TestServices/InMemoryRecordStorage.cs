@@ -1,5 +1,7 @@
 using Printify.Contracts.Documents;
+using Printify.Contracts.Printers;
 using Printify.Contracts.Services;
+using Printify.Contracts.Users;
 
 namespace Printify.TestServices;
 
@@ -10,7 +12,11 @@ public sealed class InMemoryRecordStorage : IRecordStorage
 {
     private readonly object syncRoot = new();
     private readonly List<Document> documents = new();
-    private long nextId = 1;
+    private readonly List<User> users = new();
+    private readonly List<Printer> printers = new();
+    private long nextDocumentId = 1;
+    private long nextUserId = 1;
+    private long nextPrinterId = 1;
 
     public ValueTask<long> AddDocumentAsync(Document document, CancellationToken cancellationToken = default)
     {
@@ -19,8 +25,7 @@ public sealed class InMemoryRecordStorage : IRecordStorage
         Document stored;
         lock (syncRoot)
         {
-            // Serialize access so ids stay strictly increasing.
-            var assignedId = nextId++;
+            var assignedId = nextDocumentId++;
             stored = document with { Id = assignedId };
             documents.Add(stored);
         }
@@ -35,7 +40,6 @@ public sealed class InMemoryRecordStorage : IRecordStorage
         Document? match;
         lock (syncRoot)
         {
-            // Documents are small; linear scan keeps implementation trivial for tests.
             match = documents.FirstOrDefault(d => d.Id == id);
         }
 
@@ -58,7 +62,6 @@ public sealed class InMemoryRecordStorage : IRecordStorage
         List<Document> snapshot;
         lock (syncRoot)
         {
-            // Take a snapshot to avoid exposing internal list to callers.
             snapshot = documents.ToList();
         }
 
@@ -66,7 +69,6 @@ public sealed class InMemoryRecordStorage : IRecordStorage
 
         if (!string.IsNullOrWhiteSpace(sourceIp))
         {
-            // Case-insensitive comparison aligns with production filtering expectations.
             query = query.Where(d => string.Equals(d.SourceIp, sourceIp, StringComparison.OrdinalIgnoreCase));
         }
 
@@ -75,11 +77,67 @@ public sealed class InMemoryRecordStorage : IRecordStorage
             query = query.Where(d => d.Id < beforeId.Value);
         }
 
-        query = query
+        var result = query
             .OrderByDescending(d => d.Id)
-            .Take(limit);
+            .Take(limit)
+            .ToList();
 
-        var result = query.ToList();
         return ValueTask.FromResult<IReadOnlyList<Document>>(result);
+    }
+
+    public ValueTask<long> AddUserAsync(User user, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        User stored;
+        lock (syncRoot)
+        {
+            var assignedId = nextUserId++;
+            stored = user with { Id = assignedId };
+            users.Add(stored);
+        }
+
+        return ValueTask.FromResult(stored.Id);
+    }
+
+    public ValueTask<User?> GetUserAsync(long id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        User? match;
+        lock (syncRoot)
+        {
+            match = users.FirstOrDefault(u => u.Id == id);
+        }
+
+        return ValueTask.FromResult(match);
+    }
+
+    public ValueTask<long> AddPrinterAsync(Printer printer, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        Printer stored;
+        lock (syncRoot)
+        {
+            var assignedId = nextPrinterId++;
+            stored = printer with { Id = assignedId };
+            printers.Add(stored);
+        }
+
+        return ValueTask.FromResult(stored.Id);
+    }
+
+    public ValueTask<Printer?> GetPrinterAsync(long id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        Printer? match;
+        lock (syncRoot)
+        {
+            match = printers.FirstOrDefault(p => p.Id == id);
+        }
+
+        return ValueTask.FromResult(match);
     }
 }

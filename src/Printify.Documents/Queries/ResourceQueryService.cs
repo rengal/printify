@@ -9,7 +9,9 @@ using Printify.Contracts.Documents.Elements;
 using Printify.Contracts.Documents.Queries;
 using Printify.Contracts.Documents.Services;
 using Printify.Contracts.Media;
+using Printify.Contracts.Printers;
 using Printify.Contracts.Services;
+using Printify.Contracts.Users;
 
 namespace Printify.Application.Documents.Queries;
 
@@ -30,7 +32,27 @@ public sealed class ResourceQueryService : IResouceQueryService
         this.blobStorage = blobStorage;
     }
 
-    public async ValueTask<PagedResult<DocumentDescriptor>> ListAsync(ListQuery query, CancellationToken cancellationToken = default)
+    public ValueTask<User?> GetUserAsync(long id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(id), id, "Identifier must be positive.");
+        }
+
+        return recordStorage.GetUserAsync(id, cancellationToken);
+    }
+
+    public ValueTask<Printer?> GetPrinterAsync(long id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(id), id, "Identifier must be positive.");
+        }
+
+        return recordStorage.GetPrinterAsync(id, cancellationToken);
+    }
+
+    public async ValueTask<PagedResult<DocumentDescriptor>> ListDocumentsAsync(ListQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
 
@@ -39,7 +61,6 @@ public sealed class ResourceQueryService : IResouceQueryService
             throw new ArgumentOutOfRangeException(nameof(query.Limit), query.Limit, "Limit must be greater than zero.");
         }
 
-        // Pull the page from record storage applying cursor and filters.
         var documents = await recordStorage.ListDocumentsAsync(query.Limit, query.BeforeId, query.SourceIp, cancellationToken).ConfigureAwait(false);
 
         var descriptors = documents
@@ -52,14 +73,13 @@ public sealed class ResourceQueryService : IResouceQueryService
         return new PagedResult<DocumentDescriptor>(descriptors, hasMore, nextBeforeId);
     }
 
-    public async ValueTask<Document?> GetAsync(long id, bool includeContent = false, CancellationToken cancellationToken = default)
+    public async ValueTask<Document?> GetDocumentAsync(long id, bool includeContent = false, CancellationToken cancellationToken = default)
     {
         if (id <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(id), id, "Identifier must be positive.");
         }
 
-        // Retrieve the stored document; return null when it is not present.
         var document = await recordStorage.GetDocumentAsync(id, cancellationToken).ConfigureAwait(false);
         if (document is null)
         {
@@ -84,6 +104,7 @@ public sealed class ResourceQueryService : IResouceQueryService
 
         return new DocumentDescriptor(
             document.Id,
+            document.PrinterId,
             document.Timestamp,
             document.Protocol,
             document.SourceIp,
@@ -108,7 +129,6 @@ public sealed class ResourceQueryService : IResouceQueryService
 
             if (element is RasterImageDescriptor descriptor)
             {
-                // Attempt to load the raster payload back into memory for render-heavy scenarios.
                 var contentElement = await TryHydrateAsync(descriptor, cancellationToken).ConfigureAwait(false);
                 if (contentElement is not null)
                 {
@@ -144,7 +164,6 @@ public sealed class ResourceQueryService : IResouceQueryService
             return null;
         }
 
-        // Materialize the blob bytes so downstream callers can work with in-memory media.
         var buffer = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
         var meta = EnsureMeta(descriptor.Media.Meta, buffer);
         var media = new MediaContent(meta, buffer);

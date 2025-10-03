@@ -7,12 +7,15 @@ using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
 using Printify.Contracts.Documents.Services;
 using Printify.Contracts.Media;
+using Printify.Contracts.Printers;
 using Printify.Contracts.Services;
+using Printify.Contracts.Users;
 
 namespace Printify.Application.Documents.Commands;
 
 /// <summary>
 /// Coordinates document persistence and media offloading to blob storage.
+/// Also accepts user/printer registrations until dedicated services exist.
 /// </summary>
 public sealed class ResourceCommandService : IResouceCommandService
 {
@@ -28,19 +31,49 @@ public sealed class ResourceCommandService : IResouceCommandService
         this.blobStorage = blobStorage;
     }
 
-    public async ValueTask<long> CreateAsync(SaveDocumentRequest request, CancellationToken cancellationToken = default)
+    public ValueTask<long> CreateUserAsync(SaveUserRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var user = new User(
+            Id: 0,
+            DisplayName: request.DisplayName,
+            CreatedAt: DateTimeOffset.UtcNow,
+            CreatedFromIp: request.CreatedFromIp);
+
+        return recordStorage.AddUserAsync(user, cancellationToken);
+    }
+
+    public ValueTask<long> CreatePrinterAsync(SavePrinterRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var printer = new Printer(
+            Id: 0,
+            OwnerUserId: request.OwnerUserId,
+            DisplayName: request.DisplayName,
+            Protocol: request.Protocol,
+            WidthInDots: request.WidthInDots,
+            HeightInDots: request.HeightInDots,
+            CreatedAt: DateTimeOffset.UtcNow,
+            CreatedFromIp: request.CreatedFromIp);
+
+        return recordStorage.AddPrinterAsync(printer, cancellationToken);
+    }
+
+    public async ValueTask<long> CreateDocumentAsync(SaveDocumentRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         var elements = await TransformElementsAsync(request.Elements, cancellationToken).ConfigureAwait(false);
 
         var document = new Document(
-            0,
-            request.PrinterId,
-            DateTimeOffset.UtcNow,
-            request.Protocol,
-            request.SourceIp,
-            elements);
+            Id: 0,
+            PrinterId: request.PrinterId,
+            Timestamp: DateTimeOffset.UtcNow,
+            Protocol: request.Protocol,
+            SourceIp: request.SourceIp,
+            Elements: elements);
 
         return await recordStorage.AddDocumentAsync(document, cancellationToken).ConfigureAwait(false);
     }

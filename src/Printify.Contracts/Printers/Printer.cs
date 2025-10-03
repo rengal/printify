@@ -1,6 +1,6 @@
 using System;
 
-namespace Printify.Contracts.Resources;
+namespace Printify.Contracts.Printers;
 
 /// <summary>
 /// Physical or virtual printer registered by a user.

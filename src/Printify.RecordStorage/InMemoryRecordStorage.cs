@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Printify.Contracts.Documents;
+using Printify.Contracts.Printers;
 using Printify.Contracts.Services;
+using Printify.Contracts.Users;
 
 namespace Printify.RecordStorage;
 
@@ -16,7 +18,11 @@ public sealed class InMemoryRecordStorage : IRecordStorage
 {
     private readonly object gate = new();
     private readonly List<Document> documents = new();
-    private long nextId = 1;
+    private readonly List<User> users = new();
+    private readonly List<Printer> printers = new();
+    private long nextDocumentId = 1;
+    private long nextUserId = 1;
+    private long nextPrinterId = 1;
 
     public ValueTask<long> AddDocumentAsync(Document document, CancellationToken cancellationToken = default)
     {
@@ -26,7 +32,7 @@ public sealed class InMemoryRecordStorage : IRecordStorage
         Document stored;
         lock (gate)
         {
-            var assignedId = nextId++;
+            var assignedId = nextDocumentId++;
             stored = document with { Id = assignedId };
             documents.Add(stored);
         }
@@ -77,5 +83,57 @@ public sealed class InMemoryRecordStorage : IRecordStorage
             .ToList();
 
         return ValueTask.FromResult<IReadOnlyList<Document>>(result);
+    }
+
+    public ValueTask<long> AddUserAsync(User user, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        User stored;
+        lock (gate)
+        {
+            var assignedId = nextUserId++;
+            stored = user with { Id = assignedId };
+            users.Add(stored);
+        }
+
+        return ValueTask.FromResult(stored.Id);
+    }
+
+    public ValueTask<User?> GetUserAsync(long id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (gate)
+        {
+            return ValueTask.FromResult<User?>(users.FirstOrDefault(u => u.Id == id));
+        }
+    }
+
+    public ValueTask<long> AddPrinterAsync(Printer printer, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(printer);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        Printer stored;
+        lock (gate)
+        {
+            var assignedId = nextPrinterId++;
+            stored = printer with { Id = assignedId };
+            printers.Add(stored);
+        }
+
+        return ValueTask.FromResult(stored.Id);
+    }
+
+    public ValueTask<Printer?> GetPrinterAsync(long id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (gate)
+        {
+            return ValueTask.FromResult<Printer?>(printers.FirstOrDefault(p => p.Id == id));
+        }
     }
 }

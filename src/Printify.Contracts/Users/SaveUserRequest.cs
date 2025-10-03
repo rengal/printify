@@ -1,4 +1,4 @@
-namespace Printify.Contracts.Resources;
+namespace Printify.Contracts.Users;
 
 /// <summary>
 /// Payload required to create a new user.

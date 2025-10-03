@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Printify.Contracts.Resources;
+using Printify.Contracts.Documents.Services;
+using Printify.Contracts.Printers;
 
 namespace Printify.Web.Controllers;
 
@@ -7,16 +8,33 @@ namespace Printify.Web.Controllers;
 [Route("api/[controller]")]
 public sealed class PrintersController : ControllerBase
 {
+    private readonly IResouceCommandService commandService;
+    private readonly IResouceQueryService queryService;
+
+    public PrintersController(IResouceCommandService commandService, IResouceQueryService queryService)
+    {
+        this.commandService = commandService;
+        this.queryService = queryService;
+    }
+
     [HttpPost]
-    public IActionResult Create([FromBody] SavePrinterRequest request)
+    public async Task<IActionResult> Create([FromBody] SavePrinterRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        var id = await commandService.CreatePrinterAsync(request, cancellationToken).ConfigureAwait(false);
+        var printer = await queryService.GetPrinterAsync(id, cancellationToken).ConfigureAwait(false);
+        if (printer is null)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError);
+        }
+
+        return CreatedAtAction(nameof(Get), new { id = printer.Id }, printer);
     }
 
     [HttpGet("{id:long}")]
-    public IActionResult Get(long id)
+    public async Task<ActionResult<Printer>> Get(long id, CancellationToken cancellationToken)
     {
-        return StatusCode(StatusCodes.Status501NotImplemented);
+        var printer = await queryService.GetPrinterAsync(id, cancellationToken).ConfigureAwait(false);
+        return printer is null ? NotFound() : Ok(printer);
     }
 }
