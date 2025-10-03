@@ -5,6 +5,7 @@ using Xunit;
 using Contracts;
 using Contracts.Documents;
 using Contracts.Documents.Elements;
+using Printify.Contracts.Printers;
 
 internal static class DocumentAssertions
 {

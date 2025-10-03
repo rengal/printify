@@ -4,6 +4,7 @@ using Xunit;
 using TestServices;
 using Contracts;
 using Contracts.Documents.Elements;
+using Printify.Contracts.Printers;
 
 public sealed class SetLineSpacingTests
 {

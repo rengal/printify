@@ -9,6 +9,7 @@ using Contracts;
 using Tests;
 using Xunit;
 using Contracts.Documents.Elements;
+using Printify.Contracts.Printers;
 
 public sealed class GoldenTests
 {

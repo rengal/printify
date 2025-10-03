@@ -4,12 +4,12 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
-using Printify.Contracts;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
 using Printify.Contracts.Documents.Queries;
 using Printify.Contracts.Documents.Services;
 using Printify.Contracts.Media;
+using Printify.Contracts.Printers;
 using Printify.TestServices;
 
 namespace Printify.Documents.Tests;

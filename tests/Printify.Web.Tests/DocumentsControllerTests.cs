@@ -4,11 +4,11 @@ using System.Linq;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Printify.Contracts;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
 using Printify.Contracts.Documents.Services;
 using Printify.Contracts.Media;
+using Printify.Contracts.Printers;
 
 namespace Printify.Web.Tests;
 

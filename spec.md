@@ -221,16 +221,19 @@ A thin bottom bar across all pages:
 ---
 
 ## 10. API
+## 10. API
 
-* `GET /api/documents?cursor&limit&ipFilter`
-* `GET /api/documents/{id}` (JSON)
-* `GET /api/documents/{id}/render` (HTML)
-* `GET /api/documents/{id}/raw` (bytes)
-* SignalR hub `/hub/notifications` for live updates
-* Add `/healthz`, `/ready`, `/metrics`
+* `GET /api/documents?limit&beforeId&sourceIp` — paged document feed (newest first). Limit defaults to 20.
+* `GET /api/documents/{id}?includeContent` — full document payload. Set `includeContent=true` to hydrate raster bytes.
+* `POST /api/users` — create a user (`SaveUserRequest`).
+* `GET /api/users/{id}` — fetch a user.
+* `POST /api/printers` — register a printer (`SavePrinterRequest`).
+* `GET /api/printers/{id}` — fetch printer metadata.
+* `GET /api/media/{mediaId}` — stream raster/image bytes for a single blob.
+
+*Health/metrics endpoints remain `/health` today; `/healthz`, `/ready`, `/metrics` stay on the backlog alongside live updates (`/hub/notifications`).
 
 ---
-
 ## 11. Security & Ops
 
 * No auth / no rate limit (MVP, trusted nets)

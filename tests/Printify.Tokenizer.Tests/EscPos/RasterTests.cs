@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Contracts;
 using Contracts.Documents.Elements;
+using Printify.Contracts.Printers;
 
 public sealed class RasterTests
 {

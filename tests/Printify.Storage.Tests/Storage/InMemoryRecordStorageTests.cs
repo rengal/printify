@@ -6,6 +6,7 @@ using System;
 using System.Threading.Tasks;
 using Contracts;
 using Contracts.Documents;
+using Printify.Contracts.Printers;
 using TestServices;
 
 public sealed class InMemoryRecordStorageTests

@@ -4,6 +4,7 @@ namespace Printify.Tokenizer.Tests.EscPos;
 
 using Contracts;
 using Contracts.Documents.Elements;
+using Printify.Contracts.Printers;
 using Xunit;
 
 public sealed class BellTests

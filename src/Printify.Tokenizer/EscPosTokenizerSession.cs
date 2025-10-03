@@ -5,12 +5,12 @@ using Microsoft.Extensions.Options;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
-using Printify.Contracts;
 using Printify.Contracts.Media;
 using Printify.Contracts.Config;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
 using Printify.Contracts.Core;
+using Printify.Contracts.Printers;
 
 namespace Printify.Tokenizer;
 

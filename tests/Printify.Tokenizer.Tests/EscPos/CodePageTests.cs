@@ -6,6 +6,7 @@ using TestServices;
 using System.Collections.Generic;
 using Contracts;
 using Xunit;
+using Printify.Contracts.Printers;
 
 public sealed class CodePageTests
 {

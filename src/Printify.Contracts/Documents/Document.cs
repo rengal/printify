@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Printify.Contracts.Documents.Elements;
+using Printify.Contracts.Printers;
 
 namespace Printify.Contracts.Documents;
 

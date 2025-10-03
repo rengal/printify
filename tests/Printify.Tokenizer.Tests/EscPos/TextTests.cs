@@ -5,6 +5,7 @@ using System.Text;
 using Contracts;
 using Xunit;
 using Contracts.Documents.Elements;
+using Printify.Contracts.Printers;
 
 public sealed class TextTests
 {

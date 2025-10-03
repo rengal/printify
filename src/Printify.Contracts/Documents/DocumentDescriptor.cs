@@ -1,5 +1,5 @@
 using System;
-using Printify.Contracts;
+using Printify.Contracts.Printers;
 
 namespace Printify.Contracts.Documents;
 
