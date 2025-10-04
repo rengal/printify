@@ -17,4 +17,6 @@ public interface IResourceQueryService
     ValueTask<User?> GetUserAsync(long id, CancellationToken cancellationToken = default);
 
     ValueTask<Printer?> GetPrinterAsync(long id, CancellationToken cancellationToken = default);
+
+    ValueTask<IReadOnlyList<Printer>> ListPrintersAsync(long? ownerUserId = null, CancellationToken cancellationToken = default);
 }

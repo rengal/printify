@@ -25,7 +25,28 @@ public sealed class ResourceCommandService : IResourceCommandService
         this.blobStorage = blobStorage;
     }
 
-    public ValueTask<long> CreateUserAsync(SaveUserRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<long> CreateDocumentAsync(
+        SaveDocumentRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var elements = await TransformElementsAsync(request.Elements, cancellationToken).ConfigureAwait(false);
+
+        var document = new Document(
+            Id: 0,
+            PrinterId: request.PrinterId,
+            Timestamp: DateTimeOffset.UtcNow,
+            Protocol: request.Protocol,
+            SourceIp: request.SourceIp,
+            Elements: elements);
+
+        return await recordStorage.AddDocumentAsync(document, cancellationToken).ConfigureAwait(false);
+    }
+
+    public ValueTask<long> CreateUserAsync(
+        SaveUserRequest request,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -38,7 +59,38 @@ public sealed class ResourceCommandService : IResourceCommandService
         return recordStorage.AddUserAsync(user, cancellationToken);
     }
 
-    public ValueTask<long> CreatePrinterAsync(SavePrinterRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<bool> UpdateUserAsync(
+        long id,
+        SaveUserRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var existing = await recordStorage.GetUserAsync(id, cancellationToken).ConfigureAwait(false);
+        if (existing is null)
+        {
+            return false;
+        }
+
+        // Preserve the original registration timestamp while refreshing mutable details.
+        var updated = existing with
+        {
+            DisplayName = request.DisplayName,
+            CreatedFromIp = request.CreatedFromIp
+        };
+
+        return await recordStorage.UpdateUserAsync(updated, cancellationToken).ConfigureAwait(false);
+    }
+
+    public ValueTask<bool> DeleteUserAsync(long id, CancellationToken cancellationToken = default)
+    {
+        // Delegate delete semantics to the storage layer so it can report existence accurately.
+        return recordStorage.DeleteUserAsync(id, cancellationToken);
+    }
+
+    public ValueTask<long> CreatePrinterAsync(
+        SavePrinterRequest request,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -55,21 +107,37 @@ public sealed class ResourceCommandService : IResourceCommandService
         return recordStorage.AddPrinterAsync(printer, cancellationToken);
     }
 
-    public async ValueTask<long> CreateDocumentAsync(SaveDocumentRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<bool> UpdatePrinterAsync(
+        long id,
+        SavePrinterRequest request,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var elements = await TransformElementsAsync(request.Elements, cancellationToken).ConfigureAwait(false);
+        var existing = await recordStorage.GetPrinterAsync(id, cancellationToken).ConfigureAwait(false);
+        if (existing is null)
+        {
+            return false;
+        }
 
-        var document = new Document(
-            Id: 0,
-            PrinterId: request.PrinterId,
-            Timestamp: DateTimeOffset.UtcNow,
-            Protocol: request.Protocol,
-            SourceIp: request.SourceIp,
-            Elements: elements);
+        // Keep the original registration timestamp, only refreshing mutable configuration.
+        var updated = existing with
+        {
+            OwnerUserId = request.OwnerUserId,
+            DisplayName = request.DisplayName,
+            Protocol = request.Protocol,
+            WidthInDots = request.WidthInDots,
+            HeightInDots = request.HeightInDots,
+            CreatedFromIp = request.CreatedFromIp
+        };
 
-        return await recordStorage.AddDocumentAsync(document, cancellationToken).ConfigureAwait(false);
+        return await recordStorage.UpdatePrinterAsync(updated, cancellationToken).ConfigureAwait(false);
+    }
+
+    public ValueTask<bool> DeletePrinterAsync(long id, CancellationToken cancellationToken = default)
+    {
+        // Let the storage implementation decide whether the printer existed and was removed.
+        return recordStorage.DeletePrinterAsync(id, cancellationToken);
     }
 
     private async ValueTask<Element[]> TransformElementsAsync(

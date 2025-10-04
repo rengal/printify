@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Options;
+using Printify.Contracts;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
@@ -10,7 +11,6 @@ using Printify.Contracts.Config;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
 using Printify.Contracts.Core;
-using Printify.Contracts.Printers;
 
 namespace Printify.Tokenizer;
 
@@ -73,14 +73,13 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
     private bool IsBufferTrackingEnabled => bufferOptions.DrainRate.HasValue || bufferOptions.MaxCapacity.HasValue;
 
     private readonly IClock clock;
-    private readonly List<Element> elements = new List<Element>();
-    private readonly List<byte> textBytes = new List<byte>();
+    private readonly List<Element> elements = new();
+    private readonly List<byte> textBytes = new();
     private int? activeTextLineIndex;
     private int sequence;
     private long totalConsumed;
     private bool isCompleted;
     private Document? document;
-    private string currentCodePage = "437";
     private Encoding currentEncoding = Encoding.GetEncoding(437);
     private string? pendingQrData;
 
@@ -218,7 +217,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                         var pinId = data[index + 2];
                         var onTime = data[index + 3];
                         var offTime = data[index + 4];
-                        var pin = PulsePinMap.TryGetValue(pinId, out var resolvedPin) ? resolvedPin : PulsePin.Drawer1;
+                        var pin = PulsePinMap.GetValueOrDefault(pinId, PulsePin.Drawer1);
                         var onTimeMs = onTime * 2;
                         var offTimeMs = offTime * 2;
                         elements.Add(new Pulse(++sequence, pin, onTimeMs, offTimeMs));
@@ -563,39 +562,39 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                 continue;
             }
 
-        if (value == Fs)
-        {
-            if (index + 1 < data.Length)
+            if (value == Fs)
             {
-                var fsCommand = data[index + 1];
-
-                if (fsCommand == FsSelectChinese)
+                if (index + 1 < data.Length)
                 {
-                    // Command: FS & - select Chinese (GB2312) character set.
-                    // ASCII: FS &
-                    // HEX: 1C 26
-                    FlushText(allowEmpty: false);
-                    UpdateCodePage("936");
-                    elements.Add(new SetCodePage(++sequence, "936"));
-                    index += 1;
-                    continue;
+                    var fsCommand = data[index + 1];
+
+                    if (fsCommand == FsSelectChinese)
+                    {
+                        // Command: FS & - select Chinese (GB2312) character set.
+                        // ASCII: FS &
+                        // HEX: 1C 26
+                        FlushText(allowEmpty: false);
+                        UpdateCodePage("936");
+                        elements.Add(new SetCodePage(++sequence, "936"));
+                        index += 1;
+                        continue;
+                    }
+
+                    if (fsCommand == (byte)'p' && index + 3 < data.Length)
+                    {
+                        // Command: FS p m n - print stored logo by identifier.
+                        // ASCII: FS p m n
+                        // HEX: 1C 70 0xMM 0xNN
+                        FlushText(allowEmpty: false);
+                        var logoId = data[index + 3];
+                        elements.Add(new StoredLogo(++sequence, logoId));
+                        index += 3;
+                        continue;
+                    }
                 }
 
-                if (fsCommand == (byte)'p' && index + 3 < data.Length)
-                {
-                    // Command: FS p m n - print stored logo by identifier.
-                    // ASCII: FS p m n
-                    // HEX: 1C 70 0xMM 0xNN
-                    FlushText(allowEmpty: false);
-                    var logoId = data[index + 3];
-                    elements.Add(new StoredLogo(++sequence, logoId));
-                    index += 3;
-                    continue;
-                }
+                continue;
             }
-
-            continue;
-        }
 
             if (value == EscPosTokenizer.Bell)
             {
@@ -804,13 +803,6 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
         elements.Add(new RasterImageContent(++sequence, widthDots, height, media));
     }
 
-    private static string BuildBlobUrl(string blobId)
-    {
-        ArgumentNullException.ThrowIfNull(blobId);
-        // Return an app-relative URL so HTTP handlers can locate the stored raster payload.
-        return $"/media/{blobId}";
-    }
-
     private static bool TryGetJustification(byte value, out TextJustification justification)
     {
         switch (value)
@@ -972,8 +964,6 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
             {
                 currentEncoding = Encoding.GetEncoding(codePage);
             }
-
-            currentCodePage = codePage;
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
         {

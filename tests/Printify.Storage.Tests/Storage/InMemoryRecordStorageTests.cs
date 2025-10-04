@@ -84,6 +84,119 @@ public sealed class InMemoryRecordStorageTests
         Assert.All(filtered, d => Assert.Equal("10.0.0.1", d.SourceIp));
     }
 
+    /// <summary>
+    /// Scenario: Updating an existing user should overwrite mutable fields and preserve the identifier.
+    /// </summary>
+    [Fact]
+    public async Task UpdateUserAsync_WhenUserExists_ReplacesStoredEntry()
+    {
+        await using var context = TestServiceContext.Create();
+        var storage = context.RecordStorage;
+
+        var userId = await storage.AddUserAsync(new Contracts.Users.User(0, "Initial", DateTimeOffset.UnixEpoch, "10.0.0.1"));
+        var updatedUser = new Contracts.Users.User(userId, "Updated", DateTimeOffset.UnixEpoch, "10.0.0.2");
+
+        var updated = await storage.UpdateUserAsync(updatedUser);
+
+        Assert.True(updated);
+        var reloaded = await storage.GetUserAsync(userId);
+        Assert.NotNull(reloaded);
+        Assert.Equal("Updated", reloaded!.DisplayName);
+        Assert.Equal("10.0.0.2", reloaded.CreatedFromIp);
+    }
+
+    /// <summary>
+    /// Scenario: Deleting a user should remove the record and return false if repeated.
+    /// </summary>
+    [Fact]
+    public async Task DeleteUserAsync_RemovesExistingUser()
+    {
+        await using var context = TestServiceContext.Create();
+        var storage = context.RecordStorage;
+
+        var userId = await storage.AddUserAsync(new Contracts.Users.User(0, "ToRemove", DateTimeOffset.UnixEpoch, "10.0.0.1"));
+
+        Assert.True(await storage.DeleteUserAsync(userId));
+        Assert.Null(await storage.GetUserAsync(userId));
+        Assert.False(await storage.DeleteUserAsync(userId));
+    }
+
+    /// <summary>
+    /// Scenario: Listing printers without a filter should return every registered printer.
+    /// </summary>
+    [Fact]
+    public async Task ListPrintersAsync_ReturnsAllWhenFilterOmitted()
+    {
+        await using var context = TestServiceContext.Create();
+        var storage = context.RecordStorage;
+
+        await storage.AddPrinterAsync(new Printer(0, 1, "Front", "escpos", 384, null, DateTimeOffset.UnixEpoch, "10.0.0.1"));
+        await storage.AddPrinterAsync(new Printer(0, 2, "Back", "escpos", 384, null, DateTimeOffset.UnixEpoch, "10.0.0.2"));
+
+        var printers = await storage.ListPrintersAsync();
+
+        Assert.Equal(2, printers.Count);
+        Assert.Contains(printers, printer => printer.OwnerUserId == 1);
+        Assert.Contains(printers, printer => printer.OwnerUserId == 2);
+    }
+
+    /// <summary>
+    /// Scenario: Supplying an owner filter should narrow the result set.
+    /// </summary>
+    [Fact]
+    public async Task ListPrintersAsync_FiltersByOwner()
+    {
+        await using var context = TestServiceContext.Create();
+        var storage = context.RecordStorage;
+
+        await storage.AddPrinterAsync(new Printer(0, 5, "Front", "escpos", 384, null, DateTimeOffset.UnixEpoch, "10.0.0.1"));
+        await storage.AddPrinterAsync(new Printer(0, 5, "Back", "escpos", 384, null, DateTimeOffset.UnixEpoch, "10.0.0.1"));
+        await storage.AddPrinterAsync(new Printer(0, 7, "Spare", "escpos", 384, null, DateTimeOffset.UnixEpoch, "10.0.0.2"));
+
+        var printers = await storage.ListPrintersAsync(5);
+
+        Assert.Equal(2, printers.Count);
+        Assert.All(printers, printer => Assert.Equal(5, printer.OwnerUserId));
+    }
+    /// <summary>
+    /// Scenario: Updating a printer should refresh configuration while keeping the same identifier.
+    /// </summary>
+    [Fact]
+    public async Task UpdatePrinterAsync_WhenPrinterExists_ReplacesStoredEntry()
+    {
+        await using var context = TestServiceContext.Create();
+        var storage = context.RecordStorage;
+
+        var printerId = await storage.AddPrinterAsync(new Printer(0, 7, "Front", "escpos", 384, null, DateTimeOffset.UnixEpoch, "10.0.0.1"));
+        var updatedPrinter = new Printer(printerId, 7, "Front Wide", "escpos", 512, 800, DateTimeOffset.UnixEpoch, "10.0.0.2");
+
+        var updated = await storage.UpdatePrinterAsync(updatedPrinter);
+
+        Assert.True(updated);
+        var reloaded = await storage.GetPrinterAsync(printerId);
+        Assert.NotNull(reloaded);
+        Assert.Equal("Front Wide", reloaded!.DisplayName);
+        Assert.Equal(512, reloaded.WidthInDots);
+        Assert.Equal(800, reloaded.HeightInDots);
+        Assert.Equal("10.0.0.2", reloaded.CreatedFromIp);
+    }
+
+    /// <summary>
+    /// Scenario: Deleting a printer should remove it and subsequent deletes should return false.
+    /// </summary>
+    [Fact]
+    public async Task DeletePrinterAsync_RemovesExistingPrinter()
+    {
+        await using var context = TestServiceContext.Create();
+        var storage = context.RecordStorage;
+
+        var printerId = await storage.AddPrinterAsync(new Printer(0, 9, "Front", "escpos", 384, null, DateTimeOffset.UnixEpoch, "10.0.0.1"));
+
+        Assert.True(await storage.DeletePrinterAsync(printerId));
+        Assert.Null(await storage.GetPrinterAsync(printerId));
+        Assert.False(await storage.DeletePrinterAsync(printerId));
+    }
+
     private static Document CreateDocument(DateTimeOffset timestamp, string? sourceIp = null, long printerId = 1)
     {
         return new Document(

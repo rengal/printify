@@ -1,7 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.Extensions.DependencyInjection;
-using Printify.Contracts.Documents.Services;
 using Printify.Contracts.Users;
 
 namespace Printify.Web.Tests;
@@ -11,7 +9,7 @@ public sealed class UsersControllerTests
     [Fact]
     public async Task Create_Then_Get_ReturnsPersistedUser()
     {
-        using var factory = new TestWebApplicationFactory();
+        await using var factory = new TestWebApplicationFactory();
         var client = factory.CreateClient();
 
         var request = new SaveUserRequest("Alice", "127.0.0.1");

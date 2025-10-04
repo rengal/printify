@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Printify.Contracts.Printers;
 using Printify.Contracts.Services;
@@ -29,6 +30,19 @@ public sealed class PrintersController : ControllerBase
         }
 
         return CreatedAtAction(nameof(Get), new { id = printer.Id }, printer);
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<Printer>>> List([FromQuery] long? userId, CancellationToken cancellationToken)
+    {
+        if (userId is <= 0)
+        {
+            // Prevent negative or zero owner identifiers from reaching the query layer.
+            return ValidationProblem(detail: "userId must be greater than zero when provided.", statusCode: StatusCodes.Status400BadRequest);
+        }
+
+        var printers = await queryService.ListPrintersAsync(userId, cancellationToken).ConfigureAwait(false);
+        return Ok(printers);
     }
 
     [HttpGet("{id:long}")]

@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\tests\Printify.TestServices\Printify.TestServices.csproj" />
     <ProjectReference Include="..\Printify.Contracts\Printify.Contracts.csproj" />
     <ProjectReference Include="..\Printify.Core\Printify.Core.csproj" />
     <ProjectReference Include="..\Printify.Documents\Printify.ResourceApplication.csproj" />

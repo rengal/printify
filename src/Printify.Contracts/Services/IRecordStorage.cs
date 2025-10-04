@@ -31,6 +31,10 @@ public interface IRecordStorage
 
     ValueTask<Printer?> GetPrinterAsync(long id, CancellationToken cancellationToken = default);
 
+    ValueTask<IReadOnlyList<Printer>> ListPrintersAsync(
+        long? ownerUserId = null,
+        CancellationToken cancellationToken = default);
+
     ValueTask<bool> UpdatePrinterAsync(Printer printer, CancellationToken cancellationToken = default);
 
     ValueTask<bool> DeletePrinterAsync(long id, CancellationToken cancellationToken = default);
