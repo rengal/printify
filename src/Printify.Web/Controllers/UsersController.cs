@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Printify.Contracts.Documents.Services;
+using Printify.Contracts.Services;
 using Printify.Contracts.Users;
 
 namespace Printify.Web.Controllers;
@@ -8,10 +8,10 @@ namespace Printify.Web.Controllers;
 [Route("api/[controller]")]
 public sealed class UsersController : ControllerBase
 {
-    private readonly IResouceCommandService commandService;
-    private readonly IResouceQueryService queryService;
+    private readonly IResourceCommandService commandService;
+    private readonly IResourceQueryService queryService;
 
-    public UsersController(IResouceCommandService commandService, IResouceQueryService queryService)
+    public UsersController(IResourceCommandService commandService, IResourceQueryService queryService)
     {
         this.commandService = commandService;
         this.queryService = queryService;

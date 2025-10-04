@@ -1,23 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
-using Printify.Contracts.Documents.Services;
 using Printify.Contracts.Media;
 using Printify.Contracts.Printers;
 using Printify.Contracts.Services;
 using Printify.Contracts.Users;
 
-namespace Printify.Application.Documents.Commands;
+namespace Printify.Documents.Commands;
 
 /// <summary>
 /// Coordinates document persistence and media offloading to blob storage.
 /// Also accepts user/printer registrations until dedicated services exist.
 /// </summary>
-public sealed class ResourceCommandService : IResouceCommandService
+public sealed class ResourceCommandService : IResourceCommandService
 {
     private readonly IRecordStorage recordStorage;
     private readonly IBlobStorage blobStorage;
@@ -84,7 +78,7 @@ public sealed class ResourceCommandService : IResouceCommandService
     {
         if (source.Count == 0)
         {
-            return Array.Empty<Element>();
+            return [];
         }
 
         var transformed = new List<Element>(source.Count);
@@ -125,7 +119,7 @@ public sealed class ResourceCommandService : IResouceCommandService
 
     private static MediaMeta EnsureMeta(MediaMeta meta, ReadOnlyMemory<byte> content)
     {
-        if (meta.Length.HasValue && meta.Checksum is not null)
+        if (meta is { Length: not null, Checksum: not null })
         {
             return meta;
         }

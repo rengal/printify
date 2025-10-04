@@ -2,9 +2,8 @@ using Printify.BlobStorage.FileSystem;
 using Printify.Contracts.Config;
 using Printify.Contracts.Services;
 using Printify.Core.Service;
-using Printify.Application.Documents.Commands;
-using Printify.Application.Documents.Queries;
-using Printify.Contracts.Documents.Services;
+using Printify.Documents.Commands;
+using Printify.Documents.Queries;
 using Printify.Listener;
 using Printify.RecordStorage;
 using Printify.Tokenizer;
@@ -24,9 +23,9 @@ builder.Services.AddSingleton<IBlobStorage, FileSystemBlobStorage>();
 builder.Services.AddSingleton<IRecordStorage, InMemoryRecordStorage>();
 builder.Services.AddSingleton<IClockFactory, StopwatchClockFactory>();
 builder.Services.AddSingleton<ITokenizer, EscPosTokenizer>();
-builder.Services.AddSingleton<IResouceCommandService, ResourceCommandService>();
+builder.Services.AddSingleton<IResourceCommandService, ResourceCommandService>();
 // Query service materializes descriptors and optional raster content for the API surface.
-builder.Services.AddSingleton<IResouceQueryService, ResourceQueryService>();
+builder.Services.AddSingleton<IResourceQueryService, ResourceQueryService>();
 
 builder.Services.AddSingleton<ListenerService>();
 builder.Services.AddSingleton<IListenerService>(sp => sp.GetRequiredService<ListenerService>());

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Printify.Contracts.Documents.Services;
 using Printify.Contracts.Printers;
+using Printify.Contracts.Services;
 
 namespace Printify.Web.Controllers;
 
@@ -8,10 +8,10 @@ namespace Printify.Web.Controllers;
 [Route("api/[controller]")]
 public sealed class PrintersController : ControllerBase
 {
-    private readonly IResouceCommandService commandService;
-    private readonly IResouceQueryService queryService;
+    private readonly IResourceCommandService commandService;
+    private readonly IResourceQueryService queryService;
 
-    public PrintersController(IResouceCommandService commandService, IResouceQueryService queryService)
+    public PrintersController(IResourceCommandService commandService, IResourceQueryService queryService)
     {
         this.commandService = commandService;
         this.queryService = queryService;

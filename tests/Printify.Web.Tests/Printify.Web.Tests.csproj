@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Printify.Web\Printify.Web.csproj" />
-    <ProjectReference Include="..\..\src\Printify.Documents\Printify.Documents.csproj" />
+    <ProjectReference Include="..\..\src\Printify.Documents\Printify.ResourceApplication.csproj" />
     <ProjectReference Include="..\..\tests\Printify.TestServices\Printify.TestServices.csproj" />
   </ItemGroup>
 

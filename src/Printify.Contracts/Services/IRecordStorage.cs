@@ -23,7 +23,15 @@ public interface IRecordStorage
 
     ValueTask<User?> GetUserAsync(long id, CancellationToken cancellationToken = default);
 
+    ValueTask<bool> UpdateUserAsync(User user, CancellationToken cancellationToken = default);
+
+    ValueTask<bool> DeleteUserAsync(long id, CancellationToken cancellationToken = default);
+
     ValueTask<long> AddPrinterAsync(Printer printer, CancellationToken cancellationToken = default);
 
     ValueTask<Printer?> GetPrinterAsync(long id, CancellationToken cancellationToken = default);
+
+    ValueTask<bool> UpdatePrinterAsync(Printer printer, CancellationToken cancellationToken = default);
+
+    ValueTask<bool> DeletePrinterAsync(long id, CancellationToken cancellationToken = default);
 }

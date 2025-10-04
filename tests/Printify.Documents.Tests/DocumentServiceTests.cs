@@ -7,9 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
 using Printify.Contracts.Documents.Queries;
-using Printify.Contracts.Documents.Services;
 using Printify.Contracts.Media;
 using Printify.Contracts.Printers;
+using Printify.Contracts.Services;
 using Printify.TestServices;
 
 namespace Printify.Documents.Tests;
@@ -22,7 +22,7 @@ public sealed class DocumentServiceTests
     public async Task CreateDocumentAsync_OffloadsRasterToBlob()
     {
         await using var context = TestServiceContext.Create();
-        var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
+        var commandService = context.Provider.GetRequiredService<IResourceCommandService>();
         var payload = Enumerable.Repeat((byte)0x5A, 32).ToArray();
         const long printerId = 123;
         var request = CreateDocument(payload, "Receipt A", printerId);
@@ -48,8 +48,8 @@ public sealed class DocumentServiceTests
     public async Task ListDocumentsAsync_ReturnsDescriptors()
     {
         await using var context = TestServiceContext.Create();
-        var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
-        var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
+        var commandService = context.Provider.GetRequiredService<IResourceCommandService>();
+        var queryService = context.Provider.GetRequiredService<IResourceQueryService>();
 
         await commandService.CreateDocumentAsync(CreateDocument(Enumerable.Repeat((byte)0x11, 16).ToArray(), "Alpha", 201));
         await commandService.CreateDocumentAsync(CreateDocument(Enumerable.Repeat((byte)0x22, 24).ToArray(), "Beta", 202));
@@ -67,8 +67,8 @@ public sealed class DocumentServiceTests
     public async Task ListDocumentsAsync_PaginatesWithCursor()
     {
         await using var context = TestServiceContext.Create();
-        var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
-        var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
+        var commandService = context.Provider.GetRequiredService<IResourceCommandService>();
+        var queryService = context.Provider.GetRequiredService<IResourceQueryService>();
 
         var titles = new[] { "First", "Second", "Third", "Fourth", "Fifth" };
         var ids = new long[titles.Length];
@@ -101,8 +101,8 @@ public sealed class DocumentServiceTests
     public async Task ListDocumentsAsync_FiltersBySourceIp()
     {
         await using var context = TestServiceContext.Create();
-        var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
-        var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
+        var commandService = context.Provider.GetRequiredService<IResourceCommandService>();
+        var queryService = context.Provider.GetRequiredService<IResourceQueryService>();
 
         await commandService.CreateDocumentAsync(CreateTextDocument("alpha", "10.0.0.1", 301));
         await commandService.CreateDocumentAsync(CreateTextDocument("beta", "10.0.0.2", 302));
@@ -118,8 +118,8 @@ public sealed class DocumentServiceTests
     public async Task GetDocumentAsync_WithIncludeContent_HydratesRasterPayload()
     {
         await using var context = TestServiceContext.Create();
-        var commandService = context.Provider.GetRequiredService<IResouceCommandService>();
-        var queryService = context.Provider.GetRequiredService<IResouceQueryService>();
+        var commandService = context.Provider.GetRequiredService<IResourceCommandService>();
+        var queryService = context.Provider.GetRequiredService<IResourceQueryService>();
         var payload = Enumerable.Range(0, 48).Select(value => (byte)value).ToArray();
         const long printerId = 555;
         var request = CreateDocument(payload, "Receipt B", printerId);

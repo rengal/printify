@@ -27,13 +27,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Printify.Listener.Tests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Printify.TestServices", "tests\Printify.TestServices\Printify.TestServices.csproj", "{B87D7CE1-269D-A585-D126-C89FFD135AD2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Printify.Documents", "src\Printify.Documents\Printify.Documents.csproj", "{107CDDB0-0187-4696-9272-AF82FA94E923}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Printify.ResourceApplication", "src\Printify.Documents\Printify.ResourceApplication.csproj", "{107CDDB0-0187-4696-9272-AF82FA94E923}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Printify.RecordStorage", "src\Printify.RecordStorage\Printify.RecordStorage.csproj", "{3E4911E8-40D1-4448-BBD9-465EEA9EB9FD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Printify.BlobStorage", "src\Printify.BlobStorage\Printify.BlobStorage.csproj", "{A31C867B-394E-4A7E-A120-BD0DA3C76761}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Printify.Documents.Tests", "tests\Printify.Documents.Tests\Printify.Documents.Tests.csproj", "{D2250077-3D81-431D-BC04-F09868A998F3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Printify.ResourceApplication.Tests", "tests\Printify.Documents.Tests\Printify.ResourceApplication.Tests.csproj", "{D2250077-3D81-431D-BC04-F09868A998F3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Printify.Web.Tests", "tests\Printify.Web.Tests\Printify.Web.Tests.csproj", "{C4DB59A3-7AEF-4272-8A28-91ACDC76CD72}"
 EndProject

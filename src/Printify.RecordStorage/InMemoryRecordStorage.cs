@@ -111,6 +111,38 @@ public sealed class InMemoryRecordStorage : IRecordStorage
         }
     }
 
+    public ValueTask<bool> UpdateUserAsync(User user, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        bool updated;
+        lock (gate)
+        {
+            var index = users.FindIndex(u => u.Id == user.Id);
+            updated = index >= 0;
+            if (updated)
+            {
+                users[index] = user;
+            }
+        }
+
+        return ValueTask.FromResult(updated);
+    }
+
+    public ValueTask<bool> DeleteUserAsync(long id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        bool removed;
+        lock (gate)
+        {
+            removed = users.RemoveAll(u => u.Id == id) > 0;
+        }
+
+        return ValueTask.FromResult(removed);
+    }
+
     public ValueTask<long> AddPrinterAsync(Printer printer, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(printer);
@@ -135,5 +167,37 @@ public sealed class InMemoryRecordStorage : IRecordStorage
         {
             return ValueTask.FromResult<Printer?>(printers.FirstOrDefault(p => p.Id == id));
         }
+    }
+
+    public ValueTask<bool> UpdatePrinterAsync(Printer printer, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(printer);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        bool updated;
+        lock (gate)
+        {
+            var index = printers.FindIndex(p => p.Id == printer.Id);
+            updated = index >= 0;
+            if (updated)
+            {
+                printers[index] = printer;
+            }
+        }
+
+        return ValueTask.FromResult(updated);
+    }
+
+    public ValueTask<bool> DeletePrinterAsync(long id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        bool removed;
+        lock (gate)
+        {
+            removed = printers.RemoveAll(p => p.Id == id) > 0;
+        }
+
+        return ValueTask.FromResult(removed);
     }
 }

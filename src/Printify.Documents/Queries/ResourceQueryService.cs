@@ -1,24 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
 using Printify.Contracts.Documents.Queries;
-using Printify.Contracts.Documents.Services;
 using Printify.Contracts.Media;
 using Printify.Contracts.Printers;
 using Printify.Contracts.Services;
 using Printify.Contracts.Users;
 
-namespace Printify.Application.Documents.Queries;
+namespace Printify.Documents.Queries;
 
 /// <summary>
 /// Provides read-side operations for documents and associated media.
 /// </summary>
-public sealed class ResourceQueryService : IResouceQueryService
+public sealed class ResourceQueryService : IResourceQueryService
 {
     private readonly IRecordStorage recordStorage;
     private readonly IBlobStorage blobStorage;

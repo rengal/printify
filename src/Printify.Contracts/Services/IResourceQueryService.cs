@@ -3,12 +3,12 @@ using Printify.Contracts.Documents.Queries;
 using Printify.Contracts.Printers;
 using Printify.Contracts.Users;
 
-namespace Printify.Contracts.Documents.Services;
+namespace Printify.Contracts.Services;
 
 /// <summary>
 /// Query-side service that retrieves document metadata and related resources from storage.
 /// </summary>
-public interface IResouceQueryService
+public interface IResourceQueryService
 {
     ValueTask<PagedResult<DocumentDescriptor>> ListDocumentsAsync(ListQuery query, CancellationToken cancellationToken = default);
 

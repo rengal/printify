@@ -6,9 +6,9 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
-using Printify.Contracts.Documents.Services;
 using Printify.Contracts.Media;
 using Printify.Contracts.Printers;
+using Printify.Contracts.Services;
 
 namespace Printify.Web.Tests;
 
@@ -96,7 +96,7 @@ public sealed class DocumentsControllerTests
     private static async Task<long> SeedAsync(TestWebApplicationFactory factory, SaveDocumentRequest request)
     {
         using var scope = factory.Services.CreateScope();
-        var commandService = scope.ServiceProvider.GetRequiredService<IResouceCommandService>();
+        var commandService = scope.ServiceProvider.GetRequiredService<IResourceCommandService>();
         return await commandService.CreateDocumentAsync(request);
     }
 

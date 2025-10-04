@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Queries;
-using Printify.Contracts.Documents.Services;
+using Printify.Contracts.Services;
 
 namespace Printify.Web.Controllers;
 
@@ -10,9 +10,9 @@ namespace Printify.Web.Controllers;
 public sealed class DocumentsController : ControllerBase
 {
     private const int DefaultLimit = 20;
-    private readonly IResouceQueryService queryService;
+    private readonly IResourceQueryService queryService;
 
-    public DocumentsController(IResouceQueryService queryService)
+    public DocumentsController(IResourceQueryService queryService)
     {
         this.queryService = queryService;
     }

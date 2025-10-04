@@ -1,8 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Printify.Contracts.Documents.Services;
 using Printify.Contracts.Printers;
+using Printify.Contracts.Services;
 using Printify.Contracts.Users;
 
 namespace Printify.Web.Tests;
@@ -14,7 +14,7 @@ public sealed class PrintersControllerTests
     {
         using var factory = new TestWebApplicationFactory();
         var scope = factory.Services.CreateScope();
-        var commandService = scope.ServiceProvider.GetRequiredService<IResouceCommandService>();
+        var commandService = scope.ServiceProvider.GetRequiredService<IResourceCommandService>();
         var ownerId = await commandService.CreateUserAsync(new SaveUserRequest("Owner", "127.0.0.1"));
 
         var client = factory.CreateClient();
