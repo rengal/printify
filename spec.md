@@ -1,4 +1,4 @@
-# Printify — Technical Specification (Condensed)
+# Printify — Technical Specification
 
 ## 1. Overview
 
@@ -118,118 +118,135 @@ public sealed record RasterImage(
 
 ---
 
-## 9. Web UI (Detailed)
+## 9. Web UI
 
 ### Purpose
 
-A fast, distraction-free viewer for rendered receipts with precise, debuggable context. Optimized for long sessions (operators/devs), large streams, and quick filtering.
+A printer management interface that allows operators to configure multiple printers, monitor their activity, and view documents processed by each printer. Optimized for managing fleets of receipt/label printers with different protocols and configurations.
 
 ### Layout & Navigation
 
-* **Single-column feed** (centered, max content width \~900–1100px). **No left sidebar.**
-* **Sticky top bar** with filter input, “Show all commands” toggle, and a live-updates switch.
-* **Right metadata rail** (narrow fixed column) aligned with each document’s top. Shows compact meta and timeline ticks aligned to events inside the receipt.
-* **Infinite scroll** with windowed virtualization (e.g., 25 items per page). Supports upwards and downwards loading, preserves scroll position on navigation.
-* **Live updates** (SignalR): when enabled, inserts new documents at the top with a subtle highlight.
+* **Three-column grid layout**:
+  * Left sidebar (collapsible) for printer list navigation
+  * Top bar with sidebar toggle, current context title, and theme switcher
+  * Main content area for document viewing or welcome screen
+* **Sidebar organization**:
+  * "New printer" action at top (shows as "temporary" when not signed in)
+  * Pinned printers section (user-customizable)
+  * Other printers section (grouped by owner)
+  * User menu in footer with sign in/out controls
+* **Responsive sidebar**: animated visibility toggle with state persisted to localStorage
+* **No right metadata rail**: all printer/document metadata shown inline within main content
 
-### Document Card
+### Printer Management
 
-Each receipt is a “card” with:
+Each printer in sidebar shows:
 
-* **Header strip**:
-  `IP • timestamp • total size` (subtle gray). Hover shows full doc ID and retention deadline. Click IP to apply a filter.
-* **Rendered receipt**: HTML/CSS that emulates paper width and monospaced layout; images merged from bands. Soft paper-like background, subtle shadow.
-* **Inline badges** (when applicable): small tokens for non-printing events (Bell, Pulse, Buffer/Printer Status) positioned where they occurred (see below).
-* **Actions** (right of header or kebab menu):
+* **Icon** (pushpin for pinned, printer icon for others)
+* **Name** with optional badge showing count of new/unread documents
+* **Last document timestamp** (formatted as relative time + absolute datetime)
+* **Context menu** for Edit/Pin/Unpin actions
+* **Active state** highlighting when selected
 
-  * Copy raw bytes (hex)
-  * Download `.bin`
-  * View JSON (document + commands)
-  * Toggle visibility of status/buffer events for this document only
-  * Copy permalink
+**Printer configuration includes**:
+* Name, owner, protocol (ESC/POS, Star Line Mode, ZPL, EPL)
+* Paper width in dots
+* Optional buffer emulation (size in bytes, drain rate)
+* Pin status and ordering
 
-### Metadata Rail (Timeline)
+### Document Display
 
-* A slim vertical rail to the right mirrors activity **inside** the receipt:
+* **Per-printer view**: documents shown only for currently selected printer
+* **Document cards** with:
+  * White monospace preview area showing receipt content
+  * Timestamp (relative format)
+  * Action buttons: Download, Replay
+* **Empty states**:
+  * Not signed in: feature overview with sign-in prompt
+  * Signed in, no printer selected: welcome message
+  * Printer selected, no documents: "No documents yet" placeholder
 
-  * **Top row** repeats: IP, timestamp, size (clickable).
-  * **Timeline ticks**: tiny marks with icons for events (🔔 bell, ⚡ pulse, 🛈 status, ⌛ buffer).
+### User System
 
-    * Hover: exact sequence index, raw opcode, and parameters.
-    * Click: smooth scroll to the corresponding inline badge in the receipt.
-  * **Progress scale**: a faint ruler that approximates the receipt’s height for alignment.
-* When **Show all commands** is off, the rail still shows ticks—even if inline badges are collapsed—so you never lose visibility of events.
+* **Anonymous mode**: users can create temporary printers without signing in
+  * Temporary printers marked with dashed border
+  * Warning shown that printers will be lost on session end
+* **Signed-in mode**:
+  * User avatar with initials in sidebar footer
+  * Option to persist temporary printers on login
+  * Printers owned by user, organized by name
+* **Authentication UI**:
+  * Login dialog with user selection/creation
+  * Switch user capability
+  * Logout with cleanup of temporary data
+  * State persisted to localStorage
 
-### Command Visualization
+### Modals & Dialogs
 
-* **Compact (default)**: consecutive non-printing commands are **collapsed** into a **Composite** badge (`3 events`) attached to the nearest printed line (previous by default). Zero visual elongation.
-* **Expanded (Show all commands = on)**: every non-printing command renders as its own inline badge at the exact sequence position; the receipt becomes taller for full auditability.
-* **Badges**:
-
-  * Size and contrast tuned to remain unobtrusive.
-  * Tooltip shows decoded details + raw bytes.
-  * Click opens a flyout with the command’s JSON, copy buttons (JSON/hex), and “jump to next/prev same-type event”.
-* **Placement rules**:
-
-  * Between two printed lines: attach to previous (default) or next (configurable).
-  * At document start or end: attach to document header/footer meta.
+* **New/Edit Printer**: modal form with validation
+  * Required fields marked with asterisk
+  * Inline error display for validation failures
+  * Field groups for related settings
+  * Conditional buffer emulation fields
+* **Login Dialog**: simple user selection with datalist
+  * Optional checkbox to save temporary printers
+  * Counter showing number of printers to persist
 
 ### Filters & Controls
 
-* **Filter input** accepts IP, CIDR, CSV (e.g., `10.0.0.5,10.0.1.0/24`).
+**Current implementation**: None (documents filtered by printer selection only)
 
-  * Press **Enter** or click **Apply** to refresh list.
-  * Saved to cookie (`receipt_filters`) with timestamp.
-* **Show all commands**: global toggle (also saved to cookie).
-* **Live updates**: on/off; when off, a floating “New documents (N)” button appears if new items arrive.
-* **Quick chips** below the input (optional): “has images”, “≥ size 1KB”, “has bell”, time ranges (“Last 1h/24h/7d”).
+**Planned**: IP filtering, date ranges, command type filters for future document feed view
 
-### Footer (Persistent)
+### Theme System
 
-A thin bottom bar across all pages:
+* **Dark mode** (default): high-contrast with accent color
+* **Light mode**: clean white with subtle borders
+* Toggle button in top bar with animated icon transition
+* Preference saved to localStorage
+* Smooth color transitions on theme change
 
-* **Version / short commit** (click to copy)
-* **Docs** link
-* **Source** link
-  Subtle gray, low visual weight; keyboard focusable.
+### Toast Notifications
 
-### Performance & UX Niceties
+* Fixed positioning (top-right corner)
+* Success/info states with color coding
+* Auto-dismiss with timer
+* Slide-in animation from right
 
-* **Virtualized list** with dynamic height measurement; placeholders while rendering.
-* **Progressive image decoding** for band-merged bitmaps.
-* **Client cache** of recently viewed docs to avoid re-fetching.
-* **Optimistic prepend** for live docs; reconcile on server ack.
-* Smooth scroll and minimal animations (no large reflows).
+### Performance & UX
 
-### Empty / Loading / Error States
-
-* **Empty with filter**: “No documents match this filter.” + “Clear filter” button.
-* **Initial**: skeleton document cards (3–5).
-* **Network error**: inline banner with retry; logs to console with correlation ID.
+* **Grid layout** with CSS transitions for smooth state changes
+* **Keyboard focus** management for accessibility
+* **Hover states** and active feedback on interactive elements
+* **Menu positioning**: context-sensitive placement for printer/user menus
+* **State persistence**: sidebar visibility, theme, user session, filter preferences
 
 ### Security/Safety in UI
 
-* All user/ingested content is escaped; images are data URLs created client-side from safe blobs.
-* JSON viewers use read-only pretty printers; copy actions sanitize control chars.
+* Content escaping for user-provided printer names and metadata
+* Client-side validation before submission
+* No authentication backend in MVP (trusted network assumption)
 
 ### Developer Hooks
 
-* **Deep-linking**: `/doc/{id}` routes to a focused view with back-to-feed memory.
-* **Query params**: `?ip=…&cidr=…&showAll=true&live=false`.
-* **Event bus** (client): emitted on filter change, live state change, scroll to event, and doc loaded—useful for plugins/dev tools.
+* localStorage keys: `theme`, `sidebarHidden`, `currentUser`, `receipt_filters`
+* Modal system via DOM injection
+* Toast system with auto-cleanup
+* Theme attribute on root element
+
+## 9. Web UI
 
 ---
 
 ## 10. API
-## 10. API
 
-* `GET /api/documents?limit&beforeId&sourceIp` � paged document feed (newest first). Limit defaults to 20.
-* `GET /api/documents/{id}?includeContent` � full document payload. Set `includeContent=true` to hydrate raster bytes.
-* `POST /api/users` � create a user (`SaveUserRequest`).
-* `GET /api/users/{id}` � fetch a user.
-* `POST /api/printers` � register a printer (`SavePrinterRequest`).
-* `GET /api/printers/{id}` � fetch printer metadata.
-* `GET /api/media/{mediaId}` � stream raster/image bytes for a single blob.
+* `GET /api/documents?limit&beforeId&sourceIp` � paged document feed (newest first). Limit defaults to 20.
+* `GET /api/documents/{id}?includeContent` � full document payload. Set `includeContent=true` to hydrate raster bytes.
+* `POST /api/users` � create a user (`SaveUserRequest`).
+* `GET /api/users/{id}` � fetch a user.
+* `POST /api/printers` � register a printer (`SavePrinterRequest`).
+* `GET /api/printers/{id}` � fetch printer metadata.
+* `GET /api/media/{mediaId}` � stream raster/image bytes for a single blob.
 
 *Health/metrics endpoints remain `/health` today; `/healthz`, `/ready`, `/metrics` stay on the backlog alongside live updates (`/hub/notifications`).
 
