@@ -7,8 +7,8 @@ namespace Printify.Contracts.Config;
 /// </summary>
 public sealed class ListenerOptions
 {
-    [ConfigurationKeyName("url")]
-    public string Url { get; init; } = "http://0.0.0.0:9100";
+    [ConfigurationKeyName("port")]
+    public int Port { get; init; } = 9100;
 
     [ConfigurationKeyName("idle_timeout")]
     public int IdleTimeoutInMs { get; init; } = 2000;

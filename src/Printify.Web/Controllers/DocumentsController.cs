@@ -1,11 +1,11 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Queries;
 using Printify.Contracts.Printers;
 using Printify.Contracts.Services;
-using Printify.Contracts.Users;
+using Printify.Contracts.Sessions;
 using Printify.Web.Security;
 
 namespace Printify.Web.Controllers;
@@ -16,10 +16,12 @@ public sealed class DocumentsController : ControllerBase
 {
     private const int DefaultLimit = 20;
     private readonly IResourceQueryService queryService;
+    private readonly ISessionService sessionService;
 
-    public DocumentsController(IResourceQueryService queryService)
+    public DocumentsController(IResourceQueryService queryService, ISessionService sessionService)
     {
         this.queryService = queryService;
+        this.sessionService = sessionService;
     }
 
     [HttpGet]
@@ -30,14 +32,10 @@ public sealed class DocumentsController : ControllerBase
         [FromQuery] string? sourceIp,
         CancellationToken cancellationToken)
     {
-        var user = await GetAuthenticatedUserAsync(cancellationToken).ConfigureAwait(false);
-        if (user is null)
-        {
-            return Unauthorized();
-        }
+        var context = await GetSessionContextAsync(cancellationToken).ConfigureAwait(false);
 
-        var printer = await EnsureOwnedPrinterAsync(printerId, user, cancellationToken).ConfigureAwait(false);
-        if (printer is null)
+        var printer = await queryService.GetPrinterAsync(printerId, cancellationToken).ConfigureAwait(false);
+        if (printer is null || !IsPrinterAccessible(printer, context))
         {
             return NotFound();
         }
@@ -64,11 +62,7 @@ public sealed class DocumentsController : ControllerBase
         [FromQuery] bool includeContent,
         CancellationToken cancellationToken)
     {
-        var user = await GetAuthenticatedUserAsync(cancellationToken).ConfigureAwait(false);
-        if (user is null)
-        {
-            return Unauthorized();
-        }
+        var context = await GetSessionContextAsync(cancellationToken).ConfigureAwait(false);
 
         var document = await queryService.GetDocumentAsync(id, includeContent, cancellationToken).ConfigureAwait(false);
         if (document is null)
@@ -76,8 +70,8 @@ public sealed class DocumentsController : ControllerBase
             return NotFound();
         }
 
-        var printer = await EnsureOwnedPrinterAsync(document.PrinterId, user, cancellationToken).ConfigureAwait(false);
-        if (printer is null)
+        var printer = await queryService.GetPrinterAsync(document.PrinterId, cancellationToken).ConfigureAwait(false);
+        if (printer is null || !IsPrinterAccessible(printer, context))
         {
             return NotFound();
         }
@@ -85,24 +79,23 @@ public sealed class DocumentsController : ControllerBase
         return Ok(document);
     }
 
-    private async Task<User?> GetAuthenticatedUserAsync(CancellationToken cancellationToken)
+    private async ValueTask<Session> GetSessionContextAsync(CancellationToken cancellationToken)
     {
-        if (!TokenService.TryExtractUsername(HttpContext, out var username))
-        {
-            return null;
-        }
-
-        return await queryService.FindUserByNameAsync(username, cancellationToken).ConfigureAwait(false);
+        return await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<Printer?> EnsureOwnedPrinterAsync(long printerId, User user, CancellationToken cancellationToken)
+    private static bool IsPrinterAccessible(Printer printer, Session session)
     {
-        var printer = await queryService.GetPrinterAsync(printerId, cancellationToken).ConfigureAwait(false);
-        if (printer is null || printer.OwnerUserId != user.Id)
+        if (printer.OwnerSessionId == session.Id)
         {
-            return null;
+            return true;
         }
 
-        return printer;
+        if (printer.OwnerUserId is not null && session.ClaimedUserId == printer.OwnerUserId)
+        {
+            return true;
+        }
+
+        return false;
     }
 }

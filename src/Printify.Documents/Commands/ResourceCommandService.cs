@@ -1,4 +1,4 @@
-using Printify.Contracts.Documents;
+﻿using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
 using Printify.Contracts.Media;
 using Printify.Contracts.Printers;
@@ -97,6 +97,7 @@ public sealed class ResourceCommandService : IResourceCommandService
         var printer = new Printer(
             Id: 0,
             OwnerUserId: request.OwnerUserId,
+            OwnerSessionId: request.OwnerSessionId,
             DisplayName: request.DisplayName,
             Protocol: request.Protocol,
             WidthInDots: request.WidthInDots,
@@ -124,6 +125,7 @@ public sealed class ResourceCommandService : IResourceCommandService
         var updated = existing with
         {
             OwnerUserId = request.OwnerUserId,
+            OwnerSessionId = request.OwnerSessionId,
             DisplayName = request.DisplayName,
             Protocol = request.Protocol,
             WidthInDots = request.WidthInDots,

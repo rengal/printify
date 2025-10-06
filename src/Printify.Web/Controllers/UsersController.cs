@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Printify.Contracts.Services;
 using Printify.Contracts.Users;
 
@@ -21,7 +21,12 @@ public sealed class UsersController : ControllerBase
     public async Task<IActionResult> Create([FromBody] SaveUserRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var id = await commandService.CreateUserAsync(request, cancellationToken).ConfigureAwait(false);
+        var createdFromIp = string.IsNullOrWhiteSpace(request.CreatedFromIp)
+            ? HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"
+            : request.CreatedFromIp;
+
+        var normalized = request with { CreatedFromIp = createdFromIp };
+        var id = await commandService.CreateUserAsync(normalized, cancellationToken).ConfigureAwait(false);
         var user = await queryService.GetUserAsync(id, cancellationToken).ConfigureAwait(false);
         if (user is null)
         {

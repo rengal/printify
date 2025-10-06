@@ -1,6 +1,7 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Printify.Contracts.Printers;
 using Printify.Contracts.Services;
+using Printify.Contracts.Sessions;
 using Printify.Contracts.Users;
 using Printify.TestServices;
 
@@ -47,11 +48,13 @@ public sealed class ResourceCommandServiceTests
         await using var context = TestServiceContext.Create();
         var commandService = context.Provider.GetRequiredService<IResourceCommandService>();
         var queryService = context.Provider.GetRequiredService<IResourceQueryService>();
+        var sessionService = context.Provider.GetRequiredService<ISessionService>();
 
         var ownerId = await commandService.CreateUserAsync(new SaveUserRequest("Owner", "127.0.0.1"));
-        var printerId = await commandService.CreatePrinterAsync(new SavePrinterRequest(ownerId, "Front", "escpos", 384, null, "127.0.0.1"));
+        var session = await sessionService.CreateAsync("127.0.0.1", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7));
+        var printerId = await commandService.CreatePrinterAsync(new SavePrinterRequest(ownerId, session.Id, "Front", "escpos", 384, null, "127.0.0.1"));
 
-        var updated = await commandService.UpdatePrinterAsync(printerId, new SavePrinterRequest(ownerId, "Front - Wide", "escpos", 512, 800, "127.0.0.2"));
+        var updated = await commandService.UpdatePrinterAsync(printerId, new SavePrinterRequest(ownerId, session.Id, "Front - Wide", "escpos", 512, 800, "127.0.0.2"));
         Assert.True(updated);
 
         var printer = await queryService.GetPrinterAsync(printerId);
@@ -68,9 +71,11 @@ public sealed class ResourceCommandServiceTests
         await using var context = TestServiceContext.Create();
         var commandService = context.Provider.GetRequiredService<IResourceCommandService>();
         var queryService = context.Provider.GetRequiredService<IResourceQueryService>();
+        var sessionService = context.Provider.GetRequiredService<ISessionService>();
 
         var ownerId = await commandService.CreateUserAsync(new SaveUserRequest("Owner", "10.0.0.1"));
-        var printerId = await commandService.CreatePrinterAsync(new SavePrinterRequest(ownerId, "Back", "escpos", 384, null, "10.0.0.1"));
+        var session = await sessionService.CreateAsync("10.0.0.1", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7));
+        var printerId = await commandService.CreatePrinterAsync(new SavePrinterRequest(ownerId, session.Id, "Back", "escpos", 384, null, "10.0.0.1"));
 
         var deleted = await commandService.DeletePrinterAsync(printerId);
         Assert.True(deleted);

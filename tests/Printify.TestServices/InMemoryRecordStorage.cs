@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Printers;
+using Printify.Contracts.Sessions;
 using Printify.Contracts.Services;
 using Printify.Contracts.Users;
 
@@ -20,9 +21,11 @@ public sealed class InMemoryRecordStorage : IRecordStorage
     private readonly List<Document> documents = new();
     private readonly List<User> users = new();
     private readonly List<Printer> printers = new();
+    private readonly List<Session> sessions = new();
     private long nextDocumentId = 1;
     private long nextUserId = 1;
     private long nextPrinterId = 1;
+    private long nextSessionId = 1;
 
     public ValueTask<long> AddDocumentAsync(Document document, CancellationToken cancellationToken = default)
     {
@@ -174,6 +177,64 @@ public sealed class InMemoryRecordStorage : IRecordStorage
         return ValueTask.FromResult(removed);
     }
 
+    public ValueTask<long> AddSessionAsync(Session session, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        Session stored;
+        lock (gate)
+        {
+            var assignedId = nextSessionId++;
+            stored = session with { Id = assignedId };
+            sessions.Add(stored);
+        }
+
+        return ValueTask.FromResult(stored.Id);
+    }
+
+    public ValueTask<Session?> GetSessionAsync(long id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (gate)
+        {
+            return ValueTask.FromResult<Session?>(sessions.FirstOrDefault(session => session.Id == id));
+        }
+    }
+
+    public ValueTask<bool> UpdateSessionAsync(Session session, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        bool updated;
+        lock (gate)
+        {
+            var index = sessions.FindIndex(s => s.Id == session.Id);
+            updated = index >= 0;
+            if (updated)
+            {
+                sessions[index] = session;
+            }
+        }
+
+        return ValueTask.FromResult(updated);
+    }
+
+    public ValueTask<bool> DeleteSessionAsync(long id, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        bool removed;
+        lock (gate)
+        {
+            removed = sessions.RemoveAll(session => session.Id == id) > 0;
+        }
+
+        return ValueTask.FromResult(removed);
+    }
+
     public ValueTask<long> AddPrinterAsync(Printer printer, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(printer);
@@ -182,7 +243,6 @@ public sealed class InMemoryRecordStorage : IRecordStorage
         Printer stored;
         lock (gate)
         {
-            // Provide deterministic IDs while tests exercise command flows.
             var assignedId = nextPrinterId++;
             stored = printer with { Id = assignedId };
             printers.Add(stored);
@@ -201,27 +261,26 @@ public sealed class InMemoryRecordStorage : IRecordStorage
         }
     }
 
-    public ValueTask<IReadOnlyList<Printer>> ListPrintersAsync(long? ownerUserId = null, CancellationToken cancellationToken = default)
+    public ValueTask<IReadOnlyList<Printer>> ListPrintersAsync(long? ownerUserId = null, long? ownerSessionId = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        List<Printer> snapshot;
         lock (gate)
         {
-            // Capture a snapshot so callers can enumerate without holding the gate.
-            snapshot = printers.ToList();
+            IEnumerable<Printer> query = printers;
+
+            if (ownerUserId is { } userId)
+            {
+                query = query.Where(printer => printer.OwnerUserId == userId);
+            }
+
+            if (ownerSessionId is { } sessionId)
+            {
+                query = query.Where(printer => printer.OwnerSessionId == sessionId);
+            }
+
+            return ValueTask.FromResult<IReadOnlyList<Printer>>(query.ToList());
         }
-
-        if (ownerUserId is null)
-        {
-            return ValueTask.FromResult<IReadOnlyList<Printer>>(snapshot);
-        }
-
-        var filtered = snapshot
-            .Where(printer => printer.OwnerUserId == ownerUserId.Value)
-            .ToList();
-
-        return ValueTask.FromResult<IReadOnlyList<Printer>>(filtered);
     }
 
     public ValueTask<bool> UpdatePrinterAsync(Printer printer, CancellationToken cancellationToken = default)

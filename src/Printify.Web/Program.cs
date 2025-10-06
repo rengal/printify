@@ -1,14 +1,14 @@
-using Printify.BlobStorage.FileSystem;
+﻿using Printify.BlobStorage.FileSystem;
 using Printify.Contracts.Config;
 using Printify.Contracts.Services;
 using Printify.Core.Service;
 using Printify.Documents.Commands;
 using Printify.Documents.Queries;
-using Printify.Listener;
+using Printify.Documents.Sessions;
+using Printify.Services.Listener;
 using Printify.TestServices;
 using Printify.Tokenizer;
 using BufferOptions = Printify.Contracts.Config.BufferOptions;
-using ListenerOptions = Printify.Listener.ListenerOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +26,7 @@ builder.Services.AddSingleton<ITokenizer, EscPosTokenizer>();
 builder.Services.AddSingleton<IResourceCommandService, ResourceCommandService>();
 // Query service materializes descriptors and optional raster content for the API surface.
 builder.Services.AddSingleton<IResourceQueryService, ResourceQueryService>();
+builder.Services.AddSingleton<ISessionService, SessionService>();
 
 builder.Services.AddSingleton<ListenerService>();
 builder.Services.AddSingleton<IListenerService>(sp => sp.GetRequiredService<ListenerService>());
@@ -44,4 +45,3 @@ app.MapControllers();
 app.Run();
 
 public partial class Program;
-

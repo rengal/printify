@@ -3,6 +3,7 @@ using Printify.Contracts.Config;
 using Printify.Contracts.Services;
 using Printify.Documents.Commands;
 using Printify.Documents.Queries;
+using Printify.Documents.Sessions;
 
 namespace Printify.TestServices;
 
@@ -10,7 +11,6 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Listener;
 using System.Net.Sockets;
 using System.Net;
 
@@ -37,7 +37,8 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         services.TryAddSingleton<IClockFactory, TestClockFactory>();
         services.TryAddSingleton<IResourceCommandService, ResourceCommandService>();
         services.TryAddSingleton<IResourceQueryService, ResourceQueryService>();
-        
+        services.TryAddSingleton<ISessionService, SessionService>();
+
         services.AddSingleton(Options.Create(bufferOptions));
         services.AddSingleton(Options.Create(listenerOptions));
 
@@ -74,7 +75,7 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         return new ListenerOptions
         {
             Port = GetFreePort(),
-            IdleTimeoutSeconds = 1
+            IdleTimeoutInMs = 1000
         };
     }
     private static int GetFreePort()

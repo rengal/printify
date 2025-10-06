@@ -1,4 +1,4 @@
-namespace Printify.Contracts.Users;
+﻿namespace Printify.Contracts.Users;
 
 /// <summary>
 /// Person interacting with the system. Acts as a logical owner for printers and documents.

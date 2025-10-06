@@ -1,6 +1,4 @@
-using System;
 using System.Net;
-using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Printify.Contracts.Services;
 using Printify.Contracts.Users;
@@ -14,54 +12,66 @@ public sealed class AuthController : ControllerBase
 {
     private readonly IResourceCommandService commandService;
     private readonly IResourceQueryService queryService;
+    private readonly ISessionService sessionService;
 
-    public AuthController(IResourceCommandService commandService, IResourceQueryService queryService)
+    public AuthController(IResourceCommandService commandService, IResourceQueryService queryService, ISessionService sessionService)
     {
         this.commandService = commandService;
         this.queryService = queryService;
+        this.sessionService = sessionService;
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<UserResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Username);
 
+        var session = await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
         var username = request.Username.Trim();
-        var user = await queryService.FindUserByNameAsync(username, cancellationToken).ConfigureAwait(false);
 
+        var user = await queryService.FindUserByNameAsync(username, cancellationToken).ConfigureAwait(false);
         if (user is null)
         {
-            var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            await commandService.CreateUserAsync(new SaveUserRequest(username, clientIp), cancellationToken).ConfigureAwait(false);
-            user = await queryService.FindUserByNameAsync(username, cancellationToken).ConfigureAwait(false);
+            var createdFromIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            var id = await commandService.CreateUserAsync(new SaveUserRequest(username, createdFromIp), cancellationToken).ConfigureAwait(false);
+            user = await queryService.GetUserAsync(id, cancellationToken).ConfigureAwait(false);
             if (user is null)
             {
-                return StatusCode((int)HttpStatusCode.InternalServerError, "Failed to persist user record.");
+                return StatusCode((int)HttpStatusCode.InternalServerError, "Failed to persist or retrieve user record.");
             }
         }
 
-        var token = TokenService.IssueToken(username, DateTimeOffset.UtcNow, out _);
-        var response = new AuthResponse(token, TokenService.DefaultExpirySeconds, new UserResponse(user.Id, user.DisplayName));
-        return Ok(response);
+        var now = DateTimeOffset.UtcNow;
+        session = session with { ClaimedUserId = user.Id, LastActiveAt = now, ExpiresAt = now.Add(SessionManager.SessionLifetime) };
+        await sessionService.UpdateAsync(session, cancellationToken).ConfigureAwait(false);
+
+        return Ok(new UserResponse(user.Id, user.DisplayName));
     }
 
     [HttpPost("logout")]
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
-        // Token management is client-driven; acknowledge the request.
+        if (HttpContext.Request.Cookies.TryGetValue(SessionManager.SessionCookieName, out var cookie) &&
+            long.TryParse(cookie, out var sessionId))
+        {
+            await sessionService.DeleteAsync(sessionId, cancellationToken).ConfigureAwait(false);
+        }
+
+        SessionManager.ClearSessionCookie(HttpContext);
         return Ok(new { Success = true });
     }
 
     [HttpGet("me")]
     public async Task<ActionResult<UserResponse>> GetCurrentUser(CancellationToken cancellationToken)
     {
-        if (!TokenService.TryExtractUsername(HttpContext, out var username))
+        var session = await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
+        if (session.ClaimedUserId is null)
         {
             return Unauthorized();
         }
 
-        var user = await queryService.FindUserByNameAsync(username, cancellationToken).ConfigureAwait(false);
+        var user = await queryService.GetUserAsync(session.ClaimedUserId.Value, cancellationToken).ConfigureAwait(false);
         if (user is null)
         {
             return Unauthorized();
@@ -71,6 +81,7 @@ public sealed class AuthController : ControllerBase
     }
 
     public sealed record LoginRequest(string Username);
-    public sealed record AuthResponse(string Token, int ExpiresIn, UserResponse User);
     public sealed record UserResponse(long Id, string Name);
 }
+
+

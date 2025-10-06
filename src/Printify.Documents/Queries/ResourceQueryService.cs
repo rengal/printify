@@ -1,4 +1,4 @@
-using Printify.Contracts.Documents;
+﻿using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
 using Printify.Contracts.Documents.Queries;
 using Printify.Contracts.Media;
@@ -56,15 +56,19 @@ public sealed class ResourceQueryService : IResourceQueryService
         return recordStorage.GetPrinterAsync(id, cancellationToken);
     }
 
-    public async ValueTask<IReadOnlyList<Printer>> ListPrintersAsync(long? ownerUserId = null, CancellationToken cancellationToken = default)
+    public ValueTask<IReadOnlyList<Printer>> ListPrintersAsync(long? ownerUserId = null, long? ownerSessionId = null, CancellationToken cancellationToken = default)
     {
         if (ownerUserId is { } value && value <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(ownerUserId), ownerUserId, "Owner identifier must be positive when supplied.");
         }
 
-        // Delegate filtering to the storage layer so tests and API share the same behavior.
-        return await recordStorage.ListPrintersAsync(ownerUserId, cancellationToken).ConfigureAwait(false);
+        if (ownerSessionId is { } session && session <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(ownerSessionId), ownerSessionId, "Session identifier must be positive when supplied.");
+        }
+
+        return recordStorage.ListPrintersAsync(ownerUserId, ownerSessionId, cancellationToken);
     }
 
     public async ValueTask<PagedResult<DocumentDescriptor>> ListDocumentsAsync(ListQuery query, CancellationToken cancellationToken = default)

@@ -1,4 +1,4 @@
-using Printify.Contracts.Documents;
+﻿using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Queries;
 using Printify.Contracts.Printers;
 using Printify.Contracts.Users;
@@ -22,5 +22,5 @@ public interface IResourceQueryService
 
     ValueTask<Printer?> GetPrinterAsync(long id, CancellationToken cancellationToken = default);
 
-    ValueTask<IReadOnlyList<Printer>> ListPrintersAsync(long? ownerUserId = null, CancellationToken cancellationToken = default);
+    ValueTask<IReadOnlyList<Printer>> ListPrintersAsync(long? ownerUserId = null, long? ownerSessionId = null, CancellationToken cancellationToken = default);
 }

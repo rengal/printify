@@ -1,5 +1,6 @@
-using Printify.Contracts.Documents;
+﻿using Printify.Contracts.Documents;
 using Printify.Contracts.Printers;
+using Printify.Contracts.Sessions;
 using Printify.Contracts.Users;
 
 namespace Printify.Contracts.Services;
@@ -31,12 +32,21 @@ public interface IRecordStorage
 
     ValueTask<bool> DeleteUserAsync(long id, CancellationToken cancellationToken = default);
 
+    ValueTask<long> AddSessionAsync(Session session, CancellationToken cancellationToken = default);
+
+    ValueTask<Session?> GetSessionAsync(long id, CancellationToken cancellationToken = default);
+
+    ValueTask<bool> UpdateSessionAsync(Session session, CancellationToken cancellationToken = default);
+
+    ValueTask<bool> DeleteSessionAsync(long id, CancellationToken cancellationToken = default);
+
     ValueTask<long> AddPrinterAsync(Printer printer, CancellationToken cancellationToken = default);
 
     ValueTask<Printer?> GetPrinterAsync(long id, CancellationToken cancellationToken = default);
 
     ValueTask<IReadOnlyList<Printer>> ListPrintersAsync(
         long? ownerUserId = null,
+        long? ownerSessionId = null,
         CancellationToken cancellationToken = default);
 
     ValueTask<bool> UpdatePrinterAsync(Printer printer, CancellationToken cancellationToken = default);

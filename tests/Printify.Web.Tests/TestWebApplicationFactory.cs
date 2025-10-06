@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Printify.Contracts.Services;
-using Printify.Listener;
+using Printify.Services.Listener;
 using Printify.TestServices;
 
 namespace Printify.Web.Tests;

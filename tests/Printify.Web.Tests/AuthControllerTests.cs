@@ -1,50 +1,43 @@
-using System.Collections.Generic;
+﻿using System.Linq;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Contracts.Services;
-using Printify.Contracts.Users;
 
 namespace Printify.Web.Tests;
 
 public sealed class AuthControllerTests
 {
     [Fact]
-    public async Task Login_CreatesUserAndReturnsToken()
+    public async Task Login_CreatesUserAndClaimsSession()
     {
-        using var factory = new TestWebApplicationFactory();
+        await using var factory = new TestWebApplicationFactory();
         var client = factory.CreateClient();
 
         var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest("TestUser"));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.TryGetValues("Set-Cookie", out var cookies));
+        Assert.Contains(cookies, value => value.StartsWith("session_id", StringComparison.OrdinalIgnoreCase));
 
-        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        Assert.NotNull(auth);
-        Assert.False(string.IsNullOrWhiteSpace(auth!.Token));
-        Assert.Equal("TestUser", auth.User.Name);
+        var user = await response.Content.ReadFromJsonAsync<UserResponse>();
+        Assert.NotNull(user);
+        Assert.Equal("TestUser", user!.Name);
 
         using var scope = factory.Services.CreateScope();
         var queryService = scope.ServiceProvider.GetRequiredService<IResourceQueryService>();
-        var user = await queryService.FindUserByNameAsync("TestUser");
-        Assert.NotNull(user);
-        Assert.Equal(auth.User.Id, user!.Id);
+        var stored = await queryService.FindUserByNameAsync("TestUser");
+        Assert.NotNull(stored);
+        Assert.Equal(user.Id, stored!.Id);
     }
 
     [Fact]
-    public async Task Me_WithValidToken_ReturnsUser()
+    public async Task Me_WithClaimedSession_ReturnsUser()
     {
         using var factory = new TestWebApplicationFactory();
         var client = factory.CreateClient();
 
-        var login = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest("TokenUser"));
-        var auth = await login.Content.ReadFromJsonAsync<AuthResponse>();
-        Assert.NotNull(auth);
-
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/auth/me");
-        request.Headers.Add("Authorization", $"Bearer {auth!.Token}");
-        var meResponse = await client.SendAsync(request);
+        await client.PostAsJsonAsync("/api/auth/login", new LoginRequest("TokenUser"));
+        var meResponse = await client.GetAsync("/api/auth/me");
 
         Assert.Equal(HttpStatusCode.OK, meResponse.StatusCode);
         var user = await meResponse.Content.ReadFromJsonAsync<UserResponse>();
@@ -53,19 +46,16 @@ public sealed class AuthControllerTests
     }
 
     [Fact]
-    public async Task Me_WithInvalidToken_ReturnsUnauthorized()
+    public async Task Me_WithoutSession_ReturnsUnauthorized()
     {
         using var factory = new TestWebApplicationFactory();
         var client = factory.CreateClient();
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/auth/me");
-        request.Headers.Add("Authorization", "Bearer invalid-token");
-        var response = await client.SendAsync(request);
+        var response = await client.GetAsync("/api/auth/me");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     private sealed record LoginRequest(string Username);
-    private sealed record AuthResponse(string Token, int ExpiresIn, UserResponse User);
     private sealed record UserResponse(long Id, string Name);
 }

@@ -1,17 +1,14 @@
-using Printify.Contracts.Services;
-
-namespace Printify.Listener;
-
-using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Contracts.Documents;
-using Contracts.Documents.Elements;
-using Contracts.Core;
+using Printify.Contracts.Config;
+using Printify.Contracts.Core;
+using Printify.Contracts.Documents;
+using Printify.Contracts.Documents.Elements;
+using Printify.Contracts.Services;
+
+namespace Printify.Services.Listener;
 
 /// <summary>
 /// Background service that listens for TCP connections and creates one tokenizer session per client.
@@ -88,7 +85,7 @@ public sealed class ListenerService : BackgroundService, IListenerService
         var stream = client.GetStream();
         var buffer = new byte[4096];
         var lastActivityMs = clock.ElapsedMs;
-        var idleTimeoutMs = Math.Max(0, options.IdleTimeoutSeconds) * 1000L;
+        var idleTimeoutMs = Math.Max(0, options.IdleTimeoutInMs);
         CompletionReason? completionReason = null;
 
         try
