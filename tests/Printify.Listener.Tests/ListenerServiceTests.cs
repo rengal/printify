@@ -1,14 +1,10 @@
-using Printify.Services.Listener;
-using Printify.Tokenizer;
-
-namespace Printify.Listener.Tests;
-
-using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
-using TestServices;
+using Printify.Services.Listener;
+using Printify.Services.Tokenizer;
+using Printify.TestServices;
+
+namespace Printify.Listener.Tests;
 
 public sealed class ListenerServiceTests
 {

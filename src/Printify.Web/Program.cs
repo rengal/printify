@@ -6,8 +6,8 @@ using Printify.Documents.Commands;
 using Printify.Documents.Queries;
 using Printify.Documents.Sessions;
 using Printify.Services.Listener;
+using Printify.Services.Tokenizer;
 using Printify.TestServices;
-using Printify.Tokenizer;
 using BufferOptions = Printify.Contracts.Config.BufferOptions;
 
 var builder = WebApplication.CreateBuilder(args);

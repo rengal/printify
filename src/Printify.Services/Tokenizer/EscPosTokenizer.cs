@@ -3,7 +3,7 @@ using Printify.Contracts.Config;
 using Printify.Contracts.Core;
 using Printify.Contracts.Services;
 
-namespace Printify.Tokenizer;
+namespace Printify.Services.Tokenizer;
 
 // ESC/POS tokenizer stub: recognizes minimal text/newline and selected control ops.
 public sealed class EscPosTokenizer : ITokenizer
@@ -22,10 +22,7 @@ public sealed class EscPosTokenizer : ITokenizer
         this.clockFactory = clockFactory;
     }
 
-    public string Protocol
-    {
-        get { return "escpos"; }
-    }
+    public string Protocol => "escpos";
 
     public ITokenizerSession CreateSession()
     {

@@ -1,4 +1,7 @@
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using System.Net.Sockets;
+using System.Net;
 using Printify.Contracts.Config;
 using Printify.Contracts.Services;
 using Printify.Documents.Commands;
@@ -6,13 +9,6 @@ using Printify.Documents.Queries;
 using Printify.Documents.Sessions;
 
 namespace Printify.TestServices;
-
-using System;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using System.Net.Sockets;
-using System.Net;
 
 public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions listenerOptions) : IAsyncDisposable, IDisposable
 {

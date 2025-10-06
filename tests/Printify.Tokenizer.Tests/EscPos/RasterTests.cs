@@ -1,15 +1,10 @@
 using Printify.Contracts.Media;
+using Printify.Services.Tokenizer;
+using Printify.TestServices;
+using Printify.Contracts;
+using Printify.Contracts.Documents.Elements;
 
 namespace Printify.Tokenizer.Tests.EscPos;
-
-using Xunit;
-using TestServices;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Contracts;
-using Contracts.Documents.Elements;
-using Printify.Contracts.Printers;
 
 public sealed class RasterTests
 {

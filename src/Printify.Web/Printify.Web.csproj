@@ -14,7 +14,6 @@
     <ProjectReference Include="..\Printify.RecordStorage\Printify.RecordStorage.csproj" />
     <ProjectReference Include="..\Printify.BlobStorage.FileSystem\Printify.BlobStorage.FileSystem.csproj" />
     <ProjectReference Include="..\Printify.Services\Printify.Services.csproj" />
-    <ProjectReference Include="..\Printify.Tokenizer\Printify.Tokenizer.csproj" />
   </ItemGroup>
 
 </Project>

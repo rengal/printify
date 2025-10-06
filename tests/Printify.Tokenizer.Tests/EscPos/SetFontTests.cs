@@ -1,10 +1,9 @@
-namespace Printify.Tokenizer.Tests.EscPos;
+using Printify.Contracts;
+using Printify.Contracts.Documents.Elements;
+using Printify.Services.Tokenizer;
+using Printify.TestServices;
 
-using Xunit;
-using TestServices;
-using Contracts;
-using Contracts.Documents.Elements;
-using Printify.Contracts.Printers;
+namespace Printify.Tokenizer.Tests.EscPos;
 
 public sealed class SetFontTests
 {
@@ -24,10 +23,9 @@ public sealed class SetFontTests
         DocumentAssertions.Equal(
             session.Document,
             Protocol.EscPos,
-            expectedElements: new Element[]
-            {
+            expectedElements:
+            [
                 new SetFont(1, 5, true, true)
-            });
+            ]);
     }
 }
-

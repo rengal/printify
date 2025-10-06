@@ -1,3 +1,5 @@
+using Printify.Services.Tokenizer;
+
 namespace Printify.Tokenizer.Tests.EscPos;
 
 using TestServices;
@@ -7,7 +9,6 @@ using Xunit;
 using Contracts;
 using Contracts.Documents.Elements;
 using Contracts.Config;
-using Printify.Contracts.Printers;
 
 public sealed class SessionTests
 {

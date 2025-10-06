@@ -1,11 +1,11 @@
+using System.Text;
+using Printify.Contracts;
+using Printify.Contracts.Documents.Elements;
+using Printify.Services.Tokenizer;
+using Printify.TestServices;
+
 namespace Printify.Tokenizer.Tests.EscPos;
 
-using TestServices;
-using System.Text;
-using Contracts;
-using Xunit;
-using Contracts.Documents.Elements;
-using Printify.Contracts.Printers;
 
 public sealed class TextTests
 {

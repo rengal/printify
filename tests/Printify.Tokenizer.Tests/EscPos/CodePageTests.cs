@@ -1,12 +1,9 @@
 using Printify.Contracts.Documents.Elements;
+using Printify.Contracts;
+using Printify.Services.Tokenizer;
+using Printify.TestServices;
 
 namespace Printify.Tokenizer.Tests.EscPos;
-
-using TestServices;
-using System.Collections.Generic;
-using Contracts;
-using Xunit;
-using Printify.Contracts.Printers;
 
 public sealed class CodePageTests
 {

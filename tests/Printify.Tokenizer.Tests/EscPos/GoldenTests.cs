@@ -1,15 +1,9 @@
-namespace Printify.Tokenizer.Tests.EscPos;
+using Printify.Services.Tokenizer;
+using Printify.TestServices;
+using Printify.Contracts;
+using Printify.Contracts.Documents.Elements;
 
-using TestServices;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using Contracts;
-using Tests;
-using Xunit;
-using Contracts.Documents.Elements;
-using Printify.Contracts.Printers;
+namespace Printify.Tokenizer.Tests.EscPos;
 
 public sealed class GoldenTests
 {

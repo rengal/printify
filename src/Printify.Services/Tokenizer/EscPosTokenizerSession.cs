@@ -1,18 +1,18 @@
-using System.Security.Cryptography;
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Printify.Contracts;
+using Printify.Contracts.Config;
+using Printify.Contracts.Core;
+using Printify.Contracts.Documents;
+using Printify.Contracts.Documents.Elements;
+using Printify.Contracts.Media;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
-using Printify.Contracts.Media;
-using Printify.Contracts.Config;
-using Printify.Contracts.Documents;
-using Printify.Contracts.Documents.Elements;
-using Printify.Contracts.Core;
 
-namespace Printify.Tokenizer;
+namespace Printify.Services.Tokenizer;
 
 internal sealed class EscPosTokenizerSession : ITokenizerSession
 {
@@ -165,7 +165,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
 
             CommitPendingText();
 
-            if (value == EscPosTokenizer.Lf)
+            if (value == Services.Tokenizer.EscPosTokenizer.Lf)
             {
                 // Command: Line Feed - output current line and start a new one.
                 // ASCII: LF
@@ -174,7 +174,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                 continue;
             }
 
-            if (value == EscPosTokenizer.Esc)
+            if (value == Services.Tokenizer.EscPosTokenizer.Esc)
             {
                 if (index + 1 < data.Length)
                 {
@@ -319,7 +319,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                 continue;
             }
 
-            if (value == EscPosTokenizer.Gs)
+            if (value == Services.Tokenizer.EscPosTokenizer.Gs)
             {
                 if (index + 1 < data.Length)
                 {
@@ -596,7 +596,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
                 continue;
             }
 
-            if (value == EscPosTokenizer.Bell)
+            if (value == Services.Tokenizer.EscPosTokenizer.Bell)
             {
                 // Command: BEL - buzzer/beeper.
                 // ASCII: BEL
