@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
-using Microsoft.Extensions.DependencyInjection;
 using Printify.Contracts;
+using Microsoft.Extensions.DependencyInjection;
 using Printify.Contracts.Documents;
 using Printify.Contracts.Documents.Elements;
 using Printify.Contracts.Media;
@@ -23,10 +26,14 @@ public sealed class DocumentsControllerTests
         using var factory = new TestWebApplicationFactory();
         var client = factory.CreateClient();
 
-        await SeedAsync(factory, CreateTextDocument("Alpha", "10.0.0.1", 501));
-        await SeedAsync(factory, CreateTextDocument("Beta", "10.0.0.2", 502));
+        var auth = await LoginAsync(client, "DocUser");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
 
-        var response = await client.GetAsync("/api/documents?limit=10");
+        var printerId = await CreatePrinterAsync(factory, "DocUser", "Alpha Printer");
+        await SeedAsync(factory, CreateTextDocument("Alpha", "10.0.0.1", printerId));
+        await SeedAsync(factory, CreateTextDocument("Beta", "10.0.0.2", printerId));
+
+        var response = await client.GetAsync($"/api/documents?printerId={printerId}&limit=10");
         var payload = await response.Content.ReadAsStringAsync();
         Assert.True(response.IsSuccessStatusCode, payload);
 
@@ -47,8 +54,11 @@ public sealed class DocumentsControllerTests
         using var factory = new TestWebApplicationFactory();
         var client = factory.CreateClient();
 
+        var auth = await LoginAsync(client, "DocRaster");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
+
+        var printerId = await CreatePrinterAsync(factory, "DocRaster", "Raster Printer");
         var payload = Enumerable.Range(0, 32).Select(value => (byte)value).ToArray();
-        const long printerId = 777;
         var id = await SeedAsync(factory, CreateRasterDocument(payload, printerId));
 
         var response = await client.GetAsync($"/api/documents/{id}?includeContent=true");
@@ -73,8 +83,12 @@ public sealed class DocumentsControllerTests
         using var factory = new TestWebApplicationFactory();
         var client = factory.CreateClient();
 
+        var auth = await LoginAsync(client, "DocMedia");
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth.Token);
+
+        var printerId = await CreatePrinterAsync(factory, "DocMedia", "Media Printer");
         var payload = Enumerable.Repeat((byte)0x5A, 16).ToArray();
-        var id = await SeedAsync(factory, CreateRasterDocument(payload, 888));
+        var id = await SeedAsync(factory, CreateRasterDocument(payload, printerId));
 
         var descriptorResponse = await client.GetAsync($"/api/documents/{id}");
         var descriptorBody = await descriptorResponse.Content.ReadAsStringAsync();
@@ -99,6 +113,24 @@ public sealed class DocumentsControllerTests
         using var scope = factory.Services.CreateScope();
         var commandService = scope.ServiceProvider.GetRequiredService<IResourceCommandService>();
         return await commandService.CreateDocumentAsync(request);
+    }
+
+    private static async Task<AuthResponse> LoginAsync(HttpClient client, string username)
+    {
+        var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest(username));
+        response.EnsureSuccessStatusCode();
+        var auth = await response.Content.ReadFromJsonAsync<AuthResponse>();
+        return auth!;
+    }
+
+    private static async Task<long> CreatePrinterAsync(TestWebApplicationFactory factory, string username, string displayName)
+    {
+        using var scope = factory.Services.CreateScope();
+        var commandService = scope.ServiceProvider.GetRequiredService<IResourceCommandService>();
+        var queryService = scope.ServiceProvider.GetRequiredService<IResourceQueryService>();
+        var user = await queryService.FindUserByNameAsync(username);
+        Assert.NotNull(user);
+        return await commandService.CreatePrinterAsync(new SavePrinterRequest(user!.Id, displayName, "escpos", 384, null, "127.0.0.1"));
     }
 
     private static SaveDocumentRequest CreateTextDocument(string title, string? sourceIp, long printerId)
@@ -142,4 +174,8 @@ public sealed class DocumentsControllerTests
 
         throw new KeyNotFoundException($"Property '{name}' not found. JSON: {element.GetRawText()}");
     }
+
+    private sealed record LoginRequest(string Username);
+    private sealed record AuthResponse(string Token, int ExpiresIn, UserResponse User);
+    private sealed record UserResponse(long Id, string Name);
 }

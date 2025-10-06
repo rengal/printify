@@ -85,6 +85,44 @@ public sealed class InMemoryRecordStorageTests
     }
 
     /// <summary>
+    /// Scenario: Looking up a user by name should return the stored user or null when missing.
+    /// </summary>
+    [Fact]
+    public async Task GetUserByNameAsync_FindsExistingUser()
+    {
+        await using var context = TestServiceContext.Create();
+        var storage = context.RecordStorage;
+
+        var userId = await storage.AddUserAsync(new Contracts.Users.User(0, "Lookup", DateTimeOffset.UnixEpoch, "10.0.0.1"));
+
+        var found = await storage.GetUserByNameAsync("Lookup");
+        var missing = await storage.GetUserByNameAsync("Unknown");
+
+        Assert.NotNull(found);
+        Assert.Equal(userId, found!.Id);
+        Assert.Null(missing);
+    }
+
+    /// <summary>
+    /// Scenario: Listing users should return every persisted entry.
+    /// </summary>
+    [Fact]
+    public async Task ListUsersAsync_ReturnsAllUsers()
+    {
+        await using var context = TestServiceContext.Create();
+        var storage = context.RecordStorage;
+
+        await storage.AddUserAsync(new Contracts.Users.User(0, "First", DateTimeOffset.UnixEpoch, "10.0.0.1"));
+        await storage.AddUserAsync(new Contracts.Users.User(0, "Second", DateTimeOffset.UnixEpoch, "10.0.0.2"));
+
+        var users = await storage.ListUsersAsync();
+
+        Assert.Equal(2, users.Count);
+        Assert.Contains(users, user => user.DisplayName == "First");
+        Assert.Contains(users, user => user.DisplayName == "Second");
+    }
+
+    /// <summary>
     /// Scenario: Updating an existing user should overwrite mutable fields and preserve the identifier.
     /// </summary>
     [Fact]
@@ -158,6 +196,7 @@ public sealed class InMemoryRecordStorageTests
         Assert.Equal(2, printers.Count);
         Assert.All(printers, printer => Assert.Equal(5, printer.OwnerUserId));
     }
+
     /// <summary>
     /// Scenario: Updating a printer should refresh configuration while keeping the same identifier.
     /// </summary>

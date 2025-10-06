@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Printify.Contracts.Printers;
 using Printify.Contracts.Services;
+using Printify.Contracts.Users;
+using Printify.Web.Security;
 
 namespace Printify.Web.Controllers;
 
@@ -22,7 +24,17 @@ public sealed class PrintersController : ControllerBase
     public async Task<IActionResult> Create([FromBody] SavePrinterRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var id = await commandService.CreatePrinterAsync(request, cancellationToken).ConfigureAwait(false);
+
+        var user = await GetAuthenticatedUserAsync(cancellationToken).ConfigureAwait(false);
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? request.CreatedFromIp;
+        var normalizedRequest = request with { OwnerUserId = user.Id, CreatedFromIp = remoteIp };
+
+        var id = await commandService.CreatePrinterAsync(normalizedRequest, cancellationToken).ConfigureAwait(false);
         var printer = await queryService.GetPrinterAsync(id, cancellationToken).ConfigureAwait(false);
         if (printer is null)
         {
@@ -33,22 +45,43 @@ public sealed class PrintersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<Printer>>> List([FromQuery] long? userId, CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<Printer>>> List(CancellationToken cancellationToken)
     {
-        if (userId is <= 0)
+        var user = await GetAuthenticatedUserAsync(cancellationToken).ConfigureAwait(false);
+        if (user is null)
         {
-            // Prevent negative or zero owner identifiers from reaching the query layer.
-            return ValidationProblem(detail: "userId must be greater than zero when provided.", statusCode: StatusCodes.Status400BadRequest);
+            return Unauthorized();
         }
 
-        var printers = await queryService.ListPrintersAsync(userId, cancellationToken).ConfigureAwait(false);
+        var printers = await queryService.ListPrintersAsync(user.Id, cancellationToken).ConfigureAwait(false);
         return Ok(printers);
     }
 
     [HttpGet("{id:long}")]
     public async Task<ActionResult<Printer>> Get(long id, CancellationToken cancellationToken)
     {
+        var user = await GetAuthenticatedUserAsync(cancellationToken).ConfigureAwait(false);
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
         var printer = await queryService.GetPrinterAsync(id, cancellationToken).ConfigureAwait(false);
-        return printer is null ? NotFound() : Ok(printer);
+        if (printer is null || printer.OwnerUserId != user.Id)
+        {
+            return NotFound();
+        }
+
+        return Ok(printer);
+    }
+
+    private async Task<User?> GetAuthenticatedUserAsync(CancellationToken cancellationToken)
+    {
+        if (!TokenService.TryExtractUsername(HttpContext, out var username))
+        {
+            return null;
+        }
+
+        return await queryService.FindUserByNameAsync(username, cancellationToken).ConfigureAwait(false);
     }
 }

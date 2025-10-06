@@ -35,6 +35,17 @@ public sealed class ResourceQueryService : IResourceQueryService
         return recordStorage.GetUserAsync(id, cancellationToken);
     }
 
+    public ValueTask<User?> FindUserByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return recordStorage.GetUserByNameAsync(name, cancellationToken);
+    }
+
+    public ValueTask<IReadOnlyList<User>> ListUsersAsync(CancellationToken cancellationToken = default)
+    {
+        return recordStorage.ListUsersAsync(cancellationToken);
+    }
+
     public ValueTask<Printer?> GetPrinterAsync(long id, CancellationToken cancellationToken = default)
     {
         if (id <= 0)

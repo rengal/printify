@@ -119,6 +119,27 @@ public sealed class InMemoryRecordStorage : IRecordStorage
         }
     }
 
+    public ValueTask<User?> GetUserByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (gate)
+        {
+            return ValueTask.FromResult<User?>(users.FirstOrDefault(user => string.Equals(user.DisplayName, name, StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+
+    public ValueTask<IReadOnlyList<User>> ListUsersAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        lock (gate)
+        {
+            return ValueTask.FromResult<IReadOnlyList<User>>(users.ToList());
+        }
+    }
+
     public ValueTask<bool> UpdateUserAsync(User user, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(user);

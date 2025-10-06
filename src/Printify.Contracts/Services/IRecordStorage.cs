@@ -23,6 +23,10 @@ public interface IRecordStorage
 
     ValueTask<User?> GetUserAsync(long id, CancellationToken cancellationToken = default);
 
+    ValueTask<User?> GetUserByNameAsync(string name, CancellationToken cancellationToken = default);
+
+    ValueTask<IReadOnlyList<User>> ListUsersAsync(CancellationToken cancellationToken = default);
+
     ValueTask<bool> UpdateUserAsync(User user, CancellationToken cancellationToken = default);
 
     ValueTask<bool> DeleteUserAsync(long id, CancellationToken cancellationToken = default);
