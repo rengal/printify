@@ -2,8 +2,8 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Security.Cryptography;
-using Printify.Contracts.Media;
-using Printify.Contracts.Services;
+using Printify.Domain.Media;
+using Printify.Domain.Services;
 
 namespace Printify.TestServices;
 

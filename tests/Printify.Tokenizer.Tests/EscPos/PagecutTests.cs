@@ -1,11 +1,11 @@
+using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printers;
 using Printify.Services.Tokenizer;
 
 namespace Printify.Tokenizer.Tests.EscPos;
 
 using TestServices;
-using Contracts;
 using Xunit;
-using Contracts.Documents.Elements;
 
 public sealed class PagecutTests
 {

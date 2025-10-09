@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -8,11 +8,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\tests\Printify.TestServices\Printify.TestServices.csproj" />
-    <ProjectReference Include="..\Printify.Contracts\Printify.Contracts.csproj" />
-    <ProjectReference Include="..\Printify.Core\Printify.Core.csproj" />
-    <ProjectReference Include="..\Printify.Documents\Printify.ResourceApplication.csproj" />
-    <ProjectReference Include="..\Printify.RecordStorage\Printify.RecordStorage.csproj" />
-    <ProjectReference Include="..\Printify.BlobStorage.FileSystem\Printify.BlobStorage.FileSystem.csproj" />
+    <ProjectReference Include="..\Printify.Web.Contracts\Printify.Web.Contracts.csproj" />
+    <ProjectReference Include="..\Printify.Application\Printify.Application.csproj" />
     <ProjectReference Include="..\Printify.Services\Printify.Services.csproj" />
   </ItemGroup>
 

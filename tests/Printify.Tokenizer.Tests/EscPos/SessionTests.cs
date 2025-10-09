@@ -1,3 +1,6 @@
+using Printify.Domain.Config;
+using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printers;
 using Printify.Services.Tokenizer;
 
 namespace Printify.Tokenizer.Tests.EscPos;
@@ -6,9 +9,6 @@ using TestServices;
 using System;
 using System.Text;
 using Xunit;
-using Contracts;
-using Contracts.Documents.Elements;
-using Contracts.Config;
 
 public sealed class SessionTests
 {

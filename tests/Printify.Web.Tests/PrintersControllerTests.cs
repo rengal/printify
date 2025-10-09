@@ -1,12 +1,12 @@
-using Printify.Contracts.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Printify.Contracts.Printers;
-using Printify.Contracts.Services;
+using Printify.Domain.Printers;
+using Printify.Domain.Services;
+using Printify.Domain.Users;
 
 namespace Printify.Web.Tests;
 

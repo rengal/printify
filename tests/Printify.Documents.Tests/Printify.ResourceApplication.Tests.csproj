@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Printify.Documents\Printify.ResourceApplication.csproj" />
-    <ProjectReference Include="..\..\src\Printify.Contracts\Printify.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Printify.Application\Printify.Application.csproj" />
+    <ProjectReference Include="..\..\src\Printify.Domain\Printify.Domain.csproj" />
     <ProjectReference Include="..\Printify.TestServices\Printify.TestServices.csproj" />
   </ItemGroup>
 

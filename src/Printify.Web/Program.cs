@@ -1,14 +1,14 @@
-﻿using Printify.BlobStorage.FileSystem;
-using Printify.Contracts.Config;
-using Printify.Contracts.Services;
-using Printify.Core.Service;
-using Printify.Documents.Commands;
+﻿using Printify.Application.Commands;
 using Printify.Documents.Queries;
 using Printify.Documents.Sessions;
+using Printify.Domain.Config;
+using Printify.Domain.Services;
+using Printify.Services.BlobStorage;
+using Printify.Services.Clock;
 using Printify.Services.Listener;
 using Printify.Services.Tokenizer;
 using Printify.TestServices;
-using BufferOptions = Printify.Contracts.Config.BufferOptions;
+using BufferOptions = Printify.Domain.Config.BufferOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 

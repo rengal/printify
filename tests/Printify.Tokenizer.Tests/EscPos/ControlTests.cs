@@ -1,12 +1,12 @@
-using Printify.Contracts.Config;
+using Printify.Domain.Config;
+using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printers;
 using Printify.Services.Tokenizer;
 
 namespace Printify.Tokenizer.Tests.EscPos;
 
 using Xunit;
 using TestServices;
-using Contracts;
-using Contracts.Documents.Elements;
 
 public sealed class ControlTests
 {

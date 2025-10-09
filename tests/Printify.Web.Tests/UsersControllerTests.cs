@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
-using Printify.Contracts.Users;
+using Printify.Domain.Users;
 
 namespace Printify.Web.Tests;
 

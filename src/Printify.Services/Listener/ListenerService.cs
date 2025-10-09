@@ -2,11 +2,11 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using Printify.Contracts.Config;
-using Printify.Contracts.Core;
-using Printify.Contracts.Documents;
-using Printify.Contracts.Documents.Elements;
-using Printify.Contracts.Services;
+using Printify.Domain.Config;
+using Printify.Domain.Core;
+using Printify.Domain.Documents;
+using Printify.Domain.Documents.Elements;
+using Printify.Domain.Services;
 
 namespace Printify.Services.Listener;
 

@@ -1,12 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Printify.Contracts.Documents;
-using Printify.Contracts.Documents.Queries;
-using Printify.Contracts.Printers;
-using Printify.Contracts.Services;
-using Printify.Contracts.Sessions;
+using Printify.Domain.Documents;
+using Printify.Domain.Documents.Queries;
+using Printify.Domain.Printers;
+using Printify.Domain.Services;
+using Printify.Domain.Sessions;
 using Printify.Web.Security;
+using DocumentDescriptor = Printify.Contracts.Documents.DocumentDescriptor;
 
 namespace Printify.Web.Controllers;
 

@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Printify.Contracts.Documents;
-using Printify.Contracts.Printers;
-using Printify.Contracts.Sessions;
-using Printify.Contracts.Services;
-using Printify.Contracts.Users;
+﻿using Printify.Domain.Documents;
+using Printify.Domain.Printers;
+using Printify.Domain.Services;
+using Printify.Domain.Sessions;
+using Printify.Domain.Users;
 
 namespace Printify.TestServices;
 

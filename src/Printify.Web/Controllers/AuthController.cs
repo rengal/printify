@@ -1,7 +1,9 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
-using Printify.Contracts.Services;
-using Printify.Contracts.Users;
+using Printify.Domain.Services;
+using Printify.Domain.Users;
+using Printify.Web.Contracts.Auth;
+using Printify.Web.Contracts.Users;
 using Printify.Web.Security;
 
 namespace Printify.Web.Controllers;
@@ -22,7 +24,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<UserResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<Contracts.Users.User>> Login(LoginRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Username);
@@ -63,7 +65,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpGet("me")]
-    public async Task<ActionResult<UserResponse>> GetCurrentUser(CancellationToken cancellationToken)
+    public async Task<ActionResult<Contracts.Users.User>> GetCurrentUser(CancellationToken cancellationToken)
     {
         var session = await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
         if (session.ClaimedUserId is null)
@@ -79,9 +81,4 @@ public sealed class AuthController : ControllerBase
 
         return Ok(new UserResponse(user.Id, user.DisplayName));
     }
-
-    public sealed record LoginRequest(string Username);
-    public sealed record UserResponse(long Id, string Name);
 }
-
-

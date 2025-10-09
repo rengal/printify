@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Printify.Contracts.Services;
+using Printify.Domain.Services;
 using Printify.Services.Listener;
 using Printify.TestServices;
 

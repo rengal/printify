@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Printify.Contracts.Services;
-using Printify.Contracts.Users;
+using Printify.Domain.Services;
+using Printify.Domain.Users;
 
 namespace Printify.Web.Controllers;
 

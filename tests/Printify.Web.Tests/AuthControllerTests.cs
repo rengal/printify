@@ -2,7 +2,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Printify.Contracts.Services;
+using Printify.Domain.Services;
 
 namespace Printify.Web.Tests;
 

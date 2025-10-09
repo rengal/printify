@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Printify.Contracts.Services;
+using Printify.Domain.Services;
 
 namespace Printify.Web.Controllers;
 

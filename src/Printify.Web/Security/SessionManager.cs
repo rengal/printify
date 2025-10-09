@@ -1,7 +1,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Http;
-using Printify.Contracts.Sessions;
-using Printify.Contracts.Services;
+using Printify.Domain.Services;
+using Printify.Domain.Sessions;
 
 namespace Printify.Web.Security;
 

@@ -1,6 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
-using Printify.Contracts.Services;
-using Printify.Contracts.Users;
+using Printify.Domain.Services;
+using Printify.Domain.Users;
 using Printify.TestServices;
 
 namespace Printify.Documents.Tests;

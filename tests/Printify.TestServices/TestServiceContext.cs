@@ -2,11 +2,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Net.Sockets;
 using System.Net;
-using Printify.Contracts.Config;
-using Printify.Contracts.Services;
-using Printify.Documents.Commands;
 using Printify.Documents.Queries;
 using Printify.Documents.Sessions;
+using Microsoft.Extensions.Options;
+using Printify.Application.Commands;
+using Printify.Domain.Config;
+using Printify.Domain.Services;
 
 namespace Printify.TestServices;
 

@@ -1,6 +1,6 @@
 using System.Text;
-using Printify.Contracts;
-using Printify.Contracts.Documents.Elements;
+using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printers;
 using Printify.Services.Tokenizer;
 using Printify.TestServices;
 

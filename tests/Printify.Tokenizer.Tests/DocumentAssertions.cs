@@ -1,11 +1,11 @@
+using Printify.Domain.Documents;
+using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printers;
+
 namespace Printify.Tokenizer.Tests;
 
 using System.Collections.Generic;
 using Xunit;
-using Contracts;
-using Contracts.Documents;
-using Contracts.Documents.Elements;
-using Printify.Contracts.Printers;
 
 internal static class DocumentAssertions
 {

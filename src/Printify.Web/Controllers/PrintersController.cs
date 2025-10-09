@@ -2,9 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Printify.Contracts.Printers;
-using Printify.Contracts.Services;
-using Printify.Contracts.Sessions;
+using Printify.Domain.Printers;
+using Printify.Domain.Services;
 using Printify.Web.Security;
 
 namespace Printify.Web.Controllers;

@@ -1,12 +1,13 @@
-using Printify.Contracts.Documents.Elements;
+using Printify.Domain.Documents;
+using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printers;
+using Printify.Domain.Sessions;
+using Printify.Domain.Users;
 
 namespace Printify.Storage.Tests.Storage;
 
 using System;
 using System.Threading.Tasks;
-using Contracts;
-using Contracts.Documents;
-using Printify.Contracts.Printers;
 using TestServices;
 
 public sealed class InMemoryRecordStorageTests
@@ -89,7 +90,7 @@ public sealed class InMemoryRecordStorageTests
         await using var context = TestServiceContext.Create();
         var storage = context.RecordStorage;
 
-        var userId = await storage.AddUserAsync(new Contracts.Users.User(0, "Lookup", DateTimeOffset.UnixEpoch, "10.0.0.1"));
+        var userId = await storage.AddUserAsync(new User(0, "Lookup", DateTimeOffset.UnixEpoch, "10.0.0.1"));
 
         var found = await storage.GetUserByNameAsync("Lookup");
         var missing = await storage.GetUserByNameAsync("Unknown");
@@ -107,8 +108,8 @@ public sealed class InMemoryRecordStorageTests
         await using var context = TestServiceContext.Create();
         var storage = context.RecordStorage;
 
-        await storage.AddUserAsync(new Contracts.Users.User(0, "First", DateTimeOffset.UnixEpoch, "10.0.0.1"));
-        await storage.AddUserAsync(new Contracts.Users.User(0, "Second", DateTimeOffset.UnixEpoch, "10.0.0.2"));
+        await storage.AddUserAsync(new User(0, "First", DateTimeOffset.UnixEpoch, "10.0.0.1"));
+        await storage.AddUserAsync(new User(0, "Second", DateTimeOffset.UnixEpoch, "10.0.0.2"));
 
         var users = await storage.ListUsersAsync();
 
@@ -125,8 +126,8 @@ public sealed class InMemoryRecordStorageTests
         await using var context = TestServiceContext.Create();
         var storage = context.RecordStorage;
 
-        var userId = await storage.AddUserAsync(new Contracts.Users.User(0, "Initial", DateTimeOffset.UnixEpoch, "10.0.0.1"));
-        var updatedUser = new Contracts.Users.User(userId, "Updated", DateTimeOffset.UnixEpoch, "10.0.0.2");
+        var userId = await storage.AddUserAsync(new User(0, "Initial", DateTimeOffset.UnixEpoch, "10.0.0.1"));
+        var updatedUser = new User(userId, "Updated", DateTimeOffset.UnixEpoch, "10.0.0.2");
 
         var updated = await storage.UpdateUserAsync(updatedUser);
 
@@ -145,7 +146,7 @@ public sealed class InMemoryRecordStorageTests
         await using var context = TestServiceContext.Create();
         var storage = context.RecordStorage;
 
-        var userId = await storage.AddUserAsync(new Contracts.Users.User(0, "ToRemove", DateTimeOffset.UnixEpoch, "10.0.0.1"));
+        var userId = await storage.AddUserAsync(new User(0, "ToRemove", DateTimeOffset.UnixEpoch, "10.0.0.1"));
 
         Assert.True(await storage.DeleteUserAsync(userId));
         Assert.Null(await storage.GetUserAsync(userId));
@@ -235,7 +236,7 @@ public sealed class InMemoryRecordStorageTests
         var storage = context.RecordStorage;
 
         var now = DateTimeOffset.UnixEpoch;
-        var sessionId = await storage.AddSessionAsync(new Contracts.Sessions.Session(0, now, now, "127.0.0.1", null, now.AddHours(1)));
+        var sessionId = await storage.AddSessionAsync(new Session(0, now, now, "127.0.0.1", null, now.AddHours(1)));
         var session = await storage.GetSessionAsync(sessionId);
         Assert.NotNull(session);
 
