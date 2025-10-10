@@ -1,5 +1,4 @@
 using Printify.Application.Commands;
-using Printify.Application.Sessions;
 using Printify.Documents.Queries;
 using Printify.Documents.Sessions;
 using Printify.Domain.Config;
@@ -9,7 +8,6 @@ using Printify.Services.Clock;
 using Printify.Services.Listener;
 using Printify.Services.Tokenizer;
 using Printify.TestServices;
-using Printify.Web.Infrastructure.Sessions;
 using BufferOptions = Printify.Domain.Config.BufferOptions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,10 +27,6 @@ builder.Services.AddSingleton<IResourceCommandService, ResourceCommandService>()
 // Query service materializes descriptors and optional raster content for the API surface.
 builder.Services.AddSingleton<IResourceQueryService, ResourceQueryService>();
 builder.Services.AddSingleton<ISessionService, SessionService>();
-
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ISessionCookieWriter, HttpContextSessionCookieWriter>();
-builder.Services.AddScoped<IRequestContextFactory, RequestContextFactory>();
 
 builder.Services.AddSingleton<ListenerService>();
 builder.Services.AddSingleton<IListenerService>(sp => sp.GetRequiredService<ListenerService>());

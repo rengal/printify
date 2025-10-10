@@ -1,4 +1,4 @@
-using Printify.Web.Contracts.Documents.Elements;
+using Printify.Web.Contracts.Documents.Responses.Elements;
 
 namespace Printify.Web.Contracts.Documents.Responses;
 
@@ -15,4 +15,4 @@ public sealed record DocumentDto(
     long PrinterId,
     DateTimeOffset Timestamp,
     string Protocol,
-    IReadOnlyList<Element> Elements);
+    IReadOnlyList<ResponseElement> Elements);

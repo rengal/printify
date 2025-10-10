@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -8,6 +8,15 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Printify.Domain\Printify.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Features\Printers\DeletePrinter\" />
+    <Folder Include="Features\Printers\UpdatePrinter\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="13.0.0" />
   </ItemGroup>
 
 </Project>

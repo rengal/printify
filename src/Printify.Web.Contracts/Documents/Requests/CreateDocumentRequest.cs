@@ -1,4 +1,4 @@
-using Printify.Web.Contracts.Documents.Elements;
+using Printify.Web.Contracts.Documents.Requests.Elements;
 
 namespace Printify.Web.Contracts.Documents.Requests;
 
@@ -11,4 +11,4 @@ namespace Printify.Web.Contracts.Documents.Requests;
 public sealed record CreateDocumentRequest(
     long PrinterId,
     string Protocol,
-    IReadOnlyList<Element> Elements);
+    IReadOnlyList<RequestElement> Elements);

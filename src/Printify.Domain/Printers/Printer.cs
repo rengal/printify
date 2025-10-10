@@ -12,13 +12,15 @@
 /// <param name="HeightInDots">Optional maximum height in dots when known.</param>
 /// <param name="CreatedAt">Registration timestamp in UTC.</param>
 /// <param name="CreatedFromIp">IP address captured when the printer was registered.</param>
+/// <param name="ListenTcpPortNumber">Listener tcp port number.</param>
 public sealed record Printer(
     long Id,
     long? OwnerUserId,
-    long OwnerSessionId,
+    Guid OwnerSessionId,
     string DisplayName,
     string Protocol,
     int WidthInDots,
     int? HeightInDots,
     DateTimeOffset CreatedAt,
-    string CreatedFromIp);
+    string CreatedFromIp,
+    int ListenTcpPortNumber);

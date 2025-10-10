@@ -4,6 +4,10 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Printify.Domain.Printers;
 using Printify.Domain.Services;
+using Printify.Web.Contracts.Printers.Requests;
+using Printify.Web.Contracts.Printers.Responses;
+using Printify.Web.Infrastructure;
+using Printify.Web.Mapping;
 using Printify.Web.Security;
 
 namespace Printify.Web.Controllers;
@@ -24,25 +28,15 @@ public sealed class PrintersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreatePrinterRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<PrinterDto>> Create([FromBody] CreatePrinterRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         var session = await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
         var ownerUserId = session.ClaimedUserId;
-        var now = DateTimeOffset.UtcNow;
-        session = session with { LastActiveAt = now, ExpiresAt = now.Add(SessionManager.SessionLifetime) };
-        await sessionService.UpdateAsync(session, cancellationToken).ConfigureAwait(false);
-        var createdFromIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var metadata = HttpContext.CaptureRequestMetadata(session.Id);
 
-        var saveRequest = new SavePrinterRequest(
-            ownerUserId,
-            session.Id,
-            request.DisplayName,
-            request.Protocol,
-            request.WidthInDots,
-            request.HeightInDots,
-            createdFromIp);
+        var saveRequest = DomainMapper.ToSavePrinterRequest(request, ownerUserId, session.Id, metadata.IpAddress);
 
         var id = await commandService.CreatePrinterAsync(saveRequest, cancellationToken).ConfigureAwait(false);
         var printer = await queryService.GetPrinterAsync(id, cancellationToken).ConfigureAwait(false);
@@ -51,28 +45,26 @@ public sealed class PrintersController : ControllerBase
             return StatusCode(StatusCodes.Status500InternalServerError);
         }
 
-        return CreatedAtAction(nameof(Get), new { id = printer.Id }, printer);
+        return CreatedAtAction(nameof(Get), new { id = printer.Id }, ContractMapper.ToPrinterDto(printer));
     }
 
     [HttpGet]
-    public async Task<ActionResult<PrinterListResponse>> List(CancellationToken cancellationToken)
+    public async Task<ActionResult<PrinterGroupsResponse>> List(CancellationToken cancellationToken)
     {
         var session = await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
-
-        var nowList = DateTimeOffset.UtcNow;
-        session = session with { LastActiveAt = nowList, ExpiresAt = nowList.Add(SessionManager.SessionLifetime) };
-        await sessionService.UpdateAsync(session, cancellationToken).ConfigureAwait(false);
+        _ = HttpContext.CaptureRequestMetadata(session.Id);
 
         var temporary = await queryService.ListPrintersAsync(ownerSessionId: session.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
-        var temporaryList = temporary.Where(printer => printer.OwnerUserId is null).ToList();
+        var temporaryList = ContractMapper.ToPrinterDtos(temporary.Where(printer => printer.OwnerUserId is null));
 
-        IReadOnlyList<Printer> userPrinters = Array.Empty<Printer>();
+        IReadOnlyList<PrinterDto> userPrinters = Array.Empty<PrinterDto>();
         if (session.ClaimedUserId is { } userId)
         {
-            userPrinters = await queryService.ListPrintersAsync(ownerUserId: userId, cancellationToken: cancellationToken).ConfigureAwait(false);
+            var owned = await queryService.ListPrintersAsync(ownerUserId: userId, cancellationToken: cancellationToken).ConfigureAwait(false);
+            userPrinters = ContractMapper.ToPrinterDtos(owned);
         }
 
-        return Ok(new PrinterListResponse(temporaryList, userPrinters));
+        return Ok(new PrinterGroupsResponse(temporaryList, userPrinters));
     }
 
     [HttpPost("resolveTemporary")]
@@ -90,6 +82,8 @@ public sealed class PrintersController : ControllerBase
             return BadRequest("Login required to claim printers.");
         }
 
+        var metadata = HttpContext.CaptureRequestMetadata(session.Id);
+
         foreach (var printerId in request.PrinterIds)
         {
             var printer = await queryService.GetPrinterAsync(printerId, cancellationToken).ConfigureAwait(false);
@@ -98,14 +92,18 @@ public sealed class PrintersController : ControllerBase
                 return NotFound(printerId);
             }
 
-            var updateRequest = new SavePrinterRequest(
-                session.ClaimedUserId,
-                session.Id,
+            var updateContract = new UpdatePrinterRequest(
+                printer.Id,
                 printer.DisplayName,
                 printer.Protocol,
                 printer.WidthInDots,
-                printer.HeightInDots,
-                printer.CreatedFromIp);
+                printer.HeightInDots);
+
+            var updateRequest = DomainMapper.ToSavePrinterRequest(
+                updateContract,
+                session.ClaimedUserId,
+                session.Id,
+                metadata.IpAddress);
 
             var updated = await commandService.UpdatePrinterAsync(printer.Id, updateRequest, cancellationToken).ConfigureAwait(false);
             if (!updated)
@@ -114,17 +112,15 @@ public sealed class PrintersController : ControllerBase
             }
         }
 
-        var refresh = DateTimeOffset.UtcNow;
-        session = session with { LastActiveAt = refresh, ExpiresAt = refresh.Add(SessionManager.SessionLifetime) };
-        await sessionService.UpdateAsync(session, cancellationToken).ConfigureAwait(false);
-
         return NoContent();
     }
 
     [HttpGet("{id:long}")]
-    public async Task<ActionResult<Printer>> Get(long id, CancellationToken cancellationToken)
+    public async Task<ActionResult<PrinterDto>> Get(long id, CancellationToken cancellationToken)
     {
         var session = await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
+        _ = HttpContext.CaptureRequestMetadata(session.Id);
+
         var printer = await queryService.GetPrinterAsync(id, cancellationToken).ConfigureAwait(false);
         if (printer is null)
         {
@@ -136,12 +132,12 @@ public sealed class PrintersController : ControllerBase
             return NotFound();
         }
 
-        return Ok(printer);
+        return Ok(ContractMapper.ToPrinterDto(printer));
     }
 
-    public sealed record CreatePrinterRequest(string DisplayName, string Protocol, int WidthInDots, int? HeightInDots);
     public sealed record ResolveTemporaryRequest(IReadOnlyList<long> PrinterIds);
-    public sealed record PrinterListResponse(IReadOnlyList<Printer> Temporary, IReadOnlyList<Printer> UserClaimed);
+
+    public sealed record PrinterGroupsResponse(IReadOnlyList<PrinterDto> Temporary, IReadOnlyList<PrinterDto> UserClaimed);
 }
 
 

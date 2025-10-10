@@ -2,8 +2,10 @@ using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Printify.Domain.Services;
 using Printify.Domain.Users;
-using Printify.Web.Contracts.Auth;
-using Printify.Web.Contracts.Users;
+using Printify.Web.Contracts.Auth.Requests;
+using Printify.Web.Contracts.Users.Responses;
+using Printify.Web.Infrastructure;
+using Printify.Web.Mapping;
 using Printify.Web.Security;
 
 namespace Printify.Web.Controllers;
@@ -24,19 +26,19 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<Contracts.Users.User>> Login(LoginRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<UserDto>> Login(LoginRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.Username);
 
         var session = await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
+        var metadata = HttpContext.CaptureRequestMetadata(session.Id);
         var username = request.Username.Trim();
 
         var user = await queryService.FindUserByNameAsync(username, cancellationToken).ConfigureAwait(false);
         if (user is null)
         {
-            var createdFromIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-            var id = await commandService.CreateUserAsync(new SaveUserRequest(username, createdFromIp), cancellationToken).ConfigureAwait(false);
+            var id = await commandService.CreateUserAsync(new SaveUserRequest(username, metadata.IpAddress), cancellationToken).ConfigureAwait(false);
             user = await queryService.GetUserAsync(id, cancellationToken).ConfigureAwait(false);
             if (user is null)
             {
@@ -48,12 +50,14 @@ public sealed class AuthController : ControllerBase
         session = session with { ClaimedUserId = user.Id, LastActiveAt = now, ExpiresAt = now.Add(SessionManager.SessionLifetime) };
         await sessionService.UpdateAsync(session, cancellationToken).ConfigureAwait(false);
 
-        return Ok(new UserResponse(user.Id, user.DisplayName));
+        return Ok(ContractMapper.ToUserDto(user));
     }
 
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
+        _ = HttpContext.CaptureRequestMetadata(null);
+
         if (HttpContext.Request.Cookies.TryGetValue(SessionManager.SessionCookieName, out var cookie) &&
             long.TryParse(cookie, out var sessionId))
         {
@@ -65,9 +69,11 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpGet("me")]
-    public async Task<ActionResult<Contracts.Users.User>> GetCurrentUser(CancellationToken cancellationToken)
+    public async Task<ActionResult<UserDto>> GetCurrentUser(CancellationToken cancellationToken)
     {
         var session = await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
+        _ = HttpContext.CaptureRequestMetadata(session.Id);
+
         if (session.ClaimedUserId is null)
         {
             return Unauthorized();
@@ -79,6 +85,6 @@ public sealed class AuthController : ControllerBase
             return Unauthorized();
         }
 
-        return Ok(new UserResponse(user.Id, user.DisplayName));
+        return Ok(ContractMapper.ToUserDto(user));
     }
 }

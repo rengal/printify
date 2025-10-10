@@ -9,7 +9,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Printify.Contracts\Printify.Domain.csproj" />
-    <ProjectReference Include="..\..\src\Printify.Services\Printify.Services.csproj" />
     <ProjectReference Include="..\Printify.TestServices\Printify.TestServices.csproj" />
   </ItemGroup>
 
