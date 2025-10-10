@@ -1,4 +1,4 @@
-namespace Printify.Domain.Documents.Queries;
+namespace Printify.Web.Contracts.Common.Pagination;
 
 /// <summary>
 /// Represents a single page of results with cursor information for fetching subsequent pages.

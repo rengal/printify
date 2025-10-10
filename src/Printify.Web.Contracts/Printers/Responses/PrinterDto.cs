@@ -1,14 +1,14 @@
-﻿namespace Printify.Web.Contracts.Printers;
+namespace Printify.Web.Contracts.Printers.Responses;
 
 /// <summary>
-/// Physical or virtual printer registered by a user or anonymous session.
+/// Printable device metadata returned to clients.
 /// </summary>
 /// <param name="Id">Database-generated identifier.</param>
 /// <param name="DisplayName">Friendly name shown in UI.</param>
 /// <param name="Protocol">Protocol the printer expects (e.g., escpos).</param>
 /// <param name="WidthInDots">Configured print width in dots.</param>
 /// <param name="HeightInDots">Optional maximum height in dots when known.</param>
-public sealed record Printer(
+public sealed record PrinterDto(
     long Id,
     string DisplayName,
     string Protocol,
