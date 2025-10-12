@@ -5,8 +5,8 @@ using Printify.Domain.Services;
 
 namespace Printify.Services.Tokenizer;
 
-// ESC/POS tokenizer stub: recognizes minimal text/newline and selected control ops.
-public sealed class EscPosTokenizer : ITokenizer
+/*
+ public sealed class EscPosTokenizer : ITokenizer
 {
     public const byte Esc = 0x1B;
     public const byte Gs = 0x1D;
@@ -30,3 +30,4 @@ public sealed class EscPosTokenizer : ITokenizer
         return new EscPosTokenizerSession(bufferOptions, clock);
     }
 }
+*/

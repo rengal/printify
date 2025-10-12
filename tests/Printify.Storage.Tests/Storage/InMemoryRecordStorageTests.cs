@@ -1,7 +1,6 @@
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
-using Printify.Domain.Sessions;
 using Printify.Domain.Users;
 
 namespace Printify.Storage.Tests.Storage;

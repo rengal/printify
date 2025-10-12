@@ -1,29 +1,42 @@
 using System.Globalization;
-using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Session;
 using Printify.Domain.Requests;
-using Printify.Domain.Sessions;
 
 namespace Printify.Web.Infrastructure;
 
 internal static class HttpContextExtensions
 {
-    internal const string IdempotencyKeyHeader = "Idempotency-Key";
-    internal const string IdempotencyKeyItemName = "IdempotencyKey";
+    private const string IdempotencyKeyHeader = "Idempotency-Key";
 
-    internal static RequestContext CaptureRequestContext(this HttpContext context)
+    internal static RequestContext CaptureRequestContext(this HttpContext httpContext)
     {
-        ArgumentNullException.ThrowIfNull(context);
+        var user = httpContext.User;
+        Guid? anonymousSessionId = null;
+        Guid? userId = null;
 
-        var ipAddress = context.GetClientIpAddress();
-        var idempotencyKey = context.GetIdempotencyKey();
-        var sessionId = context.TryGetSessionIdFromCookie();
-
-        if (idempotencyKey is not null)
+        // 1. Try JWT claims (if authenticated)
+        if (user?.Identity?.IsAuthenticated == true)
         {
-            context.Items[IdempotencyKeyItemName] = idempotencyKey;
+            if (Guid.TryParse(user.FindFirstValue("sessionId"), out var sid))
+                anonymousSessionId = sid;
+
+            if (Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var uid))
+                userId = uid;
         }
 
-        return new RequestContext(sessionId, null, ipAddress, idempotencyKey, null);
+        // 2. Try fallback via session repository if needed
+        //    (optional — depends on how anonymous sessions are managed)
+        // anonymousSessionId ??= sessionRepository.GetCurrentAnonymousSessionId(HttpContext);
+
+        // 3. Idempotency Key from headers
+        httpContext.Request.Headers.TryGetValue("Idempotency-Key", out var keyHeader);
+        var idempotencyKey = keyHeader.FirstOrDefault();
+
+        // 4. Client IP address
+        var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+
+        return new RequestContext(anonymousSessionId, userId, ipAddress, idempotencyKey);
     }
 
     internal static string GetClientIpAddress(this HttpContext context)

@@ -4,6 +4,7 @@ using Printify.Services.Tokenizer;
 
 namespace Printify.Tokenizer.Tests.EscPos;
 
+using Printify.Domain.PrintJobs;
 using TestServices;
 using Xunit;
 

@@ -1,6 +1,7 @@
 using System.Text;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
+using Printify.Domain.PrintJobs;
 using Printify.Services.Tokenizer;
 using Printify.TestServices;
 

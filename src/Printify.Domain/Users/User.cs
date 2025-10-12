@@ -8,7 +8,7 @@
 /// <param name="CreatedAt">Creation timestamp in UTC.</param>
 /// <param name="CreatedFromIp">IP address captured when the user was registered.</param>
 public sealed record User(
-    long Id,
+    Guid Id,
     string DisplayName,
     DateTimeOffset CreatedAt,
     string CreatedFromIp);

@@ -1,17 +1,17 @@
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
+using Printify.Application.Interfaces;
+using Printify.Domain.AnonymousSession;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Queries;
 using Printify.Domain.Printers;
 using Printify.Domain.Services;
-using Printify.Domain.Sessions;
 using Printify.Web.Contracts.Common.Pagination;
 using Printify.Web.Contracts.Documents.Requests;
 using Printify.Web.Contracts.Documents.Responses;
 using Printify.Web.Contracts.Documents.Responses.Elements;
 using Printify.Web.Infrastructure;
 using Printify.Web.Mapping;
-using Printify.Web.Security;
 
 namespace Printify.Web.Controllers;
 
@@ -22,9 +22,9 @@ public sealed class DocumentsController : ControllerBase
     private const int DefaultLimit = 20;
     private readonly IResourceCommandService commandService;
     private readonly IResourceQueryService queryService;
-    private readonly ISessionService sessionService;
+    private readonly ISessionRepository sessionService;
 
-    public DocumentsController(IResourceCommandService commandService, IResourceQueryService queryService, ISessionService sessionService)
+    public DocumentsController(IResourceCommandService commandService, IResourceQueryService queryService, ISessionRepository sessionService)
     {
         this.commandService = commandService;
         this.queryService = queryService;
@@ -118,12 +118,12 @@ public sealed class DocumentsController : ControllerBase
         return Ok(dto);
     }
 
-    private async ValueTask<Session> GetSessionContextAsync(CancellationToken cancellationToken)
+    private async ValueTask<AnonymousSession> GetSessionContextAsync(CancellationToken cancellationToken)
     {
         return await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
     }
 
-    private static bool IsPrinterAccessible(Printer printer, Session session)
+    private static bool IsPrinterAccessible(Printer printer, AnonymousSession session)
     {
         if (printer.OwnerSessionId == session.Id)
         {

@@ -23,7 +23,7 @@ public sealed class UsersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<UserDto>> Create([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<UserDto>> Create([FromBody] CreateUserRequestDto request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         var metadata = HttpContext.CaptureRequestMetadata(null);

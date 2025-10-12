@@ -7,9 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\tests\Printify.TestServices\Printify.TestServices.csproj" />
+    <ProjectReference Include="..\Printify.Infrastructure\Printify.Infrastructure.csproj" />
     <ProjectReference Include="..\Printify.Web.Contracts\Printify.Web.Contracts.csproj" />
     <ProjectReference Include="..\Printify.Application\Printify.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Interfaces\" />
   </ItemGroup>
 
 </Project>

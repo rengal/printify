@@ -7,6 +7,7 @@ namespace Printify.Tokenizer.Tests.EscPos;
 
 using Xunit;
 using TestServices;
+using Printify.Domain.PrintJobs;
 
 public sealed class ControlTests
 {

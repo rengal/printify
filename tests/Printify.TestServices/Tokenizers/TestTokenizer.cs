@@ -8,6 +8,7 @@ namespace Printify.TestServices.Tokenizers;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using Printify.Domain.PrintJobs;
 
 /// <summary>
 /// Minimal tokenizer implementation for listener-focused tests.

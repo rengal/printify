@@ -1,16 +1,15 @@
 using System.Net;
 using System.Net.Sockets;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Printify.Domain.Config;
 using Printify.Domain.Core;
 using Printify.Domain.Documents;
-using Printify.Domain.Documents.Elements;
+using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
 
 namespace Printify.Services.Listener;
 
-/// <summary>
+/*/// <summary>
 /// Background service that listens for TCP connections and creates one tokenizer session per client.
 /// </summary>
 public sealed class ListenerService : BackgroundService, IListenerService
@@ -195,9 +194,4 @@ public sealed class ListenerService : BackgroundService, IListenerService
             //logger.LogError(ex, "Failed to persist document to record storage");
         }
     }
-}
-
-
-
-
-
+}*/

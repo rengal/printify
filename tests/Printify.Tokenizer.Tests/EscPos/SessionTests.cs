@@ -9,6 +9,7 @@ using TestServices;
 using System;
 using System.Text;
 using Xunit;
+using Printify.Domain.PrintJobs;
 
 public sealed class SessionTests
 {

@@ -1,17 +1,22 @@
 {
-  "Listener": {
-    "Port": 9100,
-    "IdleTimeoutSeconds": 30
-  },
-  "Page": {
-    "Size": 50
-  },
-  "Storage": {
-    "RootPath": "storage"
-  },
-  "Buffer": {
-    "BusyThreshold": null,
-    "MaxCapacity": null,
-    "DrainRate": null
-  }
+    "Listener": {
+        "IdleTimeoutSeconds": 2
+    },
+    "Page": {
+        "Size": 50
+    },
+    "Storage": {
+        "RootPath": "storage"
+    },
+    "Buffer": {
+        "BusyThreshold": null,
+        "MaxCapacity": null,
+        "DrainRate": null
+    },
+    "Jwt": {
+        "SecretKey": "REPLACE_WITH_32+_CHAR_RANDOM_SECRET",
+        "Issuer": "virtual-printer.online",
+        "Audience": "Printify.Client",
+        "ExpiryHours": 8760 //1 year
+    }
 }

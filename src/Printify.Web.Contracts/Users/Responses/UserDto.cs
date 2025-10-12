@@ -5,4 +5,4 @@ namespace Printify.Web.Contracts.Users.Responses;
 /// </summary>
 /// <param name="Id">Identifier of the user.</param>
 /// <param name="Name">Display name chosen by the user.</param>
-public sealed record UserDto(long Id, string Name);
+public sealed record UserDto(Guid Id, string Name);

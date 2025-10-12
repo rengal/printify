@@ -16,7 +16,7 @@ namespace Printify.Web.Mapping;
 
 internal static class ContractMapper
 {
-    internal static UserDto ToUserDto(User user)
+    internal static UserDto ToDto(this User user)
     {
         ArgumentNullException.ThrowIfNull(user);
         return new UserDto(user.Id, user.DisplayName);

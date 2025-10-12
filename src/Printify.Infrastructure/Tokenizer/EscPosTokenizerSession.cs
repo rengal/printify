@@ -8,12 +8,14 @@ using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Media;
 using Printify.Domain.Printers;
-using SixLabors.ImageSharp;
+using Printify.Domain.PrintJobs;
+/*using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.PixelFormats;*/
 
 namespace Printify.Services.Tokenizer;
 
+/*
 internal sealed class EscPosTokenizerSession : ITokenizerSession
 {
     private const byte Fs = 0x1C; // FS
@@ -976,3 +978,4 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
         return value >= 0x20 && value != 0x7F;
     }
 }
+*/

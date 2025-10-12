@@ -1,10 +1,10 @@
-﻿using Printify.Domain.Printers;
-using Printify.Domain.Users;
+﻿using Printify.Domain.Users;
 
 namespace Printify.Application.Interfaces;
 
 public interface IUserRepository
 {
-    Task<User?> GetByIdAsync(long id, CancellationToken ct);
-    Task AddAsync(Printer printer, CancellationToken ct);
+    ValueTask<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    ValueTask<User?> GetByDisplayNameAsync(string displayName, CancellationToken cancellationToken);
+    Task AddAsync(User user, CancellationToken cancellationToken);
 }

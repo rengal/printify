@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Extensions.DependencyInjection;
+using Printify.Application.Interfaces;
 using Printify.Domain.Printers;
 using Printify.Domain.Services;
 using Printify.Domain.Users;
@@ -16,7 +17,7 @@ public sealed class PrintersTests
         // Resolve command and query services so we test the full stack.
         var commandService = context.Provider.GetRequiredService<IResourceCommandService>();
         var queryService = context.Provider.GetRequiredService<IResourceQueryService>();
-        var sessionService = context.Provider.GetRequiredService<ISessionService>();
+        var sessionService = context.Provider.GetRequiredService<ISessionRepository>();
 
         // Create a user and printer to update.
         var ownerId = await commandService.CreateUserAsync(new SaveUserRequest("Owner", "127.0.0.1"));
@@ -39,7 +40,7 @@ public sealed class PrintersTests
     {
         await using var context = TestServiceContext.Create();
         var commandService = context.Provider.GetRequiredService<IResourceCommandService>();
-        var sessionService = context.Provider.GetRequiredService<ISessionService>();
+        var sessionService = context.Provider.GetRequiredService<ISessionRepository>();
         var ownerId = await commandService.CreateUserAsync(new SaveUserRequest("Owner", "127.0.0.1"));
         var session = await sessionService.CreateAsync("127.0.0.1", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7));
 
@@ -55,7 +56,7 @@ public sealed class PrintersTests
         await using var context = TestServiceContext.Create();
         var commandService = context.Provider.GetRequiredService<IResourceCommandService>();
         var queryService = context.Provider.GetRequiredService<IResourceQueryService>();
-        var sessionService = context.Provider.GetRequiredService<ISessionService>();
+        var sessionService = context.Provider.GetRequiredService<ISessionRepository>();
 
         var ownerId = await commandService.CreateUserAsync(new SaveUserRequest("Owner", "127.0.0.1"));
         // Seed a printer so the delete call exercises the storage removal path.

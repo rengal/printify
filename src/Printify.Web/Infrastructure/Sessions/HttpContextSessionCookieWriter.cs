@@ -1,7 +1,6 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Printify.Application.Sessions;
-using Printify.Domain.Sessions;
 
 namespace Printify.Web.Infrastructure.Sessions;
 

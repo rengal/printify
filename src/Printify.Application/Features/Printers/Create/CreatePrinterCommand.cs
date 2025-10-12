@@ -10,5 +10,5 @@ public record CreatePrinterCommand(
     Protocol Protocol,
     int WidthInDots,
     int? HeightInDots,
-    int TcpListenPort) 
-    : IRequest<long>;
+    int? TcpListenPort)
+    : IRequest<Guid>;

@@ -1,7 +1,7 @@
 ﻿namespace Printify.Domain.Printers;
 
 /// <summary>
-/// Physical or virtual printer registered by a user or anonymous session.
+/// Represents virtual printer.
 /// </summary>
 /// <param name="Id">Database-generated identifier.</param>
 /// <param name="OwnerUserId">Identifier of the user that owns the printer, if claimed.</param>
@@ -14,9 +14,9 @@
 /// <param name="CreatedFromIp">IP address captured when the printer was registered.</param>
 /// <param name="ListenTcpPortNumber">Listener tcp port number.</param>
 public sealed record Printer(
-    long Id,
-    long? OwnerUserId,
-    Guid OwnerSessionId,
+    Guid Id,
+    Guid? OwnerUserId,
+    Guid? OwnerAnonymousSessionId,
     string DisplayName,
     string Protocol,
     int WidthInDots,

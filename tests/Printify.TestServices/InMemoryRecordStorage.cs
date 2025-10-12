@@ -1,7 +1,7 @@
-﻿using Printify.Domain.Documents;
+﻿using Printify.Domain.AnonymousSession;
+using Printify.Domain.Documents;
 using Printify.Domain.Printers;
 using Printify.Domain.Services;
-using Printify.Domain.Sessions;
 using Printify.Domain.Users;
 
 namespace Printify.TestServices;
@@ -16,7 +16,7 @@ public sealed class InMemoryRecordStorage : IRecordStorage
     private readonly List<Document> documents = new();
     private readonly List<User> users = new();
     private readonly List<Printer> printers = new();
-    private readonly List<Session> sessions = new();
+    private readonly List<AnonymousSession> sessions = new();
     private long nextDocumentId = 1;
     private long nextUserId = 1;
     private long nextPrinterId = 1;
@@ -172,12 +172,12 @@ public sealed class InMemoryRecordStorage : IRecordStorage
         return ValueTask.FromResult(removed);
     }
 
-    public ValueTask<long> AddSessionAsync(Session session, CancellationToken cancellationToken = default)
+    public ValueTask<long> AddSessionAsync(AnonymousSession session, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(session);
         cancellationToken.ThrowIfCancellationRequested();
 
-        Session stored;
+        AnonymousSession stored;
         lock (gate)
         {
             var assignedId = nextSessionId++;
@@ -188,17 +188,17 @@ public sealed class InMemoryRecordStorage : IRecordStorage
         return ValueTask.FromResult(stored.Id);
     }
 
-    public ValueTask<Session?> GetSessionAsync(long id, CancellationToken cancellationToken = default)
+    public ValueTask<AnonymousSession?> GetSessionAsync(long id, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
         lock (gate)
         {
-            return ValueTask.FromResult<Session?>(sessions.FirstOrDefault(session => session.Id == id));
+            return ValueTask.FromResult<AnonymousSession?>(sessions.FirstOrDefault(session => session.Id == id));
         }
     }
 
-    public ValueTask<bool> UpdateSessionAsync(Session session, CancellationToken cancellationToken = default)
+    public ValueTask<bool> UpdateSessionAsync(AnonymousSession session, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(session);
         cancellationToken.ThrowIfCancellationRequested();

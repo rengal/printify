@@ -5,9 +5,9 @@ using MediatR;
 namespace Printify.Application.Features.Printers.Create;
 
 public sealed class CreatePrinterHandler(IPrinterRepository printerRepository, IUnitOfWork uow)
-    : IRequestHandler<CreatePrinterCommand, long>
+    : IRequestHandler<CreatePrinterCommand, Guid>
 {
-    public async Task<long> Handle(
+    public async Task<Guid> Handle(
         CreatePrinterCommand request,
         CancellationToken ct)
     {
@@ -16,9 +16,9 @@ public sealed class CreatePrinterHandler(IPrinterRepository printerRepository, I
         {
             var listenTcpPortNumber = await printerRepository.GetFreeTcpPortNumber(ct);
 
-            var printer = new Printer(Id: 0, //todo ?
+            var printer = new Printer(Guid.NewGuid(),
+                request.Context.AnonymousSessionId,
                 request.Context.UserId,
-                request.Context.SessionId,
                 request.DisplayName,
                 request.Protocol.ToString(), //todo enum to string
                 request.WidthInDots,
@@ -27,9 +27,9 @@ public sealed class CreatePrinterHandler(IPrinterRepository printerRepository, I
                 request.Context.IpAddress,
                 listenTcpPortNumber);
 
-            await printerRepository.AddAsync(printer, ct);
+            var printerId = await printerRepository.AddAsync(printer, ct);
 
-            return printer.Id;
+            return printerId;
         }
         finally
         {

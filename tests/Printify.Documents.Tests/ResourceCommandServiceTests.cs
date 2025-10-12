@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Printify.Application.Interfaces;
 using Printify.Domain.Printers;
 using Printify.Domain.Services;
 using Printify.Domain.Users;
@@ -47,7 +48,7 @@ public sealed class ResourceCommandServiceTests
         await using var context = TestServiceContext.Create();
         var commandService = context.Provider.GetRequiredService<IResourceCommandService>();
         var queryService = context.Provider.GetRequiredService<IResourceQueryService>();
-        var sessionService = context.Provider.GetRequiredService<ISessionService>();
+        var sessionService = context.Provider.GetRequiredService<ISessionRepository>();
 
         var ownerId = await commandService.CreateUserAsync(new SaveUserRequest("Owner", "127.0.0.1"));
         var session = await sessionService.CreateAsync("127.0.0.1", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7));
@@ -70,7 +71,7 @@ public sealed class ResourceCommandServiceTests
         await using var context = TestServiceContext.Create();
         var commandService = context.Provider.GetRequiredService<IResourceCommandService>();
         var queryService = context.Provider.GetRequiredService<IResourceQueryService>();
-        var sessionService = context.Provider.GetRequiredService<ISessionService>();
+        var sessionService = context.Provider.GetRequiredService<ISessionRepository>();
 
         var ownerId = await commandService.CreateUserAsync(new SaveUserRequest("Owner", "10.0.0.1"));
         var session = await sessionService.CreateAsync("10.0.0.1", DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(7));

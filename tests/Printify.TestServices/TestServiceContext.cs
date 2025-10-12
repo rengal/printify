@@ -6,6 +6,7 @@ using Printify.Documents.Queries;
 using Printify.Documents.Sessions;
 using Microsoft.Extensions.Options;
 using Printify.Application.Commands;
+using Printify.Application.Interfaces;
 using Printify.Domain.Config;
 using Printify.Domain.Services;
 
@@ -34,7 +35,7 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         services.TryAddSingleton<IClockFactory, TestClockFactory>();
         services.TryAddSingleton<IResourceCommandService, ResourceCommandService>();
         services.TryAddSingleton<IResourceQueryService, ResourceQueryService>();
-        services.TryAddSingleton<ISessionService, SessionService>();
+        services.TryAddSingleton<ISessionRepository, SessionService>();
 
         services.AddSingleton(Options.Create(bufferOptions));
         services.AddSingleton(Options.Create(listenerOptions));

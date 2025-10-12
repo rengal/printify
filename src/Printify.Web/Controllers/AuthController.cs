@@ -1,90 +1,67 @@
-using System.Net;
+using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Printify.Domain.Services;
-using Printify.Domain.Users;
+using Microsoft.Extensions.Options;
+using Printify.Application.Features.Auth.GetCurrentUser;
+using Printify.Application.Interfaces;
+using Printify.Infrastructure.Config;
 using Printify.Web.Contracts.Auth.Requests;
+using Printify.Web.Contracts.Auth.Responses;
 using Printify.Web.Contracts.Users.Responses;
 using Printify.Web.Infrastructure;
 using Printify.Web.Mapping;
-using Printify.Web.Security;
 
 namespace Printify.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class AuthController : ControllerBase
+public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator mediator, ISessionRepository sessionService, IJwtTokenGenerator jwt) : ControllerBase
 {
-    private readonly IResourceCommandService commandService;
-    private readonly IResourceQueryService queryService;
-    private readonly ISessionService sessionService;
-
-    public AuthController(IResourceCommandService commandService, IResourceQueryService queryService, ISessionService sessionService)
-    {
-        this.commandService = commandService;
-        this.queryService = queryService;
-        this.sessionService = sessionService;
-    }
-
+    [AllowAnonymous]
     [HttpPost("login")]
-    public async Task<ActionResult<UserDto>> Login(LoginRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<UserDto>> Login(
+        [FromBody]LoginRequestDto request,
+        CancellationToken cancellationToken,
+        [FromServices] IJwtTokenGenerator jwt)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.Username);
+        ArgumentException.ThrowIfNullOrWhiteSpace(request.DisplayName);
 
-        var session = await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
-        var metadata = HttpContext.CaptureRequestMetadata(session.Id);
-        var username = request.Username.Trim();
+        var command = request.ToCommand(HttpContext.CaptureRequestContext());
+        var user = await mediator.Send(command, cancellationToken);
 
-        var user = await queryService.FindUserByNameAsync(username, cancellationToken).ConfigureAwait(false);
-        if (user is null)
-        {
-            var id = await commandService.CreateUserAsync(new SaveUserRequest(username, metadata.IpAddress), cancellationToken).ConfigureAwait(false);
-            user = await queryService.GetUserAsync(id, cancellationToken).ConfigureAwait(false);
-            if (user is null)
-            {
-                return StatusCode((int)HttpStatusCode.InternalServerError, "Failed to persist or retrieve user record.");
-            }
-        }
+        var token = jwt.GenerateToken(userId: user.Id, null);
+        var responseDto = new LoginResponseDto(AccessToken: token,
+            TokenType: "Bearer",
+            ExpiresInSeconds: jwtOptions.Value.ExpiresInSeconds,
+            User: user.ToDto());
 
-        var now = DateTimeOffset.UtcNow;
-        session = session with { ClaimedUserId = user.Id, LastActiveAt = now, ExpiresAt = now.Add(SessionManager.SessionLifetime) };
-        await sessionService.UpdateAsync(session, cancellationToken).ConfigureAwait(false);
-
-        return Ok(ContractMapper.ToUserDto(user));
+        return Ok(responseDto);
     }
 
+    [HttpPost("anonymous")]
+    public async Task<ActionResult> CreateAnonymousSession(CancellationToken cancellationToken)
+    {
+        // var command = new CreateAnonymousSessionCommand();
+        // await mediator.Send(command, cancellationToken);
+
+        return Ok(); //todo JWT token for anonymous session
+    }
+
+    [Authorize]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
-        _ = HttpContext.CaptureRequestMetadata(null);
-
-        if (HttpContext.Request.Cookies.TryGetValue(SessionManager.SessionCookieName, out var cookie) &&
-            long.TryParse(cookie, out var sessionId))
-        {
-            await sessionService.DeleteAsync(sessionId, cancellationToken).ConfigureAwait(false);
-        }
-
-        SessionManager.ClearSessionCookie(HttpContext);
-        return Ok(new { Success = true });
+        return Ok();
     }
 
+    [Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<UserDto>> GetCurrentUser(CancellationToken cancellationToken)
     {
-        var session = await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
-        _ = HttpContext.CaptureRequestMetadata(session.Id);
+        var command = new GetCurrentUserCommand(HttpContext.CaptureRequestContext());
+        var user = await mediator.Send(command, cancellationToken);
 
-        if (session.ClaimedUserId is null)
-        {
-            return Unauthorized();
-        }
-
-        var user = await queryService.GetUserAsync(session.ClaimedUserId.Value, cancellationToken).ConfigureAwait(false);
-        if (user is null)
-        {
-            return Unauthorized();
-        }
-
-        return Ok(ContractMapper.ToUserDto(user));
+        return Ok(user.ToDto());
     }
 }

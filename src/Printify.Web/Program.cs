@@ -1,16 +1,13 @@
-using Printify.Application.Commands;
-using Printify.Application.Sessions;
-using Printify.Documents.Queries;
-using Printify.Documents.Sessions;
+using System.Text;
+using MediatR;
+using Microsoft.IdentityModel.Tokens;
+using Printify.Application.Interfaces;
+using Printify.Application.Pipeline;
 using Printify.Domain.Config;
-using Printify.Domain.Services;
-using Printify.Services.BlobStorage;
-using Printify.Services.Clock;
-using Printify.Services.Listener;
-using Printify.Services.Tokenizer;
-using Printify.TestServices;
-using Printify.Web.Infrastructure.Sessions;
-using BufferOptions = Printify.Domain.Config.BufferOptions;
+using Printify.Infrastructure.Security;
+using Printify.Web.Config;
+using Printify.Web.Middleware;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,32 +17,40 @@ builder.Services.Configure<ListenerOptions>(builder.Configuration.GetSection("Li
 builder.Services.Configure<Page>(builder.Configuration.GetSection("Page"));
 builder.Services.Configure<Storage>(builder.Configuration.GetSection("Storage"));
 builder.Services.Configure<BufferOptions>(builder.Configuration.GetSection("Buffer"));
-
-builder.Services.AddSingleton<IBlobStorage, FileSystemBlobStorage>();
-builder.Services.AddSingleton<IRecordStorage, InMemoryRecordStorage>();
-builder.Services.AddSingleton<IClockFactory, StopwatchClockFactory>();
-builder.Services.AddSingleton<ITokenizer, EscPosTokenizer>();
-builder.Services.AddSingleton<IResourceCommandService, ResourceCommandService>();
-// Query service materializes descriptors and optional raster content for the API surface.
-builder.Services.AddSingleton<IResourceQueryService, ResourceQueryService>();
-builder.Services.AddSingleton<ISessionService, SessionService>();
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ISessionCookieWriter, HttpContextSessionCookieWriter>();
-builder.Services.AddScoped<IRequestContextFactory, RequestContextFactory>();
-
-builder.Services.AddSingleton<ListenerService>();
-builder.Services.AddSingleton<IListenerService>(sp => sp.GetRequiredService<ListenerService>());
 
 builder.Services.AddControllers();
+//builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(IdentityGuardBehavior<,>));
+builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
+builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        var jwt = builder.Configuration.GetSection("Jwt");
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwt["Issuer"],
+            ValidateAudience = true,
+            ValidAudience = jwt["Audience"],
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["SecretKey"]!)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(2)
+        };
+    });
+
+builder.Services.AddAuthorization();
 var app = builder.Build();
 
-var listener = app.Services.GetRequiredService<IListenerService>();
-_ = listener.StartAsync(CancellationToken.None);
-app.Lifetime.ApplicationStopping.Register(() => listener.StopAsync(CancellationToken.None).GetAwaiter().GetResult());
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-app.MapGet("/health", () => Results.Ok("OK"));
 app.MapControllers();
 
 app.Run();
