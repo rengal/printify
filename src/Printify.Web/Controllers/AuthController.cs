@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Auth.GetCurrentUser;
 using Printify.Application.Interfaces;
+using Printify.Domain.AnonymousSessions;
 using Printify.Infrastructure.Config;
 using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Contracts.Auth.Responses;
@@ -15,20 +16,20 @@ namespace Printify.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator mediator, ISessionRepository sessionService, IJwtTokenGenerator jwt) : ControllerBase
+public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator mediator, IAnonymousSessionRepository sessionRepository, IJwtTokenGenerator jwt) : ControllerBase
 {
     [AllowAnonymous]
     [HttpPost("login")]
     public async Task<ActionResult<UserDto>> Login(
         [FromBody]LoginRequestDto request,
-        CancellationToken cancellationToken,
-        [FromServices] IJwtTokenGenerator jwt)
+        [FromServices] IJwtTokenGenerator jwt,
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentException.ThrowIfNullOrWhiteSpace(request.DisplayName);
 
         var command = request.ToCommand(HttpContext.CaptureRequestContext());
-        var user = await mediator.Send(command, cancellationToken);
+        var user = await mediator.Send(command, ct);
 
         var token = jwt.GenerateToken(userId: user.Id, null);
         var responseDto = new LoginResponseDto(AccessToken: token,
@@ -40,8 +41,12 @@ public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator me
     }
 
     [HttpPost("anonymous")]
-    public async Task<ActionResult> CreateAnonymousSession(CancellationToken cancellationToken)
+    public async Task<ActionResult<AnonymousSessionDto>> CreateAnonymousSession(CancellationToken ct)
     {
+        var now = DateTimeOffset.Now;
+        var requestContext = HttpContext.CaptureRequestContext();
+        var session = new AnonymousSession(Guid.NewGuid(), now, now, requestContext.IpAddress, null);
+        await sessionRepository.AddAsync(session, ct);
         // var command = new CreateAnonymousSessionCommand();
         // await mediator.Send(command, cancellationToken);
 
@@ -50,17 +55,17 @@ public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator me
 
     [Authorize]
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    public async Task<IActionResult> Logout(CancellationToken ct)
     {
         return Ok();
     }
 
     [Authorize]
     [HttpGet("me")]
-    public async Task<ActionResult<UserDto>> GetCurrentUser(CancellationToken cancellationToken)
+    public async Task<ActionResult<UserDto>> GetCurrentUser(CancellationToken ct)
     {
         var command = new GetCurrentUserCommand(HttpContext.CaptureRequestContext());
-        var user = await mediator.Send(command, cancellationToken);
+        var user = await mediator.Send(command, ct);
 
         return Ok(user.ToDto());
     }
