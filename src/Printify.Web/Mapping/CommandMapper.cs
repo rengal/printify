@@ -1,8 +1,7 @@
-using Printify.Application.Features.Auth.Login;
 using Printify.Domain.Printers;
 using Printify.Domain.Requests;
 using Features = Printify.Application.Features;
-using WebRequests = Printify.Web.Contracts.Printers.Requests;
+using WebApi = Printify.Web.Contracts;
 
 namespace Printify.Web.Mapping;
 
@@ -24,7 +23,7 @@ internal static class CommandMapper
     //         }
     // }
 
-    internal static Features.Printers.Create.CreatePrinterCommand ToCommand(this WebRequests.CreatePrinterRequestDto request,  RequestContext context)
+    internal static Features.Printers.Create.CreatePrinterCommand ToCommand(this WebApi.Printers.Requests.CreatePrinterRequestDto request,  RequestContext context)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -37,11 +36,11 @@ internal static class CommandMapper
             request.TcpListenPort);
     }
 
-    internal static Features.Auth.Login.LoginCommand ToCommand(this WebRequests.LoginRequestDto request, RequestContext context)
+    internal static Features.Auth.Login.LoginCommand ToCommand(this WebApi.Auth.Requests.LoginRequestDto request, RequestContext context)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return new LoginCommand(context, request.DisplayName);
+        return new Features.Auth.Login.LoginCommand(context, request.DisplayName);
     }
 
     private static Protocol ParseProtocol(string protocol)

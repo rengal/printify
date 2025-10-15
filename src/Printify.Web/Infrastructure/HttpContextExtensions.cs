@@ -64,18 +64,4 @@ internal static class HttpContextExtensions
 
         return null;
     }
-
-    private static long? TryGetSessionIdFromCookie(this HttpContext context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-
-        if (!context.Request.Cookies.TryGetValue(SessionDefaults.SessionCookieName, out var cookieValue))
-        {
-            return null;
-        }
-
-        return long.TryParse(cookieValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var sessionId)
-            ? sessionId
-            : null;
-    }
 }

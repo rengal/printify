@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.*" />
     <ProjectReference Include="..\Printify.Infrastructure\Printify.Infrastructure.csproj" />
     <ProjectReference Include="..\Printify.Web.Contracts\Printify.Web.Contracts.csproj" />
     <ProjectReference Include="..\Printify.Application\Printify.Application.csproj" />

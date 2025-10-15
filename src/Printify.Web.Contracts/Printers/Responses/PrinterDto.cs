@@ -9,7 +9,7 @@ namespace Printify.Web.Contracts.Printers.Responses;
 /// <param name="WidthInDots">Configured print width in dots.</param>
 /// <param name="HeightInDots">Optional maximum height in dots when known.</param>
 public sealed record PrinterDto(
-    long Id,
+    Guid Id,
     string DisplayName,
     string Protocol,
     int WidthInDots,
