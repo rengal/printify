@@ -1,7 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Printify.Application.Interfaces;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Infrastructure;
@@ -11,7 +10,7 @@ namespace Printify.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class PrintersController(IMediator mediator, ISessionRepository sessionService) : ControllerBase
+public sealed class PrintersController(IMediator mediator) : ControllerBase
 {
     [Authorize]
     [HttpPost]
