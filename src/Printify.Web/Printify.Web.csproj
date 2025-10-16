@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <ProjectReference Include="..\Printify.Infrastructure\Printify.Infrastructure.csproj" />
     <ProjectReference Include="..\Printify.Web.Contracts\Printify.Web.Contracts.csproj" />
     <ProjectReference Include="..\Printify.Application\Printify.Application.csproj" />

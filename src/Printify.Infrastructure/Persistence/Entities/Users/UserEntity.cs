@@ -15,4 +15,10 @@ public sealed class UserEntity
 
     [Column("display_name")]
     public string DisplayName { get; set; } = string.Empty;
+
+    [Column("created_at")]
+    public DateTimeOffset CreatedAt { get; set; }
+
+    [Column("created_from_ip")]
+    public string CreatedFromIp { get; set; } = string.Empty;
 }

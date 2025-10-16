@@ -1,4 +1,6 @@
 using MediatR;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Net.Sockets;
@@ -7,6 +9,8 @@ using Microsoft.Extensions.Options;
 using Printify.Domain.Config;
 using Printify.Domain.Services;
 using Printify.Infrastructure.Config;
+using Printify.Infrastructure.Persistence;
+using Printify.Infrastructure.Repositories;
 using Printify.Application.Interfaces;
 using Printify.Web.Controllers;
 using ListenerOptions = Printify.Domain.Config.ListenerOptions;
@@ -22,6 +26,7 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         var services = new ServiceCollection();
 
         var listenerOptions = GetListenerOptions();
+        var resolvedConnectionString = connectionString ?? InMemoryConnectionString;
 
         if (bufferOptions == null)
         {
@@ -51,10 +56,30 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         services.AddSingleton(Options.Create(jwtOptions));
         services.AddSingleton(Options.Create(new RepositoryOptions
         {
-            ConnectionString = connectionString ?? InMemoryConnectionString
+            ConnectionString = resolvedConnectionString
         }));
+        services.AddSingleton(provider =>
+        {
+            var sqlConnection = new SqliteConnection(resolvedConnectionString);
+            sqlConnection.Open();
+            return sqlConnection;
+        });
+        services.AddDbContext<PrintifyDbContext>((serviceProvider, options) =>
+        {
+            var connection = serviceProvider.GetRequiredService<SqliteConnection>();
+            options.UseSqlite(connection);
+        });
+        services.AddScoped<IAnonymousSessionRepository, AnonymousSessionRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
 
-        return new TestServiceContext(services.BuildServiceProvider(), listenerOptions);
+        var provider = services.BuildServiceProvider();
+        using (var scope = provider.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+            context.Database.EnsureCreated();
+        }
+
+        return new TestServiceContext(provider, listenerOptions);
     }
 
     public static TestServiceContext CreateForAuthControllerTest()
@@ -62,6 +87,7 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         var services = new ServiceCollection();
 
         var listenerOptions = GetListenerOptions();
+        var resolvedConnectionString = InMemoryConnectionString;
         var bufferOptions = new BufferOptions
         {
             BusyThreshold = null,
@@ -84,16 +110,33 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         services.AddSingleton(Options.Create(jwtOptions));
         services.AddSingleton(Options.Create(new RepositoryOptions
         {
-            ConnectionString = InMemoryConnectionString
+            ConnectionString = resolvedConnectionString
         }));
+        services.AddSingleton(provider =>
+        {
+            var sqlConnection = new SqliteConnection(resolvedConnectionString);
+            sqlConnection.Open();
+            return sqlConnection;
+        });
+        services.AddDbContext<PrintifyDbContext>((serviceProvider, options) =>
+        {
+            var connection = serviceProvider.GetRequiredService<SqliteConnection>();
+            options.UseSqlite(connection);
+        });
+        services.AddScoped<IAnonymousSessionRepository, AnonymousSessionRepository>();
 
         services.AddScoped<IMediator, ThrowingMediator>();
         services.AddScoped<IJwtTokenGenerator, ThrowingJwtGenerator>();
         services.AddTransient<AuthController>();
-        services.AddSingleton<IUserRepository, NullUserRepository>();
-        services.AddSingleton<IPrinterRepository, NullPrinterRepository>();
 
-        return new TestServiceContext(services.BuildServiceProvider(), listenerOptions);
+        var provider = services.BuildServiceProvider();
+        using (var scope = provider.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+            context.Database.EnsureCreated();
+        }
+
+        return new TestServiceContext(provider, listenerOptions);
     }
 
     public ServiceProvider Provider { get; } = provider;
