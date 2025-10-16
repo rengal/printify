@@ -13,6 +13,7 @@
 /// <param name="CreatedAt">Registration timestamp in UTC.</param>
 /// <param name="CreatedFromIp">IP address captured when the printer was registered.</param>
 /// <param name="ListenTcpPortNumber">Listener tcp port number.</param>
+/// <param name="IsDeleted">Soft-delete marker for the printer.</param>
 public sealed record Printer(
     Guid Id,
     Guid? OwnerUserId,
@@ -23,4 +24,6 @@ public sealed record Printer(
     int? HeightInDots,
     DateTimeOffset CreatedAt,
     string CreatedFromIp,
-    int ListenTcpPortNumber);
+    int ListenTcpPortNumber,
+    bool IsDeleted)
+    : BaseDomainEntity<Guid>(Id, CreatedAt, IsDeleted);

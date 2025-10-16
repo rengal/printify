@@ -12,8 +12,9 @@ internal static class UserEntityMapper
         return new UserEntity
         {
             Id = user.Id,
-            DisplayName = user.DisplayName,
             CreatedAt = user.CreatedAt,
+            IsDeleted = user.IsDeleted,
+            DisplayName = user.DisplayName,
             CreatedFromIp = user.CreatedFromIp
         };
     }
@@ -26,6 +27,7 @@ internal static class UserEntityMapper
             entity.Id,
             entity.DisplayName,
             entity.CreatedAt,
-            entity.CreatedFromIp);
+            entity.CreatedFromIp,
+            entity.IsDeleted);
     }
 }

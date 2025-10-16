@@ -1,4 +1,4 @@
-﻿using Printify.Application.Interfaces;
+using Printify.Application.Interfaces;
 using Printify.Domain.Printers;
 using MediatR;
 
@@ -25,7 +25,8 @@ public sealed class CreatePrinterHandler(IPrinterRepository printerRepository, I
                 request.HeightInDots,
                 DateTimeOffset.Now,
                 request.Context.IpAddress,
-                listenTcpPortNumber);
+                listenTcpPortNumber,
+                false);
 
             var printerId = await printerRepository.AddAsync(printer, ct);
 
@@ -37,3 +38,4 @@ public sealed class CreatePrinterHandler(IPrinterRepository printerRepository, I
         }
     }
 }
+

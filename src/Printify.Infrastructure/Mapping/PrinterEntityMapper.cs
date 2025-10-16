@@ -20,7 +20,8 @@ internal static class PrinterEntityMapper
             HeightInDots = printer.HeightInDots,
             CreatedAt = printer.CreatedAt,
             CreatedFromIp = printer.CreatedFromIp,
-            ListenTcpPortNumber = printer.ListenTcpPortNumber
+            ListenTcpPortNumber = printer.ListenTcpPortNumber,
+            IsDeleted = printer.IsDeleted
         };
     }
 
@@ -38,6 +39,9 @@ internal static class PrinterEntityMapper
             entity.HeightInDots,
             entity.CreatedAt,
             entity.CreatedFromIp,
-            entity.ListenTcpPortNumber);
+            entity.ListenTcpPortNumber,
+            entity.IsDeleted);
     }
 }
+
+

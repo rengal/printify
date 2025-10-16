@@ -23,7 +23,7 @@ public sealed class UserRepository(PrintifyDbContext dbContext) : IUserRepositor
 
         var entity = await dbContext.Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(user => user.DisplayName == displayName, cancellationToken)
+            .FirstOrDefaultAsync(user => user.DisplayName == displayName && !user.IsDeleted, cancellationToken)
             .ConfigureAwait(false);
 
         return entity?.ToDomain();
@@ -33,7 +33,7 @@ public sealed class UserRepository(PrintifyDbContext dbContext) : IUserRepositor
     {
         var entity = await dbContext.Users
             .AsNoTracking()
-            .FirstOrDefaultAsync(user => user.Id == id, cancellationToken)
+            .FirstOrDefaultAsync(user => user.Id == id && !user.IsDeleted, cancellationToken)
             .ConfigureAwait(false);
 
         return entity?.ToDomain();

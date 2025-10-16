@@ -8,15 +8,18 @@
 /// <param name="LastActiveAt">Timestamp of the most recent activity within this session.</param>
 /// <param name="CreatedFromIp">Originating client IP address.</param>
 /// <param name="LinkedUserId">Identifier of the user, if this session has been linked after login; otherwise <c>null</c>.</param>
+/// <param name="IsDeleted">Soft-delete marker for the session.</param>
 public sealed record AnonymousSession(
     Guid Id,
     DateTimeOffset CreatedAt,
     DateTimeOffset LastActiveAt,
     string CreatedFromIp,
-    Guid? LinkedUserId)
+    Guid? LinkedUserId,
+    bool IsDeleted)
+    : BaseDomainEntity<Guid>(Id, CreatedAt, IsDeleted)
 {
     public static AnonymousSession Create(string createdFromIp)
-        => new(Guid.NewGuid(), DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, createdFromIp, null);
+        => new(Guid.NewGuid(), DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, createdFromIp, null, false);
 
     public AnonymousSession Touch()
         => this with { LastActiveAt = DateTimeOffset.UtcNow };

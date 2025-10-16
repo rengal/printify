@@ -18,7 +18,8 @@ namespace Printify.Infrastructure.Persistence.Migrations
                     id = table.Column<Guid>(type: "TEXT", nullable: false),
                     display_name = table.Column<string>(type: "TEXT", nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    created_from_ip = table.Column<string>(type: "TEXT", nullable: false)
+                    created_from_ip = table.Column<string>(type: "TEXT", nullable: false),
+                    is_deleted = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -38,7 +39,8 @@ namespace Printify.Infrastructure.Persistence.Migrations
                     height_in_dots = table.Column<int>(type: "INTEGER", nullable: true),
                     created_at = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
                     created_from_ip = table.Column<string>(type: "TEXT", nullable: false),
-                    listen_tcp_port_number = table.Column<int>(type: "INTEGER", nullable: false)
+                    listen_tcp_port_number = table.Column<int>(type: "INTEGER", nullable: false),
+                    is_deleted = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -53,7 +55,8 @@ namespace Printify.Infrastructure.Persistence.Migrations
                     created_at = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
                     last_active_at = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
                     created_from_ip = table.Column<string>(type: "TEXT", nullable: false),
-                    linked_user_id = table.Column<Guid>(type: "TEXT", nullable: true)
+                    linked_user_id = table.Column<Guid>(type: "TEXT", nullable: true),
+                    is_deleted = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {

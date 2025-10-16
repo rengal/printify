@@ -33,6 +33,10 @@ namespace Printify.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("created_from_ip");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_deleted");
+
                     b.Property<DateTimeOffset>("LastActiveAt")
                         .HasColumnType("TEXT")
                         .HasColumnName("last_active_at");
@@ -63,6 +67,10 @@ namespace Printify.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("created_from_ip");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_deleted");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
@@ -115,6 +123,10 @@ namespace Printify.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("protocol");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_deleted");
 
                     b.Property<int>("WidthInDots")
                         .HasColumnType("INTEGER")

@@ -1,15 +1,11 @@
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Printify.Infrastructure.Persistence.Entities;
 
 namespace Printify.Infrastructure.Persistence.Entities.Printers;
 
 [Table("printers")]
-public sealed class PrinterEntity
+public sealed class PrinterEntity : BaseEntity
 {
-    [Key]
-    [Column("id")]
-    public Guid Id { get; set; }
-
     [Column("owner_user_id")]
     public Guid? OwnerUserId { get; set; }
 
@@ -27,9 +23,6 @@ public sealed class PrinterEntity
 
     [Column("height_in_dots")]
     public int? HeightInDots { get; set; }
-
-    [Column("created_at")]
-    public DateTimeOffset CreatedAt { get; set; }
 
     [Column("created_from_ip")]
     public string CreatedFromIp { get; set; } = string.Empty;

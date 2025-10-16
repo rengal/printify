@@ -15,7 +15,8 @@ internal static class AnonymousSessionEntityMapper
             CreatedAt = session.CreatedAt,
             LastActiveAt = session.LastActiveAt,
             CreatedFromIp = session.CreatedFromIp,
-            LinkedUserId = session.LinkedUserId
+            LinkedUserId = session.LinkedUserId,
+            IsDeleted = session.IsDeleted
         };
     }
 
@@ -28,6 +29,8 @@ internal static class AnonymousSessionEntityMapper
             entity.CreatedAt,
             entity.LastActiveAt,
             entity.CreatedFromIp,
-            entity.LinkedUserId);
+            entity.LinkedUserId,
+            entity.IsDeleted);
     }
 }
+

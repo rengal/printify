@@ -67,7 +67,7 @@ public sealed class AnonymousSessionRepositoryTests : IAsyncDisposable
 
         var session = AnonymousSession.Create("172.16.0.1");
         await repository.AddAsync(session, CancellationToken.None);
-        var user = new User(Guid.NewGuid(), "integration-user", DateTimeOffset.UtcNow, "172.16.0.1");
+        var user = new User(Guid.NewGuid(), "integration-user", DateTimeOffset.UtcNow, "172.16.0.1", false);
         await userRepository.AddAsync(user, CancellationToken.None);
 
         await repository.AttachUserAsync(session.Id, user.Id, CancellationToken.None);
@@ -91,7 +91,7 @@ public sealed class AnonymousSessionRepositoryTests : IAsyncDisposable
         var session = AnonymousSession.Create("192.168.1.10");
         await repository.AddAsync(session, CancellationToken.None);
 
-        var linkedUser = new User(Guid.NewGuid(), "linked-user", DateTimeOffset.UtcNow, "192.168.1.10");
+        var linkedUser = new User(Guid.NewGuid(), "linked-user", DateTimeOffset.UtcNow, "192.168.1.10", false);
         await userRepository.AddAsync(linkedUser, CancellationToken.None);
 
         var updatedSession = session with

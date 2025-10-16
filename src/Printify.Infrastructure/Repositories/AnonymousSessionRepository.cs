@@ -18,7 +18,7 @@ public sealed class AnonymousSessionRepository(
     {
         var entity = await dbContext.AnonymousSessions
             .AsNoTracking()
-            .FirstOrDefaultAsync(session => session.Id == id, ct)
+            .FirstOrDefaultAsync(session => session.Id == id && !session.IsDeleted, ct)
             .ConfigureAwait(false);
 
         return entity?.ToDomain();
@@ -53,6 +53,7 @@ public sealed class AnonymousSessionRepository(
         entity.LastActiveAt = session.LastActiveAt;
         entity.CreatedFromIp = session.CreatedFromIp;
         entity.LinkedUserId = session.LinkedUserId;
+        entity.IsDeleted = session.IsDeleted;
 
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
@@ -60,7 +61,7 @@ public sealed class AnonymousSessionRepository(
     public async Task TouchAsync(Guid id, DateTimeOffset lastActive, CancellationToken ct)
     {
         var affected = await dbContext.AnonymousSessions
-            .Where(session => session.Id == id)
+            .Where(session => session.Id == id && !session.IsDeleted)
             .ExecuteUpdateAsync(update => update
                 .SetProperty(x => x.LastActiveAt, lastActive), ct)
             .ConfigureAwait(false);
@@ -74,7 +75,7 @@ public sealed class AnonymousSessionRepository(
     public async Task AttachUserAsync(Guid id, Guid userId, CancellationToken ct)
     {
         var affected = await dbContext.AnonymousSessions
-            .Where(session => session.Id == id)
+            .Where(session => session.Id == id && !session.IsDeleted)
             .ExecuteUpdateAsync(update => update
                 .SetProperty(x => x.LinkedUserId, userId), ct)
             .ConfigureAwait(false);

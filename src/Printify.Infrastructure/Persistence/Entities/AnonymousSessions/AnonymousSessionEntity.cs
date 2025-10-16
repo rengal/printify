@@ -1,5 +1,5 @@
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Printify.Infrastructure.Persistence.Entities;
 using Printify.Infrastructure.Persistence.Entities.Users;
 
 namespace Printify.Infrastructure.Persistence.Entities.AnonymousSessions;
@@ -8,15 +8,8 @@ namespace Printify.Infrastructure.Persistence.Entities.AnonymousSessions;
 /// Entity Framework model for the anonymous_sessions table.
 /// </summary>
 [Table("anonymous_sessions")]
-public sealed class AnonymousSessionEntity
+public sealed class AnonymousSessionEntity : BaseEntity
 {
-    [Key]
-    [Column("id")]
-    public Guid Id { get; set; }
-
-    [Column("created_at")]
-    public DateTimeOffset CreatedAt { get; set; }
-
     [Column("last_active_at")]
     public DateTimeOffset LastActiveAt { get; set; }
 

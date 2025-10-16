@@ -1,6 +1,9 @@
-﻿namespace Printify.Domain.PrintJobs;
+using Printify.Domain;
+
+namespace Printify.Domain.PrintJobs;
 
 public sealed record PrintJob(
+    Guid Id,
     Guid PrinterId,
     string DisplayName,
     string Protocol,
@@ -9,4 +12,7 @@ public sealed record PrintJob(
     DateTimeOffset CreatedAt,
     string CreatedFromIp,
     int ListenTcpPortNumber,
-    IPrintJobState State);
+    IPrintJobState State,
+    bool IsDeleted)
+    : BaseDomainEntity<Guid>(Id, CreatedAt, IsDeleted);
+

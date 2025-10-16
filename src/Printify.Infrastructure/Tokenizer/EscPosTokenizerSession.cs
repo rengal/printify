@@ -628,7 +628,7 @@ internal sealed class EscPosTokenizerSession : ITokenizerSession
 
         var snapshot = elements.ToArray();
 
-        document = new Document(0, 0, DateTimeOffset.UtcNow, Protocol.EscPos, null, snapshot);
+        document = new Document(0, 0, DateTimeOffset.UtcNow, Protocol.EscPos, null, snapshot, false);
         isCompleted = true;
     }
 

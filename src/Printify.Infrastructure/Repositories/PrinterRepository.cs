@@ -15,7 +15,7 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
     {
         var entity = await dbContext.Printers
             .AsNoTracking()
-            .FirstOrDefaultAsync(printer => printer.Id == id, ct)
+            .FirstOrDefaultAsync(printer => printer.Id == id && !printer.IsDeleted, ct)
             .ConfigureAwait(false);
 
         return entity?.ToDomain();
@@ -25,7 +25,7 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
     {
         var entities = await dbContext.Printers
             .AsNoTracking()
-            .Where(printer => printer.OwnerUserId == userId)
+            .Where(printer => printer.OwnerUserId == userId && !printer.IsDeleted)
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
@@ -63,6 +63,8 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         entity.WidthInDots = printer.WidthInDots;
         entity.HeightInDots = printer.HeightInDots;
         entity.ListenTcpPortNumber = printer.ListenTcpPortNumber;
+        entity.CreatedFromIp = printer.CreatedFromIp;
+        entity.IsDeleted = printer.IsDeleted;
 
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
@@ -80,8 +82,11 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
             return;
         }
 
-        dbContext.Printers.Remove(entity);
-        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+        if (!entity.IsDeleted)
+        {
+            entity.IsDeleted = true;
+            await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
     }
 
     public ValueTask<int> GetFreeTcpPortNumber(CancellationToken ct)
@@ -93,3 +98,5 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         return ValueTask.FromResult(port);
     }
 }
+
+
