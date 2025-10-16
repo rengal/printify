@@ -1,12 +1,14 @@
+using System.IO;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Printify.Application.Interfaces;
 using Printify.Infrastructure.Config;
+using Printify.Infrastructure.Persistence;
 using Printify.TestServices;
 using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Controllers;
@@ -41,7 +43,7 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task GetCurrentUser_WithoutToken_ReturnsUnauthorized()
     {
-        using var client = CreateClientWithStubs();
+        using var client = CreateClientWithInMemoryDatabase();
 
         var response = await client.GetAsync("/api/auth/me");
 
@@ -51,7 +53,7 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task Logout_WithMalformedBearerToken_ReturnsUnauthorized()
     {
-        using var client = CreateClientWithStubs();
+        using var client = CreateClientWithInMemoryDatabase();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "totally-invalid-token");
 
         using var content = new StringContent(string.Empty, Encoding.UTF8, "application/json");
@@ -60,20 +62,28 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    private HttpClient CreateClientWithStubs()
+    private HttpClient CreateClientWithInMemoryDatabase()
     {
+        var connectionString = $"Data Source={Path.Combine(Path.GetTempPath(), $"auth-tests-{Guid.NewGuid():N}.db")}";
+
         var customizedFactory = factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureTestServices(services =>
             {
-                services.RemoveAll<IUserRepository>();
-                services.RemoveAll<IPrinterRepository>();
-                services.AddSingleton<IUserRepository, NullUserRepository>();
-                services.AddSingleton<IPrinterRepository, NullPrinterRepository>();
-                services.PostConfigure<RepositoryOptions>(options => options.ConnectionString = "Data Source=WebTests;Mode=Memory;Cache=Shared");
+                services.PostConfigure<RepositoryOptions>(options => options.ConnectionString = connectionString);
+                services.RemoveAll<DbContextOptions<PrintifyDbContext>>();
+                services.AddDbContext<PrintifyDbContext>(options => options.UseSqlite(connectionString));
             });
         });
+
+        using (var scope = customizedFactory.Services.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+            context.Database.EnsureDeleted();
+            context.Database.EnsureCreated();
+        }
 
         return customizedFactory.CreateClient();
     }
 }
+

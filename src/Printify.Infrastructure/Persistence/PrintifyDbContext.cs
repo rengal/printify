@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Printify.Infrastructure.Persistence.Entities.AnonymousSessions;
+using Printify.Infrastructure.Persistence.Entities.Printers;
 using Printify.Infrastructure.Persistence.Entities.Users;
 
 namespace Printify.Infrastructure.Persistence;
@@ -15,6 +16,8 @@ public sealed class PrintifyDbContext : DbContext
 
     public DbSet<UserEntity> Users => Set<UserEntity>();
 
+    public DbSet<PrinterEntity> Printers => Set<PrinterEntity>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -24,5 +27,8 @@ public sealed class PrintifyDbContext : DbContext
             .WithMany()
             .HasForeignKey(session => session.LinkedUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<PrinterEntity>()
+            .HasIndex(printer => printer.DisplayName);
     }
 }

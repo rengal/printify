@@ -74,6 +74,59 @@ namespace Printify.Infrastructure.Persistence.Migrations
                     b.ToTable("users");
                 });
 
+            modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.Printers.PrinterEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedFromIp")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_from_ip");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("display_name");
+
+                    b.Property<int?>("HeightInDots")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("height_in_dots");
+
+                    b.Property<int>("ListenTcpPortNumber")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("listen_tcp_port_number");
+
+                    b.Property<Guid?>("OwnerAnonymousSessionId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("owner_anonymous_session_id");
+
+                    b.Property<Guid?>("OwnerUserId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<string>("Protocol")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("protocol");
+
+                    b.Property<int>("WidthInDots")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("width_in_dots");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DisplayName");
+
+                    b.ToTable("printers");
+                });
+
             modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.AnonymousSessions.AnonymousSessionEntity", b =>
                 {
                     b.HasOne("Printify.Infrastructure.Persistence.Entities.Users.UserEntity", "LinkedUser")

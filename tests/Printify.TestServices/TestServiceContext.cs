@@ -71,11 +71,13 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         });
         services.AddScoped<IAnonymousSessionRepository, AnonymousSessionRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IPrinterRepository, PrinterRepository>();
 
         var provider = services.BuildServiceProvider();
         using (var scope = provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+            context.Database.EnsureDeleted();
             context.Database.EnsureCreated();
         }
 
@@ -124,6 +126,8 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
             options.UseSqlite(connection);
         });
         services.AddScoped<IAnonymousSessionRepository, AnonymousSessionRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IPrinterRepository, PrinterRepository>();
 
         services.AddScoped<IMediator, ThrowingMediator>();
         services.AddScoped<IJwtTokenGenerator, ThrowingJwtGenerator>();
@@ -133,6 +137,7 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         using (var scope = provider.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+            context.Database.EnsureDeleted();
             context.Database.EnsureCreated();
         }
 

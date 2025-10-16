@@ -26,6 +26,26 @@ namespace Printify.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "printers",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    owner_user_id = table.Column<Guid>(type: "TEXT", nullable: true),
+                    owner_anonymous_session_id = table.Column<Guid>(type: "TEXT", nullable: true),
+                    display_name = table.Column<string>(type: "TEXT", nullable: false),
+                    protocol = table.Column<string>(type: "TEXT", nullable: false),
+                    width_in_dots = table.Column<int>(type: "INTEGER", nullable: false),
+                    height_in_dots = table.Column<int>(type: "INTEGER", nullable: true),
+                    created_at = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    created_from_ip = table.Column<string>(type: "TEXT", nullable: false),
+                    listen_tcp_port_number = table.Column<int>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_printers", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "anonymous_sessions",
                 columns: table => new
                 {
@@ -47,6 +67,11 @@ namespace Printify.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_printers_display_name",
+                table: "printers",
+                column: "display_name");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_anonymous_sessions_linked_user_id",
                 table: "anonymous_sessions",
                 column: "linked_user_id");
@@ -55,6 +80,9 @@ namespace Printify.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "printers");
+
             migrationBuilder.DropTable(
                 name: "anonymous_sessions");
 

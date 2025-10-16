@@ -42,6 +42,7 @@ builder.Services.AddScoped<SqliteConnectionManager>();
 builder.Services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
 builder.Services.AddScoped<IAnonymousSessionRepository, AnonymousSessionRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IPrinterRepository, PrinterRepository>();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
 var app = builder.Build();
