@@ -18,5 +18,8 @@
         "Issuer": "virtual-printer.online",
         "Audience": "Printify.Client",
         "ExpiryHours": 8760 //1 year
+    },
+    "Repository": {
+        "ConnectionString": "Data Source=printify.db;Cache=Shared"
     }
 }
