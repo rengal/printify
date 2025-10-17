@@ -22,6 +22,9 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
 {
     private readonly WebApplicationFactory<Program> factory = factory;
 
+    /// <summary>
+    /// Verifies the API rejects a null login payload with HTTP 400.
+    /// </summary>
     [Fact]
     public async Task Login_WithNullRequest_ReturnsBadRequest()
     {
@@ -34,6 +37,9 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    /// <summary>
+    /// Verifies whitespace-only display names are handled as a server error for now.
+    /// </summary>
     [Fact]
     public async Task Login_WithWhitespaceDisplayName_ReturnsServerError()
     {
@@ -46,6 +52,9 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
         Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
     }
 
+    /// <summary>
+    /// Ensures the /me endpoint requires an authenticated caller.
+    /// </summary>
     [Fact]
     public async Task GetCurrentUser_WithoutToken_ReturnsUnauthorized()
     {
@@ -56,6 +65,9 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    /// <summary>
+    /// Ensures logout fails when the provided bearer token is malformed.
+    /// </summary>
     [Fact]
     public async Task Logout_WithMalformedBearerToken_ReturnsUnauthorized()
     {
@@ -69,6 +81,9 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
+    /// <summary>
+    /// Confirms a failing login can be retried successfully once the user is created, and the resulting token allows calling /me.
+    /// </summary>
     [Fact]
     public async Task Login_WhenUserAddedAfterFailure_AllowsAuthenticatedMe()
     {
@@ -79,6 +94,7 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
         var client = environment.Client;
 
         string anonymousToken;
+        // Step 1: Seed an anonymous session and issue a token to simulate a caller.
         await using (var scope = environment.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
@@ -95,9 +111,11 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", anonymousToken);
 
+        // Step 2: Attempt login before the user exists and assert the failure response.
         var failedResponse = await client.PostAsJsonAsync("/api/auth/login", loginRequest);
         Assert.Equal(HttpStatusCode.Unauthorized, failedResponse.StatusCode);
 
+        // Step 3: Create the missing user so the next login can succeed.
         await using (var scope = environment.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
@@ -109,6 +127,7 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
                 CancellationToken.None);
         }
 
+        // Step 4: Retry login and confirm the response now succeeds.
         var successfulResponse = await client.PostAsJsonAsync("/api/auth/login", loginRequest);
         if (!successfulResponse.IsSuccessStatusCode)
         {
@@ -121,6 +140,7 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
         Assert.False(string.IsNullOrWhiteSpace(loginDto!.AccessToken));
         Assert.Equal(displayName, loginDto.User.Name);
 
+        // Step 5: Use the issued access token to fetch the current user profile.
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginDto.AccessToken);
 
         var meResponse = await client.GetAsync("/api/auth/me");

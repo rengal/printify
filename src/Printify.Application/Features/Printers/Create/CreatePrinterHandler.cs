@@ -11,7 +11,9 @@ public sealed class CreatePrinterHandler(IPrinterRepository printerRepository)
         CreatePrinterCommand request,
         CancellationToken ct)
     {
-        var existing = await printerRepository.GetByIdAsync(request.PrinterId, ct).ConfigureAwait(false);
+        var existing = await printerRepository
+            .GetByIdAsync(request.PrinterId, request.Context.UserId, request.Context.AnonymousSessionId, ct)
+            .ConfigureAwait(false);
         if (existing is not null)
         {
             // Simplified idempotency: return existing printer without reapplying side effects.

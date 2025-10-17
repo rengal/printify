@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.EntityFrameworkCore;
@@ -6,28 +5,34 @@ using Printify.Application.Interfaces;
 using Printify.Domain.Printers;
 using Printify.Infrastructure.Mapping;
 using Printify.Infrastructure.Persistence;
+using Printify.Infrastructure.Persistence.Entities.Printers;
 
 namespace Printify.Infrastructure.Repositories;
 
 public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRepository
 {
-    public async ValueTask<Printer?> GetByIdAsync(Guid id, CancellationToken ct)
+    public async ValueTask<Printer?> GetByIdAsync(Guid id, Guid? ownerUserId, Guid? ownerSessionId, CancellationToken ct)
     {
-        var entity = await dbContext.Printers
+        var query = dbContext.Printers
             .AsNoTracking()
-            .FirstOrDefaultAsync(printer => printer.Id == id && !printer.IsDeleted, ct)
-            .ConfigureAwait(false);
+            .Where(printer => printer.Id == id && !printer.IsDeleted);
+
+        query = ApplyOwnershipFilter(query, ownerUserId, ownerSessionId);
+
+        var entity = await query.FirstOrDefaultAsync(ct).ConfigureAwait(false);
 
         return entity?.ToDomain();
     }
 
-    public async ValueTask<IReadOnlyList<Printer>> ListByUserAsync(Guid userId, CancellationToken ct)
+    public async ValueTask<IReadOnlyList<Printer>> ListAccessibleAsync(Guid? ownerUserId, Guid? ownerSessionId, CancellationToken ct)
     {
-        var entities = await dbContext.Printers
+        var query = dbContext.Printers
             .AsNoTracking()
-            .Where(printer => printer.OwnerUserId == userId && !printer.IsDeleted)
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
+            .Where(printer => !printer.IsDeleted);
+
+        query = ApplyOwnershipFilter(query, ownerUserId, ownerSessionId);
+
+        var entities = await query.ToListAsync(ct).ConfigureAwait(false);
 
         return entities.Select(entity => entity.ToDomain()).ToList();
     }
@@ -97,7 +102,22 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         listener.Stop();
         return ValueTask.FromResult(port);
     }
+
+    private static IQueryable<PrinterEntity> ApplyOwnershipFilter(
+        IQueryable<PrinterEntity> source,
+        Guid? ownerUserId,
+        Guid? ownerSessionId)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        if (ownerUserId is null && ownerSessionId is null)
+        {
+            return source.Where(_ => false);
+        }
+
+        return source.Where(printer =>
+            (ownerUserId.HasValue && printer.OwnerUserId == ownerUserId)
+            || (ownerSessionId.HasValue && printer.OwnerAnonymousSessionId == ownerSessionId));
+    }
 }
-
-
 
