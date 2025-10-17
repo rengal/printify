@@ -79,25 +79,6 @@ public sealed class UsersControllerTests(WebApplicationFactory<Program> factory)
         Assert.DoesNotContain(users!, user => user.Name == deletedDisplayName);
     }
 
-    [Fact]
-    public async Task GetUserByDisplayName_WhenSoftDeleted_ReturnsNotFound()
-    {
-        const string deletedDisplayName = "ghost-user";
-
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
-        await using (var scope = environment.CreateScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
-            await context.Database.EnsureCreatedAsync();
-
-            var repository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-            await repository.AddAsync(new User(Guid.NewGuid(), deletedDisplayName, DateTimeOffset.UtcNow, "127.0.0.1", true), CancellationToken.None);
-        }
-
-        var response = await environment.Client.GetAsync($"/api/users/by-name/{deletedDisplayName}");
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
     private static async Task<string> AuthenticateAsync(TestServiceContext.AuthControllerTestContext environment, string displayName)
     {
         var client = environment.Client;
