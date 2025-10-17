@@ -41,7 +41,7 @@ public sealed class AnonymousSessionRepository(
         ArgumentNullException.ThrowIfNull(session);
 
         var entity = await dbContext.AnonymousSessions
-            .FirstOrDefaultAsync(s => s.Id == session.Id, ct)
+            .FirstOrDefaultAsync(s => s.Id == session.Id && !s.IsDeleted, ct)
             .ConfigureAwait(false);
 
         if (entity is null)

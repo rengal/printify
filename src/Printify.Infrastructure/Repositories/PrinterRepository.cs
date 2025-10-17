@@ -48,7 +48,7 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         ArgumentNullException.ThrowIfNull(printer);
 
         var entity = await dbContext.Printers
-            .FirstOrDefaultAsync(p => p.Id == printer.Id, ct)
+            .FirstOrDefaultAsync(p => p.Id == printer.Id && !p.IsDeleted, ct)
             .ConfigureAwait(false);
 
         if (entity is null)
@@ -74,7 +74,7 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         ArgumentNullException.ThrowIfNull(printer);
 
         var entity = await dbContext.Printers
-            .FirstOrDefaultAsync(p => p.Id == printer.Id, ct)
+            .FirstOrDefaultAsync(p => p.Id == printer.Id && !p.IsDeleted, ct)
             .ConfigureAwait(false);
 
         if (entity is null)
@@ -98,5 +98,6 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         return ValueTask.FromResult(port);
     }
 }
+
 
 

@@ -1,17 +1,18 @@
-using System.IO;
+using Xunit;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Printify.Infrastructure.Config;
-using Printify.Infrastructure.Persistence;
+using Printify.Application.Interfaces;
+using Printify.Domain.AnonymousSessions;
+using Printify.Domain.Users;
 using Printify.TestServices;
 using Printify.Web.Contracts.Auth.Requests;
-using Printify.Web.Controllers;
+using Printify.Web.Contracts.Auth.Responses;
+using Printify.Web.Contracts.Users.Responses;
+using Xunit.Sdk;
 
 namespace Printify.Web.Tests;
 
@@ -21,31 +22,35 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
     private readonly WebApplicationFactory<Program> factory = factory;
 
     [Fact]
-    public async Task Login_WithNullRequest_ThrowsArgumentNullException()
+    public async Task Login_WithNullRequest_ReturnsBadRequest()
     {
-        await using var context = TestServiceContext.CreateForAuthControllerTest();
-        var controller = context.Provider.GetRequiredService<AuthController>();
+        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
 
-        // Null-forgiving is intentional to simulate the framework passing a null body into the action.
-        await Assert.ThrowsAsync<ArgumentNullException>(() => controller.Login(null!, CancellationToken.None));
+        var response = await environment.Client.PostAsync(
+            "/api/auth/login",
+            new StringContent("null", Encoding.UTF8, "application/json"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]
-    public async Task Login_WithWhitespaceDisplayName_ThrowsArgumentException()
+    public async Task Login_WithWhitespaceDisplayName_ReturnsServerError()
     {
-        await using var context = TestServiceContext.CreateForAuthControllerTest();
-        var controller = context.Provider.GetRequiredService<AuthController>();
-        var request = new LoginRequestDto("   ");
+        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => controller.Login(request, CancellationToken.None));
+        var response = await environment.Client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequestDto("   "));
+
+        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
     }
 
     [Fact]
     public async Task GetCurrentUser_WithoutToken_ReturnsUnauthorized()
     {
-        using var client = CreateClientWithInMemoryDatabase();
+        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
 
-        var response = await client.GetAsync("/api/auth/me");
+        var response = await environment.Client.GetAsync("/api/auth/me");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -53,37 +58,70 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task Logout_WithMalformedBearerToken_ReturnsUnauthorized()
     {
-        using var client = CreateClientWithInMemoryDatabase();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "totally-invalid-token");
+        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+
+        environment.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "totally-invalid-token");
 
         using var content = new StringContent(string.Empty, Encoding.UTF8, "application/json");
-        var response = await client.PostAsync("/api/auth/logout", content);
+        var response = await environment.Client.PostAsync("/api/auth/logout", content);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    private HttpClient CreateClientWithInMemoryDatabase()
+    [Fact]
+    public async Task Login_WhenUserAddedAfterFailure_AllowsAuthenticatedMe()
     {
-        var connectionString = $"Data Source={Path.Combine(Path.GetTempPath(), $"auth-tests-{Guid.NewGuid():N}.db")}";
+        const string displayName = "auth-tests-user";
+        var loginRequest = new LoginRequestDto(displayName);
 
-        var customizedFactory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureTestServices(services =>
-            {
-                services.PostConfigure<RepositoryOptions>(options => options.ConnectionString = connectionString);
-                services.RemoveAll<DbContextOptions<PrintifyDbContext>>();
-                services.AddDbContext<PrintifyDbContext>(options => options.UseSqlite(connectionString));
-            });
-        });
+        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        var client = environment.Client;
 
-        using (var scope = customizedFactory.Services.CreateScope())
+        string anonymousToken;
+        await using (var scope = environment.CreateScope())
         {
-            var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
-            context.Database.EnsureDeleted();
-            context.Database.EnsureCreated();
+            var sessionRepository = scope.ServiceProvider.GetRequiredService<IAnonymousSessionRepository>();
+            var jwtGenerator = scope.ServiceProvider.GetRequiredService<IJwtTokenGenerator>();
+
+            var session = AnonymousSession.Create("127.0.0.1");
+            await sessionRepository.AddAsync(session, CancellationToken.None);
+
+            anonymousToken = jwtGenerator.GenerateToken(null, session.Id);
         }
 
-        return customizedFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", anonymousToken);
+
+        var failedResponse = await client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        Assert.Equal(HttpStatusCode.Unauthorized, failedResponse.StatusCode);
+
+        await using (var scope = environment.CreateScope())
+        {
+            var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+            await userRepository.AddAsync(
+                new User(Guid.NewGuid(), displayName, DateTimeOffset.UtcNow, "127.0.0.1", false),
+                CancellationToken.None);
+        }
+
+        var successfulResponse = await client.PostAsJsonAsync("/api/auth/login", loginRequest);
+        if (!successfulResponse.IsSuccessStatusCode)
+        {
+            var error = await successfulResponse.Content.ReadAsStringAsync();
+            throw new XunitException($"Expected OK but received {(int)successfulResponse.StatusCode}: {error}");
+        }
+
+        var loginDto = await successfulResponse.Content.ReadFromJsonAsync<LoginResponseDto>();
+        Assert.NotNull(loginDto);
+        Assert.False(string.IsNullOrWhiteSpace(loginDto!.AccessToken));
+        Assert.Equal(displayName, loginDto.User.Name);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginDto.AccessToken);
+
+        var meResponse = await client.GetAsync("/api/auth/me");
+        meResponse.EnsureSuccessStatusCode();
+
+        var userDto = await meResponse.Content.ReadFromJsonAsync<UserDto>();
+        Assert.NotNull(userDto);
+        Assert.Equal(displayName, userDto!.Name);
     }
 }
 
