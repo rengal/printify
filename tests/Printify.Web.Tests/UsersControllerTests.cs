@@ -37,7 +37,7 @@ public sealed class UsersControllerTests(WebApplicationFactory<Program> factory)
         var accessToken = await AuthenticateAsync(environment, adminDisplayName);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-        var response = await client.PostAsJsonAsync("/api/users", new CreateUserRequestDto(newDisplayName));
+        var response = await client.PostAsJsonAsync("/api/users", new CreateUserRequestDto(Guid.NewGuid(), newDisplayName));
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
         var createdUser = await response.Content.ReadFromJsonAsync<UserDto>();

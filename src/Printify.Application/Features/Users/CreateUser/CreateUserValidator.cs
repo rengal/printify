@@ -8,6 +8,10 @@ public sealed class CreateUserValidator : AbstractValidator<CreateUserCommand>
 
     public CreateUserValidator()
     {
+        RuleFor(command => command.UserId)
+            .NotEmpty()
+            .WithMessage("User id must be supplied.");
+
         RuleFor(command => command.DisplayName)
             .NotEmpty()
             .WithMessage("Display name must not be empty.")

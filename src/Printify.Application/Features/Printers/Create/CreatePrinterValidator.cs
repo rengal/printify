@@ -7,6 +7,10 @@ public class CreatePrinterValidator : AbstractValidator<CreatePrinterCommand>
 {
     public CreatePrinterValidator()
     {
+        RuleFor(x => x.PrinterId)
+            .NotEmpty()
+            .WithMessage("Printer id must be supplied.");
+
         RuleFor(x => x.DisplayName)
             .NotEmpty()
             .WithMessage("Printer name must not be empty.")

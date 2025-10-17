@@ -29,6 +29,7 @@ internal static class CommandMapper
 
         return new Features.Printers.Create.CreatePrinterCommand(
             context,
+            request.Id,
             request.DisplayName,
             ParseProtocol(request.Protocol),
             request.WidthInDots,
@@ -47,7 +48,7 @@ internal static class CommandMapper
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return new Features.Users.CreateUser.CreateUserCommand(context, request.DisplayName);
+        return new Features.Users.CreateUser.CreateUserCommand(context, request.Id, request.DisplayName);
     }
 
     private static Protocol ParseProtocol(string protocol)

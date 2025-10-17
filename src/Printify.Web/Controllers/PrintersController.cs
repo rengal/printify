@@ -14,13 +14,15 @@ public sealed class PrintersController(IMediator mediator) : ControllerBase
 {
     [Authorize]
     [HttpPost]
-    public async Task<ActionResult> Create([FromBody] CreatePrinterRequestDto request, CancellationToken cancellationToken)
+    public async Task<ActionResult<PrinterDto>> Create([FromBody] CreatePrinterRequestDto request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var id = await mediator.Send(request.ToCommand(HttpContext.CaptureRequestContext()), cancellationToken);
+        var printer = await mediator.Send(request.ToCommand(HttpContext.CaptureRequestContext()), cancellationToken);
+        var printerDto = UserMapper.ToPrinterDto(printer);
 
-        return Ok(new { id });
+        // Simplified idempotency: returning 200 OK even when the printer already existed.
+        return Ok(printerDto);
     }
 
     [HttpGet]
