@@ -5,6 +5,7 @@ using System.Net.Http.Json;
 using System.Text;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Printify.Infrastructure.Persistence;
 using Printify.Application.Interfaces;
 using Printify.Domain.AnonymousSessions;
 using Printify.Domain.Users;
@@ -80,6 +81,9 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
         string anonymousToken;
         await using (var scope = environment.CreateScope())
         {
+            var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+            await context.Database.EnsureCreatedAsync();
+
             var sessionRepository = scope.ServiceProvider.GetRequiredService<IAnonymousSessionRepository>();
             var jwtGenerator = scope.ServiceProvider.GetRequiredService<IJwtTokenGenerator>();
 
@@ -96,6 +100,9 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
 
         await using (var scope = environment.CreateScope())
         {
+            var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+            await context.Database.EnsureCreatedAsync();
+
             var userRepository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
             await userRepository.AddAsync(
                 new User(Guid.NewGuid(), displayName, DateTimeOffset.UtcNow, "127.0.0.1", false),
@@ -124,4 +131,8 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
         Assert.Equal(displayName, userDto!.Name);
     }
 }
+
+
+
+
 

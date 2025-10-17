@@ -92,13 +92,15 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         {
             builder.ConfigureTestServices(services =>
             {
-                // Just override the connection string
-                services.PostConfigure<RepositoryOptions>(options =>
-                {
-                    options.ConnectionString = InMemoryConnectionString;
-                });
-                // Keep the singleton connection alive for the test
+                services.PostConfigure<RepositoryOptions>(options => options.ConnectionString = InMemoryConnectionString);
+
+                services.RemoveAll<SqliteConnection>();
+                services.RemoveAll<DbContextOptions<PrintifyDbContext>>();
+                services.RemoveAll<IUnitOfWork>();
+
                 services.AddSingleton(connection);
+                services.AddDbContext<PrintifyDbContext>((serviceProvider, options) => options.UseSqlite(connection));
+                services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
             });
         });
 
@@ -179,4 +181,14 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
             await connection.DisposeAsync().ConfigureAwait(false);
         }
     }
+
+    private sealed class NoOpUnitOfWork : IUnitOfWork
+    {
+        public Task BeginTransactionAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task CommitAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task RollbackAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
 }
+

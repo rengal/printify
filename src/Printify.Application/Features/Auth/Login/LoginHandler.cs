@@ -5,7 +5,7 @@ using Printify.Domain.Users;
 
 namespace Printify.Application.Features.Auth.Login;
 
-public sealed class LoginHandler(IUserRepository userRepository, IAnonymousSessionRepository sessionRepository, IUnitOfWork uow)
+public sealed class LoginHandler(IUserRepository userRepository, IAnonymousSessionRepository sessionRepository)
     : IRequestHandler<LoginCommand, User>
 {
     public async Task<User> Handle(LoginCommand request, CancellationToken ct)
@@ -15,9 +15,6 @@ public sealed class LoginHandler(IUserRepository userRepository, IAnonymousSessi
             throw new LoginFailedException($"User with name '{request.DisplayName}' not found");
 
         await sessionRepository.AttachUserAsync(request.Context.AnonymousSessionId.Value, user.Id, ct);
-
-        await uow.CommitAsync(ct);
-
         return user;
     }
 }
