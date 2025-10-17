@@ -1,4 +1,6 @@
-﻿using Printify.Domain.Printers;
+using System.Collections.Generic;
+using System.Linq;
+using Printify.Domain.Printers;
 using Printify.Domain.Users;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Contracts.Users.Responses;
@@ -11,6 +13,12 @@ internal static class UserMapper
     {
         ArgumentNullException.ThrowIfNull(user);
         return new UserDto(user.Id, user.DisplayName);
+    }
+
+    internal static IReadOnlyList<UserDto> ToDtos(this IEnumerable<User> users)
+    {
+        ArgumentNullException.ThrowIfNull(users);
+        return users.Select(ToDto).ToList();
     }
 
     internal static PrinterDto ToPrinterDto(Printer printer)

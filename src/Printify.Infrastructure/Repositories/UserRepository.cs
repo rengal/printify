@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Printify.Application.Interfaces;
 using Printify.Domain.Users;
@@ -37,5 +39,20 @@ public sealed class UserRepository(PrintifyDbContext dbContext) : IUserRepositor
             .ConfigureAwait(false);
 
         return entity?.ToDomain();
+    }
+
+    public async Task<IReadOnlyList<User>> ListActiveAsync(CancellationToken cancellationToken)
+    {
+        // Only non-deleted users participate in API results to avoid exposing soft-deleted records.
+        var entities = await dbContext.Users
+            .AsNoTracking()
+            .Where(user => !user.IsDeleted)
+            .OrderBy(user => user.DisplayName)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return entities
+            .Select(UserEntityMapper.ToDomain)
+            .ToList();
     }
 }

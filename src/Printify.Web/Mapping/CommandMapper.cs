@@ -43,6 +43,13 @@ internal static class CommandMapper
         return new Features.Auth.Login.LoginCommand(context, request.DisplayName);
     }
 
+    internal static Features.Users.CreateUser.CreateUserCommand ToCommand(this WebApi.Users.Requests.CreateUserRequestDto request, RequestContext context)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return new Features.Users.CreateUser.CreateUserCommand(context, request.DisplayName);
+    }
+
     private static Protocol ParseProtocol(string protocol)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(protocol);

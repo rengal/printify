@@ -1,5 +1,7 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Printify.TestServices;
+using Xunit;
 
 namespace Printify.Web.Tests;
 
@@ -7,12 +9,12 @@ public sealed class UserControllerTests(WebApplicationFactory<Program> factory)
     : IClassFixture<WebApplicationFactory<Program>>
 {
     [Fact]
-    public async Task Get_OnBaseRoute_ReturnsNotFound()
+    public async Task Get_OnBaseRoute_ReturnsSuccess()
     {
-        using var client = factory.CreateClient();
+        await using var environment = TestServiceContext.CreateForAuthControllerTest(factory);
 
-        var response = await client.GetAsync("/api/users");
+        var response = await environment.Client.GetAsync("/api/users");
 
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }
