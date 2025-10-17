@@ -19,7 +19,7 @@ public sealed class PrintersController(IMediator mediator) : ControllerBase
         ArgumentNullException.ThrowIfNull(request);
 
         var printer = await mediator.Send(request.ToCommand(HttpContext.CaptureRequestContext()), cancellationToken);
-        var printerDto = UserMapper.ToPrinterDto(printer);
+        var printerDto = PrinterMapper.ToDto(printer);
 
         // Simplified idempotency: returning 200 OK even when the printer already existed.
         return Ok(printerDto);
