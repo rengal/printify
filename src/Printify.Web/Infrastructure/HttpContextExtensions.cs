@@ -26,7 +26,7 @@ internal static class HttpContextExtensions
         }
 
         // 2. Try fallback via session repository if needed
-        //    (optional — depends on how anonymous sessions are managed)
+        //    (optional ï¿½ depends on how anonymous sessions are managed)
         // anonymousSessionId ??= sessionRepository.GetCurrentAnonymousSessionId(HttpContext);
 
         // 3. Idempotency Key from headers
@@ -35,6 +35,15 @@ internal static class HttpContextExtensions
 
         // 4. Client IP address
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(ipAddress) &&
+            httpContext.Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
+        {
+            var forwardedValue = forwardedFor.FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(forwardedValue))
+            {
+                ipAddress = forwardedValue.Split(',')[0].Trim();
+            }
+        }
 
         return new RequestContext(anonymousSessionId, userId, ipAddress, idempotencyKey);
     }

@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Printify.Application.Features.Printers.Delete;
 using Printify.Application.Features.Printers.Get;
 using Printify.Application.Features.Printers.List;
+using Printify.Application.Features.Printers.Update;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Infrastructure;
@@ -62,6 +64,41 @@ public sealed class PrintersController(IMediator mediator) : ControllerBase
         }
 
         return Ok(PrinterMapper.ToDto(printer));
+    }
+
+    [Authorize]
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<PrinterDto>> Update(Guid id, [FromBody] UpdatePrinterRequestDto request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var context = HttpContext.CaptureRequestContext();
+        try
+        {
+            var command = request.ToCommand(id, context);
+            var printer = await mediator.Send(command, cancellationToken);
+            return Ok(PrinterMapper.ToDto(printer));
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
+    }
+
+    [Authorize]
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var context = HttpContext.CaptureRequestContext();
+        try
+        {
+            await mediator.Send(new DeletePrinterCommand(context, id), cancellationToken);
+            return NoContent();
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
     }
 
     public sealed record ResolveTemporaryRequest(IReadOnlyList<long> PrinterIds);

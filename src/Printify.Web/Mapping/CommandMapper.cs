@@ -1,3 +1,4 @@
+using System;
 using Printify.Domain.Printers;
 using Printify.Domain.Requests;
 using Features = Printify.Application.Features;
@@ -30,6 +31,20 @@ internal static class CommandMapper
         return new Features.Printers.Create.CreatePrinterCommand(
             context,
             request.Id,
+            request.DisplayName,
+            ParseProtocol(request.Protocol),
+            request.WidthInDots,
+            request.HeightInDots,
+            request.TcpListenPort);
+    }
+
+    internal static Features.Printers.Update.UpdatePrinterCommand ToCommand(this WebApi.Printers.Requests.UpdatePrinterRequestDto request, Guid printerId, RequestContext context)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return new Features.Printers.Update.UpdatePrinterCommand(
+            context,
+            printerId,
             request.DisplayName,
             ParseProtocol(request.Protocol),
             request.WidthInDots,

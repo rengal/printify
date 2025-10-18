@@ -14,7 +14,6 @@
     <Folder Include="Features\Auth\Delete\" />
     <Folder Include="Features\Auth\Update\" />
     <Folder Include="Features\Printers\Delete\" />
-    <Folder Include="Features\Printers\ListByUser\" />
     <Folder Include="Features\Printers\Update\" />
   </ItemGroup>
 

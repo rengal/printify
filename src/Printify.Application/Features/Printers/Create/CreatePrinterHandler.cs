@@ -28,8 +28,8 @@ public sealed class CreatePrinterHandler(IPrinterRepository printerRepository)
 
         var printer = new Printer(
             request.PrinterId,
-            request.Context.AnonymousSessionId,
             request.Context.UserId,
+            request.Context.AnonymousSessionId,
             request.DisplayName,
             request.Protocol.ToString(), //todo enum to string
             request.WidthInDots,
