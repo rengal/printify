@@ -1,6 +1,10 @@
+using System;
+using System.Collections.Generic;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Printify.Application.Features.Printers.Get;
+using Printify.Application.Features.Printers.List;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Infrastructure;
@@ -25,10 +29,18 @@ public sealed class PrintersController(IMediator mediator) : ControllerBase
         return Ok(printerDto);
     }
 
+    [Authorize]
     [HttpGet]
-    public async Task<ActionResult<PrinterGroupsResponse>> List(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<PrinterDto>>> List(CancellationToken cancellationToken)
     {
-        return null;
+        var context = HttpContext.CaptureRequestContext();
+        if (context.UserId is null && context.AnonymousSessionId is null)
+        {
+            return Forbid();
+        }
+
+        var printers = await mediator.Send(new ListPrintersQuery(context), cancellationToken);
+        return Ok(printers.ToDtos());
     }
 
     [HttpPost("resolveTemporary")]
@@ -37,30 +49,23 @@ public sealed class PrintersController(IMediator mediator) : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("{id:long}")]
-    public async Task<ActionResult<PrinterDto>> Get(long id, CancellationToken cancellationToken)
+    [Authorize]
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<PrinterDto>> Get(Guid id, CancellationToken cancellationToken)
     {
-        // var session = await SessionManager.GetOrCreateSessionAsync(HttpContext, sessionService, cancellationToken).ConfigureAwait(false);
-        // _ = HttpContext.CaptureRequestMetadata(session.Id);
-        //
-        // var printer = await queryService.GetPrinterAsync(id, cancellationToken).ConfigureAwait(false);
-        // if (printer is null)
-        // {
-        //     return NotFound();
-        // }
-        //
-        // if (printer.OwnerSessionId != session.Id && printer.OwnerUserId != session.ClaimedUserId)
-        // {
-        //     return NotFound();
-        // }
-        //
-        // return Ok(ContractMapper.ToPrinterDto(printer));
-        return null;
+        var context = HttpContext.CaptureRequestContext();
+        var printer = await mediator.Send(new GetPrinterQuery(id, context), cancellationToken);
+
+        if (printer is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(PrinterMapper.ToDto(printer));
     }
 
     public sealed record ResolveTemporaryRequest(IReadOnlyList<long> PrinterIds);
 
-    public sealed record PrinterGroupsResponse(IReadOnlyList<PrinterDto> Temporary, IReadOnlyList<PrinterDto> UserClaimed);
 }
 
 
