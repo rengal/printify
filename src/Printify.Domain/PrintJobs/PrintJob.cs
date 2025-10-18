@@ -14,5 +14,5 @@ public sealed record PrintJob(
     int ListenTcpPortNumber,
     IPrintJobState State,
     bool IsDeleted)
-    : BaseDomainEntity<Guid>(Id, CreatedAt, IsDeleted);
+    : BaseDomainEntity(Id, CreatedAt, IsDeleted);
 

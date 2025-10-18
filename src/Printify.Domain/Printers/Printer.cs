@@ -5,7 +5,7 @@
 /// </summary>
 /// <param name="Id">Database-generated identifier.</param>
 /// <param name="OwnerUserId">Identifier of the user that owns the printer, if claimed.</param>
-/// <param name="OwnerSessionId">Identifier of the session that registered the printer.</param>
+/// <param name="OwnerAnonymousSessionId">Identifier of the session that registered the printer.</param>
 /// <param name="DisplayName">Friendly name shown in UI.</param>
 /// <param name="Protocol">Protocol the printer expects (e.g., escpos).</param>
 /// <param name="WidthInDots">Configured print width in dots.</param>
@@ -26,4 +26,4 @@ public sealed record Printer(
     string CreatedFromIp,
     int ListenTcpPortNumber,
     bool IsDeleted)
-    : BaseDomainEntity<Guid>(Id, CreatedAt, IsDeleted);
+    : BaseDomainEntity(Id, CreatedAt, IsDeleted);

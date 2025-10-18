@@ -20,6 +20,5 @@ public sealed record Document(
     Protocol Protocol,
     string? SourceIp,
     IReadOnlyList<Element> Elements,
-    bool IsDeleted)
-    : BaseDomainEntity<long>(Id, CreatedAt, IsDeleted);
+    bool IsDeleted);
 

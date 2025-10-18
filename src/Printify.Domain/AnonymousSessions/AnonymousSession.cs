@@ -16,7 +16,7 @@ public sealed record AnonymousSession(
     string CreatedFromIp,
     Guid? LinkedUserId,
     bool IsDeleted)
-    : BaseDomainEntity<Guid>(Id, CreatedAt, IsDeleted)
+    : BaseDomainEntity(Id, CreatedAt, IsDeleted)
 {
     public static AnonymousSession Create(string createdFromIp)
         => new(Guid.NewGuid(), DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, createdFromIp, null, false);

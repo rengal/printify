@@ -14,4 +14,4 @@ public sealed record Media(
     bool IsDeleted,
     MediaMeta Meta,
     string ContentUri)
-    : BaseDomainEntity<Guid>(Id, CreatedAt, IsDeleted);
+    : BaseDomainEntity(Id, CreatedAt, IsDeleted);

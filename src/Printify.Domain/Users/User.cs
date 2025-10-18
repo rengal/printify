@@ -14,4 +14,4 @@ public sealed record User(
     DateTimeOffset CreatedAt,
     string CreatedFromIp,
     bool IsDeleted)
-    : BaseDomainEntity<Guid>(Id, CreatedAt, IsDeleted);
+    : BaseDomainEntity(Id, CreatedAt, IsDeleted);
