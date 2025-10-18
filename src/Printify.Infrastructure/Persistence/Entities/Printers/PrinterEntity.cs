@@ -29,4 +29,7 @@ public sealed class PrinterEntity : BaseEntity
 
     [Column("listen_tcp_port_number")]
     public int ListenTcpPortNumber { get; set; }
+
+    [Column("is_pinned")]
+    public bool IsPinned { get; set; }
 }

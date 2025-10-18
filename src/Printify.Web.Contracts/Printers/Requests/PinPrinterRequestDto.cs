@@ -1,7 +1,7 @@
 namespace Printify.Web.Contracts.Printers.Requests;
 
 /// <summary>
-/// Payload used to mark a printer as pinned for quick access.
+/// Payload used to toggle the pinned state of a printer.
 /// </summary>
-/// <param name="PrinterId">Identifier of the printer to pin.</param>
-public sealed record PinPrinterRequestDto(long PrinterId);
+/// <param name="IsPinned">Desired pinned state. Set to <c>true</c> to pin, <c>false</c> to unpin.</param>
+public sealed record PinPrinterRequestDto(bool IsPinned);

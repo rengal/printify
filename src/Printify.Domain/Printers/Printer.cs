@@ -13,6 +13,7 @@
 /// <param name="CreatedAt">Registration timestamp in UTC.</param>
 /// <param name="CreatedFromIp">IP address captured when the printer was registered.</param>
 /// <param name="ListenTcpPortNumber">Listener tcp port number.</param>
+/// <param name="IsPinned">Indicates whether the printer is pinned for quick access.</param>
 /// <param name="IsDeleted">Soft-delete marker for the printer.</param>
 public sealed record Printer(
     Guid Id,
@@ -25,5 +26,6 @@ public sealed record Printer(
     DateTimeOffset CreatedAt,
     string CreatedFromIp,
     int ListenTcpPortNumber,
+    bool IsPinned,
     bool IsDeleted)
     : BaseDomainEntity(Id, CreatedAt, IsDeleted);

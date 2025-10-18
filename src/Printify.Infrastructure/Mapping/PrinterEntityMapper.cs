@@ -21,6 +21,7 @@ internal static class PrinterEntityMapper
             CreatedAt = printer.CreatedAt,
             CreatedFromIp = printer.CreatedFromIp,
             ListenTcpPortNumber = printer.ListenTcpPortNumber,
+            IsPinned = printer.IsPinned,
             IsDeleted = printer.IsDeleted
         };
     }
@@ -40,8 +41,8 @@ internal static class PrinterEntityMapper
             entity.CreatedAt,
             entity.CreatedFromIp,
             entity.ListenTcpPortNumber,
+            entity.IsPinned,
             entity.IsDeleted);
     }
 }
-
 

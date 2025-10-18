@@ -1,5 +1,4 @@
 using System;
-using System;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -43,12 +42,45 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         Assert.NotNull(updatedPrinter);
         Assert.Equal("Updated Printer", updatedPrinter!.DisplayName);
         Assert.Equal(576, updatedPrinter.WidthInDots);
+        Assert.False(updatedPrinter.IsPinned);
 
         var fetchResponse = await client.GetAsync($"/api/printers/{printerId}");
         fetchResponse.EnsureSuccessStatusCode();
         var fetchedPrinter = await fetchResponse.Content.ReadFromJsonAsync<PrinterDto>();
         Assert.NotNull(fetchedPrinter);
         Assert.Equal("Updated Printer", fetchedPrinter!.DisplayName);
+        Assert.False(fetchedPrinter.IsPinned);
+    }
+
+    [Fact]
+    public async Task PinPrinter_TogglesPinnedState()
+    {
+        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        var client = environment.Client;
+        await AuthenticateAsync(environment, "pinner");
+
+        var printerId = Guid.NewGuid();
+        var createRequest = new CreatePrinterRequestDto(printerId, "Pin Printer", "EscPos", 512, null, 9104);
+        var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
+        createResponse.EnsureSuccessStatusCode();
+
+        var pinResponse = await client.PostAsJsonAsync($"/api/printers/{printerId}/pin", new PinPrinterRequestDto(true));
+        pinResponse.EnsureSuccessStatusCode();
+        var pinnedPrinter = await pinResponse.Content.ReadFromJsonAsync<PrinterDto>();
+        Assert.NotNull(pinnedPrinter);
+        Assert.True(pinnedPrinter!.IsPinned);
+
+        var fetchResponse = await client.GetAsync($"/api/printers/{printerId}");
+        fetchResponse.EnsureSuccessStatusCode();
+        var fetchedPrinter = await fetchResponse.Content.ReadFromJsonAsync<PrinterDto>();
+        Assert.NotNull(fetchedPrinter);
+        Assert.True(fetchedPrinter!.IsPinned);
+
+        var unpinResponse = await client.PostAsJsonAsync($"/api/printers/{printerId}/pin", new PinPrinterRequestDto(false));
+        unpinResponse.EnsureSuccessStatusCode();
+        var unpinnedPrinter = await unpinResponse.Content.ReadFromJsonAsync<PrinterDto>();
+        Assert.NotNull(unpinnedPrinter);
+        Assert.False(unpinnedPrinter!.IsPinned);
     }
 
     [Fact]

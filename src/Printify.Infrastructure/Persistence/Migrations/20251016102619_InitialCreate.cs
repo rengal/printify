@@ -40,6 +40,7 @@ namespace Printify.Infrastructure.Persistence.Migrations
                     created_at = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
                     created_from_ip = table.Column<string>(type: "TEXT", nullable: false),
                     listen_tcp_port_number = table.Column<int>(type: "INTEGER", nullable: false),
+                    is_pinned = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false),
                     is_deleted = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: false)
                 },
                 constraints: table =>

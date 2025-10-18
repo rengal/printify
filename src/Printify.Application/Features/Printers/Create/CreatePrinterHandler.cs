@@ -37,6 +37,7 @@ public sealed class CreatePrinterHandler(IPrinterRepository printerRepository)
             DateTimeOffset.UtcNow,
             request.Context.IpAddress,
             listenTcpPortNumber,
+            false,
             false);
 
         await printerRepository.AddAsync(printer, ct).ConfigureAwait(false);

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.EntityFrameworkCore;
@@ -69,9 +70,28 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         entity.HeightInDots = printer.HeightInDots;
         entity.ListenTcpPortNumber = printer.ListenTcpPortNumber;
         entity.CreatedFromIp = printer.CreatedFromIp;
+        entity.IsPinned = printer.IsPinned;
         entity.IsDeleted = printer.IsDeleted;
 
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task SetPinnedAsync(Guid id, Guid? ownerUserId, Guid? ownerSessionId, bool isPinned, CancellationToken ct)
+    {
+        var query = dbContext.Printers.Where(printer => printer.Id == id && !printer.IsDeleted);
+        query = ApplyOwnershipFilter(query, ownerUserId, ownerSessionId);
+
+        var entity = await query.FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        if (entity is null)
+        {
+            throw new InvalidOperationException($"Printer {id} does not exist or access is denied.");
+        }
+
+        if (entity.IsPinned != isPinned)
+        {
+            entity.IsPinned = isPinned;
+            await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
     }
 
     public async Task DeleteAsync(Printer printer, CancellationToken ct)

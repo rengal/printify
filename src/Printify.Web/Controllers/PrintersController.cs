@@ -101,6 +101,25 @@ public sealed class PrintersController(IMediator mediator) : ControllerBase
         }
     }
 
+    [Authorize]
+    [HttpPost("{id:guid}/pin")]
+    public async Task<ActionResult<PrinterDto>> SetPinned(Guid id, [FromBody] PinPrinterRequestDto request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var context = HttpContext.CaptureRequestContext();
+        try
+        {
+            var command = request.ToCommand(id, context);
+            var printer = await mediator.Send(command, cancellationToken);
+            return Ok(PrinterMapper.ToDto(printer));
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
+    }
+
     public sealed record ResolveTemporaryRequest(IReadOnlyList<long> PrinterIds);
 
 }

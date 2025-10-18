@@ -16,7 +16,8 @@ internal static class PrinterMapper
             printer.DisplayName,
             printer.Protocol,
             printer.WidthInDots,
-            printer.HeightInDots);
+            printer.HeightInDots,
+            printer.IsPinned);
     }
 
     internal static IReadOnlyList<PrinterDto> ToDtos(this IEnumerable<Printer> printers)

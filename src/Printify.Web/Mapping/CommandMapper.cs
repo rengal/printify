@@ -52,6 +52,13 @@ internal static class CommandMapper
             request.TcpListenPort);
     }
 
+    internal static Features.Printers.Pin.SetPrinterPinnedCommand ToCommand(this WebApi.Printers.Requests.PinPrinterRequestDto request, Guid printerId, RequestContext context)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        return new Features.Printers.Pin.SetPrinterPinnedCommand(context, printerId, request.IsPinned);
+    }
+
     internal static Features.Auth.Login.LoginCommand ToCommand(this WebApi.Auth.Requests.LoginRequestDto request, RequestContext context)
     {
         ArgumentNullException.ThrowIfNull(request);

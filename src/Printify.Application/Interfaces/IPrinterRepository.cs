@@ -9,5 +9,6 @@ public interface IPrinterRepository
     ValueTask<Guid> AddAsync(Printer printer, CancellationToken ct);
     Task UpdateAsync(Printer printer, CancellationToken ct);
     Task DeleteAsync(Printer printer, CancellationToken ct);
+    Task SetPinnedAsync(Guid id, Guid? ownerUserId, Guid? ownerSessionId, bool isPinned, CancellationToken ct);
     ValueTask<int> GetFreeTcpPortNumber(CancellationToken ct);
 }

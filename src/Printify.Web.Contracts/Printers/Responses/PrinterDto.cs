@@ -8,9 +8,11 @@ namespace Printify.Web.Contracts.Printers.Responses;
 /// <param name="Protocol">Protocol the printer expects (e.g., escpos).</param>
 /// <param name="WidthInDots">Configured print width in dots.</param>
 /// <param name="HeightInDots">Optional maximum height in dots when known.</param>
+/// <param name="IsPinned">Indicates whether the printer is pinned for quick access.</param>
 public sealed record PrinterDto(
     Guid Id,
     string DisplayName,
     string Protocol,
     int WidthInDots,
-    int? HeightInDots);
+    int? HeightInDots,
+    bool IsPinned);
