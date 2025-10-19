@@ -1,15 +1,18 @@
-﻿using MediatR;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Auth.Login;
 using Printify.Application.Interfaces;
+using Printify.Application.Printing;
 using Printify.Application.Pipeline;
 using Printify.Domain.Config;
 using Printify.Infrastructure.Config;
 using Printify.Infrastructure.Persistence;
+using Printify.Infrastructure.Printing;
+using Printify.Web.Infrastructure;
 using Printify.Infrastructure.Repositories;
 using Printify.Infrastructure.Security;
-using ListenerOptions =Printify.Domain.Config.ListenerOptions;
+using ListenerOptions = Printify.Domain.Config.ListenerOptions;
 
 namespace Printify.Web.Extensions;
 
@@ -59,6 +62,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAnonymousSessionRepository, AnonymousSessionRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPrinterRepository, PrinterRepository>();
+
+        // Printer listeners
+        services.AddSingleton<IPrinterListenerOrchestrator, PrinterListenerOrchestrator>();
+        services.AddSingleton<IPrinterListenerFactory, NullPrinterListenerFactory>();
+        services.AddHostedService<PrinterListenerBootstrapper>();
 
         return services;
     }

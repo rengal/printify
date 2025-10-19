@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,6 +9,7 @@ using Printify.Application.Features.Printers.Delete;
 using Printify.Application.Features.Printers.Get;
 using Printify.Application.Features.Printers.List;
 using Printify.Application.Features.Printers.Update;
+using Printify.Application.Printing;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Infrastructure;
@@ -16,8 +19,22 @@ namespace Printify.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class PrintersController(IMediator mediator) : ControllerBase
+public sealed class PrintersController : ControllerBase
 {
+    private readonly IMediator mediator;
+    private readonly IPrinterListenerOrchestrator listenerOrchestrator;
+    private readonly IPrinterListenerFactory listenerFactory;
+
+    public PrintersController(
+        IMediator mediator,
+        IPrinterListenerOrchestrator listenerOrchestrator,
+        IPrinterListenerFactory listenerFactory)
+    {
+        this.mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+        this.listenerOrchestrator = listenerOrchestrator ?? throw new ArgumentNullException(nameof(listenerOrchestrator));
+        this.listenerFactory = listenerFactory ?? throw new ArgumentNullException(nameof(listenerFactory));
+    }
+
     [Authorize]
     [HttpPost]
     public async Task<ActionResult<PrinterDto>> Create([FromBody] CreatePrinterRequestDto request, CancellationToken cancellationToken)
@@ -26,6 +43,9 @@ public sealed class PrintersController(IMediator mediator) : ControllerBase
 
         var printer = await mediator.Send(request.ToCommand(HttpContext.CaptureRequestContext()), cancellationToken);
         var printerDto = PrinterMapper.ToDto(printer);
+
+        var listener = listenerFactory.Create(printerDto.Id, printerDto.TcpListenPort);
+        await listenerOrchestrator.AddListenerAsync(printerDto.Id, listener, cancellationToken).ConfigureAwait(false);
 
         // Simplified idempotency: returning 200 OK even when the printer already existed.
         return Ok(printerDto);
@@ -77,7 +97,13 @@ public sealed class PrintersController(IMediator mediator) : ControllerBase
         {
             var command = request.ToCommand(id, context);
             var printer = await mediator.Send(command, cancellationToken);
-            return Ok(PrinterMapper.ToDto(printer));
+            var printerDto = PrinterMapper.ToDto(printer);
+
+            await listenerOrchestrator.RemoveListenerAsync(id, cancellationToken).ConfigureAwait(false);
+            var listener = listenerFactory.Create(printerDto.Id, printerDto.TcpListenPort);
+            await listenerOrchestrator.AddListenerAsync(printerDto.Id, listener, cancellationToken).ConfigureAwait(false);
+
+            return Ok(printerDto);
         }
         catch (InvalidOperationException)
         {
@@ -93,6 +119,7 @@ public sealed class PrintersController(IMediator mediator) : ControllerBase
         try
         {
             await mediator.Send(new DeletePrinterCommand(context, id), cancellationToken);
+            await listenerOrchestrator.RemoveListenerAsync(id, cancellationToken).ConfigureAwait(false);
             return NoContent();
         }
         catch (InvalidOperationException)
@@ -121,8 +148,4 @@ public sealed class PrintersController(IMediator mediator) : ControllerBase
     }
 
     public sealed record ResolveTemporaryRequest(IReadOnlyList<long> PrinterIds);
-
 }
-
-
-

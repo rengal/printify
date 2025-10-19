@@ -17,6 +17,7 @@ internal static class PrinterMapper
             printer.Protocol,
             printer.WidthInDots,
             printer.HeightInDots,
+            printer.ListenTcpPortNumber,
             printer.IsPinned);
     }
 
