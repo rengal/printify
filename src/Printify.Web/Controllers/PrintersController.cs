@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -9,7 +10,6 @@ using Printify.Application.Features.Printers.Delete;
 using Printify.Application.Features.Printers.Get;
 using Printify.Application.Features.Printers.List;
 using Printify.Application.Features.Printers.Update;
-using Printify.Application.Printing;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Infrastructure;
@@ -22,17 +22,10 @@ namespace Printify.Web.Controllers;
 public sealed class PrintersController : ControllerBase
 {
     private readonly IMediator mediator;
-    private readonly IPrinterListenerOrchestrator listenerOrchestrator;
-    private readonly IPrinterListenerFactory listenerFactory;
 
-    public PrintersController(
-        IMediator mediator,
-        IPrinterListenerOrchestrator listenerOrchestrator,
-        IPrinterListenerFactory listenerFactory)
+    public PrintersController(IMediator mediator)
     {
         this.mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
-        this.listenerOrchestrator = listenerOrchestrator ?? throw new ArgumentNullException(nameof(listenerOrchestrator));
-        this.listenerFactory = listenerFactory ?? throw new ArgumentNullException(nameof(listenerFactory));
     }
 
     [Authorize]
@@ -42,13 +35,7 @@ public sealed class PrintersController : ControllerBase
         ArgumentNullException.ThrowIfNull(request);
 
         var printer = await mediator.Send(request.ToCommand(HttpContext.CaptureRequestContext()), cancellationToken);
-        var printerDto = PrinterMapper.ToDto(printer);
-
-        var listener = listenerFactory.Create(printerDto.Id, printerDto.TcpListenPort);
-        await listenerOrchestrator.AddListenerAsync(printerDto.Id, listener, cancellationToken).ConfigureAwait(false);
-
-        // Simplified idempotency: returning 200 OK even when the printer already existed.
-        return Ok(printerDto);
+        return Ok(PrinterMapper.ToDto(printer));
     }
 
     [Authorize]
@@ -66,9 +53,9 @@ public sealed class PrintersController : ControllerBase
     }
 
     [HttpPost("resolveTemporary")]
-    public async Task<IActionResult> ResolveTemporary([FromBody] ResolveTemporaryRequest request, CancellationToken cancellationToken)
+    public Task<IActionResult> ResolveTemporary([FromBody] ResolveTemporaryRequest request, CancellationToken cancellationToken)
     {
-        return NoContent();
+        return Task.FromResult<IActionResult>(NoContent());
     }
 
     [Authorize]
@@ -97,13 +84,7 @@ public sealed class PrintersController : ControllerBase
         {
             var command = request.ToCommand(id, context);
             var printer = await mediator.Send(command, cancellationToken);
-            var printerDto = PrinterMapper.ToDto(printer);
-
-            await listenerOrchestrator.RemoveListenerAsync(id, cancellationToken).ConfigureAwait(false);
-            var listener = listenerFactory.Create(printerDto.Id, printerDto.TcpListenPort);
-            await listenerOrchestrator.AddListenerAsync(printerDto.Id, listener, cancellationToken).ConfigureAwait(false);
-
-            return Ok(printerDto);
+            return Ok(PrinterMapper.ToDto(printer));
         }
         catch (InvalidOperationException)
         {
@@ -119,7 +100,6 @@ public sealed class PrintersController : ControllerBase
         try
         {
             await mediator.Send(new DeletePrinterCommand(context, id), cancellationToken);
-            await listenerOrchestrator.RemoveListenerAsync(id, cancellationToken).ConfigureAwait(false);
             return NoContent();
         }
         catch (InvalidOperationException)

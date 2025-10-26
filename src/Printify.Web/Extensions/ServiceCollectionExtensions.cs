@@ -55,7 +55,6 @@ public static class ServiceCollectionExtensions
             options.UseSqlite(repositoryOptions.ConnectionString);
         });
 
-        services.AddScoped<SqliteConnectionManager>();
         services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
 
         // Repositories

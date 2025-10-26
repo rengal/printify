@@ -134,7 +134,6 @@ public sealed class AnonymousSessionRepositoryTests : IAsyncDisposable
         var services = new ServiceCollection();
         services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Debug));
         services.Configure<RepositoryOptions>(options => options.ConnectionString = connectionString);
-        services.AddScoped<SqliteConnectionManager>();
         services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
         services.AddDbContext<PrintifyDbContext>(options => options.UseSqlite(connectionString));
         services.AddScoped<IAnonymousSessionRepository, AnonymousSessionRepository>();

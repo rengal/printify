@@ -3,11 +3,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Printify.Application.Interfaces;
+using Printify.Application.Printing;
 using Printify.Domain.Printers;
 
 namespace Printify.Application.Features.Printers.Update;
 
-public sealed class UpdatePrinterHandler(IPrinterRepository printerRepository)
+public sealed class UpdatePrinterHandler(
+    IPrinterRepository printerRepository,
+    IPrinterListenerOrchestrator listenerOrchestrator,
+    IPrinterListenerFactory listenerFactory)
     : IRequestHandler<UpdatePrinterCommand, Printer>
 {
     public async Task<Printer> Handle(UpdatePrinterCommand request, CancellationToken cancellationToken)
@@ -35,6 +39,13 @@ public sealed class UpdatePrinterHandler(IPrinterRepository printerRepository)
         };
 
         await printerRepository.UpdateAsync(updated, cancellationToken).ConfigureAwait(false);
+
+        if (existing.ListenTcpPortNumber != updated.ListenTcpPortNumber)
+        {
+            await listenerOrchestrator.RemoveListenerAsync(updated.Id, cancellationToken).ConfigureAwait(false);
+            var listener = listenerFactory.Create(updated.Id, updated.ListenTcpPortNumber);
+            await listenerOrchestrator.AddListenerAsync(updated.Id, listener, cancellationToken).ConfigureAwait(false);
+        }
 
         return updated;
     }

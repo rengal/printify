@@ -1,10 +1,17 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using MediatR;
 using Printify.Application.Interfaces;
+using Printify.Application.Printing;
 using Printify.Domain.Printers;
 
 namespace Printify.Application.Features.Printers.Create;
 
-public sealed class CreatePrinterHandler(IPrinterRepository printerRepository)
+public sealed class CreatePrinterHandler(
+    IPrinterRepository printerRepository,
+    IPrinterListenerOrchestrator listenerOrchestrator,
+    IPrinterListenerFactory listenerFactory)
     : IRequestHandler<CreatePrinterCommand, Printer>
 {
     public async Task<Printer> Handle(
@@ -16,22 +23,18 @@ public sealed class CreatePrinterHandler(IPrinterRepository printerRepository)
             .ConfigureAwait(false);
         if (existing is not null)
         {
-            // Simplified idempotency: return existing printer without reapplying side effects.
             return existing;
         }
 
         var listenTcpPortNumber = request.TcpListenPort
             ?? await printerRepository.GetFreeTcpPortNumber(ct).ConfigureAwait(false);
 
-        // NOTE: Simplified idempotency – only the identifier is reused to detect duplicates.
-        // We do not persist the original response payload, so subsequent retries could observe changes.
-
         var printer = new Printer(
             request.PrinterId,
             request.Context.UserId,
             request.Context.AnonymousSessionId,
             request.DisplayName,
-            request.Protocol.ToString(), //todo enum to string
+            request.Protocol.ToString(),
             request.WidthInDots,
             request.HeightInDots,
             DateTimeOffset.UtcNow,
@@ -41,6 +44,9 @@ public sealed class CreatePrinterHandler(IPrinterRepository printerRepository)
             false);
 
         await printerRepository.AddAsync(printer, ct).ConfigureAwait(false);
+
+        var listener = listenerFactory.Create(printer.Id, printer.ListenTcpPortNumber);
+        await listenerOrchestrator.AddListenerAsync(printer.Id, listener, ct).ConfigureAwait(false);
 
         return printer;
     }

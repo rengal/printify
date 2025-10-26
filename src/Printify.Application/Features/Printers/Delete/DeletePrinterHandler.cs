@@ -3,10 +3,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Printify.Application.Interfaces;
+using Printify.Application.Printing;
 
 namespace Printify.Application.Features.Printers.Delete;
 
-public sealed class DeletePrinterHandler(IPrinterRepository printerRepository)
+public sealed class DeletePrinterHandler(
+    IPrinterRepository printerRepository,
+    IPrinterListenerOrchestrator listenerOrchestrator)
     : IRequestHandler<DeletePrinterCommand, Unit>
 {
     public async Task<Unit> Handle(DeletePrinterCommand request, CancellationToken cancellationToken)
@@ -22,6 +25,7 @@ public sealed class DeletePrinterHandler(IPrinterRepository printerRepository)
             throw new InvalidOperationException("Printer not found.");
         }
 
+        await listenerOrchestrator.RemoveListenerAsync(existing.Id, cancellationToken).ConfigureAwait(false);
         await printerRepository.DeleteAsync(existing, cancellationToken).ConfigureAwait(false);
 
         return Unit.Value;

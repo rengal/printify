@@ -22,8 +22,9 @@ namespace Printify.TestServices;
 
 public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions listenerOptions) : IAsyncDisposable, IDisposable
 {
-    private const string InMemoryConnectionString = "Data Source=:memory:;Cache=Shared";
+    private const string InMemoryConnectionStringFormat = "Data Source=file:{0}?mode=memory&cache=shared";
 
+    /*
     public static TestServiceContext Create(BufferOptions? bufferOptions = null, JwtOptions? jwtOptions = null, Type? tokenizer = null, Type? listener = null, string? connectionString = null)
     {
         var services = new ServiceCollection();
@@ -80,26 +81,29 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
 
         return new TestServiceContext(provider, listenerOptions);
     }
+    */
 
     public static AuthControllerTestContext CreateForAuthControllerTest(WebApplicationFactory<Program> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
 
-        var connection = new SqliteConnection(InMemoryConnectionString);
+        var dbId = Guid.NewGuid().ToString("N");
+        var connectionString = string.Format(InMemoryConnectionStringFormat, dbId);
+        var connection = new SqliteConnection(connectionString);
         connection.Open();
 
         var configuredFactory = factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureTestServices(services =>
             {
-                services.PostConfigure<RepositoryOptions>(options => options.ConnectionString = InMemoryConnectionString);
+                services.PostConfigure<RepositoryOptions>(options => options.ConnectionString = connectionString);
 
                 services.RemoveAll<SqliteConnection>();
                 services.RemoveAll<DbContextOptions<PrintifyDbContext>>();
                 services.RemoveAll<IUnitOfWork>();
 
                 services.AddSingleton(connection);
-                services.AddDbContext<PrintifyDbContext>((serviceProvider, options) => options.UseSqlite(connection));
+                services.AddDbContext<PrintifyDbContext>((_, options) => options.UseSqlite(connection));
                 services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
             });
         });
@@ -180,15 +184,6 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
             Factory.Dispose();
             await connection.DisposeAsync().ConfigureAwait(false);
         }
-    }
-
-    private sealed class NoOpUnitOfWork : IUnitOfWork
-    {
-        public Task BeginTransactionAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public Task CommitAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-        public Task RollbackAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }
 

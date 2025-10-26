@@ -1,6 +1,4 @@
-using System.Globalization;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Session;
 using Printify.Domain.Requests;
 
 namespace Printify.Web.Infrastructure;
@@ -35,14 +33,9 @@ internal static class HttpContextExtensions
 
         // 4. Client IP address
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(ipAddress) &&
-            httpContext.Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
+        if (string.IsNullOrWhiteSpace(ipAddress))
         {
-            var forwardedValue = forwardedFor.FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(forwardedValue))
-            {
-                ipAddress = forwardedValue.Split(',')[0].Trim();
-            }
+            ipAddress = "127.0.0.1";
         }
 
         return new RequestContext(anonymousSessionId, userId, ipAddress, idempotencyKey);
