@@ -12,7 +12,6 @@ public sealed record PrintJob(
     DateTimeOffset CreatedAt,
     string CreatedFromIp,
     int ListenTcpPortNumber,
-    IPrintJobState State,
     bool IsDeleted)
     : BaseDomainEntity(Id, CreatedAt, IsDeleted);
 

@@ -9,7 +9,7 @@ namespace Printify.Infrastructure.Printing;
 
 public sealed class PrinterListenerOrchestrator(
     IPrinterListenerFactory listenerFactory,
-    IPrintJobsOrchestrator printJobsOrchestrator,
+    IPrintJobSessionsOrchestrator printJobSessions,
     ILogger<PrinterListenerOrchestrator> logger)
     : IPrinterListenerOrchestrator
 {
@@ -32,7 +32,7 @@ public sealed class PrinterListenerOrchestrator(
 
     private async ValueTask Listener_ChannelAccepted(IPrinterListener listener, PrinterChannelAcceptedEventArgs args)
     {
-        await printJobsOrchestrator.StartJobAsync(args.Channel, CancellationToken.None).ConfigureAwait(false);
+        await printJobSessions.StartSessionAsync(args.Channel, CancellationToken.None).ConfigureAwait(false);
         var channel = args.Channel;
         channel.DataReceived += Channel_DataReceived;
         channel.Closed += Channel_Closed;
@@ -43,7 +43,7 @@ public sealed class PrinterListenerOrchestrator(
 
     private async ValueTask Channel_Closed(IPrinterChannel channel, PrinterChannelClosedEventArgs args)
     {
-        await printJobsOrchestrator.StopJobAsync(channel, MapReason(args.Reason), CancellationToken.None)
+        await printJobSessions.CompleteAsync(channel, MapReason(args.Reason), CancellationToken.None)
             .ConfigureAwait(false);
         channel.DataReceived -= Channel_DataReceived;
         channel.Closed -= Channel_Closed;
@@ -60,7 +60,7 @@ public sealed class PrinterListenerOrchestrator(
     private async ValueTask Channel_DataReceived(IPrinterChannel channel, PrinterChannelDataEventArgs args)
     {
         logger.LogDebug("Channel received {ByteCount} bytes for printer {PrinterId}", args.Buffer.Length, channel.Printer.Id);
-        await printJobsOrchestrator.FeedDataAsync(channel, args.Buffer, CancellationToken.None).ConfigureAwait(false);
+        await printJobSessions.FeedAsync(channel, args.Buffer, CancellationToken.None).ConfigureAwait(false);
     }
 
     public async Task RemoveListenerAsync(Printer printer, CancellationToken ct)
@@ -74,7 +74,7 @@ public sealed class PrinterListenerOrchestrator(
             {
                 channel.DataReceived -= Channel_DataReceived;
                 channel.Closed -= Channel_Closed;
-                await printJobsOrchestrator.StopJobAsync(channel, PrintJobCompletionReason.Canceled, CancellationToken.None)
+                await printJobSessions.CompleteAsync(channel, PrintJobCompletionReason.Canceled, CancellationToken.None)
                     .ConfigureAwait(false);
                 await channel.DisposeAsync().ConfigureAwait(false);
             }
