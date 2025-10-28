@@ -1,8 +1,6 @@
-using System;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
@@ -13,19 +11,16 @@ using Printify.Web.Contracts.Auth.Responses;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Contracts.Users.Requests;
-using Xunit;
 
 namespace Printify.Web.Tests;
 
 public sealed class PrintersControllerTests(WebApplicationFactory<Program> factory)
     : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> factory = factory;
-
     [Fact]
     public async Task UpdatePrinter_WithValidRequest_UpdatesPrinter()
     {
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
         await AuthenticateAsync(environment, "printer-owner");
 
@@ -40,7 +35,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
 
         var updatedPrinter = await updateResponse.Content.ReadFromJsonAsync<PrinterDto>();
         Assert.NotNull(updatedPrinter);
-        Assert.Equal("Updated Printer", updatedPrinter!.DisplayName);
+        Assert.Equal("Updated Printer", updatedPrinter.DisplayName);
         Assert.Equal(576, updatedPrinter.WidthInDots);
         Assert.Equal(9101, updatedPrinter.TcpListenPort);
         Assert.False(updatedPrinter.IsPinned);
@@ -57,7 +52,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
     [Fact]
     public async Task PinPrinter_TogglesPinnedState()
     {
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
         await AuthenticateAsync(environment, "pinner");
 
@@ -77,7 +72,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         fetchResponse.EnsureSuccessStatusCode();
         var fetchedPrinter = await fetchResponse.Content.ReadFromJsonAsync<PrinterDto>();
         Assert.NotNull(fetchedPrinter);
-        Assert.True(fetchedPrinter!.IsPinned);
+        Assert.True(fetchedPrinter.IsPinned);
         Assert.Equal(9104, fetchedPrinter.TcpListenPort);
 
         var unpinResponse = await client.PostAsJsonAsync($"/api/printers/{printerId}/pin", new PinPrinterRequestDto(false));
@@ -91,7 +86,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
     [Fact]
     public async Task DeletePrinter_RemovesPrinter()
     {
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
         await AuthenticateAsync(environment, "printer-owner-delete");
 
@@ -110,7 +105,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
     [Fact]
     public async Task DeletePrinter_WithDifferentUser_ReturnsNotFound()
     {
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
         await AuthenticateAsync(environment, "owner-a");
 
@@ -124,7 +119,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
     }
 
-    private static async Task AuthenticateAsync(TestServiceContext.AuthControllerTestContext environment, string displayName)
+    private static async Task AuthenticateAsync(TestServiceContext.ControllerTestContext environment, string displayName)
     {
         var client = environment.Client;
         client.DefaultRequestHeaders.Remove("X-Forwarded-For");
@@ -157,7 +152,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", anonymousToken);
         }
 
-        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto(displayName));
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto(userId));
         if (!loginResponse.IsSuccessStatusCode)
         {
             var error = await loginResponse.Content.ReadAsStringAsync();

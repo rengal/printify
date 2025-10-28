@@ -27,7 +27,6 @@ public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator me
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ArgumentException.ThrowIfNullOrWhiteSpace(request.DisplayName);
 
         // Capture the caller context to keep session/user correlation consistent.
         var context = HttpContext.CaptureRequestContext();

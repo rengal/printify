@@ -10,11 +10,12 @@ public sealed class LoginHandler(IUserRepository userRepository, IAnonymousSessi
 {
     public async Task<User> Handle(LoginCommand request, CancellationToken ct)
     {
-        var user = await userRepository.GetByDisplayNameAsync(request.DisplayName, ct);
+        var user = await userRepository.GetByIdAsync(request.UserId, ct);
         if (user == null)
-            throw new LoginFailedException($"User with name '{request.DisplayName}' not found");
+            throw new AuthenticationFailedException($"User with id '{request.UserId}' not found");
 
-        await sessionRepository.AttachUserAsync(request.Context.AnonymousSessionId.Value, user.Id, ct);
+        if (request.Context.AnonymousSessionId.HasValue)
+            await sessionRepository.AttachUserAsync(request.Context.AnonymousSessionId.Value, user.Id, ct);
         return user;
     }
 }

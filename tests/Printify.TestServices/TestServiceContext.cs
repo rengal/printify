@@ -18,7 +18,7 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
 {
     private const string InMemoryConnectionStringFormat = "Data Source=file:{0}?mode=memory&cache=shared";
 
-    public static AuthControllerTestContext CreateForAuthControllerTest(WebApplicationFactory<Program> factory)
+    public static ControllerTestContext CreateForControllerTest(WebApplicationFactory<Program> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
 
@@ -52,7 +52,7 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
             context.Database.EnsureCreated();
         }
 
-        return new AuthControllerTestContext(configuredFactory, connection, GetListenerOptions());
+        return new ControllerTestContext(configuredFactory, connection, GetListenerOptions());
     }
 
     public ServiceProvider Provider { get; } = provider;
@@ -92,12 +92,12 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         Provider.Dispose();
     }
 
-    public sealed class AuthControllerTestContext : IAsyncDisposable
+    public sealed class ControllerTestContext : IAsyncDisposable
     {
         private readonly SqliteConnection connection;
         private readonly HttpClient client;
 
-        internal AuthControllerTestContext(WebApplicationFactory<Program> factory, SqliteConnection connection,
+        internal ControllerTestContext(WebApplicationFactory<Program> factory, SqliteConnection connection,
             ListenerOptions listenerOptions)
         {
             Factory = factory;

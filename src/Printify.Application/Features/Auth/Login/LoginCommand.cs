@@ -7,4 +7,4 @@ namespace Printify.Application.Features.Auth.Login;
 
 public record LoginCommand(
     RequestContext Context,
-    string DisplayName) : IRequest<User>, ITransactionalRequest;
+    Guid UserId) : IRequest<User>, ITransactionalRequest;

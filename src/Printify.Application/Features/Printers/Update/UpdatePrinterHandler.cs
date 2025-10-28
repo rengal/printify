@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using MediatR;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -10,41 +7,39 @@ namespace Printify.Application.Features.Printers.Update;
 
 public sealed class UpdatePrinterHandler(
     IPrinterRepository printerRepository,
-    IPrinterListenerOrchestrator listenerOrchestrator,
-    IPrinterListenerFactory listenerFactory)
+    IPrinterListenerOrchestrator listenerOrchestrator)
     : IRequestHandler<UpdatePrinterCommand, Printer>
 {
     public async Task<Printer> Handle(UpdatePrinterCommand request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var existing = await printerRepository.GetByIdAsync(
+        var printer = await printerRepository.GetByIdAsync(
             request.PrinterId,
             request.Context.UserId,
             request.Context.AnonymousSessionId,
             cancellationToken).ConfigureAwait(false);
 
-        if (existing is null)
+        if (printer is null)
         {
             throw new InvalidOperationException("Printer not found.");
         }
 
-        var updated = existing with
+        var updated = printer with
         {
             DisplayName = request.DisplayName,
             Protocol = request.Protocol.ToString(),
             WidthInDots = request.WidthInDots,
             HeightInDots = request.HeightInDots,
-            ListenTcpPortNumber = request.TcpListenPort ?? existing.ListenTcpPortNumber
+            ListenTcpPortNumber = request.TcpListenPort ?? printer.ListenTcpPortNumber
         };
 
         await printerRepository.UpdateAsync(updated, cancellationToken).ConfigureAwait(false);
 
-        if (existing.ListenTcpPortNumber != updated.ListenTcpPortNumber)
+        if (printer.ListenTcpPortNumber != updated.ListenTcpPortNumber)
         {
-            await listenerOrchestrator.RemoveListenerAsync(updated.Id, cancellationToken).ConfigureAwait(false);
-            var listener = listenerFactory.Create(updated.Id, updated.ListenTcpPortNumber);
-            await listenerOrchestrator.AddListenerAsync(updated.Id, listener, cancellationToken).ConfigureAwait(false);
+            await listenerOrchestrator.RemoveListenerAsync(updated, cancellationToken).ConfigureAwait(false);
+            await listenerOrchestrator.AddListenerAsync(updated, cancellationToken).ConfigureAwait(false);
         }
 
         return updated;

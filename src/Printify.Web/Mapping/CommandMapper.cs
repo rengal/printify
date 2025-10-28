@@ -63,7 +63,7 @@ internal static class CommandMapper
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return new Features.Auth.Login.LoginCommand(context, request.DisplayName);
+        return new Features.Auth.Login.LoginCommand(context, request.UserId);
     }
 
     internal static Features.Users.CreateUser.CreateUserCommand ToCommand(this WebApi.Users.Requests.CreateUserRequestDto request, RequestContext context)

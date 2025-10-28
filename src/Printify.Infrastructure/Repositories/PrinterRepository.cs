@@ -1,8 +1,8 @@
-using System.Linq;
 using System.Linq.Expressions;
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.EntityFrameworkCore;
+using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Domain.Printers;
 using Printify.Infrastructure.Mapping;
@@ -27,14 +27,12 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
 
     public async ValueTask<Printer?> GetByIdAsync(Guid id, Guid? ownerUserId, Guid? ownerSessionId, CancellationToken ct)
     {
-        var query = dbContext.Printers
+        var entity = await dbContext.Printers
             .AsNoTracking()
-            .Where(printer => printer.Id == id && !printer.IsDeleted);
-
-        query = ApplyOwnershipFilter(query, ownerUserId, ownerSessionId);
-
-        var entity = await query.FirstOrDefaultAsync(ct).ConfigureAwait(false);
-
+            .Where(p => !p.IsDeleted)
+            .Where(OwnershipPredicate(ownerUserId, ownerSessionId))
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
         return entity?.ToDomain();
     }
 
@@ -100,22 +98,23 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task SetPinnedAsync(Guid id, Guid? ownerUserId, Guid? ownerSessionId, bool isPinned, CancellationToken ct)
+    public async Task SetPinnedAsync(Guid id, Guid? ownerUserId, Guid? ownerSessionId, bool isPinned,
+        CancellationToken ct)
     {
-        var query = dbContext.Printers.Where(printer => printer.Id == id && !printer.IsDeleted);
-        query = ApplyOwnershipFilter(query, ownerUserId, ownerSessionId);
+        var entity = await dbContext.Printers
+            .Where(p => p.Id == id && !p.IsDeleted)
+            .Where(OwnershipPredicate(ownerUserId, ownerSessionId))
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
 
-        var entity = await query.FirstOrDefaultAsync(ct).ConfigureAwait(false);
         if (entity is null)
-        {
-            throw new InvalidOperationException($"Printer {id} does not exist or access is denied.");
-        }
+            throw new PrinterNotFoundException(id);
 
-        if (entity.IsPinned != isPinned)
-        {
-            entity.IsPinned = isPinned;
-            await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
-        }
+        if (entity.IsPinned == isPinned)
+            return;
+
+        entity.IsPinned = isPinned;
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task DeleteAsync(Printer printer, CancellationToken ct)
@@ -145,12 +144,6 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         listener.Stop();
         return ValueTask.FromResult(port);
-    }
-
-    private static bool MatchesOwnership(PrinterEntity p, Guid? ownerUserId, Guid? ownerSessionId)
-    {
-        return (ownerUserId.HasValue && p.OwnerUserId == ownerUserId) ||
-               (ownerSessionId.HasValue && p.OwnerAnonymousSessionId == ownerSessionId);
     }
 
     private static Expression<Func<PrinterEntity, bool>> OwnershipPredicate(Guid? ownerUserId, Guid? ownerSessionId)

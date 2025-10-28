@@ -10,9 +10,9 @@ public sealed class GetCurrentUserHandler(IUserRepository userRepository)
 {
     public async Task<User> Handle(GetCurrentUserCommand request, CancellationToken ct)
     {
-        var userId = request.Context.UserId ?? throw new InvalidOperationException("UserId must not be empty");
+        var userId = request.Context.UserId ?? throw new BadRequestException("UserId must not be empty");
         var user = await userRepository.GetByIdAsync(request.Context.UserId.Value, ct) ??
-                   throw new PrincipalNotFoundException(userId);
+                   throw new AuthenticationFailedException("User not found");
         return user;
     }
 }

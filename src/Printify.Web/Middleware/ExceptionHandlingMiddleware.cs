@@ -26,8 +26,8 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
 
         var status = ex switch
         {
-            LoginFailedException => HttpStatusCode.Unauthorized,
-            PrincipalNotFoundException => HttpStatusCode.Unauthorized,
+            AuthenticationFailedException => HttpStatusCode.Unauthorized,
+            PrinterNotFoundException => HttpStatusCode.NotFound,
             ValidationException => HttpStatusCode.BadRequest,
             _ => HttpStatusCode.InternalServerError
         };

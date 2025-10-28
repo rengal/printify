@@ -25,7 +25,7 @@ public sealed class UsersControllerTest(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task Get_OnBaseRoute_ReturnsSuccess()
     {
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(this.factory);
 
         var response = await environment.Client.GetAsync("/api/users");
 
@@ -38,7 +38,7 @@ public sealed class UsersControllerTest(WebApplicationFactory<Program> factory)
         const string newDisplayName = "new-user";
         var userId = Guid.NewGuid();
 
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(this.factory);
         var client = environment.Client;
 
         var response = await client.PostAsJsonAsync("/api/users", new CreateUserRequestDto(userId, newDisplayName));
@@ -64,7 +64,7 @@ public sealed class UsersControllerTest(WebApplicationFactory<Program> factory)
         const string activeDisplayName = "list-active";
         const string deletedDisplayName = "list-deleted";
 
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(this.factory);
         await using (var scope = environment.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
@@ -90,7 +90,7 @@ public sealed class UsersControllerTest(WebApplicationFactory<Program> factory)
         const string displayName = "idempotent-user";
         var userId = Guid.NewGuid();
 
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(this.factory);
         var client = environment.Client;
 
         var request = new CreateUserRequestDto(userId, displayName);

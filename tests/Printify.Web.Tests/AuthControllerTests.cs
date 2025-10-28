@@ -1,4 +1,3 @@
-using System;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -10,19 +9,26 @@ using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Contracts.Auth.Responses;
 using Printify.Web.Contracts.Users.Requests;
 using Printify.Web.Contracts.Users.Responses;
-using Xunit;
 
 namespace Printify.Web.Tests;
 
 public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
     : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> factory = factory;
+    [Fact]
+    public async Task Login_WithEmptyPayload_ReturnsBadRequest()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+
+        var response = await environment.Client.PostAsync("/api/auth/login", null);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
 
     [Fact]
     public async Task Login_WithNullRequest_ReturnsBadRequest()
     {
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
 
         var response = await environment.Client.PostAsync(
             "/api/auth/login",
@@ -32,21 +38,21 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
     }
 
     [Fact]
-    public async Task Login_WithWhitespaceDisplayName_ReturnsServerError()
+    public async Task Login_WithRandomUserId_ReturnsUnauthorized()
     {
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
 
         var response = await environment.Client.PostAsJsonAsync(
             "/api/auth/login",
-            new LoginRequestDto("   "));
+            new LoginRequestDto(Guid.NewGuid()));
 
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
     [Fact]
     public async Task GetCurrentUser_WithoutToken_ReturnsUnauthorized()
     {
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
 
         var response = await environment.Client.GetAsync("/api/auth/me");
 
@@ -56,7 +62,7 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task Logout_WithMalformedBearerToken_ReturnsUnauthorized()
     {
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
 
         environment.Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "totally-invalid-token");
 
@@ -70,7 +76,8 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
     public async Task Login_WhenUserAddedAfterFailure_AllowsAuthenticatedMe()
     {
         const string displayName = "auth-tests-user";
-        await using var environment = TestServiceContext.CreateForAuthControllerTest(this.factory);
+        Guid userid = Guid.NewGuid();
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
 
         // 1. Create anonymous session via API to obtain session token
@@ -82,15 +89,15 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session!.Id.ToString());
 
         // 2. Initial login attempt should fail because the user does not exist yet
-        var failedLogin = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto(displayName));
+        var failedLogin = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto(userid));
         Assert.Equal(HttpStatusCode.Unauthorized, failedLogin.StatusCode);
 
         // 3. Register the missing user via API
-        var registerResponse = await client.PostAsJsonAsync("/api/users", new CreateUserRequestDto(Guid.NewGuid(), displayName));
+        var registerResponse = await client.PostAsJsonAsync("/api/users", new CreateUserRequestDto(userid, displayName));
         registerResponse.EnsureSuccessStatusCode();
 
         // 4. Retry login and expect success
-        var successfulLogin = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto(displayName));
+        var successfulLogin = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto(userid));
         successfulLogin.EnsureSuccessStatusCode();
         var loginDto = await successfulLogin.Content.ReadFromJsonAsync<LoginResponseDto>();
         Assert.NotNull(loginDto);
