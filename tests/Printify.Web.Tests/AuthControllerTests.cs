@@ -20,9 +20,21 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
     {
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
 
-        var response = await environment.Client.PostAsync("/api/auth/login", null);
+        using var content = new StringContent(string.Empty, Encoding.UTF8, "application/json");
+        var response = await environment.Client.PostAsync("/api/auth/login", content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_WithUnsupportedContentType_ReturnsUnsupportedMediaType()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+
+        using var content = new StringContent("<login />", Encoding.UTF8, "application/xml");
+        var response = await environment.Client.PostAsync("/api/auth/login", content);
+
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
     }
 
     [Fact]
@@ -111,5 +123,28 @@ public sealed class AuthControllerTests(WebApplicationFactory<Program> factory)
         var userDto = await meResponse.Content.ReadFromJsonAsync<UserDto>();
         Assert.NotNull(userDto);
         Assert.Equal(displayName, userDto!.Name);
+    }
+
+    private static async Task AuthenticateUserAsync(TestServiceContext.ControllerTestContext environment, Guid userId, string displayName)
+    {
+        var client = environment.Client;
+
+        var anonymousResponse = await client.PostAsJsonAsync("/api/auth/anonymous", new { });
+        anonymousResponse.EnsureSuccessStatusCode();
+        var session = await anonymousResponse.Content.ReadFromJsonAsync<AnonymousSessionDto>();
+        Assert.NotNull(session);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", session!.Id.ToString());
+
+        var registerResponse = await client.PostAsJsonAsync("/api/users", new CreateUserRequestDto(userId, displayName));
+        registerResponse.EnsureSuccessStatusCode();
+
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto(userId));
+        loginResponse.EnsureSuccessStatusCode();
+
+        var loginDto = await loginResponse.Content.ReadFromJsonAsync<LoginResponseDto>();
+        Assert.NotNull(loginDto);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginDto!.AccessToken);
     }
 }

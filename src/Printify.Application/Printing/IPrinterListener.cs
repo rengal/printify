@@ -1,3 +1,4 @@
+using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
 
 namespace Printify.Application.Printing;
@@ -9,12 +10,11 @@ public interface IPrinterListener : IAsyncDisposable
 {
     Task StartAsync(CancellationToken cancellationToken);
     Task StopAsync(CancellationToken cancellationToken);
+    Guid PrinterId { get; }
     PrinterListenerStatus Status { get; }
 
     /// <summary>
     /// Raised whenever a new channel has been accepted by the listener.
     /// </summary>
-    event Func<IPrinterListener, PrinterChannelAcceptedEventArgs, ValueTask> ChannelAccepted;
+    event Func<IPrinterListener, PrinterChannelAcceptedEventArgs, ValueTask>? ChannelAccepted;
 }
-
-public sealed record PrinterChannelAcceptedEventArgs(Guid PrinterId, IPrinterChannel Channel);

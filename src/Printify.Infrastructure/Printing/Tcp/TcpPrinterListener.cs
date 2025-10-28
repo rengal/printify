@@ -2,11 +2,12 @@ using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Logging;
 using Printify.Application.Printing;
+using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
 
-namespace Printify.Infrastructure.Printing;
+namespace Printify.Infrastructure.Printing.Tcp;
 
-public sealed class PrinterListener(Printer printer, ILogger<PrinterListener>? logger = null) : IPrinterListener
+public sealed class TcpPrinterListener(Printer printer, ILogger<TcpPrinterListener>? logger = null) : IPrinterListener
 {
     private const int RetryDelayMs = 10000;
     private const int MaxRetries = 10;
@@ -17,17 +18,19 @@ public sealed class PrinterListener(Printer printer, ILogger<PrinterListener>? l
 
     public event Func<IPrinterListener, PrinterChannelAcceptedEventArgs, ValueTask>? ChannelAccepted;
 
+    public Guid PrinterId { get; } = printer.Id;
     public PrinterListenerStatus Status { get; private set; } = PrinterListenerStatus.Idle;
 
     public async Task StartAsync(CancellationToken ct)
     {
         if (Status is PrinterListenerStatus.Listening or PrinterListenerStatus.OpeningPort)
+        {
             return;
+        }
 
         Status = PrinterListenerStatus.OpeningPort;
-        logger?.LogInformation("Starting PrinterListener for printer {PrinterId} on port {Port}", printer.Id, printer.ListenTcpPortNumber);
+        logger?.LogInformation("Starting TCP listener for printer {PrinterId} on port {Port}", printer.Id, printer.ListenTcpPortNumber);
 
-        // Launch background retries without blocking StartAsync()
         backgroundTask = Task.Run(() => TryStartListeningLoopAsync(ct), ct);
         await Task.CompletedTask;
     }
@@ -45,7 +48,7 @@ public sealed class PrinterListener(Printer printer, ILogger<PrinterListener>? l
                 listener.Start();
 
                 Status = PrinterListenerStatus.Listening;
-                logger?.LogInformation("PrinterListener is now listening on port {Port}", printer.ListenTcpPortNumber);
+                logger?.LogInformation("TCP listener is now active on port {Port}", printer.ListenTcpPortNumber);
 
                 acceptLoopCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 await RunAcceptLoopAsync(acceptLoopCts.Token).ConfigureAwait(false);
@@ -66,23 +69,24 @@ public sealed class PrinterListener(Printer printer, ILogger<PrinterListener>? l
         }
 
         Status = PrinterListenerStatus.Failed;
-        logger?.LogError("PrinterListener failed after {Retries} retries on port {Port}", retries, printer.ListenTcpPortNumber);
+        logger?.LogError("TCP listener failed after {Retries} retries on port {Port}", retries, printer.ListenTcpPortNumber);
     }
 
     private async Task RunAcceptLoopAsync(CancellationToken ct)
     {
         if (listener == null)
+        {
             throw new InvalidOperationException("Listener not initialized.");
+        }
 
         try
         {
             while (!ct.IsCancellationRequested)
             {
-                TcpClient? client = null;
                 try
                 {
-                    client = await listener.AcceptTcpClientAsync(ct).ConfigureAwait(false);
-                    logger?.LogInformation("Accepted new connection for printer {PrinterId}", printer.Id);
+                    var client = await listener.AcceptTcpClientAsync(ct).ConfigureAwait(false);
+                    logger?.LogInformation("Accepted new TCP connection for printer {PrinterId}", printer.Id);
 
                     var channel = new TcpPrinterChannel(client);
                     if (ChannelAccepted != null)
@@ -93,7 +97,7 @@ public sealed class PrinterListener(Printer printer, ILogger<PrinterListener>? l
                 }
                 catch (OperationCanceledException)
                 {
-                    break; // graceful shutdown
+                    break;
                 }
                 catch (ObjectDisposedException)
                 {
@@ -115,9 +119,11 @@ public sealed class PrinterListener(Printer printer, ILogger<PrinterListener>? l
     public async Task StopAsync(CancellationToken ct)
     {
         if (Status == PrinterListenerStatus.Idle)
+        {
             return;
+        }
 
-        logger?.LogInformation("Stopping PrinterListener for printer {PrinterId}", printer.Id);
+        logger?.LogInformation("Stopping TCP listener for printer {PrinterId}", printer.Id);
         Status = PrinterListenerStatus.Idle;
 
         try
@@ -127,8 +133,13 @@ public sealed class PrinterListener(Printer printer, ILogger<PrinterListener>? l
 
             if (backgroundTask != null)
             {
-                try { await backgroundTask.ConfigureAwait(false); }
-                catch (OperationCanceledException) { }
+                try
+                {
+                    await backgroundTask.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                }
             }
         }
         finally
@@ -140,6 +151,6 @@ public sealed class PrinterListener(Printer printer, ILogger<PrinterListener>? l
 
     public async ValueTask DisposeAsync()
     {
-        await StopAsync(CancellationToken.None);
+        await StopAsync(CancellationToken.None).ConfigureAwait(false);
     }
 }

@@ -26,7 +26,11 @@ public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator me
         [FromBody]LoginRequestDto request,
         CancellationToken ct)
     {
-        ArgumentNullException.ThrowIfNull(request);
+        if (request is null)
+        {
+            // Treat missing body as client error so tests can rely on consistent 400 surface area.
+            return BadRequest("Request body is required.");
+        }
 
         // Capture the caller context to keep session/user correlation consistent.
         var context = HttpContext.CaptureRequestContext();

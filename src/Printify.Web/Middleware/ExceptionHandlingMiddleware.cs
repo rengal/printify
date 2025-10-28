@@ -28,6 +28,7 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         {
             AuthenticationFailedException => HttpStatusCode.Unauthorized,
             PrinterNotFoundException => HttpStatusCode.NotFound,
+            BadRequestException => HttpStatusCode.BadRequest,
             ValidationException => HttpStatusCode.BadRequest,
             _ => HttpStatusCode.InternalServerError
         };

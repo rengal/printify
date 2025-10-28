@@ -9,6 +9,7 @@ using Printify.Domain.Config;
 using Printify.Infrastructure.Config;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Printing;
+using Printify.Infrastructure.Printing.Tcp;
 using Printify.Web.Infrastructure;
 using Printify.Infrastructure.Repositories;
 using Printify.Infrastructure.Security;
