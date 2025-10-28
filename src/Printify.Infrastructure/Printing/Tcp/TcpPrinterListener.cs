@@ -85,10 +85,10 @@ public sealed class TcpPrinterListener(Printer printer, ILogger<TcpPrinterListen
             {
                 try
                 {
-                    var client = await listener.AcceptTcpClientAsync(ct).ConfigureAwait(false);
+                    var tcpClient = await listener.AcceptTcpClientAsync(ct).ConfigureAwait(false);
                     logger?.LogInformation("Accepted new TCP connection for printer {PrinterId}", printer.Id);
 
-                    var channel = new TcpPrinterChannel(client);
+                    var channel = new TcpPrinterChannel(printer, tcpClient);
                     if (ChannelAccepted != null)
                     {
                         var args = new PrinterChannelAcceptedEventArgs(printer.Id, channel);

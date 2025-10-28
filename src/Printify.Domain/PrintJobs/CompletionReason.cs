@@ -6,5 +6,7 @@ namespace Printify.Domain.PrintJobs;
 public enum PrintJobCompletionReason
 {
     ClientDisconnected = 0,
-    DataTimeout = 1
+    Canceled = 1,
+    Faulted = 2,
+    DataTimeout = 3
 }

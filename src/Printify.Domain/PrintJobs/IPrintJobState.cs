@@ -38,11 +38,11 @@ public interface IPrintJobState
     /// <summary>
     /// Feed a chunk of bytes. The session may buffer incomplete tokens internally.
     /// </summary>
-    void Feed(ReadOnlySpan<byte> data);
+    Task Feed(ReadOnlySpan<byte> data);
 
     /// <summary>
     /// Signals explicit completion. Implementations should flush remaining buffered content,
     /// finalize the session state, and mark it as completed.
     /// </summary>
-    void Complete(PrintJobCompletionReason reason);
+    Task Complete(PrintJobCompletionReason reason);
 }
