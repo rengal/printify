@@ -1,3 +1,4 @@
+using System;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -40,6 +41,7 @@ public static class ServiceCollectionExtensions
 
         // Application services
         services.AddHttpContextAccessor();
+        services.AddSingleton<TimeProvider>(_ => TimeProvider.System);
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<LoginCommand>());
         //builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(IdentityGuardBehavior<,>)); //todo debugnow
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
@@ -64,6 +66,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPrinterRepository, PrinterRepository>();
 
         // Printer listeners
+        services.AddSingleton<IPrintJobsOrchestrator, PrintJobsOrchestrator>();
         services.AddSingleton<IPrinterListenerOrchestrator, PrinterListenerOrchestrator>();
         services.AddSingleton<IPrinterListenerFactory, PrinterListenerFactory>();
         //services.AddHostedService<PrinterListenerBootstrapper>();
