@@ -1,0 +1,32 @@
+using System.ComponentModel.DataAnnotations.Schema;
+using Printify.Infrastructure.Persistence.Entities.Printers;
+
+namespace Printify.Infrastructure.Persistence.Entities.PrinterJobs;
+
+[Table("printer_jobs")]
+public sealed class PrinterJobEntity : BaseEntity
+{
+    [Column("printer_id")]
+    public Guid PrinterId { get; set; }
+
+    [Column("display_name")]
+    public string DisplayName { get; set; } = string.Empty;
+
+    [Column("protocol")]
+    public string Protocol { get; set; } = string.Empty;
+
+    [Column("width_in_dots")]
+    public int WidthInDots { get; set; }
+
+    [Column("height_in_dots")]
+    public int? HeightInDots { get; set; }
+
+    [Column("created_from_ip")]
+    public string CreatedFromIp { get; set; } = string.Empty;
+
+    [Column("listen_tcp_port_number")]
+    public int ListenTcpPortNumber { get; set; }
+
+    [ForeignKey(nameof(PrinterId))]
+    public PrinterEntity Printer { get; set; } = null!;
+}
