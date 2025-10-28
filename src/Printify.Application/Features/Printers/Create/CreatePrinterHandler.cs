@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using MediatR;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -45,8 +42,7 @@ public sealed class CreatePrinterHandler(
 
         await printerRepository.AddAsync(printer, ct).ConfigureAwait(false);
 
-        var listener = listenerFactory.Create(printer.Id, printer.ListenTcpPortNumber);
-        await listenerOrchestrator.AddListenerAsync(printer.Id, listener, ct).ConfigureAwait(false);
+        await listenerOrchestrator.AddListenerAsync(printer, ct).ConfigureAwait(false);
 
         return printer;
     }

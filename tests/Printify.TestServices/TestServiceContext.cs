@@ -1,87 +1,22 @@
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
-using MediatR;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using Printify.Application.Interfaces;
-using Printify.Domain.Config;
-using Printify.Domain.Services;
 using Printify.Infrastructure.Config;
 using Printify.Infrastructure.Persistence;
-using Printify.Infrastructure.Repositories;
-using Printify.Web.Controllers;
 using System.Net;
 using System.Net.Sockets;
 using ListenerOptions = Printify.Domain.Config.ListenerOptions;
 
 namespace Printify.TestServices;
 
-public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions listenerOptions) : IAsyncDisposable, IDisposable
+public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions listenerOptions)
+    : IAsyncDisposable, IDisposable
 {
     private const string InMemoryConnectionStringFormat = "Data Source=file:{0}?mode=memory&cache=shared";
-
-    /*
-    public static TestServiceContext Create(BufferOptions? bufferOptions = null, JwtOptions? jwtOptions = null, Type? tokenizer = null, Type? listener = null, string? connectionString = null)
-    {
-        var services = new ServiceCollection();
-
-        var listenerOptions = GetListenerOptions();
-        var resolvedConnectionString = connectionString ?? InMemoryConnectionString;
-
-        bufferOptions ??= new BufferOptions
-        {
-            BusyThreshold = null,
-            MaxCapacity = null,
-            DrainRate = null
-        };
-
-        jwtOptions ??= new JwtOptions
-        {
-            Issuer = "printify-auth",
-            Audience = "printify-api",
-            ExpiresInSeconds = 100,
-            SecretKey = new string('0', 100)
-        };
-
-        services.TryAddSingleton<IClockFactory, TestClockFactory>();
-
-        services.AddSingleton(Options.Create(bufferOptions));
-        services.AddSingleton(Options.Create(listenerOptions));
-        services.AddSingleton(Options.Create(jwtOptions));
-        services.AddSingleton(Options.Create(new RepositoryOptions
-        {
-            ConnectionString = resolvedConnectionString
-        }));
-        services.AddSingleton(provider =>
-        {
-            var sqlConnection = new SqliteConnection(resolvedConnectionString);
-            sqlConnection.Open();
-            return sqlConnection;
-        });
-        services.AddDbContext<PrintifyDbContext>((serviceProvider, options) =>
-        {
-            var connection = serviceProvider.GetRequiredService<SqliteConnection>();
-            options.UseSqlite(connection);
-        });
-        services.AddScoped<IAnonymousSessionRepository, AnonymousSessionRepository>();
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IPrinterRepository, PrinterRepository>();
-
-        var provider = services.BuildServiceProvider();
-        using (var scope = provider.CreateScope())
-        {
-            var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
-            context.Database.EnsureDeleted();
-            context.Database.EnsureCreated();
-        }
-
-        return new TestServiceContext(provider, listenerOptions);
-    }
-    */
 
     public static AuthControllerTestContext CreateForAuthControllerTest(WebApplicationFactory<Program> factory)
     {
@@ -162,7 +97,8 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         private readonly SqliteConnection connection;
         private readonly HttpClient client;
 
-        internal AuthControllerTestContext(WebApplicationFactory<Program> factory, SqliteConnection connection, ListenerOptions listenerOptions)
+        internal AuthControllerTestContext(WebApplicationFactory<Program> factory, SqliteConnection connection,
+            ListenerOptions listenerOptions)
         {
             Factory = factory;
             this.connection = connection;
@@ -180,9 +116,24 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
 
         public async ValueTask DisposeAsync()
         {
+            // Dispose leaves first
             client.Dispose();
-            Factory.Dispose();
-            await connection.DisposeAsync().ConfigureAwait(false);
+
+            // Dispose the connection BEFORE the factory, but only if we own it
+            try
+            {
+                // Close first; CloseAsync is safe even if already closed.
+                if (connection.State != System.Data.ConnectionState.Closed)
+                    await connection.CloseAsync().ConfigureAwait(false);
+
+                await connection.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                // already disposed elsewhere — ignore
+            }
+
+            await Factory.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

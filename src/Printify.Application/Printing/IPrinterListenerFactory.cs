@@ -1,8 +1,8 @@
-using System;
+using Printify.Domain.Printers;
 
 namespace Printify.Application.Printing;
 
 public interface IPrinterListenerFactory
 {
-    IPrinterListener Create(Guid printerId, int port);
+   IPrinterListener Create(Printer printer);
 }

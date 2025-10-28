@@ -64,7 +64,7 @@ public static class ServiceCollectionExtensions
 
         // Printer listeners
         services.AddSingleton<IPrinterListenerOrchestrator, PrinterListenerOrchestrator>();
-        services.AddSingleton<IPrinterListenerFactory, NullPrinterListenerFactory>();
+        services.AddSingleton<IPrinterListenerFactory, PrinterListenerFactory>();
         services.AddHostedService<PrinterListenerBootstrapper>();
 
         return services;

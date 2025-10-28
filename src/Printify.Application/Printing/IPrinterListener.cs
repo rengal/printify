@@ -1,6 +1,4 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+using Printify.Domain.Printers;
 
 namespace Printify.Application.Printing;
 
@@ -11,6 +9,7 @@ public interface IPrinterListener : IAsyncDisposable
 {
     Task StartAsync(CancellationToken cancellationToken);
     Task StopAsync(CancellationToken cancellationToken);
+    PrinterListenerStatus Status { get; }
 
     /// <summary>
     /// Raised whenever a new channel has been accepted by the listener.

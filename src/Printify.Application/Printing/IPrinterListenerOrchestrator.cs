@@ -1,6 +1,4 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+using Printify.Domain.Printers;
 
 namespace Printify.Application.Printing;
 
@@ -9,9 +7,9 @@ namespace Printify.Application.Printing;
 /// </summary>
 public interface IPrinterListenerOrchestrator
 {
-    Task AddListenerAsync(Guid printerId, IPrinterListener listener, CancellationToken cancellationToken);
-    Task RemoveListenerAsync(Guid printerId, CancellationToken cancellationToken);
-    ListenerStatusSnapshot GetStatus(Guid printerId);
+    Task AddListenerAsync(Printer printer, CancellationToken ct);
+    Task RemoveListenerAsync(Printer printer, CancellationToken ct);
+    ListenerStatusSnapshot? GetStatus(Printer printer);
 }
 
-public sealed record ListenerStatusSnapshot(Guid PrinterId, bool IsActive, DateTimeOffset CapturedAt);
+public sealed record ListenerStatusSnapshot(PrinterListenerStatus Status);

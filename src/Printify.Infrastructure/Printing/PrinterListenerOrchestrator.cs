@@ -1,72 +1,42 @@
-
-using System;
 using System.Collections.Concurrent;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Printify.Application.Printing;
+using Printify.Domain.Printers;
 
 namespace Printify.Infrastructure.Printing;
 
-public sealed class PrinterListenerOrchestrator : IPrinterListenerOrchestrator
+public sealed class PrinterListenerOrchestrator(IPrinterListenerFactory listenerFactory, ILogger<PrinterListenerOrchestrator> logger)
+    : IPrinterListenerOrchestrator
 {
-    private readonly ConcurrentDictionary<Guid, ListenerEntry> listeners = new();
-    private readonly ILogger<PrinterListenerOrchestrator> logger;
+    private readonly ConcurrentDictionary<Guid, IPrinterListener> listeners = new();
 
-    public PrinterListenerOrchestrator(ILogger<PrinterListenerOrchestrator> logger)
+    public async Task AddListenerAsync(Printer printer, CancellationToken ct)
     {
-        this.logger = logger;
+        ArgumentNullException.ThrowIfNull(printer);
+
+        await RemoveListenerAsync(printer, ct).ConfigureAwait(false);
+        var listener = listenerFactory.Create(printer);
+        listeners[printer.Id] = listener;
+        
+        logger.LogInformation($"Listener added for printer {printer.Id}");
+
+        await listener.StartAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task AddListenerAsync(Guid printerId, IPrinterListener listener, CancellationToken cancellationToken)
+    public async Task RemoveListenerAsync(Printer printer, CancellationToken ct)
     {
-        ArgumentNullException.ThrowIfNull(listener);
-
-        await RemoveListenerAsync(printerId, cancellationToken).ConfigureAwait(false);
-
-        var entry = new ListenerEntry(listener);
-        listeners[printerId] = entry;
-
-        try
-        {
-            await listener.StartAsync(cancellationToken).ConfigureAwait(false);
-            logger.LogInformation("Listener started for printer {PrinterId}", printerId);
-        }
-        catch
-        {
-            listeners.TryRemove(printerId, out _);
-            await listener.DisposeAsync().ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    public async Task RemoveListenerAsync(Guid printerId, CancellationToken cancellationToken)
-    {
-        if (!listeners.TryRemove(printerId, out var entry))
-        {
+        if (!listeners.TryRemove(printer.Id, out var listener))
             return;
-        }
 
-        try
-        {
-            await entry.Listener.StopAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to stop listener for printer {PrinterId}", printerId);
-        }
-        finally
-        {
-            await entry.Listener.DisposeAsync().ConfigureAwait(false);
-            logger.LogInformation("Listener removed for printer {PrinterId}", printerId);
-        }
+        await listener.StopAsync(ct).ConfigureAwait(false);
+        await listener.DisposeAsync().ConfigureAwait(false);
+        logger.LogInformation($"Listener removed for printer {printer.Id}");
     }
 
-    public ListenerStatusSnapshot GetStatus(Guid printerId)
+    public ListenerStatusSnapshot? GetStatus(Printer printer)
     {
-        var isActive = listeners.ContainsKey(printerId);
-        return new ListenerStatusSnapshot(printerId, isActive, DateTimeOffset.UtcNow);
+        if (!listeners.TryGetValue(printer.Id, out var listener))
+            return new ListenerStatusSnapshot(PrinterListenerStatus.Unknown);
+        return new ListenerStatusSnapshot(listener.Status);
     }
-
-    private sealed record ListenerEntry(IPrinterListener Listener);
 }

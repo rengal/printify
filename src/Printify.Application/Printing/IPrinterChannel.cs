@@ -1,7 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace Printify.Application.Printing;
 
 /// <summary>
@@ -14,12 +10,12 @@ public interface IPrinterChannel : IAsyncDisposable
     /// <summary>
     /// Begins pumping data from the transport.
     /// </summary>
-    Task StartAsync(CancellationToken cancellationToken);
+    Task StartAsync(CancellationToken ct);
 
     /// <summary>
     /// Sends a payload to the connected printer.
     /// </summary>
-    ValueTask WriteAsync(ReadOnlyMemory<byte> payload, CancellationToken cancellationToken);
+    ValueTask WriteAsync(ReadOnlyMemory<byte> payload, CancellationToken ct);
 
     /// <summary>
     /// Raised when a chunk of data is received from the printer.
@@ -34,7 +30,7 @@ public interface IPrinterChannel : IAsyncDisposable
     /// <summary>
     /// Stops the channel and releases transport resources.
     /// </summary>
-    Task StopAsync(CancellationToken cancellationToken);
+    Task StopAsync(CancellationToken ct);
 }
 
 public sealed record PrinterChannelDataEventArgs(ReadOnlyMemory<byte> Buffer, CancellationToken CancellationToken);

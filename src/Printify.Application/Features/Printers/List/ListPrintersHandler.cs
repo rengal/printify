@@ -25,12 +25,12 @@ public sealed class ListPrintersHandler(IPrinterRepository printerRepository)
         if (context.UserId is not null)
         {
             return await printerRepository
-                .ListAccessibleAsync(context.UserId, null, cancellationToken)
+                .ListOwnedAsync(context.UserId, null, cancellationToken)
                 .ConfigureAwait(false);
         }
 
         return await printerRepository
-            .ListAccessibleAsync(null, context.AnonymousSessionId, cancellationToken)
+            .ListOwnedAsync(null, context.AnonymousSessionId, cancellationToken)
             .ConfigureAwait(false);
     }
 }
