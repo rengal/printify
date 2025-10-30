@@ -31,6 +31,7 @@ public sealed class TcpPrinterChannel : IPrinterChannel
 
         this.client = client;
         Printer = printer;
+        ClientAddress = client.Client.RemoteEndPoint?.ToString() ?? string.Empty;
         stream = client.GetStream();
         readLoopCts = new CancellationTokenSource();
         readLoopTask = Task.Run(() => RunReadLoopAsync(readLoopCts.Token), readLoopCts.Token);
@@ -72,13 +73,13 @@ public sealed class TcpPrinterChannel : IPrinterChannel
         }
     }
 
-    public async ValueTask WriteAsync(ReadOnlyMemory<byte> payload, CancellationToken ct)
+    public async ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken ct)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
 
         try
         {
-            await stream.WriteAsync(payload, ct).ConfigureAwait(false);
+            await stream.WriteAsync(data, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -93,6 +94,8 @@ public sealed class TcpPrinterChannel : IPrinterChannel
     }
 
     public Printer Printer { get; }
+
+    public string ClientAddress { get; }
 
     public async ValueTask DisposeAsync()
     {

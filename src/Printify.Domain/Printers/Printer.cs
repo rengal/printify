@@ -13,6 +13,18 @@
 /// <param name="CreatedAt">Registration timestamp in UTC.</param>
 /// <param name="CreatedFromIp">IP address captured when the printer was registered.</param>
 /// <param name="ListenTcpPortNumber">Listener tcp port number.</param>
+/// <param name="EmulateBufferCapacity">
+/// Indicates whether the printer should simulate a finite input buffer.
+/// When enabled, print jobs may be throttled based on the configured buffer rate and capacity.
+/// </param>
+/// <param name="BufferDrainRate">
+/// Simulated rate at which the printer consumes buffered data, in bytes per second.
+/// Used only when <paramref name="EmulateBufferCapacity"/> is enabled.
+/// </param>
+/// <param name="BufferMaxCapacity">
+/// Maximum size of the emulated input buffer, in bytes.
+/// When the buffer is full, additional writes are delayed until space becomes available.
+/// </param>
 /// <param name="IsPinned">Indicates whether the printer is pinned for quick access.</param>
 /// <param name="IsDeleted">Soft-delete marker for the printer.</param>
 public sealed record Printer(
@@ -26,6 +38,9 @@ public sealed record Printer(
     DateTimeOffset CreatedAt,
     string CreatedFromIp,
     int ListenTcpPortNumber,
+    bool EmulateBufferCapacity,
+    double? BufferDrainRate,
+    int? BufferMaxCapacity,
     bool IsPinned,
     bool IsDeleted)
     : BaseDomainEntity(Id, CreatedAt, IsDeleted);

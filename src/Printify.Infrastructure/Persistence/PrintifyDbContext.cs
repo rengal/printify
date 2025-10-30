@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Printify.Infrastructure.Persistence.Entities.AnonymousSessions;
+using Printify.Infrastructure.Persistence.Entities.PrinterJobs;
 using Printify.Infrastructure.Persistence.Entities.Printers;
 using Printify.Infrastructure.Persistence.Entities.Users;
 
@@ -17,6 +18,8 @@ public sealed class PrintifyDbContext : DbContext
     public DbSet<UserEntity> Users => Set<UserEntity>();
 
     public DbSet<PrinterEntity> Printers => Set<PrinterEntity>();
+
+    public DbSet<PrintJobEntity> PrintJobs => Set<PrintJobEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

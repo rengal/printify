@@ -1,5 +1,3 @@
-using System;
-using System.Threading;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
 
@@ -15,12 +13,19 @@ public interface IPrinterChannel : IAsyncDisposable
     /// <summary>
     /// Sends a payload to the connected printer.
     /// </summary>
-    ValueTask WriteAsync(ReadOnlyMemory<byte> payload, CancellationToken ct);
+    ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken ct);
 
     /// <summary>
     /// Printer that channel is related to
     /// </summary>
     Printer Printer { get; }
+
+    /// <summary>
+    /// Address of the connected client.
+    /// For TCP connections, this is "IP:port" (e.g., "192.168.1.100:52341").
+    /// For in-memory channels, this is a test identifier (e.g., "memory://test-client-1").
+    /// </summary>
+    string ClientAddress { get; }
 
     /// <summary>
     /// Raised when a chunk of data is received from the printer.

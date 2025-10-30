@@ -60,15 +60,13 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
             .ConfigureAwait(false);
     }
 
-    public async ValueTask<Guid> AddAsync(Printer printer, CancellationToken ct)
+    public async ValueTask AddAsync(Printer printer, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(printer);
 
         var entity = printer.ToEntity();
         await dbContext.Printers.AddAsync(entity, ct).ConfigureAwait(false);
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
-
-        return printer.Id;
     }
 
     public async Task UpdateAsync(Printer printer, CancellationToken ct)

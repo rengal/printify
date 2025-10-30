@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Documents;
 using Printify.Domain.PrintJobs;
@@ -8,7 +9,7 @@ namespace Printify.Infrastructure.Printing;
 /// <summary>
 /// Coordinates live print job sessions per printer channel.
 /// </summary>
-public sealed class PrintJobSessionsOrchestrator(TimeProvider clock) : IPrintJobSessionsOrchestrator
+public sealed class PrintJobSessionsOrchestrator(IPrintJobRepository printJobRepository, TimeProvider clock) : IPrintJobSessionsOrchestrator
 {
     private readonly TimeProvider timeProvider = clock ?? TimeProvider.System;
     private readonly ConcurrentDictionary<IPrinterChannel, IPrintJobSession> jobSessions = new();
@@ -18,24 +19,14 @@ public sealed class PrintJobSessionsOrchestrator(TimeProvider clock) : IPrintJob
         ArgumentNullException.ThrowIfNull(channel);
         ct.ThrowIfCancellationRequested();
 
-        return Task.FromResult(jobSessions.GetOrAdd(channel, static (key, state) =>
-        {
-            var now = state.Clock.GetUtcNow();
-            var printer = key.Printer;
-            var job = new PrintJob(
-                Guid.NewGuid(),
-                printer.Id,
-                printer.DisplayName,
-                printer.Protocol,
-                printer.WidthInDots,
-                printer.HeightInDots,
-                now,
-                printer.CreatedFromIp,
-                printer.ListenTcpPortNumber,
-                IsDeleted: false);
+        var printer = channel.Printer;
 
-            return new StreamingPrintJobSession(job, state.Clock);
-        }, new SessionFactoryState(timeProvider)));
+        var printJob = new PrintJob(Guid.NewGuid(), printer, DateTimeOffset.Now, channel.ClientAddress);
+        await printJobRepository.AddAsync(printJob, ct);
+
+        var jobSession = new PrintJobSession(printJob, channel);
+        jobSessions[channel] = jobSession;
+        return Task.FromResult(jobSession);
     }
 
     public async Task FeedAsync(IPrinterChannel channel, ReadOnlyMemory<byte> data, CancellationToken ct)
@@ -63,53 +54,5 @@ public sealed class PrintJobSessionsOrchestrator(TimeProvider clock) : IPrintJob
 
         ct.ThrowIfCancellationRequested();
         await session.Complete(reason).ConfigureAwait(false);
-    }
-
-    private sealed record SessionFactoryState(TimeProvider Clock);
-
-    private sealed class StreamingPrintJobSession : IPrintJobSession
-    {
-        private readonly TimeProvider timeProvider;
-        private long totalBytes;
-        private bool isCompleted;
-
-        public StreamingPrintJobSession(PrintJob job, TimeProvider provider)
-        {
-            Job = job;
-            timeProvider = provider ?? TimeProvider.System;
-            LastReceivedBytes = timeProvider.GetUtcNow();
-        }
-
-        public PrintJob Job { get; }
-        public int BytesReceived => (int)Math.Min(totalBytes, int.MaxValue);
-        public int SendBytes => 0;
-        public DateTimeOffset LastReceivedBytes { get; private set; }
-        public bool IsBufferBusy => false;
-        public bool HasOverflow => false;
-        public Document? Document => null;
-
-        public Task Feed(ReadOnlySpan<byte> data)
-        {
-            if (data.Length == 0)
-            {
-                return Task.CompletedTask;
-            }
-
-            totalBytes += data.Length;
-            LastReceivedBytes = timeProvider.GetUtcNow();
-            return Task.CompletedTask;
-        }
-
-        public Task Complete(PrintJobCompletionReason reason)
-        {
-            if (isCompleted)
-            {
-                return Task.CompletedTask;
-            }
-
-            isCompleted = true;
-            LastReceivedBytes = timeProvider.GetUtcNow();
-            return Task.CompletedTask;
-        }
     }
 }
