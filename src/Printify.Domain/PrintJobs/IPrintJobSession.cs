@@ -12,7 +12,8 @@ public interface IPrintJobSession
     DateTimeOffset LastReceivedBytes { get; }
     bool IsBufferBusy { get; }
     bool HasOverflow { get; }
+    bool IsCompleted { get; }
     Document? Document { get; }
-    Task Feed(ReadOnlyMemory<byte> data, CancellationToken token);
+    Task Feed(ReadOnlyMemory<byte> data, CancellationToken ct);
     Task Complete(PrintJobCompletionReason reason);
 }

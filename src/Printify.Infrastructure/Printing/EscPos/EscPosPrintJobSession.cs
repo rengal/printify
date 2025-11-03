@@ -1,13 +1,9 @@
-﻿using Microsoft.Extensions.Options;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using Printify.Application.Printing;
-using Printify.Domain.Config;
-using Printify.Domain.Core;
 using Printify.Domain.Documents.Elements;
-using Printify.Domain.Media;
-using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
+using Printify.Domain.Services;
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
@@ -24,12 +20,6 @@ public class EscPosPrintJobSession : PrintJobSession
     static EscPosPrintJobSession()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-    }
-
-    public override Task Feed(ReadOnlyMemory<byte> data, CancellationToken ct)
-    {
-        base.Feed(data, ct);
-        return Task.CompletedTask;
     }
 
     private static readonly IReadOnlyDictionary<byte, string> EscCodePageMap = new Dictionary<byte, string>
@@ -72,14 +62,6 @@ public class EscPosPrintJobSession : PrintJobSession
         [0x01] = PulsePin.Drawer2
     };
 
-    // private readonly BufferOptions bufferOptions;
-    // private double bufferedBytes;
-    private long lastDrainSampleMs;
-    // private bool hasOverflow;
-
-    //private bool IsBufferTrackingEnabled => bufferOptions.DrainRate.HasValue || bufferOptions.MaxCapacity.HasValue;
-
-    private readonly IClock clock;
     private readonly List<Element> elements = new();
     private readonly List<byte> textBytes = new();
     private int? activeTextLineIndex;
@@ -89,60 +71,26 @@ public class EscPosPrintJobSession : PrintJobSession
     //private Document? document;
     private Encoding currentEncoding = Encoding.GetEncoding(437);
     private string? pendingQrData;
-    private Printer printer;
 
-    public EscPosPrintJobSession(IClock clock, PrintJob job, IPrinterChannel channel) : base(job, channel)
+    public EscPosPrintJobSession(IClockFactory clockFactory, PrintJob job, IPrinterChannel channel) : base(clockFactory, job, channel)
     {
-        ArgumentNullException.ThrowIfNull(clock);
-        this.clock = clock;
-        this.clock.Start();
-        lastDrainSampleMs = this.clock.ElapsedMs;
+        ArgumentNullException.ThrowIfNull(clockFactory);
+        ArgumentNullException.ThrowIfNull(job);
+        ArgumentNullException.ThrowIfNull(channel);
     }
 
     public int Sequence => sequence;
 
     public long TotalConsumed => totalConsumed;
 
-    public IReadOnlyList<Element> Elements => elements;
-
-    public bool IsCompleted => isCompleted;
-
-    /// <inheritdoc />
-    public bool IsBufferBusy
-    {
-        get
-        {
-            // Advance the simulated buffer state using the injected clock before sampling busy status.
-            UpdateBufferState();
-
-            printer.
-            if (!IsBufferTrackingEnabled)
-            {
-                return false;
-            }
-
-            if (!bufferOptions.DrainRate.HasValue)
-            {
-                return false;
-            }
-
-            var threshold = bufferOptions.BusyThreshold is > 0 ? bufferOptions.BusyThreshold : 1;
-            return bufferedBytes >= threshold;
-        }
-    }
-
-    /// <inheritdoc />
-    public bool HasOverflow => hasOverflow;
-
-    public void Feed(ReadOnlySpan<byte> data)
+    public override Task Feed(ReadOnlyMemory<byte> input, CancellationToken ct)
     {
         if (isCompleted)
         {
             throw new InvalidOperationException("Cannot feed a completed tokenizer session.");
         }
 
-        // Drain the simulated buffer before processing the newly received bytes.
-        UpdateBufferState();
+        var data = input.Span;
 
         for (var index = 0; index < data.Length; index++)
         {
@@ -159,7 +107,7 @@ public class EscPosPrintJobSession : PrintJobSession
 
             CommitPendingText();
 
-            if (value == Services.Tokenizer.EscPosTokenizer.Lf)
+            if (value == Lf)
             {
                 // Command: Line Feed - output current line and start a new one.
                 // ASCII: LF
@@ -168,7 +116,7 @@ public class EscPosPrintJobSession : PrintJobSession
                 continue;
             }
 
-            if (value == Services.Tokenizer.EscPosTokenizer.Esc)
+            if (value == Esc)
             {
                 if (index + 1 < data.Length)
                 {
@@ -313,7 +261,7 @@ public class EscPosPrintJobSession : PrintJobSession
                 continue;
             }
 
-            if (value == Services.Tokenizer.EscPosTokenizer.Gs)
+            if (value == Gs)
             {
                 if (index + 1 < data.Length)
                 {
@@ -416,7 +364,7 @@ public class EscPosPrintJobSession : PrintJobSession
                         {
                             var payload = data.Slice(index + 8, payloadLength).ToArray();
                             FlushText(allowEmpty: false);
-                            StoreRasterImage(payload, widthBytes, height);
+                            //StoreRasterImage(payload, widthBytes, height);
                             index += 7 + payloadLength;
                             continue;
                         }
@@ -590,7 +538,7 @@ public class EscPosPrintJobSession : PrintJobSession
                 continue;
             }
 
-            if (value == Services.Tokenizer.EscPosTokenizer.Bell)
+            if (value == Bell)
             {
                 // Command: BEL - buzzer/beeper.
                 // ASCII: BEL
@@ -603,9 +551,11 @@ public class EscPosPrintJobSession : PrintJobSession
 
         totalConsumed += data.Length;
         CommitPendingText();
+
+        return base.Feed(input, ct);
     }
 
-    public void Complete(CompletionReason reason)
+    public override Task Complete(PrintJobCompletionReason reason)
     {
         if (isCompleted)
         {
@@ -619,62 +569,22 @@ public class EscPosPrintJobSession : PrintJobSession
         FlushText(allowEmpty: false);
 
         var snapshot = elements.ToArray();
-
-        document = new Document(0, 0, DateTimeOffset.UtcNow, Protocol.EscPos, null, snapshot, false);
-        isCompleted = true;
-    }
-
-    private void RegisterPrintingBytes(int count)
-    {
-        if (count <= 0)
-        {
-            return;
-        }
-
-        if (!IsBufferTrackingEnabled)
-        {
-            return;
-        }
-
-        UpdateBufferState();
-
-        bufferedBytes += count;
-
-        if (bufferOptions.MaxCapacity.HasValue && bufferedBytes > bufferOptions.MaxCapacity.Value)
-        {
-            TriggerOverflow();
-        }
+        //document = new Document(0, 0, DateTimeOffset.UtcNow, Protocol.EscPos, null, snapshot, false);
+        return base.Complete(reason);
     }
 
     private void TriggerOverflow()
     {
-        if (!bufferOptions.MaxCapacity.HasValue)
-        {
+        if (!HasOverflow)
             return;
-        }
 
-        if (!hasOverflow)
-        {
-            hasOverflow = true;
-            var message = string.Format(CultureInfo.InvariantCulture, "Simulated buffer overflow after {0:0} bytes", bufferedBytes);
-            elements.Add(new PrinterError(++sequence, message));
-        }
-
-        if (bufferOptions.MaxCapacity.Value > 0)
-        {
-            bufferedBytes = Math.Min(bufferedBytes, bufferOptions.MaxCapacity.Value);
-        }
-        else
-        {
-            bufferedBytes = 0;
-        }
+        var message = string.Format(CultureInfo.InvariantCulture, "Simulated buffer overflow after {0:0} bytes",
+            bufferedBytes);
+        elements.Add(new PrinterError(++sequence, message));
     }
 
     private void AppendPrintable(byte value)
     {
-        // Account for bytes that will be printed so busy/overflow tracking stays accurate.
-        RegisterPrintingBytes(1);
-
         if (!activeTextLineIndex.HasValue)
         {
             textBytes.Clear();
@@ -714,42 +624,42 @@ public class EscPosPrintJobSession : PrintJobSession
         }
     }
 
-    private void StoreRasterImage(byte[] payload, int widthBytes, int height)
-    {
-        if (payload.Length == 0 || widthBytes <= 0 || height <= 0)
-        {
-            return;
-        }
-
-        var widthDots = widthBytes * 8;
-
-        using var image = new Image<L8>(widthDots, height);
-        for (var y = 0; y < height; y++)
-        {
-            for (var x = 0; x < widthDots; x++)
-            {
-                var byteIndex = y * widthBytes + (x / 8);
-                if (byteIndex >= payload.Length)
-                {
-                    break;
-                }
-
-                var bitIndex = 7 - (x % 8);
-                var isBlack = (payload[byteIndex] & (1 << bitIndex)) != 0;
-                image[x, y] = isBlack ? new L8(0) : new L8(255);
-            }
-        }
-
-        using var pngStream = new MemoryStream();
-        image.SaveAsPng(pngStream, new PngEncoder { ColorType = PngColorType.Grayscale });
-        var buffer = pngStream.ToArray();
-        var checksum = Convert.ToHexString(SHA256.HashData(buffer));
-
-        var mediaMeta = new MediaMeta("image/png", buffer.LongLength, checksum);
-
-        var media = new MediaContent(mediaMeta, buffer.AsMemory());
-        elements.Add(new RasterImageContent(++sequence, widthDots, height, media));
-    }
+    // private void StoreRasterImage(byte[] payload, int widthBytes, int height)
+    // {
+    //     if (payload.Length == 0 || widthBytes <= 0 || height <= 0)
+    //     {
+    //         return;
+    //     }
+    //
+    //     var widthDots = widthBytes * 8;
+    //
+    //     using var image = new Image<L8>(widthDots, height);
+    //     for (var y = 0; y < height; y++)
+    //     {
+    //         for (var x = 0; x < widthDots; x++)
+    //         {
+    //             var byteIndex = y * widthBytes + (x / 8);
+    //             if (byteIndex >= payload.Length)
+    //             {
+    //                 break;
+    //             }
+    //
+    //             var bitIndex = 7 - (x % 8);
+    //             var isBlack = (payload[byteIndex] & (1 << bitIndex)) != 0;
+    //             image[x, y] = isBlack ? new L8(0) : new L8(255);
+    //         }
+    //     }
+    //
+    //     using var pngStream = new MemoryStream();
+    //     image.SaveAsPng(pngStream, new PngEncoder { ColorType = PngColorType.Grayscale });
+    //     var buffer = pngStream.ToArray();
+    //     var checksum = Convert.ToHexString(SHA256.HashData(buffer));
+    //
+    //     var mediaMeta = new MediaMeta("image/png", buffer.LongLength, checksum);
+    //
+    //     var media = new MediaContent(mediaMeta, buffer.AsMemory());
+    //     elements.Add(new RasterImageContent(++sequence, widthDots, height, media));
+    // }
 
     private static bool TryGetJustification(byte value, out TextJustification justification)
     {

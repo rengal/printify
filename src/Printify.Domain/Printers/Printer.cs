@@ -39,7 +39,7 @@ public sealed record Printer(
     string CreatedFromIp,
     int ListenTcpPortNumber,
     bool EmulateBufferCapacity,
-    double? BufferDrainRate,
+    decimal? BufferDrainRate,
     int? BufferMaxCapacity,
     bool IsPinned,
     bool IsDeleted)

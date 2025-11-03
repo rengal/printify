@@ -23,19 +23,19 @@ internal static class PrinterJobEntityMapper
         };
     }
 
-    internal static PrintJob ToDomain(this PrintJobEntity entity)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-
-        return new PrintJob(
-            entity.Id,
-            entity.PrinterId,
-            entity.DisplayName,
-            entity.Protocol,
-            entity.WidthInDots,
-            entity.HeightInDots,
-            entity.CreatedAt,
-            entity.CreatedFromIp,
-            entity.ListenTcpPortNumber);
-    }
+    // internal static PrintJob ToDomain(this PrintJobEntity entity)
+    // {
+    //     ArgumentNullException.ThrowIfNull(entity);
+    //
+    //     return new PrintJob(
+    //         entity.Id,
+    //         entity.PrinterId,
+    //         entity.DisplayName,
+    //         entity.Protocol,
+    //         entity.WidthInDots,
+    //         entity.HeightInDots,
+    //         entity.CreatedAt,
+    //         entity.CreatedFromIp,
+    //         entity.ListenTcpPortNumber);
+    // }
 }

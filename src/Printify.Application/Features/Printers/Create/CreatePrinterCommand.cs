@@ -12,5 +12,8 @@ public sealed record CreatePrinterCommand(
     Protocol Protocol,
     int WidthInDots,
     int? HeightInDots,
-    int? TcpListenPort)
+    int? TcpListenPort,
+    bool EmulateBufferCapacity,
+    decimal BufferDrainRate,
+    int? BufferMaxCapacity)
     : IRequest<Printer>, ITransactionalRequest;

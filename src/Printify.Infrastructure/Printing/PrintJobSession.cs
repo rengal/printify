@@ -1,30 +1,50 @@
 ﻿using Printify.Application.Printing;
+using Printify.Domain.Core;
 using Printify.Domain.Documents;
+using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
+using Printify.Domain.Services;
 
 namespace Printify.Infrastructure.Printing;
 
-public abstract class PrintJobSession(PrintJob job, IPrinterChannel channel) : IPrintJobSession
+public abstract class PrintJobSession : IPrintJobSession
 {
-    protected PrintJob Job { get; } = job;
-    protected IPrinterChannel Channel { get; } = channel;
-    protected Printer Printer => job.Printer;
+    #region IPrintJobSession Properties
 
-    /// <summary>
-    /// Bytes received from client
-    /// </summary>
-    public int TotalBytesReceived { get; private set; } = 0;
-    public int TotalBytesSent { get; private set; } = 0;
-    public bool IsCompleted { get; protected set; } = false;
-    /// <summary>
-    /// Bytes sent to client
-    /// </summary>
-    public DateTimeOffset LastReceivedBytes { get; private set; } = DateTimeOffset.Now;
-    public bool IsBufferBusy { get; protected set; } = false;
-    public bool HasOverflow { get; protected set; } = false;
+    public int TotalBytesReceived { get; private set; }
+    public int TotalBytesSent { get; private set; }
+    public DateTimeOffset LastReceivedBytes { get; private set; } = DateTimeOffset.UtcNow;
+    public bool IsBufferBusy
+    {
+        get
+        {
+            UpdateBufferState();
+
+            return Printer is { EmulateBufferCapacity: true, BufferDrainRate: > 0 } && bufferedBytes >= busyThreshold;
+        }
+    }
+
+    public bool HasOverflow
+    {
+        get
+        {
+            UpdateBufferState();
+            return Printer is { EmulateBufferCapacity: true, BufferDrainRate: > 0 } && bufferedBytes >= busyThreshold;
+        }
+    }
+
+    public bool IsCompleted { get; protected set; }
+    public IReadOnlyList<Element> Elements { get; protected set; } = new List<Element>();
     public Document? Document => null;
 
+    #endregion IPrintJobSession Properties
+
+    #region Protected Properties
+
+    protected PrintJob Job { get; }
+    protected IPrinterChannel Channel { get; }
+    protected Printer Printer => Job.Printer;
     public virtual Task Feed(ReadOnlyMemory<byte> data, CancellationToken ct)
     {
         if (IsCompleted || data.Length == 0)
@@ -32,10 +52,11 @@ public abstract class PrintJobSession(PrintJob job, IPrinterChannel channel) : I
 
         TotalBytesReceived += data.Length;
         LastReceivedBytes = DateTimeOffset.UtcNow;
+        idleClock.Start();
         return Task.CompletedTask;
     }
 
-    public Task Complete(PrintJobCompletionReason reason)
+    public virtual Task Complete(PrintJobCompletionReason reason)
     {
         if (IsCompleted)
             return Task.CompletedTask;
@@ -44,67 +65,82 @@ public abstract class PrintJobSession(PrintJob job, IPrinterChannel channel) : I
         return Task.CompletedTask;
     }
 
-    protected Task<bool> TrySend(ReadOnlyMemory<byte> data, CancellationToken ct)
+    #endregion
+
+    #region Private Members
+
+    protected int bufferedBytes;
+    private readonly IClock idleClock;
+    private readonly IClock drainClock;
+    private readonly int busyThreshold;
+    private const double BusyThresholdRatio = 0.5;
+
+    #endregion
+
+    #region Constructor
+
+    protected PrintJobSession(IClockFactory clockFactory, PrintJob job, IPrinterChannel channel)
+    {
+        Job = job;
+        Channel = channel;
+        busyThreshold = (int)(Printer.BufferMaxCapacity.GetValueOrDefault() * BusyThresholdRatio);
+        idleClock = clockFactory.Create();
+        drainClock = clockFactory.Create();
+    }
+
+    #endregion
+
+    #region Protected Methods
+
+    protected async Task<bool> TrySend(ReadOnlyMemory<byte> data, CancellationToken ct)
     {
         if (IsCompleted)
-            return Task.FromResult(false);
+            return false;
 
         TotalBytesSent += data.Length;
         try
         {
-            channel.WriteAsync(data, ct);
+            await Channel.WriteAsync(data, ct);
         }
         catch (Exception)
         {
-            return Task.FromResult(false);
+            return false;
         }
 
-        return Task.FromResult(true);
+        return true;
     }
 
-    private void UpdateBufferState()
+    protected void UpdateBufferState()
     {
-        if (!printer.IsBufferTrackingEnabled)
+        if (!Printer.EmulateBufferCapacity || Printer.BufferDrainRate == 0)
         {
             bufferedBytes = 0;
-            lastDrainSampleMs = clock.ElapsedMs;
             return;
         }
 
-        var currentMs = clock.ElapsedMs;
-
-        if (bufferedBytes <= 0)
-        {
-            lastDrainSampleMs = currentMs;
-            return;
-        }
-
-        if (!bufferOptions.DrainRate.HasValue)
-        {
-            bufferedBytes = 0;
-            lastDrainSampleMs = currentMs;
-            return;
-        }
-
-        if (bufferOptions.DrainRate.Value <= 0)
-        {
-            lastDrainSampleMs = currentMs;
-            return;
-        }
-
-        var elapsedMs = currentMs - lastDrainSampleMs;
+        var elapsedMs = drainClock.ElapsedMs;
         if (elapsedMs <= 0)
         {
             return;
         }
 
-        var drained = bufferOptions.DrainRate.Value * (elapsedMs / 1000.0);
+        if (!Printer.BufferDrainRate.HasValue)
+        {
+            bufferedBytes = 0;
+            return;
+        }
+
+        if (Printer.BufferDrainRate.Value <= 0)
+            return;
+
+        var drained = Printer.BufferDrainRate.Value * (elapsedMs / 1000.0);
         if (drained > 0)
         {
             // Reduce the buffered byte count while keeping it non-negative.
-            bufferedBytes = Math.Max(0d, bufferedBytes - drained);
+            bufferedBytes = Math.Max(0, (int)(bufferedBytes - drained));
         }
-
-        lastDrainSampleMs = currentMs;
+        drainClock.Start();
     }
+
+    #endregion
 }

@@ -1,20 +1,19 @@
 using System.Collections.Concurrent;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
-using Printify.Domain.Documents;
 using Printify.Domain.PrintJobs;
+using Printify.Domain.Services;
 
 namespace Printify.Infrastructure.Printing;
 
 /// <summary>
 /// Coordinates live print job sessions per printer channel.
 /// </summary>
-public sealed class PrintJobSessionsOrchestrator(IPrintJobRepository printJobRepository, TimeProvider clock) : IPrintJobSessionsOrchestrator
+public sealed class PrintJobSessionsOrchestrator(IPrintJobSessionFactory printJobSessionFactory, IPrintJobRepository printJobRepository, IClockFactory clockFactory) : IPrintJobSessionsOrchestrator
 {
-    private readonly TimeProvider timeProvider = clock ?? TimeProvider.System;
     private readonly ConcurrentDictionary<IPrinterChannel, IPrintJobSession> jobSessions = new();
 
-    public Task<IPrintJobSession> StartSessionAsync(IPrinterChannel channel, CancellationToken ct)
+    public async Task<IPrintJobSession> StartSessionAsync(IPrinterChannel channel, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(channel);
         ct.ThrowIfCancellationRequested();
@@ -24,35 +23,24 @@ public sealed class PrintJobSessionsOrchestrator(IPrintJobRepository printJobRep
         var printJob = new PrintJob(Guid.NewGuid(), printer, DateTimeOffset.Now, channel.ClientAddress);
         await printJobRepository.AddAsync(printJob, ct);
 
-        var jobSession = new PrintJobSession(printJob, channel);
+        var jobSession = await printJobSessionFactory.Create(printJob, channel, ct);
         jobSessions[channel] = jobSession;
-        return Task.FromResult(jobSession);
+        return jobSession;
     }
 
     public async Task FeedAsync(IPrinterChannel channel, ReadOnlyMemory<byte> data, CancellationToken ct)
     {
-        if (!jobSessions.TryGetValue(channel, out var session))
-        {
+        if (!jobSessions.TryGetValue(channel, out var session) || data.Length == 0)
             return;
-        }
-
-        if (data.Length == 0)
-        {
-            return;
-        }
 
         ct.ThrowIfCancellationRequested();
-        await session.Feed(data.Span).ConfigureAwait(false);
+        await session.Feed(data, ct);
     }
 
     public async Task CompleteAsync(IPrinterChannel channel, PrintJobCompletionReason reason, CancellationToken ct)
     {
         if (!jobSessions.TryRemove(channel, out var session))
-        {
             return;
-        }
-
-        ct.ThrowIfCancellationRequested();
         await session.Complete(reason).ConfigureAwait(false);
     }
 }

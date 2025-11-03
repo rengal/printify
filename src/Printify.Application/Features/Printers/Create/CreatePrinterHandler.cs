@@ -37,6 +37,9 @@ public sealed class CreatePrinterHandler(
             DateTimeOffset.UtcNow,
             request.Context.IpAddress,
             listenTcpPortNumber,
+            request.EmulateBufferCapacity,
+            request.BufferDrainRate,
+            request.BufferMaxCapacity,
             false,
             false);
 

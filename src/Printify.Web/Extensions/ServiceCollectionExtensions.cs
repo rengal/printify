@@ -10,12 +10,12 @@ using Printify.Domain.Config;
 using Printify.Infrastructure.Config;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Printing;
+using Printify.Infrastructure.Printing.Factories;
 using Printify.Infrastructure.Printing.Tcp;
 using Printify.Web.Infrastructure;
 using Printify.Infrastructure.Repositories;
 using Printify.Infrastructure.Security;
 using ListenerOptions = Printify.Domain.Config.ListenerOptions;
-
 namespace Printify.Web.Extensions;
 
 public static class ServiceCollectionExtensions
@@ -66,6 +66,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPrinterRepository, PrinterRepository>();
 
         // Printer listeners
+        services.AddSingleton<IPrintJobSessionFactory, PrintJobSessionFactory>();
         services.AddSingleton<IPrintJobSessionsOrchestrator, PrintJobSessionsOrchestrator>();
         services.AddSingleton<IPrinterListenerOrchestrator, PrinterListenerOrchestrator>();
         services.AddSingleton<IPrinterListenerFactory, PrinterListenerFactory>();
