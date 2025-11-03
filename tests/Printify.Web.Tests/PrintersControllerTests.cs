@@ -29,7 +29,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
-        var updateBody = new UpdatePrinterRequestDto("Updated Printer", "EscPos", 576, null, 9101, true, 1024, 4096);
+        var updateBody = new UpdatePrinterRequestDto("Updated Printer", "EscPos", 576, null, 9101, true, 1024m, 4096);
         var updateResponse = await client.PutAsJsonAsync($"/api/printers/{printerId}", updateBody);
         updateResponse.EnsureSuccessStatusCode();
 
@@ -38,6 +38,9 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         Assert.Equal("Updated Printer", updatedPrinter.DisplayName);
         Assert.Equal(576, updatedPrinter.WidthInDots);
         Assert.Equal(9101, updatedPrinter.TcpListenPort);
+        Assert.True(updatedPrinter.EmulateBufferCapacity);
+        Assert.Equal(1024m, updatedPrinter.BufferDrainRate);
+        Assert.Equal(4096, updatedPrinter.BufferMaxCapacity);
         Assert.False(updatedPrinter.IsPinned);
 
         var fetchResponse = await client.GetAsync($"/api/printers/{printerId}");
@@ -46,6 +49,9 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         Assert.NotNull(fetchedPrinter);
         Assert.Equal("Updated Printer", fetchedPrinter!.DisplayName);
         Assert.Equal(9101, fetchedPrinter.TcpListenPort);
+        Assert.True(fetchedPrinter.EmulateBufferCapacity);
+        Assert.Equal(1024m, fetchedPrinter.BufferDrainRate);
+        Assert.Equal(4096, fetchedPrinter.BufferMaxCapacity);
         Assert.False(fetchedPrinter.IsPinned);
     }
 
@@ -57,7 +63,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         await AuthenticateAsync(environment, "pinner");
 
         var printerId = Guid.NewGuid();
-        var createRequest = new CreatePrinterRequestDto(printerId, "Pin Printer", "EscPos", 512, null, 9104, false, null, null);
+        var createRequest = new CreatePrinterRequestDto(printerId, "Pin Printer", "EscPos", 512, null, 9104, true, 2048m, 8192);
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -67,6 +73,9 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         Assert.NotNull(pinnedPrinter);
         Assert.True(pinnedPrinter!.IsPinned);
         Assert.Equal(9104, pinnedPrinter.TcpListenPort);
+        Assert.True(pinnedPrinter.EmulateBufferCapacity);
+        Assert.Equal(2048m, pinnedPrinter.BufferDrainRate);
+        Assert.Equal(8192, pinnedPrinter.BufferMaxCapacity);
 
         var fetchResponse = await client.GetAsync($"/api/printers/{printerId}");
         fetchResponse.EnsureSuccessStatusCode();
@@ -74,6 +83,9 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         Assert.NotNull(fetchedPrinter);
         Assert.True(fetchedPrinter.IsPinned);
         Assert.Equal(9104, fetchedPrinter.TcpListenPort);
+        Assert.True(fetchedPrinter.EmulateBufferCapacity);
+        Assert.Equal(2048m, fetchedPrinter.BufferDrainRate);
+        Assert.Equal(8192, fetchedPrinter.BufferMaxCapacity);
 
         var unpinResponse = await client.PostAsJsonAsync($"/api/printers/{printerId}/pin", new PinPrinterRequestDto(false));
         unpinResponse.EnsureSuccessStatusCode();
@@ -81,6 +93,9 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         Assert.NotNull(unpinnedPrinter);
         Assert.False(unpinnedPrinter!.IsPinned);
         Assert.Equal(9104, unpinnedPrinter.TcpListenPort);
+        Assert.True(unpinnedPrinter.EmulateBufferCapacity);
+        Assert.Equal(2048m, unpinnedPrinter.BufferDrainRate);
+        Assert.Equal(8192, unpinnedPrinter.BufferMaxCapacity);
     }
 
     [Fact]

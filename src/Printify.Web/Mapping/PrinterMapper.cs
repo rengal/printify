@@ -18,6 +18,9 @@ internal static class PrinterMapper
             printer.WidthInDots,
             printer.HeightInDots,
             printer.ListenTcpPortNumber,
+            printer.EmulateBufferCapacity,
+            printer.BufferDrainRate,
+            printer.BufferMaxCapacity,
             printer.IsPinned);
     }
 

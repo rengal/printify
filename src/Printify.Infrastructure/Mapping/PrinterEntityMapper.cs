@@ -21,6 +21,9 @@ internal static class PrinterEntityMapper
             CreatedAt = printer.CreatedAt,
             CreatedFromIp = printer.CreatedFromIp,
             ListenTcpPortNumber = printer.ListenTcpPortNumber,
+            EmulateBufferCapacity = printer.EmulateBufferCapacity,
+            BufferDrainRate = printer.BufferDrainRate,
+            BufferMaxCapacity = printer.BufferMaxCapacity,
             IsPinned = printer.IsPinned,
             IsDeleted = printer.IsDeleted
         };
@@ -48,4 +51,3 @@ internal static class PrinterEntityMapper
             entity.IsDeleted);
     }
 }
-
