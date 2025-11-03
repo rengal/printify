@@ -7,22 +7,6 @@ namespace Printify.Web.Mapping;
 
 internal static class CommandMapper
 {
-    // internal static CreateDocumentCommand ToCommand(CreateDocumentRequest request, string? sourceIp)
-    // {
-    //     ArgumentNullException.ThrowIfNull(request);
-    //
-    //     var protocol = ParseProtocol(request.Protocol);
-    //     var elements = request.Elements?.Select(ToDomainElement).ToList() ?? new List<Element>();
-    //
-    //     return new CreateDocumentCommand
-    //         {
-    //         request.PrinterId,
-    //         protocol,
-    //         sourceIp,
-    //         elements
-    //         }
-    // }
-
     internal static Features.Printers.Create.CreatePrinterCommand ToCommand(this WebApi.Printers.Requests.CreatePrinterRequestDto request,  RequestContext context)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -81,10 +65,9 @@ internal static class CommandMapper
     private static Protocol ParseProtocol(string protocol)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(protocol);
-
-        if (Enum.TryParse(protocol, true, out Protocol parsed))
+        if (protocol.ToLower() == "escpos")
         {
-            return parsed;
+            return Protocol.EscPos;
         }
 
         throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Protocol is not supported.");

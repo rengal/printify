@@ -28,7 +28,7 @@ public sealed class UpdatePrinterHandler(
         var updated = printer with
         {
             DisplayName = request.DisplayName,
-            Protocol = request.Protocol.ToString(),
+            Protocol = request.Protocol,
             WidthInDots = request.WidthInDots,
             HeightInDots = request.HeightInDots,
             ListenTcpPortNumber = request.TcpListenPort ?? printer.ListenTcpPortNumber,

@@ -1,9 +1,13 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using Printify.Application.Printing;
+using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
+
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
@@ -62,7 +66,7 @@ public class EscPosPrintJobSession : PrintJobSession
         [0x01] = PulsePin.Drawer2
     };
 
-    private readonly List<Element> elements = new();
+    private IList<Element> ElementBuffer => MutableElements;
     private readonly List<byte> textBytes = new();
     private int? activeTextLineIndex;
     private int sequence;
@@ -128,7 +132,7 @@ public class EscPosPrintJobSession : PrintJobSession
                     if (command == (byte)'i' || command == (byte)'m')
                     {
                         FlushText(allowEmpty: false);
-                        elements.Add(new Pagecut(++sequence));
+                        ElementBuffer.Add(new Pagecut(++sequence));
                         index += 1;
                         continue;
                     }
@@ -143,7 +147,7 @@ public class EscPosPrintJobSession : PrintJobSession
                         {
                             FlushText(allowEmpty: false);
                             UpdateCodePage(codePage);
-                            elements.Add(new SetCodePage(++sequence, codePage));
+                            ElementBuffer.Add(new SetCodePage(++sequence, codePage));
                         }
 
                         index += 2;
@@ -162,7 +166,7 @@ public class EscPosPrintJobSession : PrintJobSession
                         var pin = PulsePinMap.GetValueOrDefault(pinId, PulsePin.Drawer1);
                         var onTimeMs = onTime * 2;
                         var offTimeMs = offTime * 2;
-                        elements.Add(new Pulse(++sequence, pin, onTimeMs, offTimeMs));
+                        ElementBuffer.Add(new Pulse(++sequence, pin, onTimeMs, offTimeMs));
                         index += 4;
                         continue;
                     }
@@ -174,7 +178,7 @@ public class EscPosPrintJobSession : PrintJobSession
                     {
                         FlushText(allowEmpty: false);
                         var enabled = data[index + 2] != 0;
-                        elements.Add(new SetBoldMode(++sequence, enabled));
+                        ElementBuffer.Add(new SetBoldMode(++sequence, enabled));
                         index += 2;
                         continue;
                     }
@@ -186,7 +190,7 @@ public class EscPosPrintJobSession : PrintJobSession
                     {
                         FlushText(allowEmpty: false);
                         var enabled = data[index + 2] != 0;
-                        elements.Add(new SetUnderlineMode(++sequence, enabled));
+                        ElementBuffer.Add(new SetUnderlineMode(++sequence, enabled));
                         index += 2;
                         continue;
                     }
@@ -200,7 +204,7 @@ public class EscPosPrintJobSession : PrintJobSession
                         var justificationValue = data[index + 2];
                         if (TryGetJustification(justificationValue, out var justification))
                         {
-                            elements.Add(new SetJustification(++sequence, justification));
+                            ElementBuffer.Add(new SetJustification(++sequence, justification));
                         }
 
                         index += 2;
@@ -214,7 +218,7 @@ public class EscPosPrintJobSession : PrintJobSession
                     if (command == 0x40)
                     {
                         FlushText(allowEmpty: false);
-                        elements.Add(new ResetPrinter(++sequence));
+                        ElementBuffer.Add(new ResetPrinter(++sequence));
                         index += 1;
                         continue;
                     }
@@ -229,7 +233,7 @@ public class EscPosPrintJobSession : PrintJobSession
                         var fontNumber = parameter & 0x07;
                         var isDoubleHeight = (parameter & 0x10) != 0;
                         var isDoubleWidth = (parameter & 0x20) != 0;
-                        elements.Add(new SetFont(++sequence, fontNumber, isDoubleWidth, isDoubleHeight));
+                        ElementBuffer.Add(new SetFont(++sequence, fontNumber, isDoubleWidth, isDoubleHeight));
                         index += 2;
                         continue;
                     }
@@ -241,7 +245,7 @@ public class EscPosPrintJobSession : PrintJobSession
                     {
                         FlushText(allowEmpty: false);
                         var spacing = data[index + 2];
-                        elements.Add(new SetLineSpacing(++sequence, spacing));
+                        ElementBuffer.Add(new SetLineSpacing(++sequence, spacing));
                         index += 2;
                         continue;
                     }
@@ -252,7 +256,7 @@ public class EscPosPrintJobSession : PrintJobSession
                     if (command == 0x32)
                     {
                         FlushText(allowEmpty: false);
-                        elements.Add(new SetLineSpacing(++sequence, 30));
+                        ElementBuffer.Add(new SetLineSpacing(++sequence, 30));
                         index += 1;
                         continue;
                     }
@@ -288,7 +292,7 @@ public class EscPosPrintJobSession : PrintJobSession
                                         if (payloadSpan.Length > 0 && TryGetQrModel(payloadSpan[0], out var model))
                                         {
                                             FlushText(allowEmpty: false);
-                                            elements.Add(new SetQrModel(++sequence, model));
+                                            ElementBuffer.Add(new SetQrModel(++sequence, model));
                                             handled = true;
                                         }
 
@@ -298,7 +302,7 @@ public class EscPosPrintJobSession : PrintJobSession
                                         if (payloadSpan.Length > 0)
                                         {
                                             FlushText(allowEmpty: false);
-                                            elements.Add(new SetQrModuleSize(++sequence, payloadSpan[0]));
+                                            ElementBuffer.Add(new SetQrModuleSize(++sequence, payloadSpan[0]));
                                             handled = true;
                                         }
 
@@ -308,7 +312,7 @@ public class EscPosPrintJobSession : PrintJobSession
                                         if (payloadSpan.Length > 0 && TryGetQrErrorCorrection(payloadSpan[0], out var level))
                                         {
                                             FlushText(allowEmpty: false);
-                                            elements.Add(new SetQrErrorCorrection(++sequence, level));
+                                            ElementBuffer.Add(new SetQrErrorCorrection(++sequence, level));
                                             handled = true;
                                         }
 
@@ -320,7 +324,7 @@ public class EscPosPrintJobSession : PrintJobSession
                                             var content = contentSpan.Length > 0 ? currentEncoding.GetString(contentSpan) : string.Empty;
                                             pendingQrData = content;
                                             FlushText(allowEmpty: false);
-                                            elements.Add(new StoreQrData(++sequence, content));
+                                            ElementBuffer.Add(new StoreQrData(++sequence, content));
                                             handled = true;
                                             break;
                                         }
@@ -329,7 +333,7 @@ public class EscPosPrintJobSession : PrintJobSession
                                         {
                                             var content = pendingQrData ?? string.Empty;
                                             FlushText(allowEmpty: false);
-                                            elements.Add(new PrintQrCode(++sequence, content));
+                                            ElementBuffer.Add(new PrintQrCode(++sequence, content));
                                             handled = true;
                                             break;
                                         }
@@ -377,7 +381,7 @@ public class EscPosPrintJobSession : PrintJobSession
                     {
                         FlushText(allowEmpty: false);
                         var status = data[index + 2];
-                        elements.Add(new PrinterStatus(++sequence, status, null));
+                        ElementBuffer.Add(new PrinterStatus(++sequence, status, null));
                         index += 2;
                         continue;
                     }
@@ -389,7 +393,7 @@ public class EscPosPrintJobSession : PrintJobSession
                     {
                         FlushText(allowEmpty: false);
                         var height = data[index + 2];
-                        elements.Add(new SetBarcodeHeight(++sequence, height));
+                        ElementBuffer.Add(new SetBarcodeHeight(++sequence, height));
                         index += 2;
                         continue;
                     }
@@ -401,7 +405,7 @@ public class EscPosPrintJobSession : PrintJobSession
                     {
                         FlushText(allowEmpty: false);
                         var width = data[index + 2];
-                        elements.Add(new SetBarcodeModuleWidth(++sequence, width));
+                        ElementBuffer.Add(new SetBarcodeModuleWidth(++sequence, width));
                         index += 2;
                         continue;
                     }
@@ -415,7 +419,7 @@ public class EscPosPrintJobSession : PrintJobSession
                         var positionValue = data[index + 2];
                         if (TryGetBarcodeLabelPosition(positionValue, out var position))
                         {
-                            elements.Add(new SetBarcodeLabelPosition(++sequence, position));
+                            ElementBuffer.Add(new SetBarcodeLabelPosition(++sequence, position));
                         }
 
                         index += 2;
@@ -453,7 +457,7 @@ public class EscPosPrintJobSession : PrintJobSession
 
                             var payload = data.Slice(payloadStart, length).ToArray();
                             var content = currentEncoding.GetString(payload);
-                            elements.Add(new PrintBarcode(++sequence, symbology, content));
+                            ElementBuffer.Add(new PrintBarcode(++sequence, symbology, content));
                             index += 3 + length;
                             continue;
                         }
@@ -470,7 +474,7 @@ public class EscPosPrintJobSession : PrintJobSession
                             var payloadLength = terminatorIndex - payloadStart;
                             var payload = payloadLength > 0 ? data.Slice(payloadStart, payloadLength).ToArray() : Array.Empty<byte>();
                             var content = currentEncoding.GetString(payload);
-                            elements.Add(new PrintBarcode(++sequence, symbology, content));
+                            ElementBuffer.Add(new PrintBarcode(++sequence, symbology, content));
                             index = terminatorIndex;
                             continue;
                         }
@@ -483,7 +487,7 @@ public class EscPosPrintJobSession : PrintJobSession
                     {
                         FlushText(allowEmpty: false);
                         var enabled = data[index + 2] != 0;
-                        elements.Add(new SetReverseMode(++sequence, enabled));
+                        ElementBuffer.Add(new SetReverseMode(++sequence, enabled));
                         index += 2;
                         continue;
                     }
@@ -496,7 +500,7 @@ public class EscPosPrintJobSession : PrintJobSession
                         FlushText(allowEmpty: false);
                         var skip = index + 3 < data.Length ? 3 : 2;
                         index += skip;
-                        elements.Add(new Pagecut(++sequence));
+                        ElementBuffer.Add(new Pagecut(++sequence));
                         continue;
                     }
                 }
@@ -517,7 +521,7 @@ public class EscPosPrintJobSession : PrintJobSession
                         // HEX: 1C 26
                         FlushText(allowEmpty: false);
                         UpdateCodePage("936");
-                        elements.Add(new SetCodePage(++sequence, "936"));
+                        ElementBuffer.Add(new SetCodePage(++sequence, "936"));
                         index += 1;
                         continue;
                     }
@@ -529,7 +533,7 @@ public class EscPosPrintJobSession : PrintJobSession
                         // HEX: 1C 70 0xMM 0xNN
                         FlushText(allowEmpty: false);
                         var logoId = data[index + 3];
-                        elements.Add(new StoredLogo(++sequence, logoId));
+                        ElementBuffer.Add(new StoredLogo(++sequence, logoId));
                         index += 3;
                         continue;
                     }
@@ -544,7 +548,7 @@ public class EscPosPrintJobSession : PrintJobSession
                 // ASCII: BEL
                 // HEX: 07
                 FlushText(allowEmpty: false);
-                elements.Add(new Bell(++sequence));
+                ElementBuffer.Add(new Bell(++sequence));
                 continue;
             }
         }
@@ -568,8 +572,17 @@ public class EscPosPrintJobSession : PrintJobSession
         CommitPendingText();
         FlushText(allowEmpty: false);
 
-        var snapshot = elements.ToArray();
-        //document = new Document(0, 0, DateTimeOffset.UtcNow, Protocol.EscPos, null, snapshot, false);
+        var snapshot = ElementBuffer.ToArray();
+        var document = new Document(
+            Guid.NewGuid(),
+            Job.Id,
+            Printer.Id,
+            DateTimeOffset.UtcNow,
+            Printer.Protocol,
+            Channel.ClientAddress,
+            snapshot);
+        SetDocument(document);
+
         return base.Complete(reason);
     }
 
@@ -580,7 +593,7 @@ public class EscPosPrintJobSession : PrintJobSession
 
         var message = string.Format(CultureInfo.InvariantCulture, "Simulated buffer overflow after {0:0} bytes",
             bufferedBytes);
-        elements.Add(new PrinterError(++sequence, message));
+        ElementBuffer.Add(new PrinterError(++sequence, message));
     }
 
     private void AppendPrintable(byte value)
@@ -588,8 +601,8 @@ public class EscPosPrintJobSession : PrintJobSession
         if (!activeTextLineIndex.HasValue)
         {
             textBytes.Clear();
-            activeTextLineIndex = elements.Count;
-            elements.Add(new TextLine(++sequence, string.Empty));
+            activeTextLineIndex = ElementBuffer.Count;
+            ElementBuffer.Add(new TextLine(++sequence, string.Empty));
         }
 
         textBytes.Add(value);
@@ -603,9 +616,9 @@ public class EscPosPrintJobSession : PrintJobSession
         }
 
         var index = activeTextLineIndex.Value;
-        var existing = (TextLine)elements[index];
+        var existing = (TextLine)ElementBuffer[index];
         var text = currentEncoding.GetString(textBytes.ToArray());
-        elements[index] = existing with { Text = text };
+        ElementBuffer[index] = existing with { Text = text };
     }
 
     private void FlushText(bool allowEmpty)
@@ -620,7 +633,7 @@ public class EscPosPrintJobSession : PrintJobSession
 
         if (allowEmpty)
         {
-            elements.Add(new TextLine(++sequence, string.Empty));
+            ElementBuffer.Add(new TextLine(++sequence, string.Empty));
         }
     }
 
@@ -658,7 +671,7 @@ public class EscPosPrintJobSession : PrintJobSession
     //     var mediaMeta = new MediaMeta("image/png", buffer.LongLength, checksum);
     //
     //     var media = new MediaContent(mediaMeta, buffer.AsMemory());
-    //     elements.Add(new RasterImageContent(++sequence, widthDots, height, media));
+    //     ElementBuffer.Add(new RasterImageContent(++sequence, widthDots, height, media));
     // }
 
     private static bool TryGetJustification(byte value, out TextJustification justification)

@@ -1,4 +1,5 @@
-﻿using Printify.Application.Printing;
+﻿using System.Collections.Generic;
+using Printify.Application.Printing;
 using Printify.Domain.Core;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
@@ -11,6 +12,9 @@ namespace Printify.Infrastructure.Printing;
 public abstract class PrintJobSession : IPrintJobSession
 {
     #region IPrintJobSession Properties
+
+    private readonly List<Element> elements = new();
+    private Document? document;
 
     public int TotalBytesReceived { get; private set; }
     public int TotalBytesSent { get; private set; }
@@ -35,8 +39,8 @@ public abstract class PrintJobSession : IPrintJobSession
     }
 
     public bool IsCompleted { get; protected set; }
-    public IReadOnlyList<Element> Elements { get; protected set; } = new List<Element>();
-    public Document? Document => null;
+    public IReadOnlyList<Element> Elements => elements;
+    public Document? Document => document;
 
     #endregion IPrintJobSession Properties
 
@@ -63,6 +67,13 @@ public abstract class PrintJobSession : IPrintJobSession
 
         IsCompleted = true;
         return Task.CompletedTask;
+    }
+
+    protected IList<Element> MutableElements => elements;
+
+    protected void SetDocument(Document value)
+    {
+        document = value;
     }
 
     #endregion

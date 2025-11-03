@@ -31,7 +31,7 @@ public sealed class CreatePrinterHandler(
             request.Context.UserId,
             request.Context.AnonymousSessionId,
             request.DisplayName,
-            request.Protocol.ToString(),
+            request.Protocol,
             request.WidthInDots,
             request.HeightInDots,
             DateTimeOffset.UtcNow,

@@ -125,6 +125,12 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         public IPrinterListenerOrchestrator PrinterListenerOrchestrator =>
             Factory.Services.GetRequiredService<IPrinterListenerOrchestrator>();
 
+        public IPrintJobSessionsOrchestrator PrintJobSessionsOrchestrator =>
+            Factory.Services.GetRequiredService<IPrintJobSessionsOrchestrator>();
+
+        public IPrinterDocumentStream DocumentStream =>
+            Factory.Services.GetRequiredService<IPrinterDocumentStream>();
+
         public async ValueTask DisposeAsync()
         {
             // Dispose leaves first

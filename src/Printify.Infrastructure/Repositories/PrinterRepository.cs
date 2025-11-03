@@ -78,23 +78,9 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
             .ConfigureAwait(false);
 
         if (entity is null)
-        {
             throw new InvalidOperationException($"Printer {printer.Id} does not exist.");
-        }
 
-        entity.OwnerUserId = printer.OwnerUserId;
-        entity.OwnerAnonymousSessionId = printer.OwnerAnonymousSessionId;
-        entity.DisplayName = printer.DisplayName;
-        entity.Protocol = printer.Protocol;
-        entity.WidthInDots = printer.WidthInDots;
-        entity.HeightInDots = printer.HeightInDots;
-        entity.ListenTcpPortNumber = printer.ListenTcpPortNumber;
-        entity.EmulateBufferCapacity = printer.EmulateBufferCapacity;
-        entity.BufferDrainRate = printer.BufferDrainRate;
-        entity.BufferMaxCapacity = printer.BufferMaxCapacity;
-        entity.CreatedFromIp = printer.CreatedFromIp;
-        entity.IsPinned = printer.IsPinned;
-        entity.IsDeleted = printer.IsDeleted;
+        printer.MapToEntity(entity);
 
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }

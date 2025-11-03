@@ -32,7 +32,7 @@ public sealed record Printer(
     Guid? OwnerUserId,
     Guid? OwnerAnonymousSessionId,
     string DisplayName,
-    string Protocol,
+    Protocol Protocol,
     int WidthInDots,
     int? HeightInDots,
     DateTimeOffset CreatedAt,

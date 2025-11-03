@@ -5,28 +5,34 @@ namespace Printify.Infrastructure.Mapping;
 
 internal static class PrinterEntityMapper
 {
+    internal static void MapToEntity(this Printer printer, PrinterEntity entity)
+    {
+        ArgumentNullException.ThrowIfNull(printer);
+        ArgumentNullException.ThrowIfNull(entity);
+        entity.Id = printer.Id;
+        entity.OwnerUserId = printer.OwnerUserId;
+        entity.OwnerAnonymousSessionId = printer.OwnerAnonymousSessionId;
+        entity.DisplayName = printer.DisplayName;
+        entity.Protocol = ProtocolMapper.ToString(printer.Protocol);
+        entity.WidthInDots = printer.WidthInDots;
+        entity.HeightInDots = printer.HeightInDots;
+        entity.CreatedAt = printer.CreatedAt;
+        entity.ListenTcpPortNumber = printer.ListenTcpPortNumber;
+        entity.EmulateBufferCapacity = printer.EmulateBufferCapacity;
+        entity.BufferDrainRate = printer.BufferDrainRate;
+        entity.BufferMaxCapacity = printer.BufferMaxCapacity;
+        entity.CreatedFromIp = printer.CreatedFromIp;
+        entity.IsPinned = printer.IsPinned;
+        entity.IsDeleted = printer.IsDeleted;
+    }
+
     internal static PrinterEntity ToEntity(this Printer printer)
     {
         ArgumentNullException.ThrowIfNull(printer);
 
-        return new PrinterEntity
-        {
-            Id = printer.Id,
-            OwnerUserId = printer.OwnerUserId,
-            OwnerAnonymousSessionId = printer.OwnerAnonymousSessionId,
-            DisplayName = printer.DisplayName,
-            Protocol = printer.Protocol,
-            WidthInDots = printer.WidthInDots,
-            HeightInDots = printer.HeightInDots,
-            CreatedAt = printer.CreatedAt,
-            CreatedFromIp = printer.CreatedFromIp,
-            ListenTcpPortNumber = printer.ListenTcpPortNumber,
-            EmulateBufferCapacity = printer.EmulateBufferCapacity,
-            BufferDrainRate = printer.BufferDrainRate,
-            BufferMaxCapacity = printer.BufferMaxCapacity,
-            IsPinned = printer.IsPinned,
-            IsDeleted = printer.IsDeleted
-        };
+        var entity = new PrinterEntity();
+        printer.MapToEntity(entity);
+        return entity;
     }
 
     internal static Printer ToDomain(this PrinterEntity entity)
@@ -38,7 +44,7 @@ internal static class PrinterEntityMapper
             entity.OwnerUserId,
             entity.OwnerAnonymousSessionId,
             entity.DisplayName,
-            entity.Protocol,
+            ProtocolMapper.ParseProtocol(entity.Protocol),
             entity.WidthInDots,
             entity.HeightInDots,
             entity.CreatedAt,

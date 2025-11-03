@@ -11,10 +11,14 @@ namespace Printify.Infrastructure.Printing;
 /// </summary>
 public sealed class PrintJobSessionsOrchestrator(
     IPrintJobSessionFactory printJobSessionFactory,
-    IServiceScopeFactory scopeFactory)
+    IServiceScopeFactory scopeFactory,
+    IDocumentRepository documentRepository,
+    IPrinterDocumentStream documentStream)
     : IPrintJobSessionsOrchestrator
 {
     private readonly ConcurrentDictionary<IPrinterChannel, IPrintJobSession> jobSessions = new();
+    private readonly IDocumentRepository documentRepository = documentRepository;
+    private readonly IPrinterDocumentStream documentStream = documentStream;
 
     public async Task<IPrintJobSession> StartSessionAsync(IPrinterChannel channel, CancellationToken ct)
     {
@@ -35,6 +39,16 @@ public sealed class PrintJobSessionsOrchestrator(
         return jobSession;
     }
 
+    public Task<IPrintJobSession?> GetSessionAsync(IPrinterChannel channel, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(channel);
+        ct.ThrowIfCancellationRequested();
+
+        return jobSessions.TryGetValue(channel, out var session)
+            ? Task.FromResult<IPrintJobSession?>(session)
+            : Task.FromResult<IPrintJobSession?>(null);
+    }
+
     public async Task FeedAsync(IPrinterChannel channel, ReadOnlyMemory<byte> data, CancellationToken ct)
     {
         if (!jobSessions.TryGetValue(channel, out var session) || data.Length == 0)
@@ -49,5 +63,12 @@ public sealed class PrintJobSessionsOrchestrator(
         if (!jobSessions.TryRemove(channel, out var session))
             return;
         await session.Complete(reason).ConfigureAwait(false);
+
+        var document = session.Document;
+        if (document is not null)
+        {
+            await documentRepository.AddAsync(document, ct).ConfigureAwait(false);
+            documentStream.Publish(new DocumentStreamEvent(document));
+        }
     }
 }

@@ -1,5 +1,5 @@
-﻿using System;
-using Printify.Application.Printing;
+﻿using Printify.Application.Printing;
+using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
 using Printify.Infrastructure.Printing.EscPos;
@@ -11,7 +11,7 @@ public class PrintJobSessionFactory(IClockFactory clockFactory) : IPrintJobSessi
     public Task<IPrintJobSession> Create(PrintJob job, IPrinterChannel channel, CancellationToken ct)
     {
         var protocol = channel.Printer.Protocol;
-        if (string.Equals(protocol, "escpos", StringComparison.OrdinalIgnoreCase))
+        if (protocol == Protocol.EscPos)
             return Task.FromResult<IPrintJobSession>(new EscPosPrintJobSession(clockFactory, job, channel));
         throw new ArgumentOutOfRangeException(nameof(protocol));
     }

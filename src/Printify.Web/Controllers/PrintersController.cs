@@ -1,15 +1,19 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Printify.Application.Features.Printers.Delete;
 using Printify.Application.Features.Printers.Get;
 using Printify.Application.Features.Printers.List;
 using Printify.Application.Features.Printers.Update;
+using Printify.Application.Printing;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Infrastructure;
@@ -22,10 +26,18 @@ namespace Printify.Web.Controllers;
 public sealed class PrintersController : ControllerBase
 {
     private readonly IMediator mediator;
+    private readonly IPrinterDocumentStream documentStream;
+    private readonly JsonSerializerOptions jsonOptions;
 
-    public PrintersController(IMediator mediator)
+    public PrintersController(
+        IMediator mediator,
+        IPrinterDocumentStream documentStream,
+        IOptions<JsonOptions> jsonOptions)
     {
         this.mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
+        this.documentStream = documentStream ?? throw new ArgumentNullException(nameof(documentStream));
+        ArgumentNullException.ThrowIfNull(jsonOptions);
+        this.jsonOptions = jsonOptions.Value.JsonSerializerOptions;
     }
 
     [Authorize]
@@ -56,6 +68,37 @@ public sealed class PrintersController : ControllerBase
     public Task<IActionResult> ResolveTemporary([FromBody] ResolveTemporaryRequest request, CancellationToken cancellationToken)
     {
         return Task.FromResult<IActionResult>(NoContent());
+    }
+
+    [Authorize]
+    [HttpGet("{id:guid}/documents/stream")]
+    public async Task StreamDocuments(Guid id, CancellationToken cancellationToken)
+    {
+        var context = HttpContext.CaptureRequestContext();
+        var printer = await mediator.Send(new GetPrinterQuery(id, context), cancellationToken);
+        if (printer is null)
+        {
+            Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["X-Accel-Buffering"] = "no";
+        Response.ContentType = "text/event-stream";
+
+        try
+        {
+            await foreach (var documentEvent in documentStream.Subscribe(id, cancellationToken))
+            {
+                var payload = JsonSerializer.Serialize(documentEvent.Document, jsonOptions);
+                await Response.WriteAsync("event: documentReady\n", cancellationToken);
+                await Response.WriteAsync($"data: {payload}\n\n", cancellationToken);
+                await Response.Body.FlushAsync(cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 
     [Authorize]

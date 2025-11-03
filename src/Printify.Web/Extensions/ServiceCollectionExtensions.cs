@@ -71,6 +71,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPrintJobSessionsOrchestrator, PrintJobSessionsOrchestrator>();
         services.AddSingleton<IPrinterListenerOrchestrator, PrinterListenerOrchestrator>();
         services.AddSingleton<IPrinterListenerFactory, PrinterListenerFactory>();
+        services.AddSingleton<IPrinterDocumentStream, PrinterDocumentStream>();
+        services.AddSingleton<IDocumentRepository, DocumentRepository>();
         //services.AddHostedService<PrinterListenerBootstrapper>();
 
         return services;

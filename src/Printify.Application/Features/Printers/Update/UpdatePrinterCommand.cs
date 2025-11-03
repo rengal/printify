@@ -1,4 +1,3 @@
-using System;
 using MediatR;
 using Printify.Domain.Printers;
 using Printify.Domain.Requests;

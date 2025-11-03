@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Printify.Domain.Printers;
 using Printify.Web.Contracts.Printers.Responses;
 
@@ -14,7 +11,7 @@ internal static class PrinterMapper
         return new PrinterDto(
             printer.Id,
             printer.DisplayName,
-            printer.Protocol,
+            printer.Protocol.ToDto(),
             printer.WidthInDots,
             printer.HeightInDots,
             printer.ListenTcpPortNumber,
@@ -22,6 +19,15 @@ internal static class PrinterMapper
             printer.BufferDrainRate,
             printer.BufferMaxCapacity,
             printer.IsPinned);
+    }
+
+    internal static string ToDto(this Protocol protocol)
+    {
+        return protocol switch
+        {
+            Protocol.EscPos => "escpos",
+            _ => throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Unsupported protocol value.")
+        };
     }
 
     internal static IReadOnlyList<PrinterDto> ToDtos(this IEnumerable<Printer> printers)
