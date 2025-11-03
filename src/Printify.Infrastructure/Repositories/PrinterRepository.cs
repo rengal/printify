@@ -89,6 +89,9 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         entity.WidthInDots = printer.WidthInDots;
         entity.HeightInDots = printer.HeightInDots;
         entity.ListenTcpPortNumber = printer.ListenTcpPortNumber;
+        entity.EmulateBufferCapacity = printer.EmulateBufferCapacity;
+        entity.BufferDrainRate = printer.BufferDrainRate;
+        entity.BufferMaxCapacity = printer.BufferMaxCapacity;
         entity.CreatedFromIp = printer.CreatedFromIp;
         entity.IsPinned = printer.IsPinned;
         entity.IsDeleted = printer.IsDeleted;

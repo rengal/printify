@@ -1,5 +1,3 @@
-using System;
-
 namespace Printify.Web.Contracts.Printers.Requests;
 
 /// <summary>
@@ -16,4 +14,7 @@ public sealed record CreatePrinterRequestDto(
     string Protocol,
     int WidthInDots,
     int? HeightInDots,
-    int TcpListenPort);
+    int TcpListenPort,
+    bool EmulateBufferCapacity,
+    decimal? BufferDrainRate,
+    int? BufferMaxCapacity);

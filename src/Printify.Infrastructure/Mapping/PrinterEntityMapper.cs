@@ -41,6 +41,9 @@ internal static class PrinterEntityMapper
             entity.CreatedAt,
             entity.CreatedFromIp,
             entity.ListenTcpPortNumber,
+            entity.EmulateBufferCapacity,
+            entity.BufferDrainRate,
+            entity.BufferMaxCapacity,
             entity.IsPinned,
             entity.IsDeleted);
     }

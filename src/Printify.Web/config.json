@@ -17,7 +17,7 @@
         "SecretKey": "REPLACE_WITH_32+_CHAR_RANDOM_SECRET",
         "Issuer": "virtual-printer.online",
         "Audience": "Printify.Client",
-        "ExpiryHours": 8760 //1 year
+        "ExpiryHours": 8760
     },
     "Repository": {
         "ConnectionString": "Data Source=printify.db;Cache=Shared"

@@ -30,6 +30,15 @@ public sealed class PrinterEntity : BaseEntity
     [Column("listen_tcp_port_number")]
     public int ListenTcpPortNumber { get; set; }
 
+    [Column("emulate_buffer_capacity")]
+    public bool EmulateBufferCapacity { get; set; }
+
+    [Column("buffer_drain_rate")]
+    public decimal? BufferDrainRate { get; set; }
+
+    [Column("buffer_max_capacity")]
+    public int? BufferMaxCapacity { get; set; }
+
     [Column("is_pinned")]
     public bool IsPinned { get; set; }
 }

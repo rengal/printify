@@ -31,7 +31,10 @@ public sealed class UpdatePrinterHandler(
             Protocol = request.Protocol.ToString(),
             WidthInDots = request.WidthInDots,
             HeightInDots = request.HeightInDots,
-            ListenTcpPortNumber = request.TcpListenPort ?? printer.ListenTcpPortNumber
+            ListenTcpPortNumber = request.TcpListenPort ?? printer.ListenTcpPortNumber,
+            EmulateBufferCapacity = request.EmulateBufferCapacity,
+            BufferDrainRate = request.BufferDrainRate,
+            BufferMaxCapacity = request.BufferMaxCapacity
         };
 
         await printerRepository.UpdateAsync(updated, cancellationToken).ConfigureAwait(false);

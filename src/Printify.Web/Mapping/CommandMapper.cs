@@ -1,4 +1,3 @@
-using System;
 using Printify.Domain.Printers;
 using Printify.Domain.Requests;
 using Features = Printify.Application.Features;
@@ -35,7 +34,10 @@ internal static class CommandMapper
             ParseProtocol(request.Protocol),
             request.WidthInDots,
             request.HeightInDots,
-            request.TcpListenPort);
+            request.TcpListenPort,
+            request.EmulateBufferCapacity,
+            request.BufferDrainRate,
+            request.BufferMaxCapacity);
     }
 
     internal static Features.Printers.Update.UpdatePrinterCommand ToCommand(this WebApi.Printers.Requests.UpdatePrinterRequestDto request, Guid printerId, RequestContext context)
@@ -49,7 +51,10 @@ internal static class CommandMapper
             ParseProtocol(request.Protocol),
             request.WidthInDots,
             request.HeightInDots,
-            request.TcpListenPort);
+            request.TcpListenPort,
+            request.EmulateBufferCapacity,
+            request.BufferDrainRate,
+            request.BufferMaxCapacity);
     }
 
     internal static Features.Printers.Pin.SetPrinterPinnedCommand ToCommand(this WebApi.Printers.Requests.PinPrinterRequestDto request, Guid printerId, RequestContext context)

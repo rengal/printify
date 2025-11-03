@@ -25,6 +25,9 @@ public sealed class TcpPrinterChannelTests
             DateTimeOffset.UtcNow,
             "127.0.0.1",
             port,
+            true,
+            1024,
+            4096,
             IsPinned: false,
             IsDeleted: false);
 
@@ -83,6 +86,9 @@ public sealed class TcpPrinterChannelTests
             DateTimeOffset.UtcNow,
             "127.0.0.1",
             port,
+            true,
+            1024,
+            4096,
             IsPinned: false,
             IsDeleted: false);
 

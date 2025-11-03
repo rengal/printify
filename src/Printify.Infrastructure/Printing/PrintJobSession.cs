@@ -133,12 +133,9 @@ public abstract class PrintJobSession : IPrintJobSession
         if (Printer.BufferDrainRate.Value <= 0)
             return;
 
-        var drained = Printer.BufferDrainRate.Value * (elapsedMs / 1000.0);
-        if (drained > 0)
-        {
-            // Reduce the buffered byte count while keeping it non-negative.
-            bufferedBytes = Math.Max(0, (int)(bufferedBytes - drained));
-        }
+        var drainedBytes = Printer.BufferDrainRate.Value * (elapsedMs / 1000.0m);
+        if (drainedBytes > 0)
+            bufferedBytes = Math.Max(0, (int)(bufferedBytes - drainedBytes));
         drainClock.Start();
     }
 

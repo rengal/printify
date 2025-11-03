@@ -12,4 +12,7 @@ public sealed record UpdatePrinterCommand(
     Protocol Protocol,
     int WidthInDots,
     int? HeightInDots,
-    int? TcpListenPort) : IRequest<Printer>;
+    int? TcpListenPort,
+    bool EmulateBufferCapacity,
+    decimal? BufferDrainRate,
+    int? BufferMaxCapacity) : IRequest<Printer>;

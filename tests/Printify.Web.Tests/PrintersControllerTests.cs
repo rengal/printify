@@ -25,11 +25,11 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         await AuthenticateAsync(environment, "printer-owner");
 
         var printerId = Guid.NewGuid();
-        var createRequest = new CreatePrinterRequestDto(printerId, "Receipt Printer", "EscPos", 512, null, 9100);
+        var createRequest = new CreatePrinterRequestDto(printerId, "Receipt Printer", "EscPos", 512, null, 9100, false, null, null);
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
-        var updateBody = new UpdatePrinterRequestDto("Updated Printer", "EscPos", 576, null, 9101);
+        var updateBody = new UpdatePrinterRequestDto("Updated Printer", "EscPos", 576, null, 9101, true, 1024, 4096);
         var updateResponse = await client.PutAsJsonAsync($"/api/printers/{printerId}", updateBody);
         updateResponse.EnsureSuccessStatusCode();
 
@@ -57,7 +57,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         await AuthenticateAsync(environment, "pinner");
 
         var printerId = Guid.NewGuid();
-        var createRequest = new CreatePrinterRequestDto(printerId, "Pin Printer", "EscPos", 512, null, 9104);
+        var createRequest = new CreatePrinterRequestDto(printerId, "Pin Printer", "EscPos", 512, null, 9104, false, null, null);
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -91,7 +91,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         await AuthenticateAsync(environment, "printer-owner-delete");
 
         var printerId = Guid.NewGuid();
-        var createRequest = new CreatePrinterRequestDto(printerId, "Temp Printer", "EscPos", 512, null, 9102);
+        var createRequest = new CreatePrinterRequestDto(printerId, "Temp Printer", "EscPos", 512, null, 9102, false, null, null);
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -110,7 +110,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         await AuthenticateAsync(environment, "owner-a");
 
         var printerId = Guid.NewGuid();
-        var createRequest = new CreatePrinterRequestDto(printerId, "Shared Printer", "EscPos", 512, null, 9103);
+        var createRequest = new CreatePrinterRequestDto(printerId, "Shared Printer", "EscPos", 512, null, 9103, true, 1024, 4096);
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 

@@ -7,14 +7,14 @@ using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Application.Pipeline;
 using Printify.Domain.Config;
+using Printify.Domain.Services;
 using Printify.Infrastructure.Config;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Printing;
 using Printify.Infrastructure.Printing.Factories;
-using Printify.Infrastructure.Printing.Tcp;
-using Printify.Web.Infrastructure;
 using Printify.Infrastructure.Repositories;
 using Printify.Infrastructure.Security;
+using Printify.Services.Clock;
 using ListenerOptions = Printify.Domain.Config.ListenerOptions;
 namespace Printify.Web.Extensions;
 
@@ -41,7 +41,7 @@ public static class ServiceCollectionExtensions
 
         // Application services
         services.AddHttpContextAccessor();
-        services.AddSingleton<TimeProvider>(_ => TimeProvider.System);
+        services.AddSingleton<IClockFactory, StopwatchClockFactory>();
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<LoginCommand>());
         //builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(IdentityGuardBehavior<,>)); //todo debugnow
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
@@ -64,6 +64,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAnonymousSessionRepository, AnonymousSessionRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPrinterRepository, PrinterRepository>();
+        services.AddScoped<IPrintJobRepository, PrintJobRepository>();
 
         // Printer listeners
         services.AddSingleton<IPrintJobSessionFactory, PrintJobSessionFactory>();

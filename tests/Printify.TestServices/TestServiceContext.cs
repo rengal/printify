@@ -9,6 +9,7 @@ using Printify.Infrastructure.Config;
 using Printify.Infrastructure.Persistence;
 using System.Net;
 using System.Net.Sockets;
+using Printify.Domain.Services;
 using ListenerOptions = Printify.Domain.Config.ListenerOptions;
 
 namespace Printify.TestServices;
@@ -36,10 +37,12 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
                 services.RemoveAll<SqliteConnection>();
                 services.RemoveAll<DbContextOptions<PrintifyDbContext>>();
                 services.RemoveAll<IUnitOfWork>();
+                services.RemoveAll<IClockFactory>();
 
                 services.AddSingleton(connection);
                 services.AddDbContext<PrintifyDbContext>((_, options) => options.UseSqlite(connection));
                 services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
+                services.AddSingleton<IClockFactory, TestClockFactory>();
             });
         });
 

@@ -15,4 +15,7 @@ public sealed record UpdatePrinterRequestDto(
     string Protocol,
     int WidthInDots,
     int? HeightInDots,
-    int? TcpListenPort);
+    int? TcpListenPort,
+    bool EmulateBufferCapacity,
+    decimal? BufferDrainRate,
+    int? BufferMaxCapacity);

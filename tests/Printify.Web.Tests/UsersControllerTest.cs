@@ -8,19 +8,16 @@ using Printify.Infrastructure.Persistence;
 using Printify.TestServices;
 using Printify.Web.Contracts.Users.Requests;
 using Printify.Web.Contracts.Users.Responses;
-using Xunit;
 
 namespace Printify.Web.Tests;
 
 public sealed class UsersControllerTest(WebApplicationFactory<Program> factory)
     : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> factory = factory;
-
     [Fact]
     public async Task Get_OnBaseRoute_ReturnsSuccess()
     {
-        await using var environment = TestServiceContext.CreateForControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
 
         var response = await environment.Client.GetAsync("/api/users");
 
@@ -33,7 +30,7 @@ public sealed class UsersControllerTest(WebApplicationFactory<Program> factory)
         const string newDisplayName = "new-user";
         var userId = Guid.NewGuid();
 
-        await using var environment = TestServiceContext.CreateForControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
 
         var response = await client.PostAsJsonAsync("/api/users", new CreateUserRequestDto(userId, newDisplayName));
@@ -41,7 +38,7 @@ public sealed class UsersControllerTest(WebApplicationFactory<Program> factory)
 
         var createdUser = await response.Content.ReadFromJsonAsync<UserDto>();
         Assert.NotNull(createdUser);
-        Assert.Equal(newDisplayName, createdUser!.Name);
+        Assert.Equal(newDisplayName, createdUser.Name);
         Assert.Equal(userId, createdUser.Id);
 
         var fetchResponse = await client.GetAsync($"/api/users/{createdUser.Id}");
@@ -49,7 +46,7 @@ public sealed class UsersControllerTest(WebApplicationFactory<Program> factory)
 
         var fetchedUser = await fetchResponse.Content.ReadFromJsonAsync<UserDto>();
         Assert.NotNull(fetchedUser);
-        Assert.Equal(createdUser.Id, fetchedUser!.Id);
+        Assert.Equal(createdUser.Id, fetchedUser.Id);
         Assert.Equal(newDisplayName, fetchedUser.Name);
     }
 
@@ -59,7 +56,7 @@ public sealed class UsersControllerTest(WebApplicationFactory<Program> factory)
         const string activeDisplayName = "list-active";
         const string deletedDisplayName = "list-deleted";
 
-        await using var environment = TestServiceContext.CreateForControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
         await using (var scope = environment.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
@@ -75,8 +72,8 @@ public sealed class UsersControllerTest(WebApplicationFactory<Program> factory)
 
         var users = await response.Content.ReadFromJsonAsync<IReadOnlyList<UserDto>>();
         Assert.NotNull(users);
-        Assert.Contains(users!, user => user.Name == activeDisplayName);
-        Assert.DoesNotContain(users!, user => user.Name == deletedDisplayName);
+        Assert.Contains(users, user => user.Name == activeDisplayName);
+        Assert.DoesNotContain(users, user => user.Name == deletedDisplayName);
     }
 
     [Fact]
@@ -85,7 +82,7 @@ public sealed class UsersControllerTest(WebApplicationFactory<Program> factory)
         const string displayName = "idempotent-user";
         var userId = Guid.NewGuid();
 
-        await using var environment = TestServiceContext.CreateForControllerTest(this.factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
 
         var request = new CreateUserRequestDto(userId, displayName);
@@ -94,20 +91,20 @@ public sealed class UsersControllerTest(WebApplicationFactory<Program> factory)
         Assert.Equal(HttpStatusCode.OK, firstResponse.StatusCode);
         var firstUser = await firstResponse.Content.ReadFromJsonAsync<UserDto>();
         Assert.NotNull(firstUser);
-        Assert.Equal(userId, firstUser!.Id);
+        Assert.Equal(userId, firstUser.Id);
 
         var secondResponse = await client.PostAsJsonAsync("/api/users", request);
         Assert.Equal(HttpStatusCode.OK, secondResponse.StatusCode);
         var secondUser = await secondResponse.Content.ReadFromJsonAsync<UserDto>();
         Assert.NotNull(secondUser);
-        Assert.Equal(firstUser.Id, secondUser!.Id);
+        Assert.Equal(firstUser.Id, secondUser.Id);
 
         var listResponse = await client.GetAsync("/api/users");
         listResponse.EnsureSuccessStatusCode();
 
         var users = await listResponse.Content.ReadFromJsonAsync<IReadOnlyList<UserDto>>();
         Assert.NotNull(users);
-        var matchingCount = users!.Count(user => user.Id == userId);
+        var matchingCount = users.Count(user => user.Id == userId);
         Assert.Equal(1, matchingCount);
     }
 }
