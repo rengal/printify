@@ -1,10 +1,15 @@
+﻿using System;
+using System.Threading.Tasks;
+using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
+using Printify.Application.Printing;
 using Printify.TestServices;
+using Printify.TestServices.Printing;
 using Printify.Web.Contracts.Auth.AnonymousSession.Response;
 using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Contracts.Auth.Responses;
@@ -134,6 +139,36 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task CreatePrinter_RegistersInMemoryListenerChannel()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var client = environment.Client;
+        await AuthenticateAsync(environment, "listener-owner");
+
+        var printerId = Guid.NewGuid();
+        var createRequest = new CreatePrinterRequestDto(printerId, "Listener Printer", "EscPos", 384, null, 9105, false, null, null);
+        var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
+        createResponse.EnsureSuccessStatusCode();
+
+        var orchestrator = environment.Factory.Services.GetRequiredService<IPrinterListenerOrchestrator>();
+        var channel = await WaitForChannelAsync(orchestrator, printerId, TimeSpan.FromSeconds(2));
+
+        var payloadReceived = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+        channel.DataReceived += (_, args) =>
+        {
+            payloadReceived.TrySetResult(args.Buffer.ToArray());
+            return ValueTask.CompletedTask;
+        };
+
+        var payload = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF };
+        await channel.WriteAsync(payload, CancellationToken.None);
+
+        var observedPayload = await payloadReceived.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Assert.True(payload.SequenceEqual(observedPayload));
+        Assert.False(channel.IsDisposed);
+    }
+
     private static async Task AuthenticateAsync(TestServiceContext.ControllerTestContext environment, string displayName)
     {
         var client = environment.Client;
@@ -179,4 +214,24 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginDto!.AccessToken);
     }
+
+    private static async Task<TestPrinterChannel> WaitForChannelAsync(IPrinterListenerOrchestrator orchestrator, Guid printerId, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            var channel = orchestrator.GetActiveChannels(printerId).OfType<TestPrinterChannel>().FirstOrDefault();
+            if (channel is not null)
+            {
+                return channel;
+            }
+
+            await Task.Delay(50);
+        }
+
+        throw new TimeoutException($"No active channel registered for printer {printerId}.");
+    }
 }
+
+
+

@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
@@ -27,11 +30,24 @@ public sealed class PrinterListenerOrchestrator(
         listeners[printer.Id] = listener;
         listener.ChannelAccepted += Listener_ChannelAccepted;
 
-        await listener.StartAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await listener.StartAsync(ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            listener.ChannelAccepted -= Listener_ChannelAccepted;
+            listeners.TryRemove(printer.Id, out _);
+            await listener.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
     }
 
     private async ValueTask Listener_ChannelAccepted(IPrinterListener listener, PrinterChannelAcceptedEventArgs args)
     {
+        if (!listeners.ContainsKey(listener.PrinterId))
+            return;
+
         await printJobSessions.StartSessionAsync(args.Channel, CancellationToken.None).ConfigureAwait(false);
         var channel = args.Channel;
         channel.DataReceived += Channel_DataReceived;
@@ -43,8 +59,12 @@ public sealed class PrinterListenerOrchestrator(
 
     private async ValueTask Channel_Closed(IPrinterChannel channel, PrinterChannelClosedEventArgs args)
     {
-        await printJobSessions.CompleteAsync(channel, MapReason(args.Reason), CancellationToken.None)
-            .ConfigureAwait(false);
+        if (listeners.ContainsKey(channel.Printer.Id))
+        {
+            await printJobSessions.CompleteAsync(channel, MapReason(args.Reason), CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+
         channel.DataReceived -= Channel_DataReceived;
         channel.Closed -= Channel_Closed;
 
@@ -60,7 +80,10 @@ public sealed class PrinterListenerOrchestrator(
     private async ValueTask Channel_DataReceived(IPrinterChannel channel, PrinterChannelDataEventArgs args)
     {
         logger.LogDebug("Channel received {ByteCount} bytes for printer {PrinterId}", args.Buffer.Length, channel.Printer.Id);
-        await printJobSessions.FeedAsync(channel, args.Buffer, CancellationToken.None).ConfigureAwait(false);
+        if (listeners.ContainsKey(channel.Printer.Id))
+        {
+            await printJobSessions.FeedAsync(channel, args.Buffer, CancellationToken.None).ConfigureAwait(false);
+        }
     }
 
     public async Task RemoveListenerAsync(Printer printer, CancellationToken ct)
@@ -94,6 +117,16 @@ public sealed class PrinterListenerOrchestrator(
         }
 
         return new ListenerStatusSnapshot(listener.Status);
+    }
+
+    public IReadOnlyCollection<IPrinterChannel> GetActiveChannels(Guid printerId)
+    {
+        if (printerChannels.TryGetValue(printerId, out var channels))
+        {
+            return channels.Keys.ToArray();
+        }
+
+        return Array.Empty<IPrinterChannel>();
     }
 
     private static PrintJobCompletionReason MapReason(ChannelClosedReason reason)

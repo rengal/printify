@@ -1,15 +1,18 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.PrintJobs;
-using Printify.Domain.Services;
 
 namespace Printify.Infrastructure.Printing;
 
 /// <summary>
 /// Coordinates live print job sessions per printer channel.
 /// </summary>
-public sealed class PrintJobSessionsOrchestrator(IPrintJobSessionFactory printJobSessionFactory, IPrintJobRepository printJobRepository, IClockFactory clockFactory) : IPrintJobSessionsOrchestrator
+public sealed class PrintJobSessionsOrchestrator(
+    IPrintJobSessionFactory printJobSessionFactory,
+    IServiceScopeFactory scopeFactory)
+    : IPrintJobSessionsOrchestrator
 {
     private readonly ConcurrentDictionary<IPrinterChannel, IPrintJobSession> jobSessions = new();
 
@@ -21,7 +24,11 @@ public sealed class PrintJobSessionsOrchestrator(IPrintJobSessionFactory printJo
         var printer = channel.Printer;
 
         var printJob = new PrintJob(Guid.NewGuid(), printer, DateTimeOffset.Now, channel.ClientAddress);
-        await printJobRepository.AddAsync(printJob, ct);
+        await using (var scope = scopeFactory.CreateAsyncScope())
+        {
+            var printJobRepository = scope.ServiceProvider.GetRequiredService<IPrintJobRepository>();
+            await printJobRepository.AddAsync(printJob, ct).ConfigureAwait(false);
+        }
 
         var jobSession = await printJobSessionFactory.Create(printJob, channel, ct);
         jobSessions[channel] = jobSession;

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc.Testing;
+ï»¿using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +10,8 @@ using Printify.Infrastructure.Persistence;
 using System.Net;
 using System.Net.Sockets;
 using Printify.Domain.Services;
+using Printify.Application.Printing;
+using Printify.TestServices.Printing;
 using ListenerOptions = Printify.Domain.Config.ListenerOptions;
 
 namespace Printify.TestServices;
@@ -28,6 +30,7 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         var connection = new SqliteConnection(connectionString);
         connection.Open();
 
+
         var configuredFactory = factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureTestServices(services =>
@@ -38,11 +41,13 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
                 services.RemoveAll<DbContextOptions<PrintifyDbContext>>();
                 services.RemoveAll<IUnitOfWork>();
                 services.RemoveAll<IClockFactory>();
+                services.RemoveAll<IPrinterListenerFactory>();
 
                 services.AddSingleton(connection);
                 services.AddDbContext<PrintifyDbContext>((_, options) => options.UseSqlite(connection));
                 services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
                 services.AddSingleton<IClockFactory, TestClockFactory>();
+                services.AddSingleton<IPrinterListenerFactory, TestPrinterListenerFactory>();
             });
         });
 
@@ -117,6 +122,9 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
 
         public AsyncServiceScope CreateScope() => Factory.Services.CreateAsyncScope();
 
+        public IPrinterListenerOrchestrator PrinterListenerOrchestrator =>
+            Factory.Services.GetRequiredService<IPrinterListenerOrchestrator>();
+
         public async ValueTask DisposeAsync()
         {
             // Dispose leaves first
@@ -133,11 +141,12 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
             }
             catch (ObjectDisposedException)
             {
-                // already disposed elsewhere — ignore
+                // already disposed elsewhere - ignore
             }
 
             await Factory.DisposeAsync().ConfigureAwait(false);
         }
     }
 }
+
 
