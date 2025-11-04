@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Printify.Application.Printing;
@@ -8,11 +8,17 @@ using Printify.Domain.Printers;
 namespace Printify.TestServices.Printing;
 
 /// <summary>
-/// In-memory listener that immediately exposes a <see cref="TestPrinterChannel"/> when started.
+/// In-memory listener used for integration tests. Channel acceptance is triggered explicitly via <see cref="AcceptClientAsync"/>.
 /// </summary>
-public sealed class TestPrinterListener(Printer printer) : IPrinterListener
+public sealed class TestPrinterListener : IPrinterListener
 {
+    private readonly Printer printer;
     private bool disposed;
+
+    public TestPrinterListener(Printer printer)
+    {
+        this.printer = printer ?? throw new ArgumentNullException(nameof(printer));
+    }
 
     public event Func<IPrinterListener, PrinterChannelAcceptedEventArgs, ValueTask>? ChannelAccepted;
 
@@ -24,20 +30,11 @@ public sealed class TestPrinterListener(Printer printer) : IPrinterListener
 
     public TestPrinterChannel? LastChannel { get; private set; }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
         Status = PrinterListenerStatus.Listening;
-
-        var channel = new TestPrinterChannel(printer, $"memory://{printer.Id:N}");
-        LastChannel = channel;
-
-        if (ChannelAccepted is not null)
-        {
-            await ChannelAccepted.Invoke(this, new PrinterChannelAcceptedEventArgs(printer.Id, channel))
-                .ConfigureAwait(false);
-        }
+        return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
@@ -50,7 +47,28 @@ public sealed class TestPrinterListener(Printer printer) : IPrinterListener
     public ValueTask DisposeAsync()
     {
         disposed = true;
+        TestPrinterListenerFactory.Unregister(printer.Id);
         LastChannel = null;
         return ValueTask.CompletedTask;
+    }
+
+    public async Task<TestPrinterChannel> AcceptClientAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (Status != PrinterListenerStatus.Listening)
+        {
+            throw new InvalidOperationException("Listener must be in Listening state before accepting a client.");
+        }
+
+        var channel = new TestPrinterChannel(printer, $"memory://{printer.Id:N}");
+        LastChannel = channel;
+
+        if (ChannelAccepted is not null)
+        {
+            await ChannelAccepted.Invoke(this, new PrinterChannelAcceptedEventArgs(printer.Id, channel)).ConfigureAwait(false);
+        }
+
+        return channel;
     }
 }

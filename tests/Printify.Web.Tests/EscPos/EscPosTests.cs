@@ -1,5 +1,9 @@
-﻿using System.Net.Http.Headers;
+﻿using System;
+using System.Linq;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
@@ -50,6 +54,7 @@ public sealed class EscPosTests(WebApplicationFactory<Program> factory)
 
         clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(stepMs));
         await nextEventTask.WaitAsync(TimeSpan.FromMilliseconds(500));
+        Assert.True(nextEventTask.IsCompleted, "Task should complete after idle timeout");
         Assert.True(nextEventTask.Result);
 
         var documentEvent = streamEnumerator.Current;
@@ -85,6 +90,54 @@ public sealed class EscPosTests(WebApplicationFactory<Program> factory)
         ]);
     }
 
+    [Fact]
+    public async Task BellChunks_WithRandomDelays_ProduceSingleDocument()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        await AuthenticateAsync(environment, "escpos-bell-random");
+
+        var printerId = Guid.NewGuid();
+        var channel = await CreatePrinterAsync(environment, printerId, "EscPos Bell Random");
+
+        await using var streamEnumerator = environment.DocumentStream
+            .Subscribe(printerId, CancellationToken.None)
+            .GetAsyncEnumerator();
+
+        var bellBytes = Enumerable.Repeat((byte)0x07, 10).ToArray();
+        var random = new Random(2025);
+        var clockFactory = Assert.IsType<TestClockFactory>(environment.ClockFactory);
+        var maxDelay = Math.Max(1, PrinterConstants.ListenerIdleTimeoutMs / 4);
+
+        var offset = 0;
+        while (offset < bellBytes.Length)
+        {
+            var remaining = bellBytes.Length - offset;
+            var chunkSize = random.Next(1, Math.Min(remaining, 4) + 1);
+            await channel.WriteAsync(bellBytes.AsMemory(offset, chunkSize), CancellationToken.None);
+            offset += chunkSize;
+
+            if (offset < bellBytes.Length)
+            {
+                var delay = random.Next(0, maxDelay);
+                if (delay > 0)
+                {
+                    clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(delay));
+                }
+            }
+        }
+
+        clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(PrinterConstants.ListenerIdleTimeoutMs + 50));
+
+        Assert.True(await streamEnumerator.MoveNextAsync());
+        var documentEvent = streamEnumerator.Current;
+
+        var expected = Enumerable.Range(1, bellBytes.Length)
+            .Select(sequence => (Element)new Bell(sequence))
+            .ToList();
+
+        DocumentAssertions.Equal(documentEvent.Document, Protocol.EscPos, expected);
+    }
+
     private static async Task<TestPrinterChannel> CreatePrinterAsync(
         TestServiceContext.ControllerTestContext environment,
         Guid printerId,
@@ -106,7 +159,12 @@ public sealed class EscPosTests(WebApplicationFactory<Program> factory)
         var response = await client.PostAsJsonAsync("/api/printers", request);
         response.EnsureSuccessStatusCode();
 
-        return await WaitForChannelAsync(environment.PrinterListenerOrchestrator, printerId, TimeSpan.FromSeconds(2));
+        if (!TestPrinterListenerFactory.TryGetListener(printerId, out var listener))
+        {
+            throw new InvalidOperationException($"Listener for printer {printerId} was not registered.");
+        }
+
+        return await listener.AcceptClientAsync();
     }
 
     private static async Task AuthenticateAsync(TestServiceContext.ControllerTestContext environment, string displayName)
@@ -138,25 +196,5 @@ public sealed class EscPosTests(WebApplicationFactory<Program> factory)
         Assert.NotNull(loginDto);
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginDto!.AccessToken);
-    }
-
-    private static async Task<TestPrinterChannel> WaitForChannelAsync(
-        IPrinterListenerOrchestrator orchestrator,
-        Guid printerId,
-        TimeSpan timeout)
-    {
-        var deadline = DateTime.UtcNow + timeout;
-        while (DateTime.UtcNow < deadline)
-        {
-            var channel = orchestrator.GetActiveChannels(printerId).OfType<TestPrinterChannel>().FirstOrDefault();
-            if (channel is not null)
-            {
-                return channel;
-            }
-
-            await Task.Delay(50);
-        }
-
-        throw new TimeoutException($"No active channel registered for printer {printerId}.");
     }
 }

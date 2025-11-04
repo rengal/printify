@@ -151,8 +151,12 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
-        var orchestrator = environment.Factory.Services.GetRequiredService<IPrinterListenerOrchestrator>();
-        var channel = await WaitForChannelAsync(orchestrator, printerId, TimeSpan.FromSeconds(2));
+        if (!TestPrinterListenerFactory.TryGetListener(printerId, out var listener))
+        {
+            throw new InvalidOperationException($"Listener for printer {printerId} was not registered.");
+        }
+
+        var channel = await listener.AcceptClientAsync();
 
         var payloadReceived = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
         channel.DataReceived += (_, args) =>
@@ -215,22 +219,6 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginDto!.AccessToken);
     }
 
-    private static async Task<TestPrinterChannel> WaitForChannelAsync(IPrinterListenerOrchestrator orchestrator, Guid printerId, TimeSpan timeout)
-    {
-        var deadline = DateTime.UtcNow + timeout;
-        while (DateTime.UtcNow < deadline)
-        {
-            var channel = orchestrator.GetActiveChannels(printerId).OfType<TestPrinterChannel>().FirstOrDefault();
-            if (channel is not null)
-            {
-                return channel;
-            }
-
-            await Task.Delay(50);
-        }
-
-        throw new TimeoutException($"No active channel registered for printer {printerId}.");
-    }
 }
 
 
