@@ -19,4 +19,12 @@ public interface IClock
     /// Advance the clock by the specified duration. Tests use this to simulate time passage.
     /// </summary>
     void Advance(TimeSpan delta);
+
+    /// <summary>
+    /// Creates a task that completes after the specified delay.
+    /// </summary>
+    /// <param name="delay">The time span to wait before completing the returned task.</param>
+    /// <param name="ct">A cancellation token to observe while waiting.</param>
+    /// <returns>A task that represents the time delay.</returns>
+    Task DelayAsync(TimeSpan delay, CancellationToken ct = default);
 }

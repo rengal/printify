@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using Printify.Application.Printing;
 using Printify.Domain.Documents;
@@ -71,7 +69,6 @@ public class EscPosPrintJobSession : PrintJobSession
     private int? activeTextLineIndex;
     private int sequence;
     private long totalConsumed;
-    private bool isCompleted;
     //private Document? document;
     private Encoding currentEncoding = Encoding.GetEncoding(437);
     private string? pendingQrData;
@@ -89,7 +86,7 @@ public class EscPosPrintJobSession : PrintJobSession
 
     public override Task Feed(ReadOnlyMemory<byte> input, CancellationToken ct)
     {
-        if (isCompleted)
+        if (IsCompleted)
         {
             throw new InvalidOperationException("Cannot feed a completed tokenizer session.");
         }
@@ -561,7 +558,7 @@ public class EscPosPrintJobSession : PrintJobSession
 
     public override Task Complete(PrintJobCompletionReason reason)
     {
-        if (isCompleted)
+        if (IsCompleted)
         {
             throw new InvalidOperationException("Tokenizer session has already been completed.");
         }
