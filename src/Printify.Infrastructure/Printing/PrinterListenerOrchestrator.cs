@@ -1,7 +1,4 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using Microsoft.Extensions.Logging;
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
@@ -17,7 +14,7 @@ public sealed class PrinterListenerOrchestrator(
     : IPrinterListenerOrchestrator
 {
     private readonly ConcurrentDictionary<Guid, IPrinterListener> listeners = new();
-    private readonly ConcurrentDictionary<Guid, ConcurrentDictionary<IPrinterChannel, byte>> printerChannels = new();
+    private readonly ConcurrentDictionary<Guid, HashSet<IPrinterChannel>> printerChannels = new();
 
     public async Task AddListenerAsync(Printer printer, CancellationToken ct)
     {
@@ -48,13 +45,19 @@ public sealed class PrinterListenerOrchestrator(
         if (!listeners.ContainsKey(listener.PrinterId))
             return;
 
-        await printJobSessions.StartSessionAsync(args.Channel, CancellationToken.None).ConfigureAwait(false);
+        var session = await printJobSessions.StartSessionAsync(args.Channel, CancellationToken.None).ConfigureAwait(false);
         var channel = args.Channel;
+        session.DataTimedOut += Session_DataTimedOut;
         channel.DataReceived += Channel_DataReceived;
         channel.Closed += Channel_Closed;
 
-        var channels = printerChannels.GetOrAdd(listener.PrinterId, static _ => new ConcurrentDictionary<IPrinterChannel, byte>());
-        channels[channel] = 0;
+        var channels = printerChannels.GetOrAdd(listener.PrinterId, static _ => new HashSet<IPrinterChannel>());
+        channels.Add(channel);
+    }
+
+    private async ValueTask Session_DataTimedOut(IPrintJobSession session, PrintJobSessionDataTimedOutEventArgs args)
+    {
+        await printJobSessions.CompleteAsync(args.Channel, PrintJobCompletionReason.DataTimeout, CancellationToken.None);
     }
 
     private async ValueTask Channel_Closed(IPrinterChannel channel, PrinterChannelClosedEventArgs args)
@@ -70,9 +73,7 @@ public sealed class PrinterListenerOrchestrator(
 
         var printerId = channel.Printer.Id;
         if (printerChannels.TryGetValue(printerId, out var channels))
-        {
-            channels.TryRemove(channel, out _);
-        }
+            channels.Remove(channel);
 
         await channel.DisposeAsync().ConfigureAwait(false);
     }
@@ -93,7 +94,7 @@ public sealed class PrinterListenerOrchestrator(
 
         if (printerChannels.TryRemove(printer.Id, out var channels))
         {
-            foreach (var channel in channels.Keys)
+            foreach (var channel in channels)
             {
                 channel.DataReceived -= Channel_DataReceived;
                 channel.Closed -= Channel_Closed;
@@ -121,12 +122,9 @@ public sealed class PrinterListenerOrchestrator(
 
     public IReadOnlyCollection<IPrinterChannel> GetActiveChannels(Guid printerId)
     {
-        if (printerChannels.TryGetValue(printerId, out var channels))
-        {
-            return channels.Keys.ToArray();
-        }
-
-        return Array.Empty<IPrinterChannel>();
+        return printerChannels.TryGetValue(printerId, out var channels)
+            ? channels.ToArray()
+            : [];
     }
 
     private static PrintJobCompletionReason MapReason(ChannelClosedReason reason)

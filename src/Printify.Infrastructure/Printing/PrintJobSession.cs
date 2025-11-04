@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using Printify.Application.Printing;
+﻿using Printify.Application.Printing;
+using Printify.Application.Printing.Events;
 using Printify.Domain.Core;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
@@ -19,6 +19,9 @@ public abstract class PrintJobSession : IPrintJobSession
     public int TotalBytesReceived { get; private set; }
     public int TotalBytesSent { get; private set; }
     public DateTimeOffset LastReceivedBytes { get; private set; } = DateTimeOffset.UtcNow;
+
+    public abstract event Func<IPrintJobSession, PrintJobSessionDataTimedOutEventArgs, ValueTask>? DataTimedOut;
+
     public bool IsBufferBusy
     {
         get

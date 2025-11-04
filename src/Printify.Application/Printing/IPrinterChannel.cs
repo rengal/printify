@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
 

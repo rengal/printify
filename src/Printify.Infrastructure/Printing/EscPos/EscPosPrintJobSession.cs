@@ -1,13 +1,13 @@
 ﻿using System.Globalization;
 using System.Text;
 using Printify.Application.Printing;
+using Printify.Application.Printing.Events;
 using Printify.Domain.Core;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
-
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
@@ -20,6 +20,8 @@ public class EscPosPrintJobSession : PrintJobSession
     private const byte Fs = 0x1C;
     private const byte FsSelectChinese = 0x26; // '&'
     private const byte EscSelectCodePageCommand = (byte)'t';
+
+    public override event Func<IPrintJobSession, PrintJobSessionDataTimedOutEventArgs, ValueTask>? DataTimedOut;
 
     static EscPosPrintJobSession()
     {
@@ -558,7 +560,11 @@ public class EscPosPrintJobSession : PrintJobSession
         try
         {
             await idleClock.DelayAsync(TimeSpan.FromMilliseconds(PrinterConstants.ListenerIdleTimeoutMs), ct);
-            await Complete(PrintJobCompletionReason.DataTimeout);
+            if (!IsCompleted && DataTimedOut != null)
+            {
+                var args = new PrintJobSessionDataTimedOutEventArgs(Channel, ct);
+                await DataTimedOut.Invoke(this, args).ConfigureAwait(false);
+            }
         }
         catch (OperationCanceledException)
         {

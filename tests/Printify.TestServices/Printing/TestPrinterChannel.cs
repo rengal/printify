@@ -45,7 +45,7 @@ public sealed class TestPrinterChannel : IPrinterChannel
         if (Closed is null)
             return;
 
-        await Closed.Invoke(this, new PrinterChannelClosedEventArgs(reason)).ConfigureAwait(false);
+        await Closed.Invoke(this, new PrinterChannelClosedEventArgs(reason, CancellationToken.None)).ConfigureAwait(false);
     }
 
     public ValueTask DisposeAsync()

@@ -21,6 +21,45 @@ public sealed class EscPosTests(WebApplicationFactory<Program> factory)
     : IClassFixture<WebApplicationFactory<Program>>
 {
     [Fact]
+    public async Task DocumentCompletesAfterIdleTimeout()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        await AuthenticateAsync(environment, "escpos-idle-user");
+
+        var printerId = Guid.NewGuid();
+        var channel = await CreatePrinterAsync(environment, printerId, "EscPos Idle Printer");
+
+        await using var streamEnumerator = environment.DocumentStream
+            .Subscribe(printerId, CancellationToken.None)
+            .GetAsyncEnumerator();
+        var nextEventTask = streamEnumerator.MoveNextAsync().AsTask();
+
+        var payload = new byte[] { 0x07 };
+        await channel.WriteAsync(payload, CancellationToken.None);
+
+        var clockFactory = Assert.IsType<TestClockFactory>(environment.ClockFactory);
+        var totalElapsed = 0;
+        const int stepMs = 50;
+        while (totalElapsed + stepMs < PrinterConstants.ListenerIdleTimeoutMs)
+        {
+            clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(stepMs));
+            await Task.Delay(1);
+            Assert.False(nextEventTask.IsCompleted, "Document should not complete before idle timeout.");
+            totalElapsed += stepMs;
+        }
+
+        clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(stepMs));
+        await nextEventTask.WaitAsync(TimeSpan.FromMilliseconds(500));
+        Assert.True(nextEventTask.Result);
+
+        var documentEvent = streamEnumerator.Current;
+        DocumentAssertions.Equal(documentEvent.Document, Protocol.EscPos,
+        [
+            new Bell(1)
+        ]);
+    }
+
+    [Fact]
     public async Task BellByte_ProducesBellElement()
     {
         await using var environment = TestServiceContext.CreateForControllerTest(factory);

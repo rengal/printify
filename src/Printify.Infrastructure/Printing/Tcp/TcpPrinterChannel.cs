@@ -131,7 +131,7 @@ public sealed class TcpPrinterChannel : IPrinterChannel
 
         if (Closed != null)
         {
-            var args = new PrinterChannelClosedEventArgs(reason);
+            var args = new PrinterChannelClosedEventArgs(reason, CancellationToken.None);
             await Closed.Invoke(this, args).ConfigureAwait(false);
         }
     }
