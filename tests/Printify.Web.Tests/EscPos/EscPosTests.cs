@@ -17,7 +17,7 @@ using Printify.Web.Contracts.Users.Requests;
 
 namespace Printify.Web.Tests.EscPos;
 
-public sealed class EscPosBellTests(WebApplicationFactory<Program> factory)
+public sealed class EscPosTests(WebApplicationFactory<Program> factory)
     : IClassFixture<WebApplicationFactory<Program>>
 {
     [Fact]

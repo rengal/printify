@@ -56,7 +56,6 @@ public abstract class PrintJobSession : IPrintJobSession
 
         TotalBytesReceived += data.Length;
         LastReceivedBytes = DateTimeOffset.UtcNow;
-        idleClock.Start();
         return Task.CompletedTask;
     }
 
@@ -81,7 +80,6 @@ public abstract class PrintJobSession : IPrintJobSession
     #region Private Members
 
     protected int bufferedBytes;
-    private readonly IClock idleClock;
     private readonly IClock drainClock;
     private readonly int busyThreshold;
     private const double BusyThresholdRatio = 0.5;
@@ -95,7 +93,6 @@ public abstract class PrintJobSession : IPrintJobSession
         Job = job;
         Channel = channel;
         busyThreshold = (int)(Printer.BufferMaxCapacity.GetValueOrDefault() * BusyThresholdRatio);
-        idleClock = clockFactory.Create();
         drainClock = clockFactory.Create();
     }
 
@@ -147,7 +144,7 @@ public abstract class PrintJobSession : IPrintJobSession
         var drainedBytes = Printer.BufferDrainRate.Value * (elapsedMs / 1000.0m);
         if (drainedBytes > 0)
             bufferedBytes = Math.Max(0, (int)(bufferedBytes - drainedBytes));
-        drainClock.Start();
+        drainClock.Restart();
     }
 
     #endregion

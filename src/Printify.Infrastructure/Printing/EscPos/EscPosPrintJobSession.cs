@@ -1,8 +1,10 @@
 ﻿using System.Globalization;
 using System.Text;
 using Printify.Application.Printing;
+using Printify.Domain.Core;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
 
@@ -68,28 +70,22 @@ public class EscPosPrintJobSession : PrintJobSession
     private readonly List<byte> textBytes = new();
     private int? activeTextLineIndex;
     private int sequence;
-    private long totalConsumed;
-    //private Document? document;
     private Encoding currentEncoding = Encoding.GetEncoding(437);
     private string? pendingQrData;
+    private IClock idleClock;
 
     public EscPosPrintJobSession(IClockFactory clockFactory, PrintJob job, IPrinterChannel channel) : base(clockFactory, job, channel)
     {
         ArgumentNullException.ThrowIfNull(clockFactory);
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(channel);
+        idleClock = clockFactory.Create();
     }
-
-    public int Sequence => sequence;
-
-    public long TotalConsumed => totalConsumed;
 
     public override Task Feed(ReadOnlyMemory<byte> input, CancellationToken ct)
     {
         if (IsCompleted)
-        {
-            throw new InvalidOperationException("Cannot feed a completed tokenizer session.");
-        }
+            return Task.CompletedTask;
 
         var data = input.Span;
 
@@ -550,18 +546,30 @@ public class EscPosPrintJobSession : PrintJobSession
             }
         }
 
-        totalConsumed += data.Length;
         CommitPendingText();
 
+        idleClock.Restart();
+        _ = IdleTimeoutAsync(ct);
         return base.Feed(input, ct);
+    }
+
+    private async Task IdleTimeoutAsync(CancellationToken ct)
+    {
+        try
+        {
+            await idleClock.DelayAsync(TimeSpan.FromMilliseconds(PrinterConstants.ListenerIdleTimeoutMs), ct);
+            await Complete(PrintJobCompletionReason.DataTimeout);
+        }
+        catch (OperationCanceledException)
+        {
+            // expected if new data arrives or job is canceled
+        }
     }
 
     public override Task Complete(PrintJobCompletionReason reason)
     {
         if (IsCompleted)
-        {
-            throw new InvalidOperationException("Tokenizer session has already been completed.");
-        }
+            return Task.CompletedTask;
 
         // Drain the buffer to capture the latest busy state before finalizing.
         UpdateBufferState();

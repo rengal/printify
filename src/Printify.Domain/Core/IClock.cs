@@ -8,10 +8,10 @@ public interface IClock
     /// <summary>
     /// Start the clock. Implementations may initialize or reset internal counters here.
     /// </summary>
-    void Start();
+    void Restart();
 
     /// <summary>
-    /// Current elapsed milliseconds since <see cref="Start"/> was called.
+    /// Current elapsed milliseconds since <see cref="Restart"/> was called.
     /// </summary>
     long ElapsedMs { get; }
 

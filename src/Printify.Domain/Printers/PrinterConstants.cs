@@ -17,4 +17,7 @@ public static class PrinterConstants
     // Tcp listener port constraints
     public const int MinTcpListenerPort = 3000;
     public const int MaxTcpListenerPort = 65535;
+
+    // Listener timeout
+    public const int ListenerIdleTimeoutMs = 2000;
 }

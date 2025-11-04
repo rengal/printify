@@ -11,6 +11,7 @@ using System.Net;
 using System.Net.Sockets;
 using Printify.Domain.Services;
 using Printify.Application.Printing;
+using Printify.Domain.Core;
 using Printify.TestServices.Printing;
 using ListenerOptions = Printify.Domain.Config.ListenerOptions;
 
@@ -130,6 +131,8 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
 
         public IPrinterDocumentStream DocumentStream =>
             Factory.Services.GetRequiredService<IPrinterDocumentStream>();
+
+        public IClockFactory ClockFactory => Factory.Services.GetRequiredService<IClockFactory>();
 
         public async ValueTask DisposeAsync()
         {

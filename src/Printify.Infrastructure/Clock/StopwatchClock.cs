@@ -9,11 +9,20 @@ namespace Printify.Infrastructure.Clock;
 public sealed class StopwatchClock : IClock
 {
     private readonly Stopwatch stopwatch = new();
+    private readonly object gate = new();
+    private CancellationTokenSource restartCts = new();
 
-    public void Start()
+    public void Restart()
     {
-        stopwatch.Reset();
-        stopwatch.Start();
+        lock (gate)
+        {
+            var oldCts = restartCts;
+            restartCts = new CancellationTokenSource();
+            stopwatch.Reset();
+            stopwatch.Start();
+            oldCts.Cancel();
+            oldCts.Dispose();
+        }
     }
 
     public long ElapsedMs => stopwatch.ElapsedMilliseconds;
@@ -31,7 +40,19 @@ public sealed class StopwatchClock : IClock
         {
             throw new ArgumentOutOfRangeException(nameof(delay), "Delay cannot be negative.");
         }
+        if (delay == TimeSpan.Zero)
+            return;
 
-        await Task.Delay(delay, ct).ConfigureAwait(false);
+        CancellationTokenSource linkedCts;
+        lock (gate)
+        {
+            var restartToken = restartCts.Token;
+            linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, restartToken);
+        }
+
+        using (linkedCts)
+        {
+            await Task.Delay(delay, linkedCts.Token).ConfigureAwait(false);
+        }
     }
 }

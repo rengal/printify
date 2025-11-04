@@ -19,14 +19,15 @@ public sealed class TestClockFactory : IClockFactory
         return clock;
     }
 
-    public List<TestClock> Clocks
+    public void AdvanceAll(TimeSpan delta)
     {
-        get
+        if (delta < TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(delta), "Cannot advance by a negative duration.");
+
+        lock (gate)
         {
-            lock (gate)
-            {
-                return clocks.ToList();
-            }
+            foreach (var clock in clocks)
+                clock.Advance(delta);
         }
     }
 }
@@ -37,10 +38,14 @@ public sealed class TestClock : IClock
     private readonly List<(long TargetTime, TaskCompletionSource<bool> Tcs)> pendingDelayTasks = new();
 
 
-    public void Start()
+    public void Restart()
     {
         // Reset the elapsed time when the clock starts.
         elapsed = 0;
+        foreach (var (_, tcs) in pendingDelayTasks)
+        {
+            tcs.TrySetCanceled();
+        }
         pendingDelayTasks.Clear();
     }
 

@@ -11,4 +11,9 @@ public interface IClockFactory
     /// Creates a new clock instance.
     /// </summary>
     IClock Create();
+
+    /// <summary>
+    /// Advance all clocks by the specified duration. Tests use this to simulate time passage.
+    /// </summary>
+    void AdvanceAll(TimeSpan delta);
 }
