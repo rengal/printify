@@ -16,8 +16,10 @@ using Printify.Web.Contracts.Users.Requests;
 
 namespace Printify.Web.Tests.EscPos;
 
-public partial class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
+    protected const byte Esc = 0x1B;
+
     private sealed record ChunkStrategy(string Name, int[] ChunkPattern, int[] DelayPattern);
     private enum CompletionMode
     {
@@ -26,20 +28,20 @@ public partial class EscPosTests(WebApplicationFactory<Program> factory) : IClas
     }
 
     private static readonly ChunkStrategy[] ChunkStrategies =
-    {
-        new("SingleChunk", new[] { int.MaxValue }, Array.Empty<int>()),
-        new("SingleByte", new[] { 1 }, new[] { 60 }),
-        new("Increasing1234", new[] { 1, 2, 3, 4 }, new[] { 40, 70, 100, 130 }),
-        new("Decreasing4321", new[] { 4, 3, 2, 1 }, new[] { 120, 90, 60, 30 }),
-        new("Alternating12", new[] { 1, 2 }, new[] { 65, 95 }),
-        new("Alternating21", new[] { 2, 1 }, new[] { 85, 55 }),
-        new("Triplet3", new[] { 3 }, new[] { 110 }),
-        new("Mixed231", new[] { 2, 3, 1 }, new[] { 75, 115, 55 }),
-        new("Mixed3211", new[] { 3, 2, 1, 1 }, new[] { 90, 70, 50, 50 }),
-        new("LargeThenSmall", new[] { 5, 1 }, new[] { 100, 40 }),
-        new("SmallThenLarge", new[] { 1, 5 }, new[] { 45, 105 }),
-        new("PrimePattern", new[] { 2, 3, 5 }, new[] { 70, 100, 130 })
-    };
+    [
+        new("SingleChunk", [int.MaxValue], []),
+        new("SingleByte", [1], [60]),
+        new("Increasing1234", [1, 2, 3, 4], [40, 70, 100, 130]),
+        new("Decreasing4321", [4, 3, 2, 1], [120, 90, 60, 30]),
+        new("Alternating12", [1, 2], [65, 95]),
+        new("Alternating21", [2, 1], [85, 55]),
+        new("Triplet3", [3], [110]),
+        new("Mixed231", [2, 3, 1], [75, 115, 55]),
+        new("Mixed3211", [3, 2, 1, 1], [90, 70, 50, 50]),
+        new("LargeThenSmall", [5, 1], [100, 40]),
+        new("SmallThenLarge", [1, 5], [45, 105]),
+        new("PrimePattern", [2, 3, 5], [70, 100, 130])
+    ];
 
     [Fact]
     public async Task DocumentCompletesAfterIdleTimeout()

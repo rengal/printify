@@ -27,6 +27,7 @@ namespace Printify.Web.Contracts.Documents.Responses.Elements;
 [JsonDerivedType(typeof(SetFont), "setFont")]
 [JsonDerivedType(typeof(SetJustification), "setJustification")]
 [JsonDerivedType(typeof(SetLineSpacing), "setLineSpacing")]
+[JsonDerivedType(typeof(ResetLineSpacing), "resetLineSpacing")]
 [JsonDerivedType(typeof(SetQrErrorCorrection), "setQrErrorCorrection")]
 [JsonDerivedType(typeof(SetQrModel), "setQrModel")]
 [JsonDerivedType(typeof(SetQrModuleSize), "setQrModuleSize")]
@@ -237,6 +238,12 @@ public sealed record SetJustification(int Sequence, TextJustification Justificat
 /// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Spacing">Line spacing value in dots.</param>
 public sealed record SetLineSpacing(int Sequence, int Spacing) : ResponseNonPrintingElement(Sequence);
+
+/// <summary>
+/// Resets the line spacing to the device default value.
+/// </summary>
+/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
+public sealed record ResetLineSpacing(int Sequence) : ResponseNonPrintingElement(Sequence);
 
 /// <summary>
 /// Selects the QR error correction level for subsequent symbols via GS ( k.

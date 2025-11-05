@@ -64,6 +64,7 @@ internal static class DocumentMapper
                 justification.Sequence,
                 ParseTextJustification(justification.Justification)),
             WebElements.SetLineSpacing spacing => new Domain.Documents.Elements.SetLineSpacing(spacing.Sequence, spacing.Spacing),
+            WebElements.ResetLineSpacing resetLineSpacing => new Domain.Documents.Elements.ResetLineSpacing(resetLineSpacing.Sequence),
             WebElements.SetQrErrorCorrection errorCorrection => new Domain.Documents.Elements.SetQrErrorCorrection(
                 errorCorrection.Sequence,
                 ParseQrErrorCorrectionLevel(errorCorrection.Level)),

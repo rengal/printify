@@ -28,6 +28,7 @@ namespace Printify.Domain.Documents.Elements;
 [JsonDerivedType(typeof(SetFont), "setFont")]
 [JsonDerivedType(typeof(SetJustification), "setJustification")]
 [JsonDerivedType(typeof(SetLineSpacing), "setLineSpacing")]
+[JsonDerivedType(typeof(ResetLineSpacing), "resetLineSpacing")]
 [JsonDerivedType(typeof(SetQrErrorCorrection), "setQrErrorCorrection")]
 [JsonDerivedType(typeof(SetQrModel), "setQrModel")]
 [JsonDerivedType(typeof(SetQrModuleSize), "setQrModuleSize")]
@@ -377,6 +378,12 @@ public sealed record SetJustification(int Sequence, TextJustification Justificat
 public sealed record SetLineSpacing(int Sequence, int Spacing) : NonPrintingElement(Sequence);
 
 /// <summary>
+/// Resets the line spacing to the printer default value.
+/// </summary>
+/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
+public sealed record ResetLineSpacing(int Sequence) : NonPrintingElement(Sequence);
+
+/// <summary>
 /// Selects the QR error correction level for subsequent symbols via GS ( k.
 /// </summary>
 /// <param name="Sequence">Monotonic sequence index within the document stream.</param>
@@ -433,4 +440,3 @@ public sealed record StoreQrData(int Sequence, string Content) : NonPrintingElem
 /// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Text">Raw text content (decoded as parsed; typically ASCII/CP437 in MVP).</param>
 public sealed record TextLine(int Sequence, string Text) : PrintingElement(Sequence);
-

@@ -318,7 +318,7 @@ public class EscPosPrintJobSession : PrintJobSession
                 if (command == 0x32)
                 {
                     FlushText(allowEmpty: false);
-                    ElementBuffer.Add(new SetLineSpacing(++sequence, 30));
+                    ElementBuffer.Add(new ResetLineSpacing(++sequence));
                     index += 2;
                     processedOffset = index;
                     continue;
