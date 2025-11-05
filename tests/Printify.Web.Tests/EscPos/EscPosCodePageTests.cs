@@ -4,17 +4,13 @@ using Printify.Domain.Documents.Elements;
 
 namespace Printify.Web.Tests.EscPos;
 
-public class EscPosCodePageTests: EscPosTests
+public class EscPosCodePageTests(WebApplicationFactory<Program> factory) : EscPosTests(factory)
 {
-    public EscPosCodePageTests(WebApplicationFactory<Program> factory) : base(factory)
-    {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-    }
-
     private static IReadOnlyList<CodePageVector> CodePageVectors { get; } = BuildCodePageVectors();
 
     private static IReadOnlyList<CodePageVector> BuildCodePageVectors()
     {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         return new List<CodePageVector>
         {
             CreateEsc("437", 0x00, LatinUpper, LatinLower),
@@ -34,10 +30,6 @@ public class EscPosCodePageTests: EscPosTests
             CreateEsc("865", 0x05, LatinUpper, LatinLower),
             CreateEsc("866", 0x11, CyrillicUpper, CyrillicLower),
             CreateEsc("869", 0x26, GreekUpper, GreekLower),
-            //CreateEsc("1098", 0x29, LatinUpper, LatinLower),
-            //CreateEsc("1118", 0x2A, LatinUpper, LatinLower),
-            //CreateEsc("1119", 0x2B, LatinUpper, LatinLower),
-            //CreateEsc("1125", 0x2C, CyrillicUpper, CyrillicLower),
             CreateEsc("1250", 0x2D, LatinUpper, LatinLower),
             CreateEsc("1251", 0x2E, CyrillicUpper, CyrillicLower),
             CreateEsc("1252", 0x10, LatinUpper, LatinLower),
@@ -50,14 +42,15 @@ public class EscPosCodePageTests: EscPosTests
         };
     }
 
-    [Fact]
-    public async Task EscPos_CodePage_Scenarios_ProduceExpectedDocuments()
+    public static TheoryData<EscPosScenario> CodePageScenarios { get; } = BuildCodePageScenarios();
+
+    [Theory]
+    [MemberData(nameof(CodePageScenarios))]
+    public async Task EscPos_CodePage_Scenarios_ProduceExpectedDocuments(EscPosScenario scenario)
     {
-        var scenarios = BuildCodePageScenarios();
-        foreach (var scenario in scenarios)
-            await RunScenarioAsync(scenario);
+        await RunScenarioAsync(scenario);
     }
-    
+
     private static TheoryData<EscPosScenario> BuildCodePageScenarios()
     {
         var scenarios = new TheoryData<EscPosScenario>();
