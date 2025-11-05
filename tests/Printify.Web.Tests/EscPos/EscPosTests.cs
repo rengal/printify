@@ -19,6 +19,7 @@ namespace Printify.Web.Tests.EscPos;
 public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
     protected const byte Esc = 0x1B;
+    protected const byte Gs = 0x1D;
 
     private sealed record ChunkStrategy(string Name, int[] ChunkPattern, int[] DelayPattern);
     private enum CompletionMode
