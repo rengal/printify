@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Text;
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
@@ -70,6 +71,8 @@ public class EscPosPrintJobSession : PrintJobSession
 
     private IList<Element> ElementBuffer => MutableElements;
     private readonly List<byte> textBytes = new();
+    private readonly List<byte> commandBuffer = new();
+    private int processedOffset = 0;
     private int? activeTextLineIndex;
     private int sequence;
     private Encoding currentEncoding = Encoding.GetEncoding(437);
@@ -89,9 +92,14 @@ public class EscPosPrintJobSession : PrintJobSession
         if (IsCompleted)
             return Task.CompletedTask;
 
-        var data = input.Span;
+        // Append new data to the buffer
+        commandBuffer.AddRange(input.Span);
 
-        for (var index = 0; index < data.Length; index++)
+        // Process from where we left off
+        var data = CollectionsMarshal.AsSpan(commandBuffer);
+        var index = processedOffset;
+
+        while (index < data.Length)
         {
             var value = data[index];
 
@@ -101,6 +109,8 @@ public class EscPosPrintJobSession : PrintJobSession
                 // ASCII: {printable}
                 // HEX: {value:X2}
                 AppendPrintable(value);
+                index++;
+                processedOffset = index;
                 continue;
             }
 
@@ -112,428 +122,577 @@ public class EscPosPrintJobSession : PrintJobSession
                 // ASCII: LF
                 // HEX: 0A
                 FlushText(allowEmpty: true);
+                index++;
+                processedOffset = index;
                 continue;
             }
 
             if (value == Esc)
             {
-                if (index + 1 < data.Length)
+                if (index + 1 >= data.Length)
                 {
-                    var command = data[index + 1];
-
-                    // Command: ESC i / ESC m - paper cut.
-                    // ASCII: ESC {i|m}
-                    // HEX: 1B {69|6D}
-                    if (command == (byte)'i' || command == (byte)'m')
-                    {
-                        FlushText(allowEmpty: false);
-                        ElementBuffer.Add(new Pagecut(++sequence));
-                        index += 1;
-                        continue;
-                    }
-
-                    // Command: ESC t n - select character code table.
-                    // ASCII: ESC t n
-                    // HEX: 1B 74 0xNN
-                    if (command == EscSelectCodePageCommand && index + 2 < data.Length)
-                    {
-                        var codePageId = data[index + 2];
-                        if (EscCodePageMap.TryGetValue(codePageId, out var codePage))
-                        {
-                            FlushText(allowEmpty: false);
-                            UpdateCodePage(codePage);
-                            ElementBuffer.Add(new SetCodePage(++sequence, codePage));
-                        }
-
-                        index += 2;
-                        continue;
-                    }
-
-                    // Command: ESC p m t1 t2 - cash drawer pulse.
-                    // ASCII: ESC p m t1 t2
-                    // HEX: 1B 70 0xMM 0xT1 0xT2
-                    if (command == (byte)'p' && index + 4 < data.Length)
-                    {
-                        FlushText(allowEmpty: false);
-                        var pinId = data[index + 2];
-                        var onTime = data[index + 3];
-                        var offTime = data[index + 4];
-                        var pin = PulsePinMap.GetValueOrDefault(pinId, PulsePin.Drawer1);
-                        var onTimeMs = onTime * 2;
-                        var offTimeMs = offTime * 2;
-                        ElementBuffer.Add(new Pulse(++sequence, pin, onTimeMs, offTimeMs));
-                        index += 4;
-                        continue;
-                    }
-
-                    // Command: ESC E n - enable/disable emphasized (bold) mode.
-                    // ASCII: ESC E n
-                    // HEX: 1B 45 0xNN (00=off, 01=on)
-                    if (command == (byte)'E' && index + 2 < data.Length)
-                    {
-                        FlushText(allowEmpty: false);
-                        var enabled = data[index + 2] != 0;
-                        ElementBuffer.Add(new SetBoldMode(++sequence, enabled));
-                        index += 2;
-                        continue;
-                    }
-
-                    // Command: ESC - n - enable/disable underline mode.
-                    // ASCII: ESC - n
-                    // HEX: 1B 2D 0xNN (00=off, 01=on)
-                    if (command == 0x2D && index + 2 < data.Length)
-                    {
-                        FlushText(allowEmpty: false);
-                        var enabled = data[index + 2] != 0;
-                        ElementBuffer.Add(new SetUnderlineMode(++sequence, enabled));
-                        index += 2;
-                        continue;
-                    }
-
-                    // Command: ESC a n - select justification.
-                    // ASCII: ESC a n
-                    // HEX: 1B 61 0xNN (00=left, 01=center, 02=right)
-                    if (command == (byte)'a' && index + 2 < data.Length)
-                    {
-                        FlushText(allowEmpty: false);
-                        var justificationValue = data[index + 2];
-                        if (TryGetJustification(justificationValue, out var justification))
-                        {
-                            ElementBuffer.Add(new SetJustification(++sequence, justification));
-                        }
-
-                        index += 2;
-                        continue;
-                    }
-
-
-                    // Command: ESC @ - reset printer.
-                    // ASCII: ESC @
-                    // HEX: 1B 40
-                    if (command == 0x40)
-                    {
-                        FlushText(allowEmpty: false);
-                        ElementBuffer.Add(new ResetPrinter(++sequence));
-                        index += 1;
-                        continue;
-                    }
-
-                    // Command: ESC ! n - select font characteristics.
-                    // ASCII: ESC ! n
-                    // HEX: 1B 21 0xNN
-                    if (command == 0x21 && index + 2 < data.Length)
-                    {
-                        FlushText(allowEmpty: false);
-                        var parameter = data[index + 2];
-                        var fontNumber = parameter & 0x07;
-                        var isDoubleHeight = (parameter & 0x10) != 0;
-                        var isDoubleWidth = (parameter & 0x20) != 0;
-                        ElementBuffer.Add(new SetFont(++sequence, fontNumber, isDoubleWidth, isDoubleHeight));
-                        index += 2;
-                        continue;
-                    }
-
-                    // Command: ESC 3 n - set line spacing.
-                    // ASCII: ESC 3 n
-                    // HEX: 1B 33 0xNN
-                    if (command == 0x33 && index + 2 < data.Length)
-                    {
-                        FlushText(allowEmpty: false);
-                        var spacing = data[index + 2];
-                        ElementBuffer.Add(new SetLineSpacing(++sequence, spacing));
-                        index += 2;
-                        continue;
-                    }
-
-                    // Command: ESC 2 - set default line spacing (approx. 30 dots).
-                    // ASCII: ESC 2
-                    // HEX: 1B 32
-                    if (command == 0x32)
-                    {
-                        FlushText(allowEmpty: false);
-                        ElementBuffer.Add(new SetLineSpacing(++sequence, 30));
-                        index += 1;
-                        continue;
-                    }
+                    // Incomplete ESC command - wait for more data
+                    break;
                 }
 
+                var command = data[index + 1];
+
+                // Command: ESC i / ESC m - paper cut.
+                // ASCII: ESC {i|m}
+                // HEX: 1B {69|6D}
+                if (command == (byte)'i' || command == (byte)'m')
+                {
+                    FlushText(allowEmpty: false);
+                    ElementBuffer.Add(new Pagecut(++sequence));
+                    index += 2;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: ESC t n - select character code table.
+                // ASCII: ESC t n
+                // HEX: 1B 74 0xNN
+                if (command == EscSelectCodePageCommand)
+                {
+                    if (index + 2 >= data.Length)
+                    {
+                        // Incomplete command - wait for parameter
+                        break;
+                    }
+
+                    var codePageId = data[index + 2];
+                    if (EscCodePageMap.TryGetValue(codePageId, out var codePage))
+                    {
+                        FlushText(allowEmpty: false);
+                        UpdateCodePage(codePage);
+                        ElementBuffer.Add(new SetCodePage(++sequence, codePage));
+                    }
+
+                    index += 3;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: ESC p m t1 t2 - cash drawer pulse.
+                // ASCII: ESC p m t1 t2
+                // HEX: 1B 70 0xMM 0xT1 0xT2
+                if (command == (byte)'p')
+                {
+                    if (index + 4 >= data.Length)
+                    {
+                        // Incomplete command - wait for all parameters
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var pinId = data[index + 2];
+                    var onTime = data[index + 3];
+                    var offTime = data[index + 4];
+                    var pin = PulsePinMap.GetValueOrDefault(pinId, PulsePin.Drawer1);
+                    var onTimeMs = onTime * 2;
+                    var offTimeMs = offTime * 2;
+                    ElementBuffer.Add(new Pulse(++sequence, pin, onTimeMs, offTimeMs));
+                    index += 5;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: ESC E n - enable/disable emphasized (bold) mode.
+                // ASCII: ESC E n
+                // HEX: 1B 45 0xNN (00=off, 01=on)
+                if (command == (byte)'E')
+                {
+                    if (index + 2 >= data.Length)
+                    {
+                        // Incomplete command
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var enabled = data[index + 2] != 0;
+                    ElementBuffer.Add(new SetBoldMode(++sequence, enabled));
+                    index += 3;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: ESC - n - enable/disable underline mode.
+                // ASCII: ESC - n
+                // HEX: 1B 2D 0xNN (00=off, 01=on)
+                if (command == 0x2D)
+                {
+                    if (index + 2 >= data.Length)
+                    {
+                        // Incomplete command
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var enabled = data[index + 2] != 0;
+                    ElementBuffer.Add(new SetUnderlineMode(++sequence, enabled));
+                    index += 3;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: ESC a n - select justification.
+                // ASCII: ESC a n
+                // HEX: 1B 61 0xNN (00=left, 01=center, 02=right)
+                if (command == (byte)'a')
+                {
+                    if (index + 2 >= data.Length)
+                    {
+                        // Incomplete command
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var justificationValue = data[index + 2];
+                    if (TryGetJustification(justificationValue, out var justification))
+                    {
+                        ElementBuffer.Add(new SetJustification(++sequence, justification));
+                    }
+
+                    index += 3;
+                    processedOffset = index;
+                    continue;
+                }
+
+
+                // Command: ESC @ - reset printer.
+                // ASCII: ESC @
+                // HEX: 1B 40
+                if (command == 0x40)
+                {
+                    FlushText(allowEmpty: false);
+                    ElementBuffer.Add(new ResetPrinter(++sequence));
+                    index += 2;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: ESC ! n - select font characteristics.
+                // ASCII: ESC ! n
+                // HEX: 1B 21 0xNN
+                if (command == 0x21)
+                {
+                    if (index + 2 >= data.Length)
+                    {
+                        // Incomplete command
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var parameter = data[index + 2];
+                    var fontNumber = parameter & 0x07;
+                    var isDoubleHeight = (parameter & 0x10) != 0;
+                    var isDoubleWidth = (parameter & 0x20) != 0;
+                    ElementBuffer.Add(new SetFont(++sequence, fontNumber, isDoubleWidth, isDoubleHeight));
+                    index += 3;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: ESC 3 n - set line spacing.
+                // ASCII: ESC 3 n
+                // HEX: 1B 33 0xNN
+                if (command == 0x33)
+                {
+                    if (index + 2 >= data.Length)
+                    {
+                        // Incomplete command
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var spacing = data[index + 2];
+                    ElementBuffer.Add(new SetLineSpacing(++sequence, spacing));
+                    index += 3;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: ESC 2 - set default line spacing (approx. 30 dots).
+                // ASCII: ESC 2
+                // HEX: 1B 32
+                if (command == 0x32)
+                {
+                    FlushText(allowEmpty: false);
+                    ElementBuffer.Add(new SetLineSpacing(++sequence, 30));
+                    index += 2;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Unknown ESC command - skip it
+                index += 2;
+                processedOffset = index;
                 continue;
             }
 
             if (value == Gs)
             {
-                if (index + 1 < data.Length)
+                if (index + 1 >= data.Length)
                 {
-                    var command = data[index + 1];
-                    // Command: GS ( k - QR configuration and print workflow.
-                    // ASCII: GS ( k
-                    // HEX: 1D 28 6B pL pH cn fn [data]
-                    if (command == 0x28 && index + 3 < data.Length)
+                    // Incomplete GS command
+                    break;
+                }
+
+                var command = data[index + 1];
+                // Command: GS ( k - QR configuration and print workflow.
+                // ASCII: GS ( k
+                // HEX: 1D 28 6B pL pH cn fn [data]
+                if (command == 0x28)
+                {
+                    if (index + 4 >= data.Length)
                     {
-                        var parameterLength = data[index + 3] | (data[index + 4] << 8);
-                        if (index + 5 + parameterLength <= data.Length && parameterLength >= 2)
+                        // Incomplete command - need at least pL pH
+                        break;
+                    }
+
+                    var parameterLength = data[index + 3] | (data[index + 4] << 8);
+                    if (index + 5 + parameterLength > data.Length)
+                    {
+                        // Incomplete command - don't have full payload yet
+                        break;
+                    }
+
+                    if (parameterLength >= 2)
+                    {
+                        var cn = data[index + 5];
+                        var fn = data[index + 6];
+                        var payloadLength = parameterLength - 2;
+                        var payloadSpan = payloadLength > 0 ? data.Slice(index + 7, payloadLength) : ReadOnlySpan<byte>.Empty;
+                        var handled = false;
+
+                        if (cn == 0x31)
                         {
-                            var cn = data[index + 5];
-                            var fn = data[index + 6];
-                            var payloadLength = parameterLength - 2;
-                            var payloadSpan = payloadLength > 0 ? data.Slice(index + 7, payloadLength) : ReadOnlySpan<byte>.Empty;
-                            var handled = false;
-
-                            if (cn == 0x31)
+                            switch (fn)
                             {
-                                switch (fn)
-                                {
-                                    case 0x41:
-                                        if (payloadSpan.Length > 0 && TryGetQrModel(payloadSpan[0], out var model))
-                                        {
-                                            FlushText(allowEmpty: false);
-                                            ElementBuffer.Add(new SetQrModel(++sequence, model));
-                                            handled = true;
-                                        }
+                                case 0x41:
+                                    if (payloadSpan.Length > 0 && TryGetQrModel(payloadSpan[0], out var model))
+                                    {
+                                        FlushText(allowEmpty: false);
+                                        ElementBuffer.Add(new SetQrModel(++sequence, model));
+                                        handled = true;
+                                    }
 
+                                    break;
+
+                                case 0x43:
+                                    if (payloadSpan.Length > 0)
+                                    {
+                                        FlushText(allowEmpty: false);
+                                        ElementBuffer.Add(new SetQrModuleSize(++sequence, payloadSpan[0]));
+                                        handled = true;
+                                    }
+
+                                    break;
+
+                                case 0x45:
+                                    if (payloadSpan.Length > 0 && TryGetQrErrorCorrection(payloadSpan[0], out var level))
+                                    {
+                                        FlushText(allowEmpty: false);
+                                        ElementBuffer.Add(new SetQrErrorCorrection(++sequence, level));
+                                        handled = true;
+                                    }
+
+                                    break;
+
+                                case 0x50:
+                                    {
+                                        var contentSpan = payloadSpan.Length > 1 ? payloadSpan.Slice(1) : ReadOnlySpan<byte>.Empty;
+                                        var content = contentSpan.Length > 0 ? currentEncoding.GetString(contentSpan) : string.Empty;
+                                        pendingQrData = content;
+                                        FlushText(allowEmpty: false);
+                                        ElementBuffer.Add(new StoreQrData(++sequence, content));
+                                        handled = true;
                                         break;
+                                    }
 
-                                    case 0x43:
-                                        if (payloadSpan.Length > 0)
-                                        {
-                                            FlushText(allowEmpty: false);
-                                            ElementBuffer.Add(new SetQrModuleSize(++sequence, payloadSpan[0]));
-                                            handled = true;
-                                        }
-
+                                case 0x51:
+                                    {
+                                        var content = pendingQrData ?? string.Empty;
+                                        FlushText(allowEmpty: false);
+                                        ElementBuffer.Add(new PrintQrCode(++sequence, content));
+                                        handled = true;
                                         break;
-
-                                    case 0x45:
-                                        if (payloadSpan.Length > 0 && TryGetQrErrorCorrection(payloadSpan[0], out var level))
-                                        {
-                                            FlushText(allowEmpty: false);
-                                            ElementBuffer.Add(new SetQrErrorCorrection(++sequence, level));
-                                            handled = true;
-                                        }
-
-                                        break;
-
-                                    case 0x50:
-                                        {
-                                            var contentSpan = payloadSpan.Length > 1 ? payloadSpan.Slice(1) : ReadOnlySpan<byte>.Empty;
-                                            var content = contentSpan.Length > 0 ? currentEncoding.GetString(contentSpan) : string.Empty;
-                                            pendingQrData = content;
-                                            FlushText(allowEmpty: false);
-                                            ElementBuffer.Add(new StoreQrData(++sequence, content));
-                                            handled = true;
-                                            break;
-                                        }
-
-                                    case 0x51:
-                                        {
-                                            var content = pendingQrData ?? string.Empty;
-                                            FlushText(allowEmpty: false);
-                                            ElementBuffer.Add(new PrintQrCode(++sequence, content));
-                                            handled = true;
-                                            break;
-                                        }
-                                }
+                                    }
                             }
+                        }
 
-                            index += 4 + parameterLength;
-                            if (handled)
-                            {
-                                continue;
-                            }
-
+                        index += 5 + parameterLength;
+                        processedOffset = index;
+                        if (handled)
+                        {
                             continue;
                         }
 
-                        index += 4 + parameterLength;
                         continue;
                     }
 
+                    index += 5 + parameterLength;
+                    processedOffset = index;
+                    continue;
+                }
 
-                    // Command: GS v 0 m xL xH yL yH [data] - raster bit image print.
-                    // ASCII: GS v 0
-                    // HEX: 1D 76 30 m xL xH yL yH ...
-                    if (command == 0x76 && index + 7 < data.Length && data[index + 2] == 0x30)
+
+                // Command: GS v 0 m xL xH yL yH [data] - raster bit image print.
+                // ASCII: GS v 0
+                // HEX: 1D 76 30 m xL xH yL yH ...
+                if (command == 0x76)
+                {
+                    if (index + 7 >= data.Length)
+                    {
+                        break;
+                    }
+
+                    if (data[index + 2] == 0x30)
                     {
                         var mode = data[index + 3];
                         var widthBytes = data[index + 4] | (data[index + 5] << 8);
                         var height = data[index + 6] | (data[index + 7] << 8);
                         var payloadLength = widthBytes * height;
 
-                        if (payloadLength > 0 && index + 8 + payloadLength <= data.Length)
+                        if (payloadLength > 0)
                         {
+                            if (index + 8 + payloadLength > data.Length)
+                            {
+                                // Incomplete image data
+                                break;
+                            }
+
                             var payload = data.Slice(index + 8, payloadLength).ToArray();
                             FlushText(allowEmpty: false);
                             //StoreRasterImage(payload, widthBytes, height);
-                            index += 7 + payloadLength;
+                            index += 8 + payloadLength;
+                            processedOffset = index;
                             continue;
                         }
                     }
+                }
 
-                    // Command: GS a n - real-time printer status.
-                    // ASCII: GS a n
-                    // HEX: 1D 61 0xNN
-                    if (command == 0x61 && index + 2 < data.Length)
+                // Command: GS a n - real-time printer status.
+                // ASCII: GS a n
+                // HEX: 1D 61 0xNN
+                if (command == 0x61)
+                {
+                    if (index + 2 >= data.Length)
                     {
-                        FlushText(allowEmpty: false);
-                        var status = data[index + 2];
-                        ElementBuffer.Add(new PrinterStatus(++sequence, status, null));
-                        index += 2;
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var status = data[index + 2];
+                    ElementBuffer.Add(new PrinterStatus(++sequence, status, null));
+                    index += 3;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: GS h n - set barcode height.
+                // ASCII: GS h n
+                // HEX: 1D 68 0xNN
+                if (command == 0x68)
+                {
+                    if (index + 2 >= data.Length)
+                    {
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var height = data[index + 2];
+                    ElementBuffer.Add(new SetBarcodeHeight(++sequence, height));
+                    index += 3;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: GS w n - set barcode module width.
+                // ASCII: GS w n
+                // HEX: 1D 77 0xNN
+                if (command == 0x77)
+                {
+                    if (index + 2 >= data.Length)
+                    {
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var width = data[index + 2];
+                    ElementBuffer.Add(new SetBarcodeModuleWidth(++sequence, width));
+                    index += 3;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: GS H n - set barcode label position.
+                // ASCII: GS H n
+                // HEX: 1D 48 0xNN
+                if (command == 0x48)
+                {
+                    if (index + 2 >= data.Length)
+                    {
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var positionValue = data[index + 2];
+                    if (TryGetBarcodeLabelPosition(positionValue, out var position))
+                    {
+                        ElementBuffer.Add(new SetBarcodeLabelPosition(++sequence, position));
+                    }
+
+                    index += 3;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: GS k m d... - print barcode.
+                // ASCII: GS k m d1... or GS k m k d1...
+                // HEX: 1D 6B 0xMM ...
+                if (command == 0x6B)
+                {
+                    if (index + 2 >= data.Length)
+                    {
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var barcodeType = data[index + 2];
+                    if (!TryResolveBarcodeSymbology(barcodeType, out var symbology, out var usesLengthIndicator))
+                    {
+                        index += 3;
+                        processedOffset = index;
                         continue;
                     }
 
-                    // Command: GS h n - set barcode height.
-                    // ASCII: GS h n
-                    // HEX: 1D 68 0xNN
-                    if (command == 0x68 && index + 2 < data.Length)
+                    if (usesLengthIndicator)
                     {
-                        FlushText(allowEmpty: false);
-                        var height = data[index + 2];
-                        ElementBuffer.Add(new SetBarcodeHeight(++sequence, height));
-                        index += 2;
-                        continue;
-                    }
-
-                    // Command: GS w n - set barcode module width.
-                    // ASCII: GS w n
-                    // HEX: 1D 77 0xNN
-                    if (command == 0x77 && index + 2 < data.Length)
-                    {
-                        FlushText(allowEmpty: false);
-                        var width = data[index + 2];
-                        ElementBuffer.Add(new SetBarcodeModuleWidth(++sequence, width));
-                        index += 2;
-                        continue;
-                    }
-
-                    // Command: GS H n - set barcode label position.
-                    // ASCII: GS H n
-                    // HEX: 1D 48 0xNN
-                    if (command == 0x48 && index + 2 < data.Length)
-                    {
-                        FlushText(allowEmpty: false);
-                        var positionValue = data[index + 2];
-                        if (TryGetBarcodeLabelPosition(positionValue, out var position))
+                        if (index + 3 >= data.Length)
                         {
-                            ElementBuffer.Add(new SetBarcodeLabelPosition(++sequence, position));
+                            break;
                         }
 
-                        index += 2;
+                        var length = data[index + 3];
+                        var payloadStart = index + 4;
+                        if (payloadStart + length > data.Length)
+                        {
+                            break;
+                        }
+
+                        var payload = data.Slice(payloadStart, length).ToArray();
+                        var content = currentEncoding.GetString(payload);
+                        ElementBuffer.Add(new PrintBarcode(++sequence, symbology, content));
+                        index += 4 + length;
+                        processedOffset = index;
                         continue;
                     }
-
-                    // Command: GS k m d... - print barcode.
-                    // ASCII: GS k m d1... or GS k m k d1...
-                    // HEX: 1D 6B 0xMM ...
-                    if (command == 0x6B && index + 2 < data.Length)
+                    else
                     {
-                        FlushText(allowEmpty: false);
-                        var barcodeType = data[index + 2];
-                        if (!TryResolveBarcodeSymbology(barcodeType, out var symbology, out var usesLengthIndicator))
+                        var payloadStart = index + 3;
+                        var terminatorIndex = FindNullTerminator(data, payloadStart);
+                        if (terminatorIndex == -1)
                         {
-                            index += 2;
-                            continue;
+                            // No terminator found - might be incomplete
+                            break;
                         }
 
-                        if (usesLengthIndicator)
-                        {
-                            if (index + 3 >= data.Length)
-                            {
-                                index += 2;
-                                continue;
-                            }
-
-                            var length = data[index + 3];
-                            var payloadStart = index + 4;
-                            if (payloadStart + length > data.Length)
-                            {
-                                index += 3;
-                                continue;
-                            }
-
-                            var payload = data.Slice(payloadStart, length).ToArray();
-                            var content = currentEncoding.GetString(payload);
-                            ElementBuffer.Add(new PrintBarcode(++sequence, symbology, content));
-                            index += 3 + length;
-                            continue;
-                        }
-                        else
-                        {
-                            var payloadStart = index + 3;
-                            var terminatorIndex = FindNullTerminator(data, payloadStart);
-                            if (terminatorIndex == -1)
-                            {
-                                index = data.Length - 1;
-                                continue;
-                            }
-
-                            var payloadLength = terminatorIndex - payloadStart;
-                            var payload = payloadLength > 0 ? data.Slice(payloadStart, payloadLength).ToArray() : Array.Empty<byte>();
-                            var content = currentEncoding.GetString(payload);
-                            ElementBuffer.Add(new PrintBarcode(++sequence, symbology, content));
-                            index = terminatorIndex;
-                            continue;
-                        }
-                    }
-
-                    // Command: GS B n - enable/disable reverse (white-on-black) mode.
-                    // ASCII: GS B n
-                    // HEX: 1D 42 0xNN (00=off, 01=on)
-                    if (command == 0x42 && index + 2 < data.Length)
-                    {
-                        FlushText(allowEmpty: false);
-                        var enabled = data[index + 2] != 0;
-                        ElementBuffer.Add(new SetReverseMode(++sequence, enabled));
-                        index += 2;
-                        continue;
-                    }
-
-                    // Command: GS V m [n] - paper cut with mode.
-                    // ASCII: GS V m [n]
-                    // HEX: 1D 56 0xMM [0xNN]
-                    if (command == 0x56 && index + 2 < data.Length)
-                    {
-                        FlushText(allowEmpty: false);
-                        var skip = index + 3 < data.Length ? 3 : 2;
-                        index += skip;
-                        ElementBuffer.Add(new Pagecut(++sequence));
+                        var payloadLength = terminatorIndex - payloadStart;
+                        var payload = payloadLength > 0 ? data.Slice(payloadStart, payloadLength).ToArray() : Array.Empty<byte>();
+                        var content = currentEncoding.GetString(payload);
+                        ElementBuffer.Add(new PrintBarcode(++sequence, symbology, content));
+                        index = terminatorIndex + 1;
+                        processedOffset = index;
                         continue;
                     }
                 }
 
+                // Command: GS B n - enable/disable reverse (white-on-black) mode.
+                // ASCII: GS B n
+                // HEX: 1D 42 0xNN (00=off, 01=on)
+                if (command == 0x42)
+                {
+                    if (index + 2 >= data.Length)
+                    {
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var enabled = data[index + 2] != 0;
+                    ElementBuffer.Add(new SetReverseMode(++sequence, enabled));
+                    index += 3;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Command: GS V m [n] - paper cut with mode.
+                // ASCII: GS V m [n]
+                // HEX: 1D 56 0xMM [0xNN]
+                if (command == 0x56)
+                {
+                    if (index + 2 >= data.Length)
+                    {
+                        break;
+                    }
+
+                    FlushText(allowEmpty: false);
+                    var skip = index + 3 < data.Length ? 3 : 2;
+                    index += skip;
+                    processedOffset = index;
+                    ElementBuffer.Add(new Pagecut(++sequence));
+                    continue;
+                }
+
+                // Unknown GS command
+                index += 2;
+                processedOffset = index;
                 continue;
             }
 
             if (value == Fs)
             {
-                if (index + 1 < data.Length)
+                if (index + 1 >= data.Length)
                 {
-                    var fsCommand = data[index + 1];
-
-                    if (fsCommand == FsSelectChinese)
-                    {
-                        // Command: FS & - select Chinese (GB2312) character set.
-                        // ASCII: FS &
-                        // HEX: 1C 26
-                        FlushText(allowEmpty: false);
-                        UpdateCodePage("936");
-                        ElementBuffer.Add(new SetCodePage(++sequence, "936"));
-                        index += 1;
-                        continue;
-                    }
-
-                    if (fsCommand == (byte)'p' && index + 3 < data.Length)
-                    {
-                        // Command: FS p m n - print stored logo by identifier.
-                        // ASCII: FS p m n
-                        // HEX: 1C 70 0xMM 0xNN
-                        FlushText(allowEmpty: false);
-                        var logoId = data[index + 3];
-                        ElementBuffer.Add(new StoredLogo(++sequence, logoId));
-                        index += 3;
-                        continue;
-                    }
+                    break;
                 }
 
+                var fsCommand = data[index + 1];
+
+                if (fsCommand == FsSelectChinese)
+                {
+                    // Command: FS & - select Chinese (GB2312) character set.
+                    // ASCII: FS &
+                    // HEX: 1C 26
+                    FlushText(allowEmpty: false);
+                    UpdateCodePage("936");
+                    ElementBuffer.Add(new SetCodePage(++sequence, "936"));
+                    index += 2;
+                    processedOffset = index;
+                    continue;
+                }
+
+                if (fsCommand == (byte)'p')
+                {
+                    if (index + 3 >= data.Length)
+                    {
+                        break;
+                    }
+
+                    // Command: FS p m n - print stored logo by identifier.
+                    // ASCII: FS p m n
+                    // HEX: 1C 70 0xMM 0xNN
+                    FlushText(allowEmpty: false);
+                    var logoId = data[index + 3];
+                    ElementBuffer.Add(new StoredLogo(++sequence, logoId));
+                    index += 4;
+                    processedOffset = index;
+                    continue;
+                }
+
+                // Unknown FS command
+                index += 2;
+                processedOffset = index;
                 continue;
             }
 
@@ -544,11 +703,20 @@ public class EscPosPrintJobSession : PrintJobSession
                 // HEX: 07
                 FlushText(allowEmpty: false);
                 ElementBuffer.Add(new Bell(++sequence));
+                index++;
+                processedOffset = index;
                 continue;
             }
         }
 
         CommitPendingText();
+
+        // Trim buffer periodically to prevent unbounded growth
+        if (processedOffset > 1024)
+        {
+            commandBuffer.RemoveRange(0, processedOffset);
+            processedOffset = 0;
+        }
 
         idleClock.Restart();
         _ = IdleTimeoutAsync(ct);
