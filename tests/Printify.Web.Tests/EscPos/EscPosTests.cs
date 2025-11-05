@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
-using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
@@ -17,10 +16,8 @@ using Printify.Web.Contracts.Users.Requests;
 
 namespace Printify.Web.Tests.EscPos;
 
-public sealed partial class EscPosTests : IClassFixture<WebApplicationFactory<Program>>
+public partial class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> factory;
-
     private sealed record ChunkStrategy(string Name, int[] ChunkPattern, int[] DelayPattern);
     private enum CompletionMode
     {
@@ -43,11 +40,6 @@ public sealed partial class EscPosTests : IClassFixture<WebApplicationFactory<Pr
         new("SmallThenLarge", new[] { 1, 5 }, new[] { 45, 105 }),
         new("PrimePattern", new[] { 2, 3, 5 }, new[] { 70, 100, 130 })
     };
-
-    public EscPosTests(WebApplicationFactory<Program> factory)
-    {
-        this.factory = factory;
-    }
 
     [Fact]
     public async Task DocumentCompletesAfterIdleTimeout()
@@ -87,7 +79,7 @@ public sealed partial class EscPosTests : IClassFixture<WebApplicationFactory<Pr
         ]);
     }
 
-    private async Task RunScenarioAsync(EscPosScenario scenario)
+    protected async Task RunScenarioAsync(EscPosScenario scenario)
     {
         foreach (var strategy in ChunkStrategies)
         {

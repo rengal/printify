@@ -1,8 +1,9 @@
+using Microsoft.AspNetCore.Mvc.Testing;
 using Printify.Domain.Documents.Elements;
 
 namespace Printify.Web.Tests.EscPos;
 
-public sealed partial class EscPosTests
+public class EscPosBellTests(WebApplicationFactory<Program> factory): EscPosTests(factory)
 {
     public static TheoryData<EscPosScenario> BellScenarios =>
     [
