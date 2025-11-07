@@ -9,6 +9,7 @@ using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
+using Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
@@ -78,6 +79,12 @@ public class EscPosPrintJobSession : PrintJobSession
     private Encoding currentEncoding = Encoding.GetEncoding(437);
     private string? pendingQrData;
     private IClock idleClock;
+    private readonly EscPosParser parser;
+    private readonly ParserState parserState = new();
+    private static readonly ICommandDescriptor[] CommandDescriptors = new ICommandDescriptor[]
+    {
+        new EscPagecutCommandDescriptor(Esc)
+    };
 
     public EscPosPrintJobSession(IClockFactory clockFactory, PrintJob job, IPrinterChannel channel) : base(clockFactory, job, channel)
     {
@@ -85,6 +92,9 @@ public class EscPosPrintJobSession : PrintJobSession
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(channel);
         idleClock = clockFactory.Create();
+        parser = new EscPosParser(CommandDescriptors);
+        parserState.ElementFactory = factory => factory(++sequence);
+        parserState.FlushTextAction = FlushText;
     }
 
     public override Task Feed(ReadOnlyMemory<byte> input, CancellationToken ct)
