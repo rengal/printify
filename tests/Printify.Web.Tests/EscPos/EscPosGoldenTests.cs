@@ -1,9 +1,5 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Printify.Domain.Documents.Elements;
-using Printify.Domain.Printers;
 
 namespace Printify.Web.Tests.EscPos;
 

@@ -100,6 +100,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         string userPrefix,
         ChunkStrategy strategy)
     {
+        strategy = new("SingleByte", [1], [60]); //todo debugnow
         await RunScenarioAsync(scenario, userPrefix, strategy, CompletionMode.AdvanceIdleTimeout);
         await RunScenarioAsync(scenario, userPrefix, strategy, CompletionMode.CloseChannel);
     }
