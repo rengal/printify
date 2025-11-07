@@ -10,12 +10,14 @@ using Printify.Domain.Config;
 using Printify.Domain.Services;
 using Printify.Infrastructure.Clock;
 using Printify.Infrastructure.Config;
+using Printify.Infrastructure.Media;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Printing;
 using Printify.Infrastructure.Printing.Factories;
 using Printify.Infrastructure.Repositories;
 using Printify.Infrastructure.Security;
 using ListenerOptions = Printify.Domain.Config.ListenerOptions;
+
 namespace Printify.Web.Extensions;
 
 public static class ServiceCollectionExtensions
@@ -60,6 +62,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
 
+        // Infrastructure services
+        services.AddSingleton<IMediaService, MediaService>();
+
         // Repositories
         services.AddScoped<IAnonymousSessionRepository, AnonymousSessionRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
@@ -73,6 +78,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPrinterListenerFactory, PrinterListenerFactory>();
         services.AddSingleton<IPrinterDocumentStream, PrinterDocumentStream>();
         services.AddSingleton<IDocumentRepository, DocumentRepository>();
+
         //services.AddHostedService<PrinterListenerBootstrapper>();
 
         return services;
