@@ -19,7 +19,7 @@ public sealed class PartialCutOnePointDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        var element = state.CreateElement(sequence => new Pagecut(sequence));
+        var element = new Pagecut();
         return MatchResult.Matched(fixedLength, element);
     }
 }

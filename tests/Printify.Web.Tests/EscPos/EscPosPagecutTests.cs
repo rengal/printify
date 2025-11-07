@@ -11,13 +11,13 @@ public class EscPosPagecutTests(WebApplicationFactory<Program> factory) : EscPos
             Input: [Esc, (byte)'i'],
             ExpectedElements:
             [
-                new Pagecut(1)
+                new Pagecut()
             ]),
         new(
             Input: [Gs, 0x56, 0x00],
             ExpectedElements:
             [
-                new Pagecut(1)
+                new Pagecut()
             ])
     ];
 

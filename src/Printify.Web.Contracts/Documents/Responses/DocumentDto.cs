@@ -1,4 +1,3 @@
-using System;
 using Printify.Web.Contracts.Documents.Responses.Elements;
 
 namespace Printify.Web.Contracts.Documents.Responses;

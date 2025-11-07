@@ -10,10 +10,10 @@ public class EscPosBellTests(WebApplicationFactory<Program> factory): EscPosTest
         new(Input: [0x07],
             ExpectedElements:
             [
-                new Bell(1)
+                new Bell()
             ]),
         new(Input: Enumerable.Repeat((byte)0x07, 10).ToArray(),
-            ExpectedElements: Enumerable.Range(1, 10).Select(i => new Bell(i)).ToArray())
+            ExpectedElements: Enumerable.Range(1, 10).Select(i => new Bell()).ToArray())
     ];
 
     [Theory]

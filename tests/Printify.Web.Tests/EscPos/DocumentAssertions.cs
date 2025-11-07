@@ -35,7 +35,6 @@ internal static class DocumentAssertions
             {
                 case PrinterError expectedError:
                     var actualError = Assert.IsType<PrinterError>(actualElement);
-                    Assert.Equal(expectedError.Sequence, actualError.Sequence);
                     break;
                 default:
                     Assert.Equal(expected, actualElement);

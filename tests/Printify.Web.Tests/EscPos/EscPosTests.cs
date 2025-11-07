@@ -78,7 +78,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         var documentEvent = streamEnumerator.Current;
         DocumentAssertions.Equal(documentEvent.Document, Protocol.EscPos,
         [
-            new Bell(1)
+            new Bell()
         ]);
     }
 

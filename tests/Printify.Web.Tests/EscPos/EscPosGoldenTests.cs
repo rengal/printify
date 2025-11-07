@@ -9,61 +9,61 @@ public class EscPosGoldenTests(WebApplicationFactory<Program> factory) : EscPosT
     {
         ["case01"] =
         [
-            new ResetPrinter(1),
-            new SetFont(2, 0, false, false),
-            new SetCodePage(3, "866"),
-            new SetFont(4, 0, false, false),
-            new TextLine(5, Pad("font 0", 42)),
-            new Pagecut(6)
+            new ResetPrinter(),
+            new SetFont(0, false, false),
+            new SetCodePage("866"),
+            new SetFont(0, false, false),
+            new TextLine(Pad("font 0", 42)),
+            new Pagecut()
         ],
         ["case02"] =
         [
-            new ResetPrinter(1),
-            new SetFont(2, 0, false, false),
-            new SetCodePage(3, "866"),
-            new SetFont(4, 0, false, false),
-            new TextLine(5, Pad("font 0", 42)),
-            new SetFont(6, 1, true, true),
-            new TextLine(7, Pad("font 1", 28)),
-            new SetFont(8, 0, true, true),
-            new TextLine(9, Pad("font 2", 21)),
-            new Pagecut(10)
+            new ResetPrinter(),
+            new SetFont(0, false, false),
+            new SetCodePage("866"),
+            new SetFont(0, false, false),
+            new TextLine(Pad("font 0", 42)),
+            new SetFont(1, true, true),
+            new TextLine(Pad("font 1", 28)),
+            new SetFont(0, true, true),
+            new TextLine(Pad("font 2", 21)),
+            new Pagecut()
         ],
         ["case03"] =
         [
-            new ResetPrinter(1),
-            new SetFont(2, 0, false, false),
-            new SetCodePage(3, "866"),
-            new SetFont(4, 0, false, false),
-            new SetJustification(5, TextJustification.Right),
-            new SetBarcodeHeight(6, 101),
-            new SetBarcodeModuleWidth(7, 3),
-            new SetBarcodeLabelPosition(8, BarcodeLabelPosition.Below),
-            new PrintBarcode(9, BarcodeSymbology.Ean13, "1234567890128"),
-            new SetJustification(10, TextJustification.Left),
-            new TextLine(11, string.Empty),
-            new Pagecut(12)
+            new ResetPrinter(),
+            new SetFont(0, false, false),
+            new SetCodePage("866"),
+            new SetFont(0, false, false),
+            new SetJustification(TextJustification.Right),
+            new SetBarcodeHeight(101),
+            new SetBarcodeModuleWidth(3),
+            new SetBarcodeLabelPosition(BarcodeLabelPosition.Below),
+            new PrintBarcode(BarcodeSymbology.Ean13, "1234567890128"),
+            new SetJustification(TextJustification.Left),
+            new TextLine(string.Empty),
+            new Pagecut()
         ],
         ["case04"] =
         [
-            new ResetPrinter(1),
-            new SetFont(2, 0, false, false),
-            new SetCodePage(3, "866"),
-            new SetJustification(4, TextJustification.Left),
-            new SetQrModel(5, QrModel.Model2),
-            new SetQrModuleSize(6, 7),
-            new SetQrErrorCorrection(7, QrErrorCorrectionLevel.Low),
-            new StoreQrData(8, "https://google.com"),
-            new PrintQrCode(9, "https://google.com"),
-            new TextLine(10, string.Empty),
-            new Pagecut(11)
+            new ResetPrinter(),
+            new SetFont(0, false, false),
+            new SetCodePage("866"),
+            new SetJustification(TextJustification.Left),
+            new SetQrModel(QrModel.Model2),
+            new SetQrModuleSize(7),
+            new SetQrErrorCorrection(QrErrorCorrectionLevel.Low),
+            new StoreQrData("https://google.com"),
+            new PrintQrCode("https://google.com"),
+            new TextLine(string.Empty),
+            new Pagecut()
         ],
         ["case05"] =
         [
-            new ResetPrinter(1),
-            new SetFont(2, 0, false, false),
-            new StoredLogo(3, 0),
-            new Pagecut(4)
+            new ResetPrinter(),
+            new SetFont(0, false, false),
+            new StoredLogo(0),
+            new Pagecut()
         ]
     };
 

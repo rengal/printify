@@ -11,13 +11,13 @@ public class EscPosLineSpacingTests(WebApplicationFactory<Program> factory) : Es
             Input: [Esc, 0x33, 0x40],
             ExpectedElements:
             [
-                new SetLineSpacing(1, 0x40)
+                new SetLineSpacing(0x40)
             ]),
         new(
             Input: [Esc, 0x32],
             ExpectedElements:
             [
-                new ResetLineSpacing(1)
+                new ResetLineSpacing()
             ])
     ];
 

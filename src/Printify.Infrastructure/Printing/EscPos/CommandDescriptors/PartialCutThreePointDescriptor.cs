@@ -9,28 +9,17 @@ namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 /// </summary>
 public sealed class PartialCutThreePointDescriptor : ICommandDescriptor
 {
+    private readonly int fixedLength = 2;
+
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, (byte)'m' };
 
-    public int MinLength => 2;
+    public int MinLength => fixedLength;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
-    {
-        return MinLength;
-    }
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => fixedLength;
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        var prefix = Prefix.Span;
-        for (var i = 0; i < prefix.Length; i++)
-        {
-            if (buffer[i] != prefix[i])
-            {
-                return MatchResult.NoMatch();
-            }
-        }
-
-        state.FlushText(allowEmpty: false);
-        var element = state.CreateElement(sequence => new Pagecut(sequence));
-        return MatchResult.Matched(prefix.Length, element);
+        var element = new Pagecut();
+        return MatchResult.Matched(fixedLength, element);
     }
 }

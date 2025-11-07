@@ -7,7 +7,6 @@ namespace Printify.Domain.Documents.Elements;
 /// <summary>
 /// Base type for all document elements produced by tokenizers and consumed by renderers.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "")]
 [JsonDerivedType(typeof(Bell), "bell")]
 [JsonDerivedType(typeof(Error), "error")]
@@ -37,59 +36,51 @@ namespace Printify.Domain.Documents.Elements;
 [JsonDerivedType(typeof(StoreQrData), "storeQrData")]
 [JsonDerivedType(typeof(StoredLogo), "storedLogo")]
 [JsonDerivedType(typeof(TextLine), "textLine")]
-public abstract record Element(int Sequence);
+public abstract record Element;
 
 /// <summary>
 /// Base type for non-printing control or status events within a document stream.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
-public abstract record NonPrintingElement(int Sequence) : Element(Sequence);
+public abstract record NonPrintingElement : Element;
 
 /// <summary>
 /// Base type for printing (visible) elements that produce output on paper.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
-public abstract record PrintingElement(int Sequence) : Element(Sequence);
+public abstract record PrintingElement : Element;
 
 /// <summary>
 /// Base type for raster images with shared geometry across content or descriptors.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Width">Image width in printer dots.</param>
 /// <param name="Height">Image height in printer dots.</param>
 public abstract record BaseRasterImage(
-    int Sequence,
     int Width,
     int Height)
-    : PrintingElement(Sequence);
+    : PrintingElement;
 
 /// <summary>
 /// Raster image that carries the media payload directly in the element.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Width">Image width in printer dots.</param>
 /// <param name="Height">Image height in printer dots.</param>
 /// <param name="Media">Media payload (bytes plus metadata) for the raster image.</param>
 public sealed record RasterImageContent(
-    int Sequence,
     int Width,
     int Height,
     MediaContent Media)
-    : BaseRasterImage(Sequence, Width, Height);
+    : BaseRasterImage(Width, Height);
 
 /// <summary>
 /// Raster image that references media via a descriptor (URL plus metadata).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Width">Image width in printer dots.</param>
 /// <param name="Height">Image height in printer dots.</param>
 /// <param name="Media">Descriptor describing where the raster image bytes can be retrieved.</param>
 public sealed record RasterImageDescriptor(
-    int Sequence,
     int Width,
     int Height,
     MediaDescriptor Media)
-    : BaseRasterImage(Sequence, Width, Height);
+    : BaseRasterImage(Width, Height);
 
 /// <summary>
 /// ESC/POS barcode symbologies supported by GS k.
@@ -251,192 +242,166 @@ public enum TextJustification
 /// <summary>
 /// An audible/attention bell signal.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
-public sealed record Bell(int Sequence) : NonPrintingElement(Sequence);
+public sealed record Bell : NonPrintingElement;
 
 /// <summary>
 /// A non-printing error event emitted by the tokenizer/session (e.g., buffer overflow).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Code">Machine-readable code (e.g., "BufferOverflow", "ParseError").</param>
 /// <param name="Message">Human-readable description.</param>
-public sealed record Error(int Sequence, string Code, string Message) : NonPrintingElement(Sequence);
+public sealed record Error(string Code, string Message) : NonPrintingElement;
 
 /// <summary>
 /// A paper cut operation (full or partial depending on command parsed).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
-public sealed record Pagecut(int Sequence) : NonPrintingElement(Sequence);
+public sealed record Pagecut : NonPrintingElement;
 
 /// <summary>
 /// Represents a printer-specific error emitted during tokenization (e.g., simulated buffer overflow).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Message">Human-readable description of the error.</param>
-public sealed record PrinterError(int Sequence, string Message) : NonPrintingElement(Sequence);
+public sealed record PrinterError(string Message) : NonPrintingElement;
 
 /// <summary>
 /// A decoded printer status byte with optional human-readable description.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="StatusByte">Raw status byte value.</param>
 /// <param name="Description">Optional decoded description for UI/debugging.</param>
-public sealed record PrinterStatus(int Sequence, byte StatusByte, string? Description)
-    : NonPrintingElement(Sequence);
+public sealed record PrinterStatus(byte StatusByte, string? Description)
+    : NonPrintingElement;
 
 /// <summary>
 /// Renders a one-dimensional barcode using the GS k command family.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Symbology">Selected barcode symbology.</param>
 /// <param name="Data">Raw data payload to encode.</param>
-public sealed record PrintBarcode(int Sequence, BarcodeSymbology Symbology, string Data)
-    : PrintingElement(Sequence);
+public sealed record PrintBarcode(BarcodeSymbology Symbology, string Data)
+    : PrintingElement;
 
 /// <summary>
 /// Emits a QR code print request using the last stored payload.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Content">Payload rendered by the QR symbol.</param>
-public sealed record PrintQrCode(int Sequence, string Content) : PrintingElement(Sequence);
+public sealed record PrintQrCode(string Content) : PrintingElement;
 
 /// <summary>
 /// A cash drawer pulse signal sent to a specific pin.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Pin">Target drawer pin (e.g., Drawer1/Drawer2).</param>
 /// <param name="OnTimeMs">Pulse ON interval in milliseconds.</param>
 /// <param name="OffTimeMs">Pulse OFF interval in milliseconds.</param>
-public sealed record Pulse(int Sequence, PulsePin Pin, int OnTimeMs, int OffTimeMs)
-    : NonPrintingElement(Sequence);
+public sealed record Pulse(PulsePin Pin, int OnTimeMs, int OffTimeMs)
+    : NonPrintingElement;
 
 /// <summary>
 /// Resets the printer to its power-on state (ESC @).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
-public sealed record ResetPrinter(int Sequence) : NonPrintingElement(Sequence);
+public sealed record ResetPrinter : NonPrintingElement;
 
 /// <summary>
 /// Configures the height of subsequent barcodes using GS h (0x1D 0x68).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="HeightInDots">Barcode height in dots.</param>
-public sealed record SetBarcodeHeight(int Sequence, int HeightInDots) : NonPrintingElement(Sequence);
+public sealed record SetBarcodeHeight(int HeightInDots) : NonPrintingElement;
 
 /// <summary>
 /// Selects the placement of human-readable barcode labels via GS H (0x1D 0x48).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Position">Desired label positioning.</param>
-public sealed record SetBarcodeLabelPosition(int Sequence, BarcodeLabelPosition Position)
-    : NonPrintingElement(Sequence);
+public sealed record SetBarcodeLabelPosition(BarcodeLabelPosition Position)
+    : NonPrintingElement;
 
 /// <summary>
 /// Configures the module width (basic bar width) for subsequent barcodes using GS w (0x1D 0x77).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="ModuleWidth">Module width in device units (typically dots).</param>
-public sealed record SetBarcodeModuleWidth(int Sequence, int ModuleWidth) : NonPrintingElement(Sequence);
+public sealed record SetBarcodeModuleWidth(int ModuleWidth) : NonPrintingElement;
 
 /// <summary>
 /// Enables or disables emphasized (bold) text mode (ESC E).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="IsEnabled">True when bold mode is turned on; false when turned off.</param>
-public sealed record SetBoldMode(int Sequence, bool IsEnabled) : NonPrintingElement(Sequence);
+public sealed record SetBoldMode(bool IsEnabled) : NonPrintingElement;
 
 /// <summary>
 /// Sets the code page used to decode incoming bytes to text.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="CodePage">Code page identifier/name (e.g., "CP437", "CP850").</param>
-public sealed record SetCodePage(int Sequence, string CodePage) : NonPrintingElement(Sequence);
+public sealed record SetCodePage(string CodePage) : NonPrintingElement;
 
 /// <summary>
 /// Changes the active font selection for subsequent printed text using ESC ! (0x1B 0x21) semantics.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="FontNumber">Protocol-specific font number (e.g., 0=A, 1=B).</param>
 /// <param name="IsDoubleWidth">True when double-width bit is set.</param>
 /// <param name="IsDoubleHeight">True when double-height bit is set.</param>
-public sealed record SetFont(int Sequence, int FontNumber, bool IsDoubleWidth, bool IsDoubleHeight)
-    : NonPrintingElement(Sequence);
+public sealed record SetFont(int FontNumber, bool IsDoubleWidth, bool IsDoubleHeight)
+    : NonPrintingElement;
 
 /// <summary>
 /// Selects justification for subsequent printable data using ESC a (0x1B 0x61).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Justification">Requested alignment value.</param>
-public sealed record SetJustification(int Sequence, TextJustification Justification)
-    : NonPrintingElement(Sequence);
+public sealed record SetJustification(TextJustification Justification)
+    : NonPrintingElement;
 
 /// <summary>
 /// Sets line spacing in printer dots for subsequent lines (e.g., ESC 0x1B 0x33 n).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Spacing">Line spacing value in dots.</param>
-public sealed record SetLineSpacing(int Sequence, int Spacing) : NonPrintingElement(Sequence);
+public sealed record SetLineSpacing(int Spacing) : NonPrintingElement;
 
 /// <summary>
 /// Resets the line spacing to the printer default value.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
-public sealed record ResetLineSpacing(int Sequence) : NonPrintingElement(Sequence);
+public sealed record ResetLineSpacing : NonPrintingElement;
 
 /// <summary>
 /// Selects the QR error correction level for subsequent symbols via GS ( k.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Level">Chosen QR error correction level.</param>
-public sealed record SetQrErrorCorrection(int Sequence, QrErrorCorrectionLevel Level)
-    : NonPrintingElement(Sequence);
+public sealed record SetQrErrorCorrection(QrErrorCorrectionLevel Level)
+    : NonPrintingElement;
 
 /// <summary>
-/// Configures the QR code model for subsequent GS ( k sequences.
+/// Configures the QR code model for subsequent GS ( k.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Model">Selected QR code model.</param>
-public sealed record SetQrModel(int Sequence, QrModel Model) : NonPrintingElement(Sequence);
+public sealed record SetQrModel(QrModel Model) : NonPrintingElement;
 
 /// <summary>
 /// Sets the module size (dot width) for QR codes via GS ( k.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="ModuleSize">Width of a single QR module in dots.</param>
-public sealed record SetQrModuleSize(int Sequence, int ModuleSize) : NonPrintingElement(Sequence);
+public sealed record SetQrModuleSize(int ModuleSize) : NonPrintingElement;
 
 /// <summary>
 /// Enables or disables reverse (white-on-black) print mode (GS B).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="IsEnabled">True when reverse mode is turned on; false when turned off.</param>
-public sealed record SetReverseMode(int Sequence, bool IsEnabled) : NonPrintingElement(Sequence);
+public sealed record SetReverseMode(bool IsEnabled) : NonPrintingElement;
 
 /// <summary>
 /// Enables or disables underline text mode (ESC -).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="IsEnabled">True when underline mode is turned on; false when turned off.</param>
-public sealed record SetUnderlineMode(int Sequence, bool IsEnabled) : NonPrintingElement(Sequence);
+public sealed record SetUnderlineMode(bool IsEnabled) : NonPrintingElement;
 
 /// <summary>
 /// Prints a logo stored in printer memory by its identifier.
 /// Corresponds to ESC/POS stored logo commands (e.g., FS p).
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="LogoId">Identifier/index of the stored logo in printer memory.</param>
-public sealed record StoredLogo(int Sequence, int LogoId) : PrintingElement(Sequence);
+public sealed record StoredLogo(int LogoId) : PrintingElement;
 
 /// <summary>
 /// Stores QR code data into the printer memory using GS ( k.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Content">Payload to be encoded into the QR symbol.</param>
-public sealed record StoreQrData(int Sequence, string Content) : NonPrintingElement(Sequence);
+public sealed record StoreQrData(string Content) : NonPrintingElement;
 
 /// <summary>
 /// A printable line of text emitted by the printer protocol.
 /// </summary>
-/// <param name="Sequence">Monotonic sequence index within the document stream.</param>
 /// <param name="Text">Raw text content (decoded as parsed; typically ASCII/CP437 in MVP).</param>
-public sealed record TextLine(int Sequence, string Text) : PrintingElement(Sequence);
+public sealed record TextLine(string Text) : PrintingElement;

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Printify.Domain.Documents.Elements;
-using Printify.Domain.Printers;
 
 namespace Printify.Web.Tests.EscPos;
 
@@ -12,13 +11,13 @@ public class EscPosPulseTests(WebApplicationFactory<Program> factory) : EscPosTe
             Input: [Esc, (byte)'p', 0x01, 0x05, 0x0A],
             ExpectedElements:
             [
-                new Pulse(1, PulsePin.Drawer2, 10, 20)
+                new Pulse(PulsePin.Drawer2, 10, 20)
             ]),
         new(
             Input: [Esc, (byte)'p', 0x00, 0x03, 0x06],
             ExpectedElements:
             [
-                new Pulse(1, PulsePin.Drawer1, 6, 12)
+                new Pulse(PulsePin.Drawer1, 6, 12)
             ]),
         new(
             Input:
@@ -28,8 +27,8 @@ public class EscPosPulseTests(WebApplicationFactory<Program> factory) : EscPosTe
             ],
             ExpectedElements:
             [
-                new Pulse(1, PulsePin.Drawer1, 8, 16),
-                new Pulse(2, PulsePin.Drawer2, 4, 6)
+                new Pulse(PulsePin.Drawer1, 8, 16),
+                new Pulse(PulsePin.Drawer2, 4, 6)
             ])
     ];
 

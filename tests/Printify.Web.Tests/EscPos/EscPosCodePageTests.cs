@@ -58,12 +58,11 @@ public class EscPosCodePageTests(WebApplicationFactory<Program> factory) : EscPo
         {
             var input = new List<byte>();
             var expected = new List<Element>();
-            var sequence = 0;
     
             if (vector.Command.Length > 0)
             {
                 input.AddRange(vector.Command);
-                expected.Add(new SetCodePage(++sequence, vector.CodePage));
+                expected.Add(new SetCodePage(vector.CodePage));
             }
     
             void AppendText(string text)
@@ -73,7 +72,7 @@ public class EscPosCodePageTests(WebApplicationFactory<Program> factory) : EscPo
                 input.Add(Lf);
     
                 var normalized = vector.Encoding.GetString(bytes);
-                expected.Add(new TextLine(++sequence, normalized));
+                expected.Add(new TextLine(normalized));
             }
     
             AppendText(vector.Uppercase);
