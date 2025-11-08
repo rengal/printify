@@ -7,10 +7,10 @@ namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 /// HEX: 1B 45 n (00=off, 01=on).
 public sealed class SetBoldModeDescriptor : ICommandDescriptor
 {
-    private const int fixedLength = 1;
+    private const int FixedLength = 3;
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, (byte)'E' };
-    public int MinLength => fixedLength;
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => fixedLength;
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
         var mode = buffer[2] == 0x01;

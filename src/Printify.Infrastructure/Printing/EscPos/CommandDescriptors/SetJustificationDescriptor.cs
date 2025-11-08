@@ -5,7 +5,7 @@ namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 /// Command: ESC a - select justification.
 /// ASCII: ESC a n.
 /// HEX: 1B 61 n (00=left, 01=center, 02=right).
-public sealed class JustificationDescriptor : ICommandDescriptor
+public sealed class SetJustificationDescriptor : ICommandDescriptor
 {
     private const int FixedLength = 3;
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, (byte)'a' };

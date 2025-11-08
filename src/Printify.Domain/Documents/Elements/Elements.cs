@@ -12,7 +12,7 @@ namespace Printify.Domain.Documents.Elements;
 [JsonDerivedType(typeof(Error), "error")]
 [JsonDerivedType(typeof(Pagecut), "pagecut")]
 [JsonDerivedType(typeof(PrinterError), "printerError")]
-[JsonDerivedType(typeof(PrinterStatus), "printerStatus")]
+[JsonDerivedType(typeof(GetPrinterStatus), "printerStatus")]
 [JsonDerivedType(typeof(PrintBarcode), "printBarcode")]
 [JsonDerivedType(typeof(PrintQrCode), "printQrCode")]
 [JsonDerivedType(typeof(Pulse), "pulse")]
@@ -227,6 +227,22 @@ public enum TextJustification
 }
 
 /// <summary>
+/// Paper cut operation modes supported by ESC/POS cut commands.
+/// </summary>
+public enum PagecutMode
+{
+    /// <summary>
+    /// Full paper cut (completely severs the paper).
+    /// </summary>
+    Full = 0,
+
+    /// <summary>
+    /// Partial paper cut (leaves a small connection for easy tear-off).
+    /// </summary>
+    Partial = 1
+}
+
+/// <summary>
 /// An audible/attention bell signal.
 /// </summary>
 public sealed record Bell : NonPrintingElement;
@@ -241,7 +257,9 @@ public sealed record Error(string Code, string Message) : NonPrintingElement;
 /// <summary>
 /// A paper cut operation (full or partial depending on command parsed).
 /// </summary>
-public sealed record Pagecut : NonPrintingElement;
+/// <param name="Mode">The type of cut to perform (full or partial).</param>
+/// <param name="FeedMotionUnits">Feed distance in motion units before cutting (GS V m n).</param>
+public sealed record Pagecut(PagecutMode Mode, int? FeedMotionUnits) : NonPrintingElement;
 
 /// <summary>
 /// Represents a printer-specific error emitted during tokenization (e.g., simulated buffer overflow).
@@ -253,8 +271,12 @@ public sealed record PrinterError(string Message) : NonPrintingElement;
 /// A decoded printer status byte with optional human-readable description.
 /// </summary>
 /// <param name="StatusByte">Raw status byte value.</param>
-/// <param name="Description">Optional decoded description for UI/debugging.</param>
-public sealed record PrinterStatus(byte StatusByte, string? Description)
+/// <param name="AdditionalStatusByte">
+/// Optional additional status byte value, if present in the protocol.
+/// </param>
+public sealed record GetPrinterStatus(
+    byte StatusByte,
+    byte? AdditionalStatusByte = null)
     : NonPrintingElement;
 
 /// <summary>

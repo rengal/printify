@@ -17,7 +17,7 @@ internal static class DocumentMapper
             WebElements.Error error => new DomainElements.Error( error.Code, error.Message),
             WebElements.Pagecut => new DomainElements.Pagecut(),
             WebElements.PrinterError printerError => new DomainElements.PrinterError(printerError.Message),
-            WebElements.PrinterStatus printerStatus => new DomainElements.PrinterStatus(
+            WebElements.PrinterStatus printerStatus => new DomainElements.GetPrinterStatus(
                 printerStatus.StatusByte,
                 printerStatus.Description),
             WebElements.PrintBarcode barcode => new DomainElements.PrintBarcode(

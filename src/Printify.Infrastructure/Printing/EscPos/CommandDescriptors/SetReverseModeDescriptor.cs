@@ -7,15 +7,15 @@ namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 /// HEX: 1D 42 n (00=off, 01=on).
 public sealed class SetReverseModeDescriptor : ICommandDescriptor
 {
-    
+    private const int FixedLength = 3;
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1D, 0x42 };
-    public int MinLength => 3;
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => buffer.Length >= MinLength ? MinLength : null;
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
         var mode = buffer[2] == 0x01;
         var element = new SetReverseMode(mode);
-        return MatchResult.Matched(MinLength, element);
+        return MatchResult.Matched(FixedLength, element);
     }
 }
