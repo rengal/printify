@@ -42,13 +42,20 @@ public class EscPosPrintJobSession : PrintJobSession
     private readonly EscPosParser parser;
     private readonly ParserState parserState = new();
 
-    public EscPosPrintJobSession(IClockFactory clockFactory, PrintJob job, IPrinterChannel channel) : base(clockFactory, job, channel)
+    public EscPosPrintJobSession(
+        IClockFactory clockFactory,
+        PrintJob job,
+        IPrinterChannel channel,
+        IEscPosCommandTrieProvider commandTrieProvider)
+        : base(clockFactory, job, channel)
     {
         ArgumentNullException.ThrowIfNull(clockFactory);
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(channel);
+        ArgumentNullException.ThrowIfNull(commandTrieProvider);
         idleClock = clockFactory.Create();
-        parser = new EscPosParser([]); //todo debugnow
+        // Reuse the shared trie so every session parses with the same descriptor snapshot.
+        parser = new EscPosParser(commandTrieProvider.Root);
     }
 
     public override Task Feed(ReadOnlyMemory<byte> input, CancellationToken ct)
