@@ -9,6 +9,7 @@ using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
+using Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
@@ -29,46 +30,7 @@ public class EscPosPrintJobSession : PrintJobSession
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
 
-    private static readonly IReadOnlyDictionary<byte, string> EscCodePageMap = new Dictionary<byte, string>
-    {
-        [0x00] = "437",
-        [0x20] = "720",
-        [0x0E] = "737",
-        [0x21] = "775",
-        [0x02] = "850",
-        [0x12] = "852",
-        [0x22] = "855",
-        [0x0D] = "857",
-        [0x13] = "858",
-        [0x03] = "860",
-        [0x23] = "861",
-        [0x24] = "862",
-        [0x04] = "863",
-        [0x25] = "864",
-        [0x05] = "865",
-        [0x11] = "866",
-        [0x26] = "869",
-        [0x29] = "1098",
-        [0x2A] = "1118",
-        [0x2B] = "1119",
-        [0x2C] = "1125",
-        [0x2D] = "1250",
-        [0x2E] = "1251",
-        [0x10] = "1252",
-        [0x2F] = "1253",
-        [0x30] = "1254",
-        [0x31] = "1255",
-        [0x32] = "1256",
-        [0x33] = "1257",
-        [0x34] = "1258"
-    };
-
-    private static readonly IReadOnlyDictionary<byte, PulsePin> PulsePinMap = new Dictionary<byte, PulsePin>
-    {
-        [0x00] = PulsePin.Drawer1,
-        [0x01] = PulsePin.Drawer2
-    };
-
+   
     private IList<Element> ElementBuffer => MutableElements;
     private readonly List<byte> textBytes = new();
     private readonly List<byte> commandBuffer = new();
@@ -190,7 +152,7 @@ public class EscPosPrintJobSession : PrintJobSession
                     var pinId = data[index + 2];
                     var onTime = data[index + 3];
                     var offTime = data[index + 4];
-                    var pin = PulsePinMap.GetValueOrDefault(pinId, PulsePin.Drawer1);
+                    var pin = PulseDescriptor.PulsePinMap.GetValueOrDefault(pinId, PulsePin.Drawer1);
                     var onTimeMs = onTime * 2;
                     var offTimeMs = offTime * 2;
                     ElementBuffer.Add(new Pulse(pin, onTimeMs, offTimeMs));

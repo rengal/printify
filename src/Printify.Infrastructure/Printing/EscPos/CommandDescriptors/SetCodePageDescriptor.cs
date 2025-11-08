@@ -1,0 +1,56 @@
+namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
+
+/// Command: ESC t - select character code table.
+/// ASCII: ESC t n.
+/// HEX: 1B 74 n.
+public sealed class SetCodePageDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 3;
+    private static readonly IReadOnlyDictionary<byte, string> EscCodePageMap = new Dictionary<byte, string>
+    {
+        [0x00] = "437",
+        [0x20] = "720",
+        [0x0E] = "737",
+        [0x21] = "775",
+        [0x02] = "850",
+        [0x12] = "852",
+        [0x22] = "855",
+        [0x0D] = "857",
+        [0x13] = "858",
+        [0x03] = "860",
+        [0x23] = "861",
+        [0x24] = "862",
+        [0x04] = "863",
+        [0x25] = "864",
+        [0x05] = "865",
+        [0x11] = "866",
+        [0x26] = "869",
+        [0x29] = "1098",
+        [0x2A] = "1118",
+        [0x2B] = "1119",
+        [0x2C] = "1125",
+        [0x2D] = "1250",
+        [0x2E] = "1251",
+        [0x10] = "1252",
+        [0x2F] = "1253",
+        [0x30] = "1254",
+        [0x31] = "1255",
+        [0x32] = "1256",
+        [0x33] = "1257",
+        [0x34] = "1258"
+    };
+
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, (byte)'t' };
+    public int MinLength => FixedLength;
+
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    {
+        var codePageId = buffer[2];
+        return EscCodePageMap.TryGetValue(codePageId, out var codePage)
+            ? MatchResult.Matched(FixedLength, new Domain.Documents.Elements.SetCodePage(codePage))
+            : MatchResult.MatchedWithWarning(FixedLength, new Domain.Documents.Elements.SetCodePage("437"),
+                $"Unrecognized code page ID: {codePageId}. Defaulting to code page 437.");
+    }
+}

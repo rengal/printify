@@ -5,7 +5,7 @@ namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 /// <summary>
 /// ASCII: GS h n.
-/// HEX: 1D 68 0xNN.
+/// HEX: 1D 68 n.
 /// </summary>
 public sealed class BarcodeSetHeightDescriptor : ICommandDescriptor
 {
@@ -22,7 +22,7 @@ public sealed class BarcodeSetHeightDescriptor : ICommandDescriptor
 
 /// <summary>
 /// ASCII: GS w n.
-/// HEX: 1D 77 0xNN.
+/// HEX: 1D 77 n.
 /// </summary>
 public sealed class BarcodeSetModuleWidthDescriptor : ICommandDescriptor
 {
@@ -39,7 +39,7 @@ public sealed class BarcodeSetModuleWidthDescriptor : ICommandDescriptor
 
 /// <summary>
 /// ASCII: GS H n.
-/// HEX: 1D 48 0xNN.
+/// HEX: 1D 48 n.
 /// </summary>
 public sealed class BarcodeSetLabelPositionDescriptor : ICommandDescriptor
 {
@@ -51,9 +51,7 @@ public sealed class BarcodeSetLabelPositionDescriptor : ICommandDescriptor
     {
         var value = buffer[2];
         if (!TryGetLabelPosition(value, out var position))
-        {
             return MatchResult.NoMatch();
-        }
 
         return MatchResult.Matched(FixedLength, new SetBarcodeLabelPosition(position));
     }
@@ -83,7 +81,7 @@ public sealed class BarcodeSetLabelPositionDescriptor : ICommandDescriptor
 public sealed class BarcodePrintDescriptor : ICommandDescriptor
 {
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1D, 0x6B };
-    public int MinLength => 3;
+    public int MinLength => 4;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => null;
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
@@ -96,8 +94,8 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
         string content;
         int consumed;
 
-        // Function B: symbology >= 0x41 uses length indicator
-        // Function A: symbology <= 0x06 uses null terminator
+        // Function A: symbologyByte <= 0x06 uses null terminator
+        // Function B: symbologyByte >= 0x41 uses length indicator
         var useFunctionB = symbologyByte >= 0x41;
 
         if (useFunctionB)

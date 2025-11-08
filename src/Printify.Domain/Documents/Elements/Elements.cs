@@ -16,8 +16,7 @@ namespace Printify.Domain.Documents.Elements;
 [JsonDerivedType(typeof(PrintBarcode), "printBarcode")]
 [JsonDerivedType(typeof(PrintQrCode), "printQrCode")]
 [JsonDerivedType(typeof(Pulse), "pulse")]
-[JsonDerivedType(typeof(RasterImageContent), "rasterImageContent")]
-[JsonDerivedType(typeof(RasterImageDescriptor), "rasterImageDescriptor")]
+[JsonDerivedType(typeof(RasterImageUpload), "rasterImageUpload")]
 [JsonDerivedType(typeof(ResetPrinter), "resetPrinter")]
 [JsonDerivedType(typeof(SetBarcodeHeight), "setBarcodeHeight")]
 [JsonDerivedType(typeof(SetBarcodeLabelPosition), "setBarcodeLabelPosition")]
@@ -63,23 +62,11 @@ public abstract record BaseRasterImage(
 /// </summary>
 /// <param name="Width">Image width in printer dots.</param>
 /// <param name="Height">Image height in printer dots.</param>
-/// <param name="Media">Media payload (bytes plus metadata) for the raster image.</param>
-public sealed record RasterImageContent(
+/// <param name="Media">Raster image media payload, including raw bytes and associated metadata.</param>
+public sealed record RasterImageUpload(
     int Width,
     int Height,
-    MediaContent Media)
-    : BaseRasterImage(Width, Height);
-
-/// <summary>
-/// Raster image that references media via a descriptor (URL plus metadata).
-/// </summary>
-/// <param name="Width">Image width in printer dots.</param>
-/// <param name="Height">Image height in printer dots.</param>
-/// <param name="Media">Descriptor describing where the raster image bytes can be retrieved.</param>
-public sealed record RasterImageDescriptor(
-    int Width,
-    int Height,
-    MediaDescriptor Media)
+    MediaUpload Media)
     : BaseRasterImage(Width, Height);
 
 /// <summary>
