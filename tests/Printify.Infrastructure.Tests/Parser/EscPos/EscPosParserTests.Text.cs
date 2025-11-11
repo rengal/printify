@@ -3,7 +3,7 @@ using Printify.Infrastructure.Printing.EscPos;
 
 namespace Printify.Infrastructure.Tests.Parser.EscPos;
 
-public class EscPosTextTests
+public partial class EscPosParserTests
 {
     [Theory]
     [MemberData(nameof(EscPosScenarioData.TextScenarios), MemberType = typeof(EscPosScenarioData))]
@@ -24,22 +24,5 @@ public class EscPosTextTests
                 Assert.Equal(scenario.ExpectedElements, elements);
             }
         }
-    }
-
-    private static IReadOnlyList<Element> ParseScenario(
-        IEscPosCommandTrieProvider provider,
-        EscPosScenario scenario,
-        EscPosChunkStrategy strategy)
-    {
-        var elements = new List<Element>();
-        var parser = new EscPosParser(provider, elements.Add);
-
-        foreach (var step in EscPosScenarioChunker.EnumerateChunks(scenario.Input, strategy))
-        {
-            parser.Feed(step.Buffer.Span, CancellationToken.None);
-        }
-
-        parser.Complete();
-        return elements;
     }
 }

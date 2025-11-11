@@ -23,12 +23,13 @@ public sealed class EscPosParser
             Emit(state.Pending.Value.length, state.Pending.Value.element);
     }
 
-    private void Emit(int count, Element element)
+    private void Emit(int count, Element? element)
     {
         if (count <= 0)
             throw new ArgumentOutOfRangeException(nameof(count), "Count must be greater than zero.");
 
-        onElement.Invoke(element);
+        if (element != null)
+            onElement.Invoke(element);
         state.Pending = null;
 
         if (state.Buffer.Count >= count)
@@ -114,8 +115,11 @@ public sealed class EscPosParser
             
             if (result.Kind == MatchKind.Matched)
             {
-                if (result.Element != null)
+                if (result.BytesConsumed > 0)
+                {
+                    EmitPendingElement();
                     Emit(result.BytesConsumed, result.Element);
+                }
             }
             else
             {

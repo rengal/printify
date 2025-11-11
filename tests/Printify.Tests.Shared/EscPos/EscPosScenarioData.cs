@@ -63,6 +63,32 @@ public static class EscPosScenarioData
             ExpectedElements:
             [
                 new TextLine(new string('A', 10_000))
+            ]),
+
+
+        new(Input: [.. "ABC"u8, 0x07],
+            ExpectedElements:
+            [
+                new TextLine("ABC"),
+                new Bell()
+            ]),
+
+        new(Input: [.. "ABC"u8, 0x07, .."DEF"u8, 0x07],
+        ExpectedElements:
+        [
+            new TextLine("ABC"),
+            new Bell(),
+            new TextLine("DEF"),
+            new Bell()
+        ]),
+
+        new(Input: [.. "ABC"u8, 0x07, .."DEF\n"u8, 0x07],
+            ExpectedElements:
+            [
+                new TextLine("ABC"),
+                new Bell(),
+                new TextLine("DEF"),
+                new Bell()
             ])
     ];
 }
