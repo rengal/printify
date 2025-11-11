@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Printify.Infrastructure\Printify.Infrastructure.csproj" />
+    <ProjectReference Include="..\Printify.Tests.Shared\Printify.Tests.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

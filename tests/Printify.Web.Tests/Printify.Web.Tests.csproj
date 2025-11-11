@@ -20,6 +20,7 @@
     <ProjectReference Include="..\..\src\Printify.Web\Printify.Web.csproj" />
     <ProjectReference Include="..\..\src\Printify.Application\Printify.Application.csproj" />
     <ProjectReference Include="..\..\tests\Printify.TestServices\Printify.TestServices.csproj" />
+    <ProjectReference Include="..\Printify.Tests.Shared\Printify.Tests.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

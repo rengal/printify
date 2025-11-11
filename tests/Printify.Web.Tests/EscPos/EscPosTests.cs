@@ -21,28 +21,13 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
     protected const byte Esc = 0x1B;
     protected const byte Gs = 0x1D;
 
-    private sealed record ChunkStrategy(string Name, int[] ChunkPattern, int[] DelayPattern);
     private enum CompletionMode
     {
         AdvanceIdleTimeout,
         CloseChannel
     }
 
-    private static readonly ChunkStrategy[] ChunkStrategies =
-    [
-        new("SingleChunk", [int.MaxValue], []),
-        new("SingleByte", [1], [60]),
-        new("Increasing1234", [1, 2, 3, 4], [40, 70, 100, 130]),
-        new("Decreasing4321", [4, 3, 2, 1], [120, 90, 60, 30]),
-        new("Alternating12", [1, 2], [65, 95]),
-        new("Alternating21", [2, 1], [85, 55]),
-        new("Triplet3", [3], [110]),
-        new("Mixed231", [2, 3, 1], [75, 115, 55]),
-        new("Mixed3211", [3, 2, 1, 1], [90, 70, 50, 50]),
-        new("LargeThenSmall", [5, 1], [100, 40]),
-        new("SmallThenLarge", [1, 5], [45, 105]),
-        new("PrimePattern", [2, 3, 5], [70, 100, 130])
-    ];
+    private static readonly IReadOnlyList<EscPosChunkStrategy> ChunkStrategies = EscPosChunkStrategies.All;
 
     [Fact]
     public async Task DocumentCompletesAfterIdleTimeout()
@@ -90,7 +75,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         }
     }
 
-    private async Task RunScenarioAsync(EscPosScenario scenario, ChunkStrategy strategy)
+    private async Task RunScenarioAsync(EscPosScenario scenario, EscPosChunkStrategy strategy)
     {
         await RunScenarioAsync(scenario, $"escpos-strategy-{strategy.Name}", strategy);
     }
@@ -98,9 +83,9 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
     private async Task RunScenarioAsync(
         EscPosScenario scenario,
         string userPrefix,
-        ChunkStrategy strategy)
+        EscPosChunkStrategy strategy)
     {
-        strategy = new("SingleByte", [1], [60]); //todo debugnow
+        strategy = EscPosChunkStrategies.SingleByte; //todo debugnow
         await RunScenarioAsync(scenario, userPrefix, strategy, CompletionMode.AdvanceIdleTimeout);
         await RunScenarioAsync(scenario, userPrefix, strategy, CompletionMode.CloseChannel);
     }
@@ -108,7 +93,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
     private async Task RunScenarioAsync(
         EscPosScenario scenario,
         string userPrefix,
-        ChunkStrategy strategy,
+        EscPosChunkStrategy strategy,
         CompletionMode completionMode)
     {
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
@@ -203,7 +188,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         TestServiceContext.ControllerTestContext environment,
         TestPrinterChannel channel,
         byte[] payload,
-        ChunkStrategy strategy)
+        EscPosChunkStrategy strategy)
     {
         if (payload.Length == 0)
         {
@@ -211,30 +196,29 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         }
 
         var clockFactory = Assert.IsType<TestClockFactory>(environment.ClockFactory);
-        var chunkPattern = strategy.ChunkPattern;
-        var delayPattern = strategy.DelayPattern;
+        var remaining = payload.Length;
 
-        var offset = 0;
-        var iteration = 0;
-
-        while (offset < payload.Length)
+        foreach (var step in EscPosScenarioChunker.EnumerateChunks(payload, strategy))
         {
-            var chunkSizePattern = chunkPattern.Length == 0 ? payload.Length : chunkPattern[iteration % chunkPattern.Length];
-            var chunkSize = Math.Min(chunkSizePattern, payload.Length - offset);
-            await channel.WriteAsync(payload.AsMemory(offset, chunkSize), CancellationToken.None);
-            offset += chunkSize;
+            await channel.WriteAsync(step.Buffer, CancellationToken.None);
+            remaining -= step.Buffer.Length;
 
-            if (offset < payload.Length && delayPattern.Length > 0)
+            if (remaining <= 0)
             {
-                var delay = delayPattern[iteration % delayPattern.Length];
-                var boundedDelay = Math.Min(delay, Math.Max(10, PrinterConstants.ListenerIdleTimeoutMs / 2));
-                if (boundedDelay > 0)
-                {
-                    clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(boundedDelay));
-                }
+                continue;
             }
 
-            iteration++;
+            if (step.DelayAfterMilliseconds <= 0)
+            {
+                continue;
+            }
+
+            var boundedDelay = Math.Min(step.DelayAfterMilliseconds,
+                Math.Max(10, PrinterConstants.ListenerIdleTimeoutMs / 2));
+            if (boundedDelay > 0)
+            {
+                clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(boundedDelay));
+            }
         }
     }
 

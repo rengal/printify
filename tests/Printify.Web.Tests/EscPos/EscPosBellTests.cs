@@ -1,23 +1,11 @@
 using Microsoft.AspNetCore.Mvc.Testing;
-using Printify.Domain.Documents.Elements;
 
 namespace Printify.Web.Tests.EscPos;
 
 public class EscPosBellTests(WebApplicationFactory<Program> factory): EscPosTests(factory)
 {
-    public static TheoryData<EscPosScenario> BellScenarios =>
-    [
-        new(Input: [0x07],
-            ExpectedElements:
-            [
-                new Bell()
-            ]),
-        new(Input: Enumerable.Repeat((byte)0x07, 10).ToArray(),
-            ExpectedElements: Enumerable.Range(1, 10).Select(i => new Bell()).ToArray())
-    ];
-
     [Theory]
-    [MemberData(nameof(BellScenarios))]
+    [MemberData(nameof(EscPosScenarioData.BellScenarios), MemberType = typeof(EscPosScenarioData))]
     public async Task EscPos_Bell_Scenarios_ProduceExpectedDocuments(EscPosScenario scenario)
     {
         await RunScenarioAsync(scenario);
