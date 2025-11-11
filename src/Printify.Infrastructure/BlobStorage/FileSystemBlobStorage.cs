@@ -25,7 +25,7 @@ public sealed class FileSystemBlobStorage : IBlobStorage
         Directory.CreateDirectory(rootPath);
     }
 
-    public async ValueTask<string> PutAsync(MediaContent media, CancellationToken cancellationToken = default)
+    public async ValueTask<string> PutAsync(MediaUpload media, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(media);
 

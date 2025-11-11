@@ -239,7 +239,17 @@ public enum PagecutMode
     /// <summary>
     /// Partial paper cut (leaves a small connection for easy tear-off).
     /// </summary>
-    Partial = 1
+    Partial = 1,
+
+    /// <summary>
+    /// Partial cut leaving one point uncut.
+    /// </summary>
+    PartialOnePoint = 2,
+
+    /// <summary>
+    /// Partial cut leaving three points uncut.
+    /// </summary>
+    PartialThreePoint = 3,
 }
 
 /// <summary>
@@ -259,7 +269,7 @@ public sealed record Error(string Code, string Message) : NonPrintingElement;
 /// </summary>
 /// <param name="Mode">The type of cut to perform (full or partial).</param>
 /// <param name="FeedMotionUnits">Feed distance in motion units before cutting (GS V m n).</param>
-public sealed record Pagecut(PagecutMode Mode, int? FeedMotionUnits) : NonPrintingElement;
+public sealed record Pagecut(PagecutMode Mode, int? FeedMotionUnits = null) : NonPrintingElement;
 
 /// <summary>
 /// Represents a printer-specific error emitted during tokenization (e.g., simulated buffer overflow).

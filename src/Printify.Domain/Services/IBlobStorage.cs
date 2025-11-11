@@ -11,7 +11,7 @@ public interface IBlobStorage
     /// <summary>
     /// Stores a blob and returns an opaque identifier that can be used to retrieve it later.
     /// </summary>
-    ValueTask<string> PutAsync(MediaContent media, CancellationToken cancellationToken = default);
+    ValueTask<string> PutAsync(MediaUpload media, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves a blob’s content stream. Returns <c>null</c> if the blob does not exist.

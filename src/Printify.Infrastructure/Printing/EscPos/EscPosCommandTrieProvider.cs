@@ -1,31 +1,54 @@
-namespace Printify.Infrastructure.Printing.EscPos;
-
-using System;
-using System.Collections.Generic;
+using Printify.Application.Interfaces;
+using Printify.Infrastructure.Media;
 using Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
+
+namespace Printify.Infrastructure.Printing.EscPos;
 
 /// <summary>
 /// Builds the ESC/POS command trie once and keeps it immutable for reuse.
 /// </summary>
 public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
 {
-    public EscPosCommandTrieProvider(IEnumerable<ICommandDescriptor> descriptors)
-    {
-        ArgumentNullException.ThrowIfNull(descriptors);
-        Root = Build(descriptors);
-    }
+    private static readonly IMediaService RasterMediaService = new MediaService();
 
-    public EscPosCommandTrieNode Root { get; }
+    private static readonly IEnumerable<ICommandDescriptor> AllDescriptors =
+    [
+        new BarcodePrintDescriptor(),
+        new BarcodeSetHeightDescriptor(),
+        new BarcodeSetLabelPositionDescriptor(),
+        new BarcodeSetModuleWidthDescriptor(),
+        new BelDescriptor(),
+        new GetPrinterStatusDescriptor(),
+        new LineFeedDescriptor(),
+        new PageCutDescriptor(),
+        new PartialCutOnePointDescriptor(),
+        new PartialCutThreePointDescriptor(),
+        new PrintStoredLogoDescriptor(),
+        new PulseDescriptor(),
+        new QrCodeDescriptor(),
+        new RasterBitImagePrintDescriptor(RasterMediaService),
+        new ResetLineSpacingDescriptor(),
+        new ResetPrinterDescriptor(),
+        new SetBoldModeDescriptor(),
+        new SetChineseCodePageDescriptor(),
+        new SetCodePageDescriptor(),
+        new SetFontDescriptor(),
+        new SetJustificationDescriptor(),
+        new SetLineSpacingDescriptor(),
+        new SetReverseModeDescriptor(),
+        new SetUnderlineModeDescriptor()
+    ];
+
+
+    public EscPosCommandTrieNode Root { get; } = Build(AllDescriptors);
 
     private static EscPosCommandTrieNode Build(IEnumerable<ICommandDescriptor> descriptors)
     {
         var root = new MutableNode();
-        // Preload every descriptor so the trie snapshot is complete before first use.
         foreach (var descriptor in descriptors)
         {
             AddDescriptor(root, descriptor);
         }
-
         return Freeze(root);
     }
 
@@ -38,11 +61,9 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
         }
 
         var current = root;
-        var visited = new List<MutableNode> { current };
 
         foreach (var value in descriptor.Prefix.Span)
         {
-            // Ensure every byte along the prefix path has a node so commands can share prefixes.
             if (!current.Children.TryGetValue(value, out var next))
             {
                 next = new MutableNode();
@@ -50,39 +71,36 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
             }
 
             current = next;
-            visited.Add(current);
         }
 
-        current.Descriptors.Add(descriptor);
-
-        foreach (var node in visited)
+        // Check if this node already has a descriptor
+        if (current.Descriptor is not null)
         {
-            // Mark all ancestors so the parser knows more data may match deeper in the tree.
-            node.HasDescriptorInSubtree = true;
+            throw new InvalidOperationException(
+                $"Two descriptors have the same prefix: " +
+                $"{current.Descriptor.GetType().Name} and {descriptor.GetType().Name}");
         }
+
+        current.Descriptor = descriptor;
     }
 
     private static EscPosCommandTrieNode Freeze(MutableNode node)
     {
         var frozenChildren = new Dictionary<byte, EscPosCommandTrieNode>(node.Children.Count);
+        var isLeaf = !node.Children.Any();
+
         foreach (var child in node.Children)
         {
-            // Recursively convert mutable nodes into immutable ones.
-            frozenChildren[child.Key] = Freeze(child.Value);
+            var frozenChild = Freeze(child.Value);
+            frozenChildren[child.Key] = frozenChild;
         }
 
-        // Share empty descriptor arrays to avoid unnecessary allocations per node.
-        var descriptors = node.Descriptors.Count == 0
-            ? Array.Empty<ICommandDescriptor>()
-            : node.Descriptors.ToArray();
-
-        return new EscPosCommandTrieNode(frozenChildren, descriptors, node.HasDescriptorInSubtree);
+        return new EscPosCommandTrieNode(frozenChildren, node.Descriptor, isLeaf);
     }
 
     private sealed class MutableNode
     {
         public Dictionary<byte, MutableNode> Children { get; } = new();
-        public List<ICommandDescriptor> Descriptors { get; } = new();
-        public bool HasDescriptorInSubtree { get; set; }
+        public ICommandDescriptor? Descriptor { get; set; }
     }
 }
