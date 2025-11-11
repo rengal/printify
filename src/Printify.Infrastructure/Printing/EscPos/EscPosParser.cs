@@ -19,11 +19,8 @@ public sealed class EscPosParser
 
     private void EmitPendingElement()
     {
-        if (state.PendingElement != null)
-        {
-            onElement.Invoke(state.PendingElement);
-            state.PendingElement = null;
-        }
+        if (state.Pending != null)
+            Emit(state.Pending.Value.length, state.Pending.Value.element);
     }
 
     private void Emit(int count, Element element)
@@ -32,7 +29,7 @@ public sealed class EscPosParser
             throw new ArgumentOutOfRangeException(nameof(count), "Count must be greater than zero.");
 
         onElement.Invoke(element);
-        state.PendingElement = null;
+        state.Pending = null;
 
         if (state.Buffer.Count >= count)
             state.Buffer.RemoveRange(0, count);
@@ -40,19 +37,15 @@ public sealed class EscPosParser
             state.Buffer.Clear();
     }
 
-    private void EmitAsError(int count)
+    private void CheckEmitAsError()
     {
-        if (count <= 0)
-            throw new ArgumentOutOfRangeException(nameof(count), "Count must be greater than zero.");
+        if (state.Buffer.Count <= 0)
+            return;
 
-        var element = new PrinterError($"Unrecognized {count} bytes");
-        onElement?.Invoke(element);
-        state.PendingElement = null;
-
-        if (state.Buffer.Count >= count)
-            state.Buffer.RemoveRange(0, count);
-        else
-            state.Buffer.Clear();
+        var element = new PrinterError($"Unrecognized {state.Buffer.Count} bytes");
+        onElement.Invoke(element);
+        state.Pending = null;
+        state.Buffer.Clear();
     }
 
     private bool TryNavigateChild(byte value)
@@ -88,14 +81,14 @@ public sealed class EscPosParser
         // Try to navigate deeper
         if (!state.CurrentNode.IsLeaf)
         {
-            if (TryNavigateChild(value))
-                return;
-
-            if (state.CurrentNode != root)
+            if (!TryNavigateChild(value))
             {
-                EmitAsError(state.Buffer.Count);
-                Navigate(root);
-                return;
+                if (state.CurrentNode != root)
+                {
+                    CheckEmitAsError();
+                    Navigate(root);
+                    return;
+                }
             }
         }
 
@@ -126,7 +119,7 @@ public sealed class EscPosParser
             }
             else
             {
-                EmitAsError(state.Buffer.Count);
+                CheckEmitAsError();
             }
 
             Navigate(root);
@@ -144,14 +137,18 @@ public sealed class EscPosParser
                     Emit(result.BytesConsumed, result.Element);
                 Navigate(root);
             }
+            else if (result.Kind == MatchKind.MatchedPending)
+            {
+                state.Pending = (result.BytesConsumed, result.Element!);
+            }
             else if (result.Kind == MatchKind.NeedMore)
             {
                 // Continue accumulating
-                return;
             }
-            else // NoMatch
+            else if (result.Kind == MatchKind.NoMatch)
             {
-                EmitAsError(state.Buffer.Count);
+                EmitPendingElement();
+                CheckEmitAsError();
                 Navigate(root);
             }
         }
@@ -167,10 +164,7 @@ public sealed class EscPosParser
         EmitPendingElement();
         
         // If there's leftover data in the buffer, treat it as an error
-        if (state.Buffer.Count > 0)
-        {
-            EmitAsError(state.Buffer.Count);
-        }
+        CheckEmitAsError();
         
         // Reset to initial state
         Navigate(root);

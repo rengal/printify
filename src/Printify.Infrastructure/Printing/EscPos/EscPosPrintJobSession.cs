@@ -19,11 +19,10 @@ public class EscPosPrintJobSession : PrintJobSession
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
-
-   
+  
     private IList<Element> ElementBuffer => MutableElements;
     private Encoding currentEncoding = Encoding.GetEncoding(437);
-    private IClock idleClock;
+    private readonly IClock idleClock;
     private readonly EscPosParser parser;
 
     public EscPosPrintJobSession(
@@ -82,9 +81,9 @@ public class EscPosPrintJobSession : PrintJobSession
 
         // Drain the buffer to capture the latest busy state before finalizing.
         UpdateBufferState();
+        
+        parser.Complete();
 
-        CommitPendingText();
-        FlushText(allowEmpty: false);
 
         var snapshot = ElementBuffer.ToArray();
         var document = new Document(

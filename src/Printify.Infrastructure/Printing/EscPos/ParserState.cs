@@ -10,7 +10,7 @@ public class ParserState
     public int? ExactLength { get; set; }
     public List<byte> Buffer { get; } = new();
 
-    public Element? PendingElement { get; set; }
+    public (int length, Element element)? Pending { get; set; }
     public EscPosCommandTrieNode CurrentNode { get; set; }
 
     public ParserState(EscPosCommandTrieNode root)
@@ -25,7 +25,7 @@ public class ParserState
         MinLength = null;
         ExactLength = null;
         Buffer.Clear();
-        PendingElement = null;
+        Pending = null;
         CurrentNode = RootNode;
     }
 }

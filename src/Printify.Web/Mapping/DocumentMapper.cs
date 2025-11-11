@@ -15,11 +15,10 @@ internal static class DocumentMapper
         {
             WebElements.Bell => new DomainElements.Bell(),
             WebElements.Error error => new DomainElements.Error( error.Code, error.Message),
-            WebElements.Pagecut => new DomainElements.Pagecut(),
+            WebElements.Pagecut pageCut => new DomainElements.Pagecut(DomainElements.PagecutMode.Full), //todo debugnow
             WebElements.PrinterError printerError => new DomainElements.PrinterError(printerError.Message),
             WebElements.PrinterStatus printerStatus => new DomainElements.GetPrinterStatus(
-                printerStatus.StatusByte,
-                printerStatus.Description),
+                printerStatus.StatusByte), //todo additional status byte
             WebElements.PrintBarcode barcode => new DomainElements.PrintBarcode(
                 ParseBarcodeSymbology(barcode.Symbology),
                 barcode.Data),
@@ -28,14 +27,14 @@ internal static class DocumentMapper
                 ParsePulsePin(pulse.Pin),
                 pulse.OnTimeMs,
                 pulse.OffTimeMs),
-            WebElements.RasterImageContent raster => new DomainElements.RasterImageContent(
-                raster.Width,
-                raster.Height,
-                new MediaContent(
-                    raster.ContentType,
-                    raster.SizeBytes,
-                    raster.Sha256,
-                    raster.Content)),
+            //WebElements.RasterImageContent raster => new DomainElements.RasterImageContent(
+            //  raster.Width,
+            //raster.Height,
+            //new MediaContent(
+            //  raster.ContentType,
+            //raster.SizeBytes,
+            //raster.Sha256,
+            //raster.Content)), //todo debugnow
             WebElements.ResetPrinter => new Domain.Documents.Elements.ResetPrinter(),
             WebElements.SetBarcodeHeight barcodeHeight => new Domain.Documents.Elements.SetBarcodeHeight(
                 barcodeHeight.HeightInDots),
