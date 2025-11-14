@@ -67,6 +67,61 @@ public static class EscPosScenarioData
         new(Input: [Gs, 0x56, 0x68, 0x20], ExpectedElements: [new Pagecut(PagecutMode.Partial, 0x20)])
     ];
 
+    public static TheoryData<EscPosScenario> FontStyleScenarios { get; } =
+    [
+        new(
+            Input:
+            [
+                Esc, 0x21, 0x00,
+                Esc, 0x21, 0x01,
+                Esc, 0x21, 0x20,
+                Esc, 0x21, 0x31,
+                Esc, 0x21, 0x02
+            ],
+            ExpectedElements:
+            [
+                new SetFont(0, false, false),
+                new SetFont(1, false, false),
+                new SetFont(0, true, false),
+                new SetFont(1, true, true),
+                new SetFont(2, false, false)
+            ]),
+        new(
+            Input:
+            [
+                Esc, (byte)'E', 0x01,
+                Esc, (byte)'E', 0x00,
+                Esc, (byte)'E', 0x01,
+                Esc, (byte)'E', 0x00
+            ],
+            ExpectedElements:
+            [
+                new SetBoldMode(true),
+                new SetBoldMode(false),
+                new SetBoldMode(true),
+                new SetBoldMode(false)
+            ]),
+        new(
+            Input:
+            [
+                Esc, 0x2D, 0x01,
+                Esc, 0x2D, 0x02,
+                Esc, 0x2D, 0x00,
+                Gs, 0x42, 0x01,
+                Gs, 0x42, 0x00,
+                Gs, 0x42, 0x01
+            ],
+            ExpectedElements:
+            [
+                new SetUnderlineMode(true),
+                new SetUnderlineMode(true),
+                new SetUnderlineMode(false),
+                new SetReverseMode(true),
+                new SetReverseMode(false),
+                new SetReverseMode(true)
+            ])
+    ];
+
     public static TheoryData<EscPosScenario> CodePageScenarios { get; } = BuildCodePageScenarios();
 
     private static TheoryData<EscPosScenario> BuildCodePageScenarios()

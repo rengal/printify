@@ -32,12 +32,19 @@ public partial class EscPosParserTests
         IEscPosCommandTrieProvider provider,
         EscPosScenario scenario)
     {
-        IReadOnlyList<Element>? last = null;
+        IReadOnlyList<Element>? baseline = null;
         foreach (var strategy in EscPosChunkStrategies.All)
         {
-            last = ParseScenario(provider, scenario, strategy);
+            var result = ParseScenario(provider, scenario, strategy);
+            if (baseline is null)
+            {
+                baseline = result;
+                continue;
+            }
+
+            Assert.Equal(baseline, result);
         }
 
-        return last ?? Array.Empty<Element>();
+        return baseline ?? Array.Empty<Element>();
     }
 }
