@@ -1,3 +1,4 @@
+using System.Text;
 using Printify.Domain.Documents.Elements;
 
 namespace Printify.Infrastructure.Printing.EscPos;
@@ -12,12 +13,14 @@ public class ParserState
 
     public (int length, Element element)? Pending { get; set; }
     public EscPosCommandTrieNode CurrentNode { get; set; }
+    public Encoding Encoding { get; set; }
 
     public ParserState(EscPosCommandTrieNode root)
     {
         Reset();
         RootNode = root;
         CurrentNode = RootNode;
+        Encoding = Encoding.GetEncoding("437");
     }
 
     public void Reset()

@@ -10,10 +10,7 @@ public partial class EscPosParserTests
     {
         var provider = new EscPosCommandTrieProvider();
 
-        foreach (var strategy in EscPosChunkStrategies.All)
-        {
-            var elements = ParseScenario(provider, scenario, strategy);
-            Assert.Equal(scenario.ExpectedElements, elements);
-        }
+        var elements = ParseScenarioAcrossStrategies(provider, scenario);
+        Assert.Equal(scenario.ExpectedElements, elements);
     }
 }

@@ -1,3 +1,4 @@
+using System.Text;
 using Printify.Domain.Documents.Elements;
 using Printify.Infrastructure.Printing.EscPos;
 
@@ -5,6 +6,11 @@ namespace Printify.Infrastructure.Tests.Parser.EscPos;
 
 public partial class EscPosParserTests
 {
+    static EscPosParserTests()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
+
     private static IReadOnlyList<Element> ParseScenario(
         IEscPosCommandTrieProvider provider,
         EscPosScenario scenario,
@@ -20,5 +26,18 @@ public partial class EscPosParserTests
 
         parser.Complete();
         return elements;
+    }
+
+    private static IReadOnlyList<Element> ParseScenarioAcrossStrategies(
+        IEscPosCommandTrieProvider provider,
+        EscPosScenario scenario)
+    {
+        IReadOnlyList<Element>? last = null;
+        foreach (var strategy in EscPosChunkStrategies.All)
+        {
+            last = ParseScenario(provider, scenario, strategy);
+        }
+
+        return last ?? Array.Empty<Element>();
     }
 }

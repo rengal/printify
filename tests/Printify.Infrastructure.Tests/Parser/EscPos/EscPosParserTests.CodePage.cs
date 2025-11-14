@@ -1,4 +1,3 @@
-using Printify.Domain.Documents.Elements;
 using Printify.Infrastructure.Printing.EscPos;
 
 namespace Printify.Infrastructure.Tests.Parser.EscPos;
@@ -6,8 +5,8 @@ namespace Printify.Infrastructure.Tests.Parser.EscPos;
 public partial class EscPosParserTests
 {
     [Theory]
-    [MemberData(nameof(EscPosScenarioData.TextScenarios), MemberType = typeof(EscPosScenarioData))]
-    public void Parser_Text_Scenarios_ProduceExpectedElements(EscPosScenario scenario)
+    [MemberData(nameof(EscPosScenarioData.CodePageScenarios), MemberType = typeof(EscPosScenarioData))]
+    public void Parser_CodePage_Scenarios_ProduceExpectedElements(EscPosScenario scenario)
     {
         var provider = new EscPosCommandTrieProvider();
 

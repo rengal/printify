@@ -31,7 +31,7 @@ public sealed class TextLineDescriptor : ICommandDescriptor
 
         // Extract the text bytes and convert to string
         var textBytes = buffer.Slice(0, length);
-        var text = System.Text.Encoding.ASCII.GetString(textBytes);
+        var text = state.Encoding.GetString(textBytes);
         var element = new Domain.Documents.Elements.TextLine(text);
 
         // If we hit a terminator, this line is complete (Matched)

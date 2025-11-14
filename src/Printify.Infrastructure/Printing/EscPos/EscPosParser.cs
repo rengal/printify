@@ -1,5 +1,6 @@
 using Printify.Domain.Documents.Elements;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
@@ -29,7 +30,24 @@ public sealed class EscPosParser
             throw new ArgumentOutOfRangeException(nameof(count), "Count must be greater than zero.");
 
         if (element != null)
+        {
+            if (element is SetCodePage setCodePage)
+            {
+                Encoding encoding;
+                try
+                {
+                    encoding = Encoding.GetEncoding(setCodePage.CodePage);
+                }
+                catch
+                {
+                    encoding = Encoding.GetEncoding("437");
+                }
+                state.Encoding = encoding;
+            }
+
             onElement.Invoke(element);
+        }
+
         state.Pending = null;
 
         if (state.Buffer.Count >= count)
