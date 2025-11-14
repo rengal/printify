@@ -2,7 +2,7 @@ using System.Text;
 
 namespace Printify.Tests.Shared.EscPos;
 
-using Printify.Domain.Documents.Elements;
+using Domain.Documents.Elements;
 using Xunit;
 
 /// <summary>
@@ -17,6 +17,8 @@ public static class EscPosScenarioData
     static EscPosScenarioData()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        var codePageVectors = BuildCodePageVectors();
+        CodePageScenarios = BuildCodePageScenarios(codePageVectors);
     }
 
     public static TheoryData<EscPosScenario> BellScenarios { get; } =
@@ -65,6 +67,27 @@ public static class EscPosScenarioData
         new(Input: [Gs, 0x56, 0x62, 0x20], ExpectedElements: [new Pagecut(PagecutMode.Partial, 0x20)]),
         new(Input: [Gs, 0x56, 0x67, 0x05], ExpectedElements: [new Pagecut(PagecutMode.Full, 0x05)]),
         new(Input: [Gs, 0x56, 0x68, 0x20], ExpectedElements: [new Pagecut(PagecutMode.Partial, 0x20)])
+    ];
+
+    public static TheoryData<EscPosScenario> PulseScenarios { get; } =
+    [
+        new(
+            Input: [Esc, (byte)'p', 0x01, 0x05, 0x0A],
+            ExpectedElements: [new Pulse(PulsePin.Drawer2, 0x05, 0x0A)]),
+        new(
+            Input: [Esc, (byte)'p', 0x00, 0x7D, 0x7F],
+            ExpectedElements: [new Pulse(PulsePin.Drawer1, 0x7D, 0x7F)]),
+        new(
+            Input:
+            [
+                Esc, (byte)'p', 0x00, 0x08, 0x16,
+                Esc, (byte)'p', 0x01, 0x02, 0x03
+            ],
+            ExpectedElements:
+            [
+                new Pulse(PulsePin.Drawer1, 0x08, 0x16),
+                new Pulse(PulsePin.Drawer2, 0x02, 0x03)
+            ])
     ];
 
     public static TheoryData<EscPosScenario> FontStyleScenarios { get; } =
@@ -122,12 +145,13 @@ public static class EscPosScenarioData
             ])
     ];
 
-    public static TheoryData<EscPosScenario> CodePageScenarios { get; } = BuildCodePageScenarios();
+    public static TheoryData<EscPosScenario> CodePageScenarios { get; }
 
-    private static TheoryData<EscPosScenario> BuildCodePageScenarios()
+    private static TheoryData<EscPosScenario> BuildCodePageScenarios(IReadOnlyList<CodePageVector> codePages)
     {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var scenarios = new TheoryData<EscPosScenario>();
-        foreach (var vector in CodePageVectors)
+        foreach (var vector in codePages)
         {
             var input = new List<byte>();
             var expected = new List<Element>();
@@ -156,8 +180,6 @@ public static class EscPosScenarioData
 
         return scenarios;
     }
-
-    private static IReadOnlyList<CodePageVector> CodePageVectors { get; } = BuildCodePageVectors();
 
     private static IReadOnlyList<CodePageVector> BuildCodePageVectors()
     {

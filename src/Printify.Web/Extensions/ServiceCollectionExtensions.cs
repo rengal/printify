@@ -13,6 +13,7 @@ using Printify.Infrastructure.Config;
 using Printify.Infrastructure.Media;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Printing;
+using Printify.Infrastructure.Printing.EscPos;
 using Printify.Infrastructure.Printing.Factories;
 using Printify.Infrastructure.Repositories;
 using Printify.Infrastructure.Security;
@@ -64,6 +65,7 @@ public static class ServiceCollectionExtensions
 
         // Infrastructure services
         services.AddSingleton<IMediaService, MediaService>();
+        services.AddSingleton<IEscPosCommandTrieProvider, EscPosCommandTrieProvider>();
 
         // Repositories
         services.AddScoped<IAnonymousSessionRepository, AnonymousSessionRepository>();
