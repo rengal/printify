@@ -20,8 +20,15 @@ public static class DocumentAssertions
 
             switch (expected)
             {
-                case PrinterError expectedError:
-                    var actualError = Assert.IsType<PrinterError>(actualElement);
+                case PrinterError:
+                    _ = Assert.IsType<PrinterError>(actualElement);
+                    break;
+                case RasterImageUpload expectedRaster:
+                    var actualRaster = Assert.IsType<RasterImageUpload>(actualElement);
+                    Assert.Equal(expectedRaster.Width, actualRaster.Width);
+                    Assert.Equal(expectedRaster.Height, actualRaster.Height);
+                    Assert.Equal(expectedRaster.Media.ContentType, actualRaster.Media.ContentType);
+                    Assert.True(actualRaster.Media.Content.Length > 0);
                     break;
                 default:
                     Assert.Equal(expected, actualElement);

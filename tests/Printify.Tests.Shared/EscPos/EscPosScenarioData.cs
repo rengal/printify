@@ -3,6 +3,7 @@ using System.Text;
 namespace Printify.Tests.Shared.EscPos;
 
 using Domain.Documents.Elements;
+using Domain.Media;
 using Xunit;
 
 /// <summary>
@@ -93,6 +94,26 @@ public static class EscPosScenarioData
             [
                 new Pulse(PulsePin.Drawer1, 0x08, 0x16),
                 new Pulse(PulsePin.Drawer2, 0x02, 0x03)
+            ])
+    ];
+
+    public static TheoryData<EscPosScenario> RasterImageScenarios { get; } =
+    [
+        // GS v 0: Print raster bit image
+        // Format: GS v 0 m xL xH yL yH [data]
+        new(
+            Input:
+            [
+                Gs, (byte)'v', 0x30, 0x00, // GS v 0 m: Print raster, m=0 (normal mode)
+                0x01, 0x00, // xL xH: width in bytes (1 byte = 8 dots)
+                0x01, 0x00, // yL yH: height in dots (1 dot)
+                0xFF // Bitmap data: 8 black pixels (11111111)
+            ],
+            ExpectedElements:
+            [
+                // Note: PNG data, length, and checksum are not generated in this test scenario as they would require complex image encoding.
+                // The empty ReadOnlyMemory<byte> is used as a placeholder to verify command parsing structure.
+                new RasterImageUpload(8, 1, new MediaUpload("image/png", null, null, ReadOnlyMemory<byte>.Empty))
             ])
     ];
 
