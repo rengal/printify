@@ -14,7 +14,7 @@ public class EscPosGoldenTests(WebApplicationFactory<Program> factory) : EscPosT
             new SetCodePage("866"),
             new SetFont(0, false, false),
             new TextLine(Pad("font 0", 42)),
-            new Pagecut(PagecutMode.Full)
+            new Pagecut(PagecutMode.Partial, 0)
         ],
         ["case02"] =
         [
@@ -27,7 +27,7 @@ public class EscPosGoldenTests(WebApplicationFactory<Program> factory) : EscPosT
             new TextLine(Pad("font 1", 28)),
             new SetFont(0, true, true),
             new TextLine(Pad("font 2", 21)),
-            new Pagecut(PagecutMode.Full)
+            new Pagecut(PagecutMode.Partial, 0)
         ],
         ["case03"] =
         [
@@ -42,7 +42,7 @@ public class EscPosGoldenTests(WebApplicationFactory<Program> factory) : EscPosT
             new PrintBarcode(BarcodeSymbology.Ean13, "1234567890128"),
             new SetJustification(TextJustification.Left),
             new TextLine(string.Empty),
-            new Pagecut(PagecutMode.Full)
+            new Pagecut(PagecutMode.Partial, 0)
         ],
         ["case04"] =
         [
@@ -54,16 +54,16 @@ public class EscPosGoldenTests(WebApplicationFactory<Program> factory) : EscPosT
             new SetQrModuleSize(7),
             new SetQrErrorCorrection(QrErrorCorrectionLevel.Low),
             new StoreQrData("https://google.com"),
-            new PrintQrCode("https://google.com"),
+            new PrintQrCode(),
             new TextLine(string.Empty),
-            new Pagecut(PagecutMode.Full)
+            new Pagecut(PagecutMode.Partial, 0)
         ],
         ["case05"] =
         [
             new ResetPrinter(),
             new SetFont(0, false, false),
             new StoredLogo(0),
-            new Pagecut(PagecutMode.Full)
+            new Pagecut(PagecutMode.Partial, 0)
         ]
     };
 

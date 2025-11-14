@@ -97,8 +97,7 @@ public sealed record PrintBarcode(BarcodeSymbology Symbology, string Data)
 /// <summary>
 /// Printable QR code command payload.
 /// </summary>
-/// <param name="Content">QR data.</param>
-public sealed record PrintQrCode(string Content) : RequestPrintingElement;
+public sealed record PrintQrCode : RequestPrintingElement;
 
 /// <summary>
 /// Stores QR payload prior to printing.

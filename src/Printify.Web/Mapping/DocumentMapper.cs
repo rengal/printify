@@ -22,7 +22,7 @@ internal static class DocumentMapper
             WebElements.PrintBarcode barcode => new DomainElements.PrintBarcode(
                 ParseBarcodeSymbology(barcode.Symbology),
                 barcode.Data),
-            WebElements.PrintQrCode qr => new DomainElements.PrintQrCode(qr.Content),
+            WebElements.PrintQrCode qr => new DomainElements.PrintQrCode(),
             WebElements.Pulse pulse => new DomainElements.Pulse(
                 ParsePulsePin(pulse.Pin),
                 pulse.OnTimeMs,

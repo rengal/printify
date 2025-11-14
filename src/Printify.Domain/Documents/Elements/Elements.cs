@@ -300,8 +300,7 @@ public sealed record PrintBarcode(BarcodeSymbology Symbology, string Data)
 /// <summary>
 /// Emits a QR code print request using the last stored payload.
 /// </summary>
-/// <param name="Content">Payload rendered by the QR symbol.</param>
-public sealed record PrintQrCode(string Content) : PrintingElement;
+public sealed record PrintQrCode : PrintingElement;
 
 /// <summary>
 /// A cash drawer pulse signal sent to a specific pin.

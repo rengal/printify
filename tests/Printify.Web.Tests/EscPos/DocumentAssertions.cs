@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
