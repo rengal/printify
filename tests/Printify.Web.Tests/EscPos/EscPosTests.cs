@@ -6,6 +6,7 @@ using Printify.Application.Interfaces;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
+using Printify.Tests.Shared.Document;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
 using Printify.Web.Contracts.Auth.AnonymousSession.Response;

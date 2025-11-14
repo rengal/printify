@@ -1,5 +1,4 @@
-﻿using Printify.Domain.Media;
-using Printify.Web.Contracts.Documents.Shared.Elements;
+﻿using Printify.Web.Contracts.Documents.Shared.Elements;
 using WebElements = Printify.Web.Contracts.Documents.Requests.Elements;
 using DomainElements = Printify.Domain.Documents.Elements;
 

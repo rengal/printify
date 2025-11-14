@@ -1,7 +1,10 @@
+using System.Text;
 using Printify.Web.Extensions;
 using Printify.Web.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 builder.Configuration.AddJsonFile("config.json", optional: false, reloadOnChange: true);
 builder.Services.AddControllers();

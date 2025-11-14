@@ -9,13 +9,19 @@ public sealed class EscPosParser
     private readonly EscPosCommandTrieNode root;
     private readonly ParserState state;
     private readonly Action<Element> onElement;
+    private static readonly Encoding DefaultCodePage;
+
+    static EscPosParser()
+    {
+        DefaultCodePage = Encoding.GetEncoding(437);  // OEM-US (DOS)
+    }
 
     public EscPosParser(IEscPosCommandTrieProvider trieProvider, Action<Element> onElement)
     {
         ArgumentNullException.ThrowIfNull(trieProvider);
         root = trieProvider.Root;
         this.onElement = onElement;
-        state = new ParserState(root); 
+        state = new ParserState(root);
     }
 
     private void EmitPendingElement()
@@ -33,16 +39,7 @@ public sealed class EscPosParser
         {
             if (element is SetCodePage setCodePage)
             {
-                Encoding encoding;
-                try
-                {
-                    encoding = Encoding.GetEncoding(setCodePage.CodePage);
-                }
-                catch
-                {
-                    encoding = Encoding.GetEncoding("437");
-                }
-                state.Encoding = encoding;
+                state.Encoding = GetEncodingFromCodePage(setCodePage.CodePage);
             }
 
             onElement.Invoke(element);
@@ -54,6 +51,18 @@ public sealed class EscPosParser
             state.Buffer.RemoveRange(0, count);
         else
             state.Buffer.Clear();
+    }
+
+    private static Encoding GetEncodingFromCodePage(string codePage)
+    {
+        try
+        {
+            return int.TryParse(codePage, out var codePageInt) ? Encoding.GetEncoding(codePageInt) : Encoding.GetEncoding(codePage);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+        {
+            return DefaultCodePage;
+        }
     }
 
     private void CheckEmitAsError()

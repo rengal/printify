@@ -12,6 +12,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.0-rc.2.25502.107" />
     <ProjectReference Include="..\Printify.Infrastructure\Printify.Infrastructure.csproj" />
     <ProjectReference Include="..\Printify.Web.Contracts\Printify.Web.Contracts.csproj" />
     <ProjectReference Include="..\Printify.Application\Printify.Application.csproj" />

@@ -1,26 +1,15 @@
-using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
+using Xunit;
 
-namespace Printify.Web.Tests.EscPos;
+namespace Printify.Tests.Shared.Document;
 
-internal static class DocumentAssertions
+public static class DocumentAssertions
 {
-    public static void Equal(Document? actual, Protocol expectedProtocol, IReadOnlyList<Element> expectedElements)
+    public static void Equal(IReadOnlyList<Element> expectedElements, IReadOnlyList<Element> actualElements)
     {
-        Assert.NotNull(actual);
-        Assert.Equal(expectedProtocol, actual.Protocol);
-
-        var actualElements = actual.Elements.ToList();
-        try
-        {
-            Assert.Equal(expectedElements.Count, actualElements.Count);
-        }
-        catch (Exception e) //todo debugnow
-        {
-            Console.WriteLine(e.Message);
-            Assert.Equal(expectedElements.Count, actualElements.Count);
-        }
+        Assert.NotNull(expectedElements);
+        Assert.Equal(expectedElements.Count, actualElements.Count);
 
         for (var index = 0; index < expectedElements.Count; index++)
         {
@@ -39,5 +28,13 @@ internal static class DocumentAssertions
                     break;
             }
         }
+    }
+
+    public static void Equal(Domain.Documents.Document? actual, Protocol expectedProtocol, IReadOnlyList<Element> expectedElements)
+    {
+        Assert.NotNull(actual);
+        Assert.Equal(expectedProtocol, actual.Protocol);
+
+        Equal(expectedElements, actual.Elements.ToList());
     }
 }

@@ -21,7 +21,6 @@ public class EscPosPrintJobSession : PrintJobSession
     }
   
     private IList<Element> ElementBuffer => MutableElements;
-    private Encoding currentEncoding = Encoding.GetEncoding(437);
     private readonly IClock idleClock;
     private readonly EscPosParser parser;
 
@@ -52,9 +51,9 @@ public class EscPosPrintJobSession : PrintJobSession
         return base.Feed(input, ct);
     }
 
-    private void OnElement(Element obj)
+    private void OnElement(Element element)
     {
-        ElementBuffer.Add(obj);
+        ElementBuffer.Add(element);
     }
 
     private async Task IdleTimeoutAsync(CancellationToken ct)
@@ -161,41 +160,5 @@ public class EscPosPrintJobSession : PrintJobSession
                 usesLengthIndicator = false;
                 return false;
         }
-    }
-
-    private static int FindNullTerminator(ReadOnlySpan<byte> data, int startIndex)
-    {
-        for (var index = startIndex; index < data.Length; index++)
-        {
-            if (data[index] == 0)
-            {
-                return index;
-            }
-        }
-
-        return -1;
-    }
-    private void UpdateCodePage(string codePage)
-    {
-        try
-        {
-            if (int.TryParse(codePage, out var numericCodePage))
-            {
-                currentEncoding = Encoding.GetEncoding(numericCodePage);
-            }
-            else
-            {
-                currentEncoding = Encoding.GetEncoding(codePage);
-            }
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
-        {
-            // Leave current encoding unchanged if code page is unsupported by the runtime.
-        }
-    }
-
-    private static bool IsPrintable(byte value)
-    {
-        return value >= 0x20 && value != 0x7F;
     }
 }
