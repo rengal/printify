@@ -75,11 +75,6 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         }
     }
 
-    private async Task RunScenarioAsync(EscPosScenario scenario, EscPosChunkStrategy strategy)
-    {
-        await RunScenarioAsync(scenario, $"escpos-strategy-{strategy.Name}", strategy);
-    }
-
     private async Task RunScenarioAsync(
         EscPosScenario scenario,
         string userPrefix,

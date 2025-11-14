@@ -15,4 +15,8 @@
     <ProjectReference Include="..\..\src\Printify.Domain\Printify.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="TestData\EscPos\**\*.b64" />
+  </ItemGroup>
+
 </Project>

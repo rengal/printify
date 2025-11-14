@@ -51,7 +51,13 @@ public static class EscPosScenarioData
             ExpectedElements: [new TextLine("ABC"), new Bell(), new TextLine("DEF"), new Bell()]),
         new(
             Input: [.. "ABC"u8, 0x07, .. "DEF\n"u8, 0x07],
-            ExpectedElements: [new TextLine("ABC"), new Bell(), new TextLine("DEF"), new Bell()])
+            ExpectedElements: [new TextLine("ABC"), new Bell(), new TextLine("DEF"), new Bell()]),
+        new(
+            Input: "\n"u8.ToArray(),
+            ExpectedElements: [new TextLine("")]),
+        new(
+            Input: "\n\n\n"u8.ToArray(),
+            ExpectedElements: [new TextLine(""),new TextLine(""),new TextLine("")])
     ];
 
     public static TheoryData<EscPosScenario> PagecutScenarios { get; } =
