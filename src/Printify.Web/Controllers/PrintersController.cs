@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Printers.Delete;
+using Printify.Application.Features.Printers.Documents.Get;
+using Printify.Application.Features.Printers.Documents.List;
 using Printify.Application.Features.Printers.Get;
 using Printify.Application.Features.Printers.List;
 using Printify.Application.Features.Printers.Update;
@@ -99,6 +101,45 @@ public sealed class PrintersController : ControllerBase
         catch (OperationCanceledException)
         {
         }
+    }
+
+    [Authorize]
+    [HttpGet("{id:guid}/documents")]
+    public async Task<ActionResult<IReadOnlyList<Domain.Documents.Document>>> ListDocuments(
+        Guid id,
+        [FromQuery] DateTimeOffset? beforeCreatedAt = null,
+        [FromQuery] Guid? beforeId = null,
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null,
+        [FromQuery] int limit = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var context = HttpContext.CaptureRequestContext();
+        try
+        {
+            var documents = await mediator.Send(
+                new ListPrinterDocumentsQuery(id, context, beforeCreatedAt, beforeId, from, to, limit),
+                cancellationToken);
+            return Ok(documents);
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
+    }
+
+    [Authorize]
+    [HttpGet("{printerId:guid}/documents/{documentId:guid}")]
+    public async Task<ActionResult<Domain.Documents.Document>> GetDocument(Guid printerId, Guid documentId, CancellationToken cancellationToken)
+    {
+        var context = HttpContext.CaptureRequestContext();
+        var document = await mediator.Send(new GetPrinterDocumentQuery(printerId, documentId, context), cancellationToken);
+        if (document is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(document);
     }
 
     [Authorize]
