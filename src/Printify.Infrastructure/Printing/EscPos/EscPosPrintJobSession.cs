@@ -89,6 +89,7 @@ public class EscPosPrintJobSession : PrintJobSession
             Guid.NewGuid(),
             Job.Id,
             Printer.Id,
+            Document.CurrentVersion,
             DateTimeOffset.UtcNow,
             Printer.Protocol,
             Channel.ClientAddress,

@@ -10,7 +10,11 @@ public sealed record Document(
     Guid Id,
     Guid PrintJobId,
     Guid PrinterId,
+    int Version,
     DateTimeOffset CreatedAt,
     Protocol Protocol,
     string? ClientAddress,
-    IReadOnlyCollection<Element> Elements);
+    IReadOnlyCollection<Element> Elements)
+{
+    public const int CurrentVersion = 1;
+}
