@@ -12,12 +12,10 @@ namespace Printify.Infrastructure.Printing;
 public sealed class PrintJobSessionsOrchestrator(
     IPrintJobSessionFactory printJobSessionFactory,
     IServiceScopeFactory scopeFactory,
-    IDocumentRepository documentRepository,
     IPrinterDocumentStream documentStream)
     : IPrintJobSessionsOrchestrator
 {
     private readonly ConcurrentDictionary<IPrinterChannel, IPrintJobSession> jobSessions = new();
-    private readonly IDocumentRepository documentRepository = documentRepository;
     private readonly IPrinterDocumentStream documentStream = documentStream;
 
     public async Task<IPrintJobSession> StartSessionAsync(IPrinterChannel channel, CancellationToken ct)
@@ -67,6 +65,8 @@ public sealed class PrintJobSessionsOrchestrator(
         var document = session.Document;
         if (document is not null)
         {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var documentRepository = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
             await documentRepository.AddAsync(document, ct).ConfigureAwait(false);
             documentStream.Publish(new DocumentStreamEvent(document));
         }

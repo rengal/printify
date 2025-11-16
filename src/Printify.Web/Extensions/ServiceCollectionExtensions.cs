@@ -72,6 +72,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IPrinterRepository, PrinterRepository>();
         services.AddScoped<IPrintJobRepository, PrintJobRepository>();
+        services.AddScoped<IDocumentRepository, DocumentRepository>();
 
         // Printer listeners
         services.AddSingleton<IPrintJobSessionFactory, PrintJobSessionFactory>();
@@ -79,7 +80,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPrinterListenerOrchestrator, PrinterListenerOrchestrator>();
         services.AddSingleton<IPrinterListenerFactory, PrinterListenerFactory>();
         services.AddSingleton<IPrinterDocumentStream, PrinterDocumentStream>();
-        services.AddSingleton<IDocumentRepository, DocumentRepository>();
 
         //services.AddHostedService<PrinterListenerBootstrapper>();
 
