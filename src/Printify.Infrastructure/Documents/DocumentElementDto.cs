@@ -29,6 +29,7 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(StoreQrDataElementDto), DocumentElementTypeNames.StoreQrData)]
 [JsonDerivedType(typeof(StoredLogoElementDto), DocumentElementTypeNames.StoredLogo)]
 [JsonDerivedType(typeof(TextLineElementDto), DocumentElementTypeNames.TextLine)]
+[JsonDerivedType(typeof(RasterImageElementDto), DocumentElementTypeNames.RasterImage)]
 public abstract record DocumentElementDto;
 
 public sealed record BellElementDto : DocumentElementDto;
@@ -133,3 +134,5 @@ public sealed record StoreQrDataElementDto(string Content) : DocumentElementDto;
 public sealed record StoredLogoElementDto(int LogoId) : DocumentElementDto;
 
 public sealed record TextLineElementDto(string Text) : DocumentElementDto;
+
+public sealed record RasterImageElementDto(int Width, int Height) : DocumentElementDto;

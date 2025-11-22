@@ -28,6 +28,10 @@ public sealed class DocumentEntity
 
     [Column("client_address")]
     public string? ClientAddress { get; set; }
+
+    [InverseProperty(nameof(DocumentElementEntity.Document))]
+    public List<DocumentElementEntity> Elements { get; set; } = new();
+
 }
 
 [Table("document_elements")]
@@ -48,4 +52,42 @@ public sealed class DocumentElementEntity
 
     [Column("payload", TypeName = "TEXT")]
     public string Payload { get; set; } = string.Empty;
+
+    [ForeignKey(nameof(DocumentId))]
+    public DocumentEntity? Document { get; set; }
+
+    [InverseProperty(nameof(DocumentMediaEntity.Element))]
+    public DocumentMediaEntity? Media { get; set; }
+}
+
+[Table("document_media")]
+public sealed class DocumentMediaEntity
+{
+    [Key]
+    [Column("id")]
+    public Guid Id { get; set; }
+
+    [Column("document_element_id")]
+    public Guid DocumentElementId { get; set; }
+
+    [Column("created_at")]
+    public DateTimeOffset CreatedAt { get; set; }
+
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
+
+    [Column("content_type")]
+    public string ContentType { get; set; } = string.Empty;
+
+    [Column("length")]
+    public long? Length { get; set; }
+
+    [Column("checksum")]
+    public string? Checksum { get; set; }
+
+    [Column("url")]
+    public string Url { get; set; } = string.Empty;
+
+    [ForeignKey(nameof(DocumentElementId))]
+    public DocumentElementEntity? Element { get; set; }
 }

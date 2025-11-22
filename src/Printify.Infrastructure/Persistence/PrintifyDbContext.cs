@@ -26,6 +26,8 @@ public sealed class PrintifyDbContext : DbContext
 
     public DbSet<DocumentElementEntity> DocumentElements => Set<DocumentElementEntity>();
 
+    public DbSet<DocumentMediaEntity> DocumentMedia => Set<DocumentMediaEntity>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -63,6 +65,22 @@ public sealed class PrintifyDbContext : DbContext
 
             entity.HasIndex(element => new { element.DocumentId, element.Sequence })
                 .IsUnique();
+
+            entity.HasOne(element => element.Media)
+                .WithOne(media => media.Element)
+                .HasForeignKey<DocumentMediaEntity>(media => media.DocumentElementId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DocumentMediaEntity>(entity =>
+        {
+            entity.Property(media => media.ContentType)
+                .IsRequired();
+
+            entity.Property(media => media.Url)
+                .IsRequired();
+
+            entity.HasIndex(media => media.Checksum);
         });
     }
 }

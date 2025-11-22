@@ -31,4 +31,5 @@ internal static class DocumentElementTypeNames
     public const string StoreQrData = "storeQrData";
     public const string StoredLogo = "storedLogo";
     public const string TextLine = "textLine";
+    public const string RasterImage = "rasterImage";
 }

@@ -1,6 +1,8 @@
 namespace Printify.Infrastructure.Documents;
 
+using System.Collections.Generic;
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Media;
 
 /// <summary>
 /// Converts between domain document elements and their serialized infrastructure representation.
@@ -51,12 +53,13 @@ public static class DocumentElementMapper
             StoreQrData store => new StoreQrDataElementDto(store.Content),
             StoredLogo logo => new StoredLogoElementDto(logo.LogoId),
             TextLine textLine => new TextLineElementDto(textLine.Text),
+            RasterImage image => new RasterImageElementDto(image.Width, image.Height),
             RasterImageUpload => throw new NotSupportedException("Raster image persistence is handled separately."),
             _ => throw new NotSupportedException($"Element type '{element.GetType().Name}' is not supported.")
         };
     }
 
-    public static Element ToDomain(DocumentElementDto dto)
+    public static Element ToDomain(DocumentElementDto dto, Media? media = null)
     {
         ArgumentNullException.ThrowIfNull(dto);
 
@@ -101,6 +104,9 @@ public static class DocumentElementMapper
             StoreQrDataElementDto store => new StoreQrData(store.Content ?? string.Empty),
             StoredLogoElementDto logo => new StoredLogo(logo.LogoId),
             TextLineElementDto textLine => new TextLine(textLine.Text ?? string.Empty),
+            RasterImageElementDto raster => media is null
+                ? throw new InvalidOperationException("Raster image metadata is missing.")
+                : new RasterImage(raster.Width, raster.Height, media),
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }

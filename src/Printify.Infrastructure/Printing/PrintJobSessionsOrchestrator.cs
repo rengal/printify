@@ -1,8 +1,14 @@
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
+using Printify.Domain.Documents;
+using Printify.Domain.Documents.Elements;
 using Printify.Domain.PrintJobs;
+using Printify.Domain.Services;
 
 namespace Printify.Infrastructure.Printing;
 
@@ -16,7 +22,6 @@ public sealed class PrintJobSessionsOrchestrator(
     : IPrintJobSessionsOrchestrator
 {
     private readonly ConcurrentDictionary<IPrinterChannel, IPrintJobSession> jobSessions = new();
-    private readonly IPrinterDocumentStream documentStream = documentStream;
 
     public async Task<IPrintJobSession> StartSessionAsync(IPrinterChannel channel, CancellationToken ct)
     {
@@ -66,9 +71,44 @@ public sealed class PrintJobSessionsOrchestrator(
         if (document is not null)
         {
             await using var scope = scopeFactory.CreateAsyncScope();
+            var finalizedDocument = await FinalizeDocumentAsync(document, scope.ServiceProvider, ct).ConfigureAwait(false);
             var documentRepository = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
-            await documentRepository.AddAsync(document, ct).ConfigureAwait(false);
-            documentStream.Publish(new DocumentStreamEvent(document));
+            await documentRepository.AddAsync(finalizedDocument, ct).ConfigureAwait(false);
+            documentStream.Publish(new DocumentStreamEvent(finalizedDocument));
         }
+    }
+
+
+    /// <summary>
+    /// Saves media to storage and document to repository. Update MediaUpload and RasterImageUpload objects into Media and Raster image
+    /// </summary>
+    private static async Task<Document> FinalizeDocumentAsync(Document document, IServiceProvider services,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(services);
+
+        var mediaStorage = services.GetRequiredService<IMediaStorage>();
+        var sourceElements = document.Elements ?? [];
+        var changed = false;
+        var resultElements = new List<Element>(sourceElements.Count);
+
+        foreach (var sourceElement in sourceElements)
+        {
+            if (sourceElement is RasterImageUpload rasterUpload)
+            {
+                var media = await mediaStorage.SaveAsync(rasterUpload.Media, ct).ConfigureAwait(false);
+                resultElements.Add(new RasterImage(rasterUpload.Width, rasterUpload.Height, media));
+                changed = true;
+            }
+            else
+            {
+                resultElements.Add(sourceElement);
+            }
+        }
+
+        return changed
+            ? document with { Elements = resultElements.AsReadOnly() }
+            : document;
     }
 }

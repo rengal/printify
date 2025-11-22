@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 
 using Printify.Domain.Media;
+using DomainMedia = Printify.Domain.Media.Media;
 
 namespace Printify.Domain.Documents.Elements;
 
@@ -17,6 +18,7 @@ namespace Printify.Domain.Documents.Elements;
 [JsonDerivedType(typeof(PrintQrCode), "printQrCode")]
 [JsonDerivedType(typeof(Pulse), "pulse")]
 [JsonDerivedType(typeof(RasterImageUpload), "rasterImageUpload")]
+[JsonDerivedType(typeof(RasterImage), "rasterImage")]
 [JsonDerivedType(typeof(ResetPrinter), "resetPrinter")]
 [JsonDerivedType(typeof(SetBarcodeHeight), "setBarcodeHeight")]
 [JsonDerivedType(typeof(SetBarcodeLabelPosition), "setBarcodeLabelPosition")]
@@ -67,6 +69,18 @@ public sealed record RasterImageUpload(
     int Width,
     int Height,
     MediaUpload Media)
+    : BaseRasterImage(Width, Height);
+
+/// <summary>
+/// Raster image that references persisted media content.
+/// </summary>
+/// <param name="Width">Image width in printer dots.</param>
+/// <param name="Height">Image height in printer dots.</param>
+/// <param name="Media">Persisted media descriptor with accessible URL.</param>
+public sealed record RasterImage(
+    int Width,
+    int Height,
+    DomainMedia Media)
     : BaseRasterImage(Width, Height);
 
 /// <summary>

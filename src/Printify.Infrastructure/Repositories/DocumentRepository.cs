@@ -2,13 +2,9 @@ namespace Printify.Infrastructure.Repositories;
 
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents;
-using Printify.Infrastructure.Documents;
 using Printify.Infrastructure.Mapping;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Persistence.Entities.Documents;
@@ -20,12 +16,6 @@ public sealed class DocumentRepository : IDocumentRepository
 {
     private const int DefaultLimit = 20;
     private const int MaxLimit = 200;
-
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
-    {
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        PropertyNameCaseInsensitive = true
-    };
 
     private readonly PrintifyDbContext dbContext;
 
@@ -42,7 +32,7 @@ public sealed class DocumentRepository : IDocumentRepository
             .FirstOrDefaultAsync(document => document.Id == id, ct)
             .ConfigureAwait(false);
 
-        return entity is null ? null : MapToDomain(entity);
+        return entity?.ToDomain();
     }
 
     public async Task<IReadOnlyList<Document>> ListByPrinterIdAsync(
@@ -89,7 +79,7 @@ public sealed class DocumentRepository : IDocumentRepository
             .ConfigureAwait(false);
 
         var documents = entities
-            .Select(MapToDomain)
+            .Select(DocumentEntityMapper.ToDomain)
             .ToList();
 
         return new ReadOnlyCollection<Document>(documents);
@@ -99,7 +89,7 @@ public sealed class DocumentRepository : IDocumentRepository
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        var entity = CreateEntity(document);
+        var entity = document.ToEntity();
         await dbContext.Documents.AddAsync(entity, ct).ConfigureAwait(false);
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
@@ -112,118 +102,5 @@ public sealed class DocumentRepository : IDocumentRepository
         }
 
         return Math.Min(limit, MaxLimit);
-    }
-
-    private static Document CreateDomainDocument(
-        DocumentEntity entity,
-        IReadOnlyCollection<DocumentElementDto> elementDtos)
-    {
-        var protocol = ProtocolMapper.ParseProtocol(entity.Protocol);
-        var elements = elementDtos
-            .Select(DocumentElementMapper.ToDomain)
-            .ToArray();
-
-        return new Document(
-            entity.Id,
-            entity.PrintJobId,
-            entity.PrinterId,
-            entity.Version == 0 ? Document.CurrentVersion : entity.Version, // Backfill version for legacy payloads.
-            entity.CreatedAt,
-            protocol,
-            entity.ClientAddress,
-            elements);
-    }
-
-    private static Document MapToDomain(DocumentEntity entity)
-    {
-        // Elements are stored as individual rows so we must restore the original order explicitly.
-        var orderedElements = entity.Elements
-            .OrderBy(element => element.Sequence)
-            .Select(DeserializeElement)
-            .Where(dto => dto is not null)
-            .Select(dto => dto!)
-            .ToArray();
-
-        return CreateDomainDocument(entity, orderedElements);
-    }
-
-    private static DocumentEntity CreateEntity(Document document)
-    {
-        var entity = new DocumentEntity
-        {
-            Id = document.Id,
-            PrintJobId = document.PrintJobId,
-            PrinterId = document.PrinterId,
-            Version = document.Version == 0 ? Document.CurrentVersion : document.Version,
-            CreatedAt = document.CreatedAt,
-            Protocol = ProtocolMapper.ToString(document.Protocol),
-            ClientAddress = document.ClientAddress
-        };
-
-        entity.Elements = document.Elements
-            .Select(DocumentElementMapper.ToDto)
-            .Select((dto, index) => CreateElementEntity(dto, document.Id, index))
-            .ToList();
-
-        return entity;
-    }
-
-    private static DocumentElementEntity CreateElementEntity(DocumentElementDto dto, Guid documentId, int sequence)
-    {
-        // Persist both the raw payload (for backwards compatibility) and the resolved type discriminator.
-        var payload = JsonSerializer.Serialize(dto, SerializerOptions);
-
-        return new DocumentElementEntity
-        {
-            Id = Guid.NewGuid(),
-            DocumentId = documentId,
-            Sequence = sequence,
-            ElementType = ResolveElementType(dto),
-            Payload = payload
-        };
-    }
-
-    private static DocumentElementDto? DeserializeElement(DocumentElementEntity entity)
-    {
-        if (string.IsNullOrWhiteSpace(entity.Payload))
-        {
-            return null;
-        }
-
-        return JsonSerializer.Deserialize<DocumentElementDto>(entity.Payload, SerializerOptions);
-    }
-
-    private static string ResolveElementType(DocumentElementDto dto)
-    {
-        return dto switch
-        {
-            BellElementDto => DocumentElementTypeNames.Bell,
-            ErrorElementDto => DocumentElementTypeNames.Error,
-            PagecutElementDto => DocumentElementTypeNames.Pagecut,
-            PrinterErrorElementDto => DocumentElementTypeNames.PrinterError,
-            PrinterStatusElementDto => DocumentElementTypeNames.PrinterStatus,
-            PrintBarcodeElementDto => DocumentElementTypeNames.PrintBarcode,
-            PrintQrCodeElementDto => DocumentElementTypeNames.PrintQrCode,
-            PulseElementDto => DocumentElementTypeNames.Pulse,
-            ResetPrinterElementDto => DocumentElementTypeNames.ResetPrinter,
-            SetBarcodeHeightElementDto => DocumentElementTypeNames.SetBarcodeHeight,
-            SetBarcodeLabelPositionElementDto => DocumentElementTypeNames.SetBarcodeLabelPosition,
-            SetBarcodeModuleWidthElementDto => DocumentElementTypeNames.SetBarcodeModuleWidth,
-            SetBoldModeElementDto => DocumentElementTypeNames.SetBoldMode,
-            SetCodePageElementDto => DocumentElementTypeNames.SetCodePage,
-            SetFontElementDto => DocumentElementTypeNames.SetFont,
-            SetJustificationElementDto => DocumentElementTypeNames.SetJustification,
-            SetLineSpacingElementDto => DocumentElementTypeNames.SetLineSpacing,
-            ResetLineSpacingElementDto => DocumentElementTypeNames.ResetLineSpacing,
-            SetQrErrorCorrectionElementDto => DocumentElementTypeNames.SetQrErrorCorrection,
-            SetQrModelElementDto => DocumentElementTypeNames.SetQrModel,
-            SetQrModuleSizeElementDto => DocumentElementTypeNames.SetQrModuleSize,
-            SetReverseModeElementDto => DocumentElementTypeNames.SetReverseMode,
-            SetUnderlineModeElementDto => DocumentElementTypeNames.SetUnderlineMode,
-            StoreQrDataElementDto => DocumentElementTypeNames.StoreQrData,
-            StoredLogoElementDto => DocumentElementTypeNames.StoredLogo,
-            TextLineElementDto => DocumentElementTypeNames.TextLine,
-            _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
-        };
     }
 }
