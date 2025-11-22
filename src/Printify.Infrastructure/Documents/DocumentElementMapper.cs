@@ -1,4 +1,4 @@
-namespace Printify.Infrastructure.Documents;
+﻿namespace Printify.Infrastructure.Documents;
 
 using System.Collections.Generic;
 using Printify.Domain.Documents.Elements;
@@ -13,98 +13,98 @@ public static class DocumentElementMapper
     private const QrModel DefaultQrModel = QrModel.Model2;
     private const bool DefaultBoolean = false;
 
-    public static DocumentElementDto ToDto(Element element)
+    public static DocumentElementPayload ToDto(Element element)
     {
         ArgumentNullException.ThrowIfNull(element);
 
         return element switch
         {
-            Bell => new BellElementDto(),
-            Error error => new ErrorElementDto(error.Code, error.Message),
-            Pagecut pagecut => new PagecutElementDto(pagecut.Mode.ToString(), pagecut.FeedMotionUnits),
-            PrinterError printerError => new PrinterErrorElementDto(printerError.Message),
-            GetPrinterStatus status => new PrinterStatusElementDto(status.StatusByte, status.AdditionalStatusByte),
-            PrintBarcode barcode => new PrintBarcodeElementDto(
+            Bell => new BellElementPayload(),
+            Error error => new ErrorElementPayload(error.Code, error.Message),
+            Pagecut pagecut => new PagecutElementPayload(pagecut.Mode.ToString(), pagecut.FeedMotionUnits),
+            PrinterError printerError => new PrinterErrorElementPayload(printerError.Message),
+            GetPrinterStatus status => new PrinterStatusElementPayload(status.StatusByte, status.AdditionalStatusByte),
+            PrintBarcode barcode => new PrintBarcodeElementPayload(
                 SerializeEnum(barcode.Symbology, BarcodeSymbology.Code39),
                 barcode.Data),
-            PrintQrCode => new PrintQrCodeElementDto(),
-            Pulse pulse => new PulseElementDto(
+            PrintQrCode => new PrintQrCodeElementPayload(),
+            Pulse pulse => new PulseElementPayload(
                 SerializeEnum(pulse.Pin, Domain.Documents.Elements.PulsePin.Drawer1),
                 pulse.OnTimeMs,
                 pulse.OffTimeMs),
-            ResetPrinter => new ResetPrinterElementDto(),
-            SetBarcodeHeight height => new SetBarcodeHeightElementDto(height.HeightInDots),
-            SetBarcodeLabelPosition position => new SetBarcodeLabelPositionElementDto(
+            ResetPrinter => new ResetPrinterElementPayload(),
+            SetBarcodeHeight height => new SetBarcodeHeightElementPayload(height.HeightInDots),
+            SetBarcodeLabelPosition position => new SetBarcodeLabelPositionElementPayload(
                 SerializeEnum(position.Position, Domain.Documents.Elements.BarcodeLabelPosition.Below)),
-            SetBarcodeModuleWidth moduleWidth => new SetBarcodeModuleWidthElementDto(moduleWidth.ModuleWidth),
-            SetBoldMode bold => new SetBoldModeElementDto(SerializeBool(bold.IsEnabled)),
-            SetCodePage codePage => new SetCodePageElementDto(codePage.CodePage),
-            SetFont font => new SetFontElementDto(font.FontNumber, SerializeBool(font.IsDoubleWidth), SerializeBool(font.IsDoubleHeight)),
-            SetJustification justification => new SetJustificationElementDto(
+            SetBarcodeModuleWidth moduleWidth => new SetBarcodeModuleWidthElementPayload(moduleWidth.ModuleWidth),
+            SetBoldMode bold => new SetBoldModeElementPayload(SerializeBool(bold.IsEnabled)),
+            SetCodePage codePage => new SetCodePageElementPayload(codePage.CodePage),
+            SetFont font => new SetFontElementPayload(font.FontNumber, SerializeBool(font.IsDoubleWidth), SerializeBool(font.IsDoubleHeight)),
+            SetJustification justification => new SetJustificationElementPayload(
                 SerializeEnum(justification.Justification, TextJustification.Left)),
-            SetLineSpacing spacing => new SetLineSpacingElementDto(spacing.Spacing),
-            ResetLineSpacing => new ResetLineSpacingElementDto(),
-            SetQrErrorCorrection correction => new SetQrErrorCorrectionElementDto(
+            SetLineSpacing spacing => new SetLineSpacingElementPayload(spacing.Spacing),
+            ResetLineSpacing => new ResetLineSpacingElementPayload(),
+            SetQrErrorCorrection correction => new SetQrErrorCorrectionElementPayload(
                 SerializeEnum(correction.Level, DefaultQrCorrection)),
-            SetQrModel model => new SetQrModelElementDto(SerializeEnum(model.Model, DefaultQrModel)),
-            SetQrModuleSize moduleSize => new SetQrModuleSizeElementDto(moduleSize.ModuleSize),
-            SetReverseMode reverse => new SetReverseModeElementDto(SerializeBool(reverse.IsEnabled)),
-            SetUnderlineMode underline => new SetUnderlineModeElementDto(SerializeBool(underline.IsEnabled)),
-            StoreQrData store => new StoreQrDataElementDto(store.Content),
-            StoredLogo logo => new StoredLogoElementDto(logo.LogoId),
-            TextLine textLine => new TextLineElementDto(textLine.Text),
-            RasterImage image => new RasterImageElementDto(image.Width, image.Height),
+            SetQrModel model => new SetQrModelElementPayload(SerializeEnum(model.Model, DefaultQrModel)),
+            SetQrModuleSize moduleSize => new SetQrModuleSizeElementPayload(moduleSize.ModuleSize),
+            SetReverseMode reverse => new SetReverseModeElementPayload(SerializeBool(reverse.IsEnabled)),
+            SetUnderlineMode underline => new SetUnderlineModeElementPayload(SerializeBool(underline.IsEnabled)),
+            StoreQrData store => new StoreQrDataElementPayload(store.Content),
+            StoredLogo logo => new StoredLogoElementPayload(logo.LogoId),
+            TextLine textLine => new TextLineElementPayload(textLine.Text),
+            RasterImage image => new RasterImageElementPayload(image.Width, image.Height),
             RasterImageUpload => throw new NotSupportedException("Raster image persistence is handled separately."),
             _ => throw new NotSupportedException($"Element type '{element.GetType().Name}' is not supported.")
         };
     }
 
-    public static Element ToDomain(DocumentElementDto dto, Media? media = null)
+    public static Element ToDomain(DocumentElementPayload dto, Media? media = null)
     {
         ArgumentNullException.ThrowIfNull(dto);
 
         return dto switch
         {
-            BellElementDto => new Bell(),
-            ErrorElementDto error => new Error(error.Code ?? string.Empty, error.Message ?? string.Empty),
-            PagecutElementDto pagecut => new Pagecut(
+            BellElementPayload => new Bell(),
+            ErrorElementPayload error => new Error(error.Code ?? string.Empty, error.Message ?? string.Empty),
+            PagecutElementPayload pagecut => new Pagecut(
                 ParseEnumOrDefault(pagecut.Mode, PagecutMode.Full),
                 pagecut.FeedMotionUnits),
-            PrinterErrorElementDto printerError => new PrinterError(printerError.Message ?? string.Empty),
-            PrinterStatusElementDto status => new GetPrinterStatus(status.StatusByte, status.AdditionalStatusByte),
-            PrintBarcodeElementDto barcode => new PrintBarcode(
+            PrinterErrorElementPayload printerError => new PrinterError(printerError.Message ?? string.Empty),
+            PrinterStatusElementPayload status => new GetPrinterStatus(status.StatusByte, status.AdditionalStatusByte),
+            PrintBarcodeElementPayload barcode => new PrintBarcode(
                 ParseEnumOrDefault(barcode.Symbology, BarcodeSymbology.Code39),
                 barcode.Data ?? string.Empty),
-            PrintQrCodeElementDto => new PrintQrCode(),
-            PulseElementDto pulse => new Pulse(
+            PrintQrCodeElementPayload => new PrintQrCode(),
+            PulseElementPayload pulse => new Pulse(
                 ParseEnumOrDefault(pulse.Pin, Domain.Documents.Elements.PulsePin.Drawer1),
                 pulse.OnTimeMs,
                 pulse.OffTimeMs),
-            ResetPrinterElementDto => new ResetPrinter(),
-            SetBarcodeHeightElementDto height => new SetBarcodeHeight(height.HeightInDots),
-            SetBarcodeLabelPositionElementDto position => new SetBarcodeLabelPosition(
+            ResetPrinterElementPayload => new ResetPrinter(),
+            SetBarcodeHeightElementPayload height => new SetBarcodeHeight(height.HeightInDots),
+            SetBarcodeLabelPositionElementPayload position => new SetBarcodeLabelPosition(
                 ParseEnumOrDefault(position.Position, Domain.Documents.Elements.BarcodeLabelPosition.Below)),
-            SetBarcodeModuleWidthElementDto moduleWidth => new SetBarcodeModuleWidth(moduleWidth.ModuleWidth),
-            SetBoldModeElementDto bold => new SetBoldMode(bold.IsEnabled ?? DefaultBoolean),
-            SetCodePageElementDto codePage => new SetCodePage(codePage.CodePage ?? "437"),
-            SetFontElementDto font => new SetFont(
+            SetBarcodeModuleWidthElementPayload moduleWidth => new SetBarcodeModuleWidth(moduleWidth.ModuleWidth),
+            SetBoldModeElementPayload bold => new SetBoldMode(bold.IsEnabled ?? DefaultBoolean),
+            SetCodePageElementPayload codePage => new SetCodePage(codePage.CodePage ?? "437"),
+            SetFontElementPayload font => new SetFont(
                 font.FontNumber,
                 font.IsDoubleWidth ?? DefaultBoolean,
                 font.IsDoubleHeight ?? DefaultBoolean),
-            SetJustificationElementDto justification => new SetJustification(
+            SetJustificationElementPayload justification => new SetJustification(
                 ParseEnumOrDefault(justification.Justification, TextJustification.Left)),
-            SetLineSpacingElementDto spacing => new SetLineSpacing(spacing.Spacing),
-            ResetLineSpacingElementDto => new ResetLineSpacing(),
-            SetQrErrorCorrectionElementDto correction => new SetQrErrorCorrection(
+            SetLineSpacingElementPayload spacing => new SetLineSpacing(spacing.Spacing),
+            ResetLineSpacingElementPayload => new ResetLineSpacing(),
+            SetQrErrorCorrectionElementPayload correction => new SetQrErrorCorrection(
                 ParseEnumOrDefault(correction.Level, DefaultQrCorrection)),
-            SetQrModelElementDto model => new SetQrModel(ParseEnumOrDefault(model.Model, DefaultQrModel)),
-            SetQrModuleSizeElementDto moduleSize => new SetQrModuleSize(moduleSize.ModuleSize),
-            SetReverseModeElementDto reverse => new SetReverseMode(reverse.IsEnabled ?? DefaultBoolean),
-            SetUnderlineModeElementDto underline => new SetUnderlineMode(underline.IsEnabled ?? DefaultBoolean),
-            StoreQrDataElementDto store => new StoreQrData(store.Content ?? string.Empty),
-            StoredLogoElementDto logo => new StoredLogo(logo.LogoId),
-            TextLineElementDto textLine => new TextLine(textLine.Text ?? string.Empty),
-            RasterImageElementDto raster => media is null
+            SetQrModelElementPayload model => new SetQrModel(ParseEnumOrDefault(model.Model, DefaultQrModel)),
+            SetQrModuleSizeElementPayload moduleSize => new SetQrModuleSize(moduleSize.ModuleSize),
+            SetReverseModeElementPayload reverse => new SetReverseMode(reverse.IsEnabled ?? DefaultBoolean),
+            SetUnderlineModeElementPayload underline => new SetUnderlineMode(underline.IsEnabled ?? DefaultBoolean),
+            StoreQrDataElementPayload store => new StoreQrData(store.Content ?? string.Empty),
+            StoredLogoElementPayload logo => new StoredLogo(logo.LogoId),
+            TextLineElementPayload textLine => new TextLine(textLine.Text ?? string.Empty),
+            RasterImageElementPayload raster => media is null
                 ? throw new InvalidOperationException("Raster image metadata is missing.")
                 : new RasterImage(raster.Width, raster.Height, media),
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
@@ -133,3 +133,4 @@ public static class DocumentElementMapper
             : defaultValue;
     }
 }
+

@@ -1,4 +1,4 @@
-namespace Printify.Infrastructure.Mapping;
+﻿namespace Printify.Infrastructure.Mapping;
 
 using System;
 using System.Collections.Generic;
@@ -93,7 +93,7 @@ internal static class DocumentElementEntityMapper
         PropertyNameCaseInsensitive = true
     };
 
-    internal static DocumentElementEntity ToEntity(Guid documentId, DocumentElementDto dto, int sequence)
+    internal static DocumentElementEntity ToEntity(Guid documentId, DocumentElementPayload dto, int sequence)
     {
         ArgumentNullException.ThrowIfNull(dto);
 
@@ -107,7 +107,7 @@ internal static class DocumentElementEntityMapper
         };
     }
 
-    internal static DocumentElementDto? ToDto(DocumentElementEntity entity)
+    internal static DocumentElementPayload? ToDto(DocumentElementEntity entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
 
@@ -116,39 +116,39 @@ internal static class DocumentElementEntityMapper
             return null;
         }
 
-        return JsonSerializer.Deserialize<DocumentElementDto>(entity.Payload, SerializerOptions);
+        return JsonSerializer.Deserialize<DocumentElementPayload>(entity.Payload, SerializerOptions);
     }
 
-    private static string ResolveElementType(DocumentElementDto dto)
+    private static string ResolveElementType(DocumentElementPayload dto)
     {
         return dto switch
         {
-            BellElementDto => DocumentElementTypeNames.Bell,
-            ErrorElementDto => DocumentElementTypeNames.Error,
-            PagecutElementDto => DocumentElementTypeNames.Pagecut,
-            PrinterErrorElementDto => DocumentElementTypeNames.PrinterError,
-            PrinterStatusElementDto => DocumentElementTypeNames.PrinterStatus,
-            PrintBarcodeElementDto => DocumentElementTypeNames.PrintBarcode,
-            PrintQrCodeElementDto => DocumentElementTypeNames.PrintQrCode,
-            PulseElementDto => DocumentElementTypeNames.Pulse,
-            ResetPrinterElementDto => DocumentElementTypeNames.ResetPrinter,
-            SetBarcodeHeightElementDto => DocumentElementTypeNames.SetBarcodeHeight,
-            SetBarcodeLabelPositionElementDto => DocumentElementTypeNames.SetBarcodeLabelPosition,
-            SetBarcodeModuleWidthElementDto => DocumentElementTypeNames.SetBarcodeModuleWidth,
-            SetBoldModeElementDto => DocumentElementTypeNames.SetBoldMode,
-            SetCodePageElementDto => DocumentElementTypeNames.SetCodePage,
-            SetFontElementDto => DocumentElementTypeNames.SetFont,
-            SetJustificationElementDto => DocumentElementTypeNames.SetJustification,
-            SetLineSpacingElementDto => DocumentElementTypeNames.SetLineSpacing,
-            ResetLineSpacingElementDto => DocumentElementTypeNames.ResetLineSpacing,
-            SetQrErrorCorrectionElementDto => DocumentElementTypeNames.SetQrErrorCorrection,
-            SetQrModelElementDto => DocumentElementTypeNames.SetQrModel,
-            SetQrModuleSizeElementDto => DocumentElementTypeNames.SetQrModuleSize,
-            SetReverseModeElementDto => DocumentElementTypeNames.SetReverseMode,
-            SetUnderlineModeElementDto => DocumentElementTypeNames.SetUnderlineMode,
-            StoreQrDataElementDto => DocumentElementTypeNames.StoreQrData,
-            StoredLogoElementDto => DocumentElementTypeNames.StoredLogo,
-            TextLineElementDto => DocumentElementTypeNames.TextLine,
+            BellElementPayload => DocumentElementTypeNames.Bell,
+            ErrorElementPayload => DocumentElementTypeNames.Error,
+            PagecutElementPayload => DocumentElementTypeNames.Pagecut,
+            PrinterErrorElementPayload => DocumentElementTypeNames.PrinterError,
+            PrinterStatusElementPayload => DocumentElementTypeNames.PrinterStatus,
+            PrintBarcodeElementPayload => DocumentElementTypeNames.PrintBarcode,
+            PrintQrCodeElementPayload => DocumentElementTypeNames.PrintQrCode,
+            PulseElementPayload => DocumentElementTypeNames.Pulse,
+            ResetPrinterElementPayload => DocumentElementTypeNames.ResetPrinter,
+            SetBarcodeHeightElementPayload => DocumentElementTypeNames.SetBarcodeHeight,
+            SetBarcodeLabelPositionElementPayload => DocumentElementTypeNames.SetBarcodeLabelPosition,
+            SetBarcodeModuleWidthElementPayload => DocumentElementTypeNames.SetBarcodeModuleWidth,
+            SetBoldModeElementPayload => DocumentElementTypeNames.SetBoldMode,
+            SetCodePageElementPayload => DocumentElementTypeNames.SetCodePage,
+            SetFontElementPayload => DocumentElementTypeNames.SetFont,
+            SetJustificationElementPayload => DocumentElementTypeNames.SetJustification,
+            SetLineSpacingElementPayload => DocumentElementTypeNames.SetLineSpacing,
+            ResetLineSpacingElementPayload => DocumentElementTypeNames.ResetLineSpacing,
+            SetQrErrorCorrectionElementPayload => DocumentElementTypeNames.SetQrErrorCorrection,
+            SetQrModelElementPayload => DocumentElementTypeNames.SetQrModel,
+            SetQrModuleSizeElementPayload => DocumentElementTypeNames.SetQrModuleSize,
+            SetReverseModeElementPayload => DocumentElementTypeNames.SetReverseMode,
+            SetUnderlineModeElementPayload => DocumentElementTypeNames.SetUnderlineMode,
+            StoreQrDataElementPayload => DocumentElementTypeNames.StoreQrData,
+            StoredLogoElementPayload => DocumentElementTypeNames.StoredLogo,
+            TextLineElementPayload => DocumentElementTypeNames.TextLine,
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }
@@ -187,3 +187,4 @@ internal static class DocumentMediaEntityMapper
             entity.Url);
     }
 }
+
