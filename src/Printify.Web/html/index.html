@@ -862,9 +862,9 @@
     <div id="modalContainer"></div>
 
     <script>
-        // Session State
-        let sessionToken = null;
-        let sessionName = null;
+        // Workspace State
+        let workspaceToken = null;
+        let workspaceName = null;
 
         // Mock Data
         let printers = [];
@@ -941,42 +941,42 @@
             otherSection.style.display = otherPrinters.length > 0 ? 'block' : 'none';
 
             pinnedList.innerHTML = pinnedPrinters.map(p => `
-        <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter(${p.id})">
-          <div class="list-item-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="17" x2="12" y2="22"></line>
-              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
-            </svg>
-          </div>
-          <div class="list-item-content">
-            <div class="list-item-line1">
-              <span class="list-item-name">${p.name}</span>
-              ${p.newDocs > 0 ? `<span class="list-item-badge">● ${p.newDocs}</span>` : ''}
+            <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter(${p.id})">
+              <div class="list-item-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="17" x2="12" y2="22"></line>
+                  <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
+                </svg>
+              </div>
+              <div class="list-item-content">
+                <div class="list-item-line1">
+                  <span class="list-item-name">${p.name}</span>
+                  ${p.newDocs > 0 ? `<span class="list-item-badge">● ${p.newDocs}</span>` : ''}
+                </div>
+                <div class="list-item-line2">Last: ${formatDateTime(p.lastDocumentAt)} · ${formatRelativeTime(p.lastDocumentAt)}</div>
+              </div>
+              <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, ${p.id}, true)">⋯</button>
             </div>
-            <div class="list-item-line2">Last: ${formatDateTime(p.lastDocumentAt)} · ${formatRelativeTime(p.lastDocumentAt)}</div>
-          </div>
-          <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, ${p.id}, true)">⋯</button>
-        </div>
-      `).join('');
+          `).join('');
 
             otherList.innerHTML = otherPrinters.map(p => `
-        <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter(${p.id})">
-          <div class="list-item-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="6 9 6 2 18 2 18 9"></polyline>
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-              <rect x="6" y="14" width="12" height="8"></rect>
-            </svg>
-          </div>
-          <div class="list-item-content">
-            <div class="list-item-line1">
-              <span class="list-item-name">${p.name}</span>
+            <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter(${p.id})">
+              <div class="list-item-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+              </div>
+              <div class="list-item-content">
+                <div class="list-item-line1">
+                  <span class="list-item-name">${p.name}</span>
+                </div>
+                <div class="list-item-line2">${p.protocol} · ${p.width} dots</div>
+              </div>
+              <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, ${p.id}, false)">⋯</button>
             </div>
-            <div class="list-item-line2">${p.protocol} · ${p.width} dots</div>
-          </div>
-          <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, ${p.id}, false)">⋯</button>
-        </div>
-      `).join('');
+          `).join('');
         }
 
         function selectPrinter(id) {
@@ -993,45 +993,45 @@
         function renderDocuments() {
             const mainContent = document.getElementById('mainContent');
 
-            if (!sessionToken) {
+            if (!workspaceToken) {
                 mainContent.innerHTML = `
-          <div style="max-width: 600px; margin: 60px auto; text-align: center;">
-            <h1>Printer Management System</h1>
-            <p style="color: var(--muted); font-size: 18px; margin: 24px 0 40px; line-height: 1.6;">
-              Manage receipt and label printers with real-time document streaming
-            </p>
+              <div style="max-width: 600px; margin: 60px auto; text-align: center;">
+                <h1>Printer Management System</h1>
+                <p style="color: var(--muted); font-size: 18px; margin: 24px 0 40px; line-height: 1.6;">
+                  Manage receipt and label printers with real-time document streaming
+                </p>
 
-            <div style="text-align: left; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin-bottom: 32px;">
-              <h3 style="margin-top: 0;">Features</h3>
-              <ul style="color: var(--muted); line-height: 1.8; padding-left: 24px;">
-                <li>Configure multiple printers with ESC/POS, ZPL, and other protocols</li>
-                <li>Monitor print jobs in real-time with document preview</li>
-                <li>Replay and download previously printed documents</li>
-                <li>Pin frequently used printers for quick access</li>
-                <li>Emulate buffer capacity for testing and optimization</li>
-                <li>Share printers across devices with your session token</li>
-              </ul>
-            </div>
+                <div style="text-align: left; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin-bottom: 32px;">
+                  <h3 style="margin-top: 0;">Features</h3>
+                  <ul style="color: var(--muted); line-height: 1.8; padding-left: 24px;">
+                    <li>Configure multiple printers with ESC/POS, ZPL, and other protocols</li>
+                    <li>Monitor print jobs in real-time with document preview</li>
+                    <li>Replay and download previously printed documents</li>
+                    <li>Pin frequently used printers for quick access</li>
+                    <li>Emulate buffer capacity for testing and optimization</li>
+                    <li>Share printers across devices with your workspace token</li>
+                  </ul>
+                </div>
 
-            <div style="background: rgba(16,185,129,0.1); border: 1px solid var(--accent); border-radius: 12px; padding: 24px; margin-bottom: 32px;">
-              <h3 style="margin-top: 0; color: var(--accent);">Get Started</h3>
-              <p style="color: var(--muted); margin-bottom: 16px;">
-                Create a new session or join an existing one with your token
-              </p>
-              <button class="btn btn-primary" onclick="showSessionDialog()">Create or Join Session</button>
-            </div>
-          </div>
-        `;
+                <div style="background: rgba(16,185,129,0.1); border: 1px solid var(--accent); border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+                  <h3 style="margin-top: 0; color: var(--accent);">Get Started</h3>
+                  <p style="color: var(--muted); margin-bottom: 16px;">
+                    Create a new workspace or access an existing one with your token
+                  </p>
+                  <button class="btn btn-primary" onclick="showWorkspaceDialog()">Create or Access Workspace</button>
+                </div>
+              </div>
+            `;
                 return;
             }
 
             if (!selectedPrinterId) {
                 mainContent.innerHTML = `
-          <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
-            <h2>Welcome back${sessionName ? ', ' + sessionName : ''}!</h2>
-            <p>Select a printer from the sidebar to view documents</p>
-          </div>
-        `;
+              <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
+                <h2>Welcome back${workspaceName ? ', ' + workspaceName : ''}!</h2>
+                <p>Select a printer from the sidebar to view documents</p>
+              </div>
+            `;
                 return;
             }
 
@@ -1039,26 +1039,26 @@
 
             if (docs.length === 0) {
                 mainContent.innerHTML = `
-          <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
-            <h3>No documents yet</h3>
-            <p>Documents will appear here when they are printed</p>
-          </div>
-        `;
+              <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
+                <h3>No documents yet</h3>
+                <p>Documents will appear here when they are printed</p>
+              </div>
+            `;
                 return;
             }
 
             mainContent.innerHTML = docs.map(doc => `
-        <div class="document-item">
-          <div class="document-preview">${doc.content}</div>
-          <div class="document-meta">
-            <span>${formatRelativeTime(doc.timestamp)}</span>
-            <div class="document-actions">
-              <button class="btn btn-secondary btn-sm" onclick="downloadDocument(${doc.id})">Download</button>
-              <button class="btn btn-secondary btn-sm" onclick="replayDocument(${doc.id})">Replay</button>
+            <div class="document-item">
+              <div class="document-preview">${doc.content}</div>
+              <div class="document-meta">
+                <span>${formatRelativeTime(doc.timestamp)}</span>
+                <div class="document-actions">
+                  <button class="btn btn-secondary btn-sm" onclick="downloadDocument(${doc.id})">Download</button>
+                  <button class="btn btn-secondary btn-sm" onclick="replayDocument(${doc.id})">Replay</button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      `).join('');
+          `).join('');
         }
 
         function showMenu(event, printerId, isPinned) {
@@ -1074,9 +1074,9 @@
             menu.style.top = event.clientY + 'px';
 
             menu.innerHTML = `
-        <div class="menu-item" onclick="editPrinter(${printerId})">Edit</div>
-        <div class="menu-item" onclick="togglePin(${printerId})">${isPinned ? 'Unpin' : 'Pin'}</div>
-      `;
+            <div class="menu-item" onclick="editPrinter(${printerId})">Edit</div>
+            <div class="menu-item" onclick="togglePin(${printerId})">${isPinned ? 'Unpin' : 'Pin'}</div>
+          `;
 
             document.body.appendChild(menu);
 
@@ -1101,69 +1101,69 @@
         }
 
         function openNewPrinterDialog() {
-            if (!sessionToken) {
-                showSessionDialog();
+            if (!workspaceToken) {
+                showWorkspaceDialog();
                 return;
             }
 
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.innerHTML = `
-        <div class="modal">
-          <div class="modal-header">New Printer</div>
-          <div class="modal-body">
-            <div class="field">
-              <label class="label required">Name</label>
-              <input class="input" id="printerName" placeholder="e.g., Kitchen Printer" />
-              <div class="field-error" id="nameError">Name is required</div>
-            </div>
-
-            <div class="field-group">
-              <div class="field">
-                <label class="label required">Protocol</label>
-                <select class="input" id="printerProtocol">
-                  <option>ESC/POS</option>
-                  <option>Star Line Mode</option>
-                  <option>ZPL</option>
-                  <option>EPL</option>
-                </select>
-              </div>
-
-              <div class="field">
-                <label class="label">Width (dots)</label>
-                <input class="input" id="printerWidth" type="number" value="576" />
-                <div class="field-hint">Paper width in dots</div>
-              </div>
-            </div>
-
-            <div class="checkbox-field">
-              <input type="checkbox" id="emulateBuffer" onchange="toggleBufferFields()" />
-              <label for="emulateBuffer">Emulate buffer capacity</label>
-            </div>
-
-            <div id="bufferFields" class="indent" style="display: none;">
-              <div class="field-group">
+            <div class="modal">
+              <div class="modal-header">New Printer</div>
+              <div class="modal-body">
                 <div class="field">
-                  <label class="label">Buffer size (bytes)</label>
-                  <input class="input" id="bufferSize" type="number" value="4096" />
-                  <div class="field-hint">Internal buffer size</div>
+                  <label class="label required">Name</label>
+                  <input class="input" id="printerName" placeholder="e.g., Kitchen Printer" />
+                  <div class="field-error" id="nameError">Name is required</div>
                 </div>
 
-                <div class="field">
-                  <label class="label">Drain rate (bytes/s)</label>
-                  <input class="input" id="drainRate" type="number" value="4096" />
-                  <div class="field-hint">Processing speed</div>
+                <div class="field-group">
+                  <div class="field">
+                    <label class="label required">Protocol</label>
+                    <select class="input" id="printerProtocol">
+                      <option>ESC/POS</option>
+                      <option>Star Line Mode</option>
+                      <option>ZPL</option>
+                      <option>EPL</option>
+                    </select>
+                  </div>
+
+                  <div class="field">
+                    <label class="label">Width (dots)</label>
+                    <input class="input" id="printerWidth" type="number" value="576" />
+                    <div class="field-hint">Paper width in dots</div>
+                  </div>
+                </div>
+
+                <div class="checkbox-field">
+                  <input type="checkbox" id="emulateBuffer" onchange="toggleBufferFields()" />
+                  <label for="emulateBuffer">Emulate buffer capacity</label>
+                </div>
+
+                <div id="bufferFields" class="indent" style="display: none;">
+                  <div class="field-group">
+                    <div class="field">
+                      <label class="label">Buffer size (bytes)</label>
+                      <input class="input" id="bufferSize" type="number" value="4096" />
+                      <div class="field-hint">Internal buffer size</div>
+                    </div>
+
+                    <div class="field">
+                      <label class="label">Drain rate (bytes/s)</label>
+                      <input class="input" id="drainRate" type="number" value="4096" />
+                      <div class="field-hint">Processing speed</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                  <button class="btn btn-primary" onclick="createPrinter()">Create</button>
                 </div>
               </div>
             </div>
-
-            <div class="form-actions">
-              <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-              <button class="btn btn-primary" onclick="createPrinter()">Create</button>
-            </div>
-          </div>
-        </div>
-      `;
+          `;
             document.getElementById('modalContainer').appendChild(modal);
         }
 
@@ -1179,61 +1179,61 @@
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.innerHTML = `
-        <div class="modal">
-          <div class="modal-header">Edit Printer</div>
-          <div class="modal-body">
-            <div class="field">
-              <label class="label required">Name</label>
-              <input class="input" id="printerName" value="${printer.name}" />
-              <div class="field-error" id="nameError">Name is required</div>
-            </div>
-
-            <div class="field-group">
-              <div class="field">
-                <label class="label required">Protocol</label>
-                <select class="input" id="printerProtocol">
-                  <option ${printer.protocol === 'ESC/POS' ? 'selected' : ''}>ESC/POS</option>
-                  <option ${printer.protocol === 'Star Line Mode' ? 'selected' : ''}>Star Line Mode</option>
-                  <option ${printer.protocol === 'ZPL' ? 'selected' : ''}>ZPL</option>
-                  <option ${printer.protocol === 'EPL' ? 'selected' : ''}>EPL</option>
-                </select>
-              </div>
-
-              <div class="field">
-                <label class="label">Width (dots)</label>
-                <input class="input" id="printerWidth" type="number" value="${printer.width}" />
-                <div class="field-hint">Paper width in dots</div>
-              </div>
-            </div>
-
-            <div class="checkbox-field">
-              <input type="checkbox" id="emulateBuffer" ${printer.emulateBuffer ? 'checked' : ''} onchange="toggleBufferFields()" />
-              <label for="emulateBuffer">Emulate buffer capacity</label>
-            </div>
-
-            <div id="bufferFields" class="indent" style="display: ${printer.emulateBuffer ? 'block' : 'none'};">
-              <div class="field-group">
+            <div class="modal">
+              <div class="modal-header">Edit Printer</div>
+              <div class="modal-body">
                 <div class="field">
-                  <label class="label">Buffer size (bytes)</label>
-                  <input class="input" id="bufferSize" type="number" value="${printer.bufferSize}" />
-                  <div class="field-hint">Internal buffer size</div>
+                  <label class="label required">Name</label>
+                  <input class="input" id="printerName" value="${printer.name}" />
+                  <div class="field-error" id="nameError">Name is required</div>
                 </div>
 
-                <div class="field">
-                  <label class="label">Drain rate (bytes/s)</label>
-                  <input class="input" id="drainRate" type="number" value="${printer.drainRate}" />
-                  <div class="field-hint">Processing speed</div>
+                <div class="field-group">
+                  <div class="field">
+                    <label class="label required">Protocol</label>
+                    <select class="input" id="printerProtocol">
+                      <option ${printer.protocol === 'ESC/POS' ? 'selected' : ''}>ESC/POS</option>
+                      <option ${printer.protocol === 'Star Line Mode' ? 'selected' : ''}>Star Line Mode</option>
+                      <option ${printer.protocol === 'ZPL' ? 'selected' : ''}>ZPL</option>
+                      <option ${printer.protocol === 'EPL' ? 'selected' : ''}>EPL</option>
+                    </select>
+                  </div>
+
+                  <div class="field">
+                    <label class="label">Width (dots)</label>
+                    <input class="input" id="printerWidth" type="number" value="${printer.width}" />
+                    <div class="field-hint">Paper width in dots</div>
+                  </div>
+                </div>
+
+                <div class="checkbox-field">
+                  <input type="checkbox" id="emulateBuffer" ${printer.emulateBuffer ? 'checked' : ''} onchange="toggleBufferFields()" />
+                  <label for="emulateBuffer">Emulate buffer capacity</label>
+                </div>
+
+                <div id="bufferFields" class="indent" style="display: ${printer.emulateBuffer ? 'block' : 'none'};">
+                  <div class="field-group">
+                    <div class="field">
+                      <label class="label">Buffer size (bytes)</label>
+                      <input class="input" id="bufferSize" type="number" value="${printer.bufferSize}" />
+                      <div class="field-hint">Internal buffer size</div>
+                    </div>
+
+                    <div class="field">
+                      <label class="label">Drain rate (bytes/s)</label>
+                      <input class="input" id="drainRate" type="number" value="${printer.drainRate}" />
+                      <div class="field-hint">Processing speed</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                  <button class="btn btn-primary" onclick="updatePrinter(${printerId})">Save</button>
                 </div>
               </div>
             </div>
-
-            <div class="form-actions">
-              <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-              <button class="btn btn-primary" onclick="updatePrinter(${printerId})">Save</button>
-            </div>
-          </div>
-        </div>
-      `;
+          `;
             document.getElementById('modalContainer').appendChild(modal);
         }
 
@@ -1261,7 +1261,7 @@
             const newPrinter = {
                 id: printers.length + 1,
                 name,
-                sessionToken: sessionToken,
+                workspaceToken: workspaceToken,
                 protocol,
                 width,
                 emulateBuffer,
@@ -1333,59 +1333,59 @@
             showToast('Document replayed');
         }
 
-        // Session Management
-        function showSessionDialog(mode = 'create') {
+        // Workspace Management
+        function showWorkspaceDialog(mode = 'create') {
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.innerHTML = `
-        <div class="modal">
-          <div class="modal-header">Session Access</div>
-          <div class="modal-body">
-            <div class="mode-toggle">
-              <button class="mode-toggle-btn ${mode === 'create' ? 'active' : ''}" onclick="switchSessionMode('create')">Create New</button>
-              <button class="mode-toggle-btn ${mode === 'join' ? 'active' : ''}" onclick="switchSessionMode('join')">Join Existing</button>
-            </div>
+            <div class="modal">
+              <div class="modal-header">Workspace Access</div>
+              <div class="modal-body">
+                <div class="mode-toggle">
+                  <button class="mode-toggle-btn ${mode === 'create' ? 'active' : ''}" onclick="switchWorkspaceMode('create')">Create New</button>
+                  <button class="mode-toggle-btn ${mode === 'join' ? 'active' : ''}" onclick="switchWorkspaceMode('join')">Access Existing</button>
+                </div>
 
-            <div id="createMode" style="display: ${mode === 'create' ? 'block' : 'none'};">
-              <div class="field">
-                <label class="label">Your name (optional)</label>
-                <input class="input" id="sessionNameInput" placeholder="e.g., John Smith" />
-                <div class="field-hint">Used only for display purposes</div>
+                <div id="createMode" style="display: ${mode === 'create' ? 'block' : 'none'};">
+                  <div class="field">
+                    <label class="label">Your name (optional)</label>
+                    <input class="input" id="workspaceNameInput" placeholder="e.g., John Smith" />
+                    <div class="field-hint">Used only for display purposes</div>
+                  </div>
+
+                  <p style="color: var(--muted); font-size: 14px; margin: 16px 0;">
+                    A unique workspace token will be generated for you. Save it to access your printers from other devices.
+                  </p>
+                </div>
+
+                <div id="joinMode" style="display: ${mode === 'join' ? 'block' : 'none'};">
+                  <div class="field">
+                    <label class="label required">Workspace Token</label>
+                    <input class="input" id="workspaceTokenInput" placeholder="e.g., brave-tiger-1234" style="font-family: 'Courier New', monospace;" />
+                    <div class="field-error" id="tokenError">Please enter a valid token</div>
+                    <div class="field-hint">Format: word-word-1234</div>
+                  </div>
+                </div>
+
+                <div class="form-actions">
+                  <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                  <button class="btn btn-primary" onclick="${mode === 'create' ? 'createWorkspace()' : 'accessWorkspace()'}">
+                    ${mode === 'create' ? 'Create Workspace' : 'Access Workspace'}
+                  </button>
+                </div>
               </div>
-
-              <p style="color: var(--muted); font-size: 14px; margin: 16px 0;">
-                A unique session token will be generated for you. Save it to access your printers from other devices.
-              </p>
             </div>
-
-            <div id="joinMode" style="display: ${mode === 'join' ? 'block' : 'none'};">
-              <div class="field">
-                <label class="label required">Session Token</label>
-                <input class="input" id="sessionTokenInput" placeholder="e.g., brave-tiger-1234" style="font-family: 'Courier New', monospace;" />
-                <div class="field-error" id="tokenError">Please enter a valid token</div>
-                <div class="field-hint">Format: word-word-1234</div>
-              </div>
-            </div>
-
-            <div class="form-actions">
-              <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-              <button class="btn btn-primary" onclick="${mode === 'create' ? 'createSession()' : 'joinSession()'}">
-                ${mode === 'create' ? 'Create Session' : 'Join Session'}
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
+          `;
             document.getElementById('modalContainer').appendChild(modal);
 
             if (mode === 'create') {
-                setTimeout(() => document.getElementById('sessionNameInput')?.focus(), 100);
+                setTimeout(() => document.getElementById('workspaceNameInput')?.focus(), 100);
             } else {
-                setTimeout(() => document.getElementById('sessionTokenInput')?.focus(), 100);
+                setTimeout(() => document.getElementById('workspaceTokenInput')?.focus(), 100);
             }
         }
 
-        function switchSessionMode(mode) {
+        function switchWorkspaceMode(mode) {
             const createMode = document.getElementById('createMode');
             const joinMode = document.getElementById('joinMode');
             const buttons = document.querySelectorAll('.mode-toggle-btn');
@@ -1397,20 +1397,20 @@
             createMode.style.display = mode === 'create' ? 'block' : 'none';
             joinMode.style.display = mode === 'join' ? 'block' : 'none';
 
-            primaryBtn.textContent = mode === 'create' ? 'Create Session' : 'Join Session';
-            primaryBtn.onclick = mode === 'create' ? createSession : joinSession;
+            primaryBtn.textContent = mode === 'create' ? 'Create Workspace' : 'Access Workspace';
+            primaryBtn.onclick = mode === 'create' ? createWorkspace : accessWorkspace;
         }
 
-        function createSession() {
-            const name = document.getElementById('sessionNameInput').value.trim();
+        function createWorkspace() {
+            const name = document.getElementById('workspaceNameInput').value.trim();
             const token = generateToken();
 
-            sessionToken = token;
-            sessionName = name || null;
+            workspaceToken = token;
+            workspaceName = name || null;
 
-            localStorage.setItem('sessionToken', token);
+            localStorage.setItem('workspaceToken', token);
             if (name) {
-                localStorage.setItem('sessionName', name);
+                localStorage.setItem('workspaceName', name);
             }
 
             closeModal();
@@ -1423,9 +1423,9 @@
             renderDocuments();
         }
 
-        function joinSession() {
-            const token = document.getElementById('sessionTokenInput').value.trim().toLowerCase();
-            const tokenInput = document.getElementById('sessionTokenInput');
+        function accessWorkspace() {
+            const token = document.getElementById('workspaceTokenInput').value.trim().toLowerCase();
+            const tokenInput = document.getElementById('workspaceTokenInput');
             const tokenError = document.getElementById('tokenError');
 
             tokenInput.classList.remove('invalid');
@@ -1438,64 +1438,64 @@
                 return;
             }
 
-            sessionToken = token;
-            sessionName = null; // Would be loaded from server in real implementation
+            workspaceToken = token;
+            workspaceName = null; // Would be loaded from server in real implementation
 
-            localStorage.setItem('sessionToken', token);
-            localStorage.removeItem('sessionName');
+            localStorage.setItem('workspaceToken', token);
+            localStorage.removeItem('workspaceName');
 
             closeModal();
             updateUserDisplay();
             renderSidebar();
             renderDocuments();
-            showToast('Session joined successfully');
+            showToast('Workspace accessed successfully');
         }
 
         function showTokenDialog(token) {
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.innerHTML = `
-        <div class="modal">
-          <div class="modal-header">Your Session Token</div>
-          <div class="modal-body">
-            <div class="token-display">
-              <p style="color: var(--muted); margin: 0 0 8px;">Save this token to access your session from other devices</p>
-              <div class="token-value">${token}</div>
-              <div class="token-actions">
-                <button class="btn btn-primary" onclick="copyToClipboard('${token}')">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                  </svg>
-                  Copy Token
-                </button>
+            <div class="modal">
+              <div class="modal-header">Your Workspace Token</div>
+              <div class="modal-body">
+                <div class="token-display">
+                  <p style="color: var(--muted); margin: 0 0 8px;">Save this token to access your workspace from other devices</p>
+                  <div class="token-value">${token}</div>
+                  <div class="token-actions">
+                    <button class="btn btn-primary" onclick="copyToClipboard('${token}')">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                      Copy Token
+                    </button>
+                  </div>
+                </div>
+
+                <div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); border-radius: 10px; padding: 16px; margin-top: 16px;">
+                  <p style="margin: 0; font-size: 14px; color: var(--muted);">
+                    <strong style="color: var(--danger);">⚠️ Important:</strong> This token will only be shown once. Anyone with this token can access your printers.
+                  </p>
+                </div>
+
+                <div class="form-actions">
+                  <button class="btn btn-primary w100" onclick="closeModal()">I've Saved My Token</button>
+                </div>
               </div>
             </div>
-
-            <div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); border-radius: 10px; padding: 16px; margin-top: 16px;">
-              <p style="margin: 0; font-size: 14px; color: var(--muted);">
-                <strong style="color: var(--danger);">⚠️ Important:</strong> This token will only be shown once. Anyone with this token can access your printers.
-              </p>
-            </div>
-
-            <div class="form-actions">
-              <button class="btn btn-primary w100" onclick="closeModal()">I've Saved My Token</button>
-            </div>
-          </div>
-        </div>
-      `;
+          `;
             document.getElementById('modalContainer').appendChild(modal);
         }
 
         function logOut() {
-            sessionToken = null;
-            sessionName = null;
+            workspaceToken = null;
+            workspaceName = null;
             printers = [];
             documents = {};
             selectedPrinterId = null;
 
-            localStorage.removeItem('sessionToken');
-            localStorage.removeItem('sessionName');
+            localStorage.removeItem('workspaceToken');
+            localStorage.removeItem('workspaceName');
 
             updateUserDisplay();
             renderSidebar();
@@ -1554,18 +1554,18 @@
             const userName = document.getElementById('userName');
             const userStatus = document.getElementById('userStatus');
 
-            if (sessionToken) {
-                if (sessionName) {
-                    avatar.textContent = getInitials(sessionName);
-                    userName.textContent = sessionName;
+            if (workspaceToken) {
+                if (workspaceName) {
+                    avatar.textContent = getInitials(workspaceName);
+                    userName.textContent = workspaceName;
                 } else {
-                    avatar.textContent = sessionToken.substring(0, 2).toUpperCase();
-                    userName.textContent = sessionToken;
+                    avatar.textContent = workspaceToken.substring(0, 2).toUpperCase();
+                    userName.textContent = workspaceToken;
                 }
-                userStatus.textContent = 'Session active';
+                userStatus.textContent = 'Workspace active';
             } else {
                 avatar.textContent = '?';
-                userName.textContent = 'No session';
+                userName.textContent = 'No workspace';
                 userStatus.textContent = '';
             }
         }
@@ -1582,18 +1582,18 @@
             menu.style.left = event.currentTarget.getBoundingClientRect().left + 'px';
             menu.style.bottom = (window.innerHeight - event.currentTarget.getBoundingClientRect().top) + 'px';
 
-            if (sessionToken) {
+            if (workspaceToken) {
                 menu.innerHTML = `
-          <div class="menu-item" onclick="showSessionDialog('create')">New Session</div>
-          <div class="menu-item" onclick="showSessionDialog('join')">Switch Session</div>
-          <div style="border-top: 1px solid var(--border); margin: 4px 0;"></div>
-          <div class="menu-item" onclick="logOut()">End Session</div>
-        `;
+              <div class="menu-item" onclick="showWorkspaceDialog('create')">New Workspace</div>
+              <div class="menu-item" onclick="showWorkspaceDialog('join')">Switch Workspace</div>
+              <div style="border-top: 1px solid var(--border); margin: 4px 0;"></div>
+              <div class="menu-item" onclick="logOut()">End Workspace</div>
+            `;
             } else {
                 menu.innerHTML = `
-          <div class="menu-item" onclick="showSessionDialog('create')">Create Session</div>
-          <div class="menu-item" onclick="showSessionDialog('join')">Join Session</div>
-        `;
+              <div class="menu-item" onclick="showWorkspaceDialog('create')">Create Workspace</div>
+              <div class="menu-item" onclick="showWorkspaceDialog('join')">Access Workspace</div>
+            `;
             }
 
             document.body.appendChild(menu);
@@ -1609,12 +1609,12 @@
         // Initialize
         initTheme();
 
-        // Restore session
-        const savedToken = localStorage.getItem('sessionToken');
-        const savedName = localStorage.getItem('sessionName');
+        // Restore workspace
+        const savedToken = localStorage.getItem('workspaceToken');
+        const savedName = localStorage.getItem('workspaceName');
         if (savedToken && isValidToken(savedToken)) {
-            sessionToken = savedToken;
-            sessionName = savedName;
+            workspaceToken = savedToken;
+            workspaceName = savedName;
         }
 
         updateUserDisplay();

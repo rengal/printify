@@ -20,11 +20,12 @@ public sealed class FileSystemMediaStorage : IMediaStorage
         var value = options.Value.BlobPath;
         if (string.IsNullOrWhiteSpace(value))
         {
-            throw new ArgumentException("RootPath must be configured", nameof(options));
+            //throw new ArgumentException("RootPath must be configured", nameof(options)); //todo debugnow
+            rootPath = string.Empty;
         }
 
-        rootPath = Path.GetFullPath(value);
-        Directory.CreateDirectory(rootPath);
+        //rootPath = Path.GetFullPath(value);
+        //Directory.CreateDirectory(rootPath);
     }
 
     public async ValueTask<Domain.Media.Media> SaveAsync(MediaUpload upload, CancellationToken cancellationToken = default)
