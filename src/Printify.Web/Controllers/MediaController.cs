@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Mvc;
 using Printify.Domain.Services;
 
@@ -7,17 +8,17 @@ namespace Printify.Web.Controllers;
 [Route("api/[controller]")]
 public sealed class MediaController : ControllerBase
 {
-    private readonly IBlobStorage blobStorage;
+    private readonly IMediaStorage mediaStorage;
 
-    public MediaController(IBlobStorage blobStorage)
+    public MediaController(IMediaStorage mediaStorage)
     {
-        this.blobStorage = blobStorage;
+        this.mediaStorage = mediaStorage;
     }
 
-    [HttpGet("{mediaId}")]
-    public async Task<IActionResult> GetAsync(string mediaId, CancellationToken cancellationToken)
+    [HttpGet("{mediaId:guid}")]
+    public async Task<IActionResult> GetAsync(Guid mediaId, CancellationToken cancellationToken)
     {
-        var stream = await blobStorage.GetAsync(mediaId, cancellationToken).ConfigureAwait(false);
+        var stream = await mediaStorage.OpenReadAsync(mediaId, cancellationToken).ConfigureAwait(false);
         if (stream is null)
         {
             return NotFound();

@@ -5,13 +5,8 @@
     "Page": {
         "Size": 50
     },
-    "Storage": {
-        "RootPath": "storage"
-    },
-    "Buffer": {
-        "BusyThreshold": null,
-        "MaxCapacity": null,
-        "DrainRate": null
+    "MediaStorage": {
+        "RootPath": "c:\\MediaStorage"
     },
     "Jwt": {
         "SecretKey": "REPLACE_WITH_32+_CHAR_RANDOM_SECRET",

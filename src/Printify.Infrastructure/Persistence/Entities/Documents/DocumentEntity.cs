@@ -28,9 +28,6 @@ public sealed class DocumentEntity
 
     [Column("client_address")]
     public string? ClientAddress { get; set; }
-
-    [InverseProperty(nameof(DocumentElementEntity.Document))]
-    public List<DocumentElementEntity> Elements { get; set; } = new();
 }
 
 [Table("document_elements")]
@@ -51,7 +48,4 @@ public sealed class DocumentElementEntity
 
     [Column("payload", TypeName = "TEXT")]
     public string Payload { get; set; } = string.Empty;
-
-    [ForeignKey(nameof(DocumentId))]
-    public DocumentEntity? Document { get; set; }
 }
