@@ -100,6 +100,11 @@ public sealed class PrintersController : ControllerBase
         }
         catch (OperationCanceledException)
         {
+            Console.WriteLine("Canceled");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
         }
     }
 

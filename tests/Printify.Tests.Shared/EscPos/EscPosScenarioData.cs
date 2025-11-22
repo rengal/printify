@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 
 namespace Printify.Tests.Shared.EscPos;

@@ -11,7 +11,7 @@ using Printify.Infrastructure.Persistence;
 namespace Printify.Infrastructure.Migrations
 {
     [DbContext(typeof(PrintifyDbContext))]
-    [Migration("20251116185549_InitialCreate")]
+    [Migration("20251122074032_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

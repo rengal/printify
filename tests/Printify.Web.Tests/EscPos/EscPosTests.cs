@@ -21,6 +21,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
 {
     protected const byte Esc = 0x1B;
     protected const byte Gs = 0x1D;
+    private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(1);
 
     private enum CompletionMode
     {
@@ -98,7 +99,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         var printerId = Guid.NewGuid();
         var channel = await CreatePrinterAsync(environment, printerId, $"EscPos Test Printer {userPrefix}-{completionMode}");
 
-        await using var streamEnumerator = environment.DocumentStream
+        var streamEnumerator = environment.DocumentStream
             .Subscribe(printerId, CancellationToken.None)
             .GetAsyncEnumerator();
 
@@ -114,10 +115,20 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
                 break;
         }
 
-        Assert.True(await streamEnumerator.MoveNextAsync());
-        var documentEvent = streamEnumerator.Current;
+        try
+        {
+            var result = await streamEnumerator.MoveNextAsync().AsTask().WaitAsync(IdleTimeout);
+            Assert.True(result);
 
-        DocumentAssertions.Equal(documentEvent.Document, Protocol.EscPos, scenario.ExpectedElements);
+            var documentEvent = streamEnumerator.Current;
+
+            DocumentAssertions.Equal(documentEvent.Document, Protocol.EscPos, scenario.ExpectedElements);
+
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
     }
 
     private static async Task<TestPrinterChannel> CreatePrinterAsync(

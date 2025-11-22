@@ -67,9 +67,14 @@ public class EscPosPrintJobSession : PrintJobSession
                 await DataTimedOut.Invoke(this, args).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException e)
         {
             // expected if new data arrives or job is canceled
+            Console.WriteLine(e.Message); //todo debugnow
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message); //todo debugnow
         }
     }
 
