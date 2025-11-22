@@ -7,11 +7,9 @@ public interface IDocumentRepository
     ValueTask<Document?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<Document>> ListByPrinterIdAsync(
         Guid printerId,
-        DateTimeOffset? beforeCreatedAt,
         Guid? beforeId,
-        DateTimeOffset? from,
-        DateTimeOffset? to,
         int limit,
         CancellationToken ct);
     Task AddAsync(Document document, CancellationToken ct);
+    Task<long> CountByPrinterIdAsync(Guid printerId, CancellationToken ct);
 }

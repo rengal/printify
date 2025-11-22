@@ -1,12 +1,6 @@
-
-using System;
-using System.Collections.Generic;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Printers.Delete;
@@ -16,6 +10,8 @@ using Printify.Application.Features.Printers.Get;
 using Printify.Application.Features.Printers.List;
 using Printify.Application.Features.Printers.Update;
 using Printify.Application.Printing;
+using Printify.Web.Contracts.Documents.Requests;
+using Printify.Web.Contracts.Documents.Responses;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Infrastructure;
@@ -44,17 +40,17 @@ public sealed class PrintersController : ControllerBase
 
     [Authorize]
     [HttpPost]
-    public async Task<ActionResult<PrinterDto>> Create([FromBody] CreatePrinterRequestDto request, CancellationToken cancellationToken)
+    public async Task<ActionResult<PrinterResponseDto>> Create([FromBody] CreatePrinterRequestDto request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         var printer = await mediator.Send(request.ToCommand(HttpContext.CaptureRequestContext()), cancellationToken);
-        return Ok(PrinterMapper.ToDto(printer));
+        return Ok(printer.ToResponseDto());
     }
 
     [Authorize]
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<PrinterDto>>> List(CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<PrinterResponseDto>>> List(CancellationToken cancellationToken)
     {
         var context = HttpContext.CaptureRequestContext();
         if (context.UserId is null && context.AnonymousSessionId is null)
@@ -63,7 +59,7 @@ public sealed class PrintersController : ControllerBase
         }
 
         var printers = await mediator.Send(new ListPrintersQuery(context), cancellationToken);
-        return Ok(printers.ToDtos());
+        return Ok(printers.Select(printer => printer.ToResponseDto()).ToList());
     }
 
     [HttpPost("resolveTemporary")]
@@ -110,27 +106,46 @@ public sealed class PrintersController : ControllerBase
 
     [Authorize]
     [HttpGet("{id:guid}/documents")]
-    public async Task<ActionResult<IReadOnlyList<Domain.Documents.Document>>> ListDocuments(
+    public async Task<ActionResult<DocumentListResponseDto>> ListDocuments(
         Guid id,
-        [FromQuery] DateTimeOffset? beforeCreatedAt = null,
-        [FromQuery] Guid? beforeId = null,
-        [FromQuery] DateTimeOffset? from = null,
-        [FromQuery] DateTimeOffset? to = null,
-        [FromQuery] int limit = 20,
+        [FromQuery] GetDocumentsRequestDto request,
         CancellationToken cancellationToken = default)
     {
         var context = HttpContext.CaptureRequestContext();
         try
         {
+            var effectiveLimit = request?.Limit ?? 20;
             var documents = await mediator.Send(
-                new ListPrinterDocumentsQuery(id, context, beforeCreatedAt, beforeId, from, to, limit),
+                new ListPrinterDocumentsQuery(
+                    id,
+                    context,
+                    request?.BeforeId,
+                    effectiveLimit),
                 cancellationToken);
-            return Ok(documents);
+            var items = documents
+                .Select(DocumentMapper.ToResponseDto)
+                .ToList();
+            var hasMore = effectiveLimit > 0 && documents.Count == effectiveLimit;
+            var nextBeforeId = hasMore ? documents.Last().Id : (Guid?)null;
+            var response = new DocumentListResponseDto(
+                new Contracts.Common.Pagination.PagedResult<DocumentDto>(
+                    items,
+                    hasMore,
+                    nextBeforeId,
+                    null));
+            return Ok(response);
         }
         catch (InvalidOperationException)
         {
             return NotFound();
         }
+    }
+
+    [Authorize]
+    [HttpPost("{id:guid}/documents/last-viewed")]
+    public IActionResult SetLastViewedDocument(Guid id, [FromBody] SetLastViewedDocumentRequestDto request)
+    {
+        return StatusCode(StatusCodes.Status501NotImplemented);
     }
 
     [Authorize]
@@ -149,7 +164,7 @@ public sealed class PrintersController : ControllerBase
 
     [Authorize]
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<PrinterDto>> Get(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<PrinterResponseDto>> Get(Guid id, CancellationToken cancellationToken)
     {
         var context = HttpContext.CaptureRequestContext();
         var printer = await mediator.Send(new GetPrinterQuery(id, context), cancellationToken);
@@ -159,12 +174,12 @@ public sealed class PrintersController : ControllerBase
             return NotFound();
         }
 
-        return Ok(PrinterMapper.ToDto(printer));
+        return Ok(printer.ToResponseDto());
     }
 
     [Authorize]
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<PrinterDto>> Update(Guid id, [FromBody] UpdatePrinterRequestDto request, CancellationToken cancellationToken)
+    public async Task<ActionResult<PrinterResponseDto>> Update(Guid id, [FromBody] UpdatePrinterRequestDto request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -173,7 +188,7 @@ public sealed class PrintersController : ControllerBase
         {
             var command = request.ToCommand(id, context);
             var printer = await mediator.Send(command, cancellationToken);
-            return Ok(PrinterMapper.ToDto(printer));
+            return Ok(printer.ToResponseDto());
         }
         catch (InvalidOperationException)
         {
@@ -199,7 +214,7 @@ public sealed class PrintersController : ControllerBase
 
     [Authorize]
     [HttpPost("{id:guid}/pin")]
-    public async Task<ActionResult<PrinterDto>> SetPinned(Guid id, [FromBody] PinPrinterRequestDto request, CancellationToken cancellationToken)
+    public async Task<ActionResult<PrinterResponseDto>> SetPinned(Guid id, [FromBody] PinPrinterRequestDto request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -208,7 +223,7 @@ public sealed class PrintersController : ControllerBase
         {
             var command = request.ToCommand(id, context);
             var printer = await mediator.Send(command, cancellationToken);
-            return Ok(PrinterMapper.ToDto(printer));
+            return Ok(printer.ToResponseDto());
         }
         catch (InvalidOperationException)
         {

@@ -24,6 +24,7 @@ internal static class PrinterEntityMapper
         entity.CreatedFromIp = printer.CreatedFromIp;
         entity.IsPinned = printer.IsPinned;
         entity.IsDeleted = printer.IsDeleted;
+        entity.LastViewedDocumentId = printer.LastViewedDocumentId;
     }
 
     internal static PrinterEntity ToEntity(this Printer printer)
@@ -54,6 +55,7 @@ internal static class PrinterEntityMapper
             entity.BufferDrainRate,
             entity.BufferMaxCapacity,
             entity.IsPinned,
-            entity.IsDeleted);
+            entity.IsDeleted,
+            entity.LastViewedDocumentId);
     }
 }

@@ -41,4 +41,7 @@ public sealed class PrinterEntity : BaseEntity
 
     [Column("is_pinned")]
     public bool IsPinned { get; set; }
+
+    [Column("last_viewed_document_id")]
+    public Guid? LastViewedDocumentId { get; set; }
 }

@@ -38,7 +38,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         var updateResponse = await client.PutAsJsonAsync($"/api/printers/{printerId}", updateBody);
         updateResponse.EnsureSuccessStatusCode();
 
-        var updatedPrinter = await updateResponse.Content.ReadFromJsonAsync<PrinterDto>();
+        var updatedPrinter = await updateResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
         Assert.NotNull(updatedPrinter);
         Assert.Equal("Updated Printer", updatedPrinter.DisplayName);
         Assert.Equal(576, updatedPrinter.WidthInDots);
@@ -50,7 +50,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
 
         var fetchResponse = await client.GetAsync($"/api/printers/{printerId}");
         fetchResponse.EnsureSuccessStatusCode();
-        var fetchedPrinter = await fetchResponse.Content.ReadFromJsonAsync<PrinterDto>();
+        var fetchedPrinter = await fetchResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
         Assert.NotNull(fetchedPrinter);
         Assert.Equal("Updated Printer", fetchedPrinter!.DisplayName);
         Assert.Equal(9101, fetchedPrinter.TcpListenPort);
@@ -74,7 +74,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
 
         var pinResponse = await client.PostAsJsonAsync($"/api/printers/{printerId}/pin", new PinPrinterRequestDto(true));
         pinResponse.EnsureSuccessStatusCode();
-        var pinnedPrinter = await pinResponse.Content.ReadFromJsonAsync<PrinterDto>();
+        var pinnedPrinter = await pinResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
         Assert.NotNull(pinnedPrinter);
         Assert.True(pinnedPrinter!.IsPinned);
         Assert.Equal(9104, pinnedPrinter.TcpListenPort);
@@ -84,7 +84,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
 
         var fetchResponse = await client.GetAsync($"/api/printers/{printerId}");
         fetchResponse.EnsureSuccessStatusCode();
-        var fetchedPrinter = await fetchResponse.Content.ReadFromJsonAsync<PrinterDto>();
+        var fetchedPrinter = await fetchResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
         Assert.NotNull(fetchedPrinter);
         Assert.True(fetchedPrinter.IsPinned);
         Assert.Equal(9104, fetchedPrinter.TcpListenPort);
@@ -94,7 +94,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
 
         var unpinResponse = await client.PostAsJsonAsync($"/api/printers/{printerId}/pin", new PinPrinterRequestDto(false));
         unpinResponse.EnsureSuccessStatusCode();
-        var unpinnedPrinter = await unpinResponse.Content.ReadFromJsonAsync<PrinterDto>();
+        var unpinnedPrinter = await unpinResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
         Assert.NotNull(unpinnedPrinter);
         Assert.False(unpinnedPrinter!.IsPinned);
         Assert.Equal(9104, unpinnedPrinter.TcpListenPort);

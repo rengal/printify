@@ -5,10 +5,10 @@ namespace Printify.Web.Mapping;
 
 internal static class PrinterMapper
 {
-    internal static PrinterDto ToDto(this Printer printer)
+    internal static PrinterResponseDto ToResponseDto(this Printer printer)
     {
         ArgumentNullException.ThrowIfNull(printer);
-        return new PrinterDto(
+        return new PrinterResponseDto(
             printer.Id,
             printer.DisplayName,
             printer.Protocol.ToDto(),
@@ -18,7 +18,8 @@ internal static class PrinterMapper
             printer.EmulateBufferCapacity,
             printer.BufferDrainRate,
             printer.BufferMaxCapacity,
-            printer.IsPinned);
+            printer.IsPinned,
+            printer.LastViewedDocumentId);
     }
 
     internal static string ToDto(this Protocol protocol)
@@ -30,9 +31,4 @@ internal static class PrinterMapper
         };
     }
 
-    internal static IReadOnlyList<PrinterDto> ToDtos(this IEnumerable<Printer> printers)
-    {
-        ArgumentNullException.ThrowIfNull(printers);
-        return printers.Select(ToDto).ToList();
-    }
 }

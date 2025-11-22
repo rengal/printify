@@ -1,6 +1,6 @@
-using Printify.Web.Contracts.Common.Pagination;
-
 namespace Printify.Web.Contracts.Documents.Responses;
+
+using Printify.Web.Contracts.Common.Pagination;
 
 /// <summary>
 /// Wrapper containing a page of documents returned by listing endpoints.

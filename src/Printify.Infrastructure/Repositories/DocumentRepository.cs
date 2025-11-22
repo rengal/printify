@@ -2,6 +2,7 @@ namespace Printify.Infrastructure.Repositories;
 
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents;
@@ -37,10 +38,7 @@ public sealed class DocumentRepository : IDocumentRepository
 
     public async Task<IReadOnlyList<Document>> ListByPrinterIdAsync(
         Guid printerId,
-        DateTimeOffset? beforeCreatedAt,
         Guid? beforeId,
-        DateTimeOffset? from,
-        DateTimeOffset? to,
         int limit,
         CancellationToken ct)
     {
@@ -51,25 +49,6 @@ public sealed class DocumentRepository : IDocumentRepository
             .AsNoTracking()
             .Include(document => document.Elements)
             .Where(document => document.PrinterId == printerId);
-
-        if (from.HasValue)
-        {
-            query = query.Where(document => document.CreatedAt >= from.Value);
-        }
-
-        if (to.HasValue)
-        {
-            query = query.Where(document => document.CreatedAt <= to.Value);
-        }
-
-        if (beforeCreatedAt.HasValue)
-        {
-            var cutoff = beforeCreatedAt.Value;
-            // Cursor pagination: exclude newer rows and use Id as a tiebreaker for same timestamp.
-            query = query.Where(document =>
-                document.CreatedAt < cutoff ||
-                (beforeId.HasValue && document.CreatedAt == cutoff && document.Id.CompareTo(beforeId.Value) < 0));
-        }
 
         var entities = await query
             .OrderByDescending(document => document.CreatedAt)
@@ -92,6 +71,14 @@ public sealed class DocumentRepository : IDocumentRepository
         var entity = document.ToEntity();
         await dbContext.Documents.AddAsync(entity, ct).ConfigureAwait(false);
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public Task<long> CountByPrinterIdAsync(Guid printerId, CancellationToken ct)
+    {
+        return dbContext.Documents
+            .AsNoTracking()
+            .Where(document => document.PrinterId == printerId)
+            .LongCountAsync(ct);
     }
 
     private static int NormalizeLimit(int limit)

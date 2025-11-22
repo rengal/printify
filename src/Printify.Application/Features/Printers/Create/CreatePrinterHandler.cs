@@ -41,7 +41,8 @@ public sealed class CreatePrinterHandler(
             request.BufferDrainRate,
             request.BufferMaxCapacity,
             false,
-            false);
+            false,
+            null);
 
         await printerRepository.AddAsync(printer, ct).ConfigureAwait(false);
 

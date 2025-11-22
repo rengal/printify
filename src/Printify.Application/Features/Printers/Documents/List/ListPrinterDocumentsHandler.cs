@@ -21,16 +21,11 @@ public sealed class ListPrinterDocumentsHandler(
             cancellationToken).ConfigureAwait(false);
 
         if (printer is null)
-        {
             throw new PrinterNotFoundException(request.PrinterId);
-        }
 
         return await documentRepository.ListByPrinterIdAsync(
             request.PrinterId,
-            request.BeforeCreatedAt,
             request.BeforeId,
-            request.From,
-            request.To,
             request.Limit,
             cancellationToken).ConfigureAwait(false);
     }

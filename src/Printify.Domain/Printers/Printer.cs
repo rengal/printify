@@ -27,6 +27,7 @@
 /// </param>
 /// <param name="IsPinned">Indicates whether the printer is pinned for quick access.</param>
 /// <param name="IsDeleted">Soft-delete marker for the printer.</param>
+/// <param name="LastViewedDocumentId">Identifier of the last document viewed for this printer.</param>
 public sealed record Printer(
     Guid Id,
     Guid? OwnerUserId,
@@ -42,5 +43,6 @@ public sealed record Printer(
     decimal? BufferDrainRate,
     int? BufferMaxCapacity,
     bool IsPinned,
-    bool IsDeleted)
+    bool IsDeleted,
+    Guid? LastViewedDocumentId)
     : BaseDomainEntity(Id, CreatedAt, IsDeleted);

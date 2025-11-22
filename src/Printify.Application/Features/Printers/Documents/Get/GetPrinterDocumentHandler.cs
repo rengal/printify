@@ -1,4 +1,5 @@
 using MediatR;
+using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents;
 
@@ -20,9 +21,7 @@ public sealed class GetPrinterDocumentHandler(
             cancellationToken).ConfigureAwait(false);
 
         if (printer is null)
-        {
-            return null;
-        }
+            throw new PrinterNotFoundException(request.PrinterId);
 
         var document = await documentRepository.GetByIdAsync(request.DocumentId, cancellationToken).ConfigureAwait(false);
         return document is not null && document.PrinterId == request.PrinterId

@@ -1,7 +1,7 @@
 namespace Printify.Web.Contracts.Printers.Responses;
 
 /// <summary>
-/// Printable device metadata returned to clients.
+/// Printer metadata enriched with document statistics exposed to clients.
 /// </summary>
 /// <param name="Id">Database-generated identifier.</param>
 /// <param name="DisplayName">Friendly name shown in UI.</param>
@@ -13,7 +13,8 @@ namespace Printify.Web.Contracts.Printers.Responses;
 /// <param name="BufferDrainRate">Drain rate for the simulated buffer.</param>
 /// <param name="BufferMaxCapacity">Maximum capacity of the simulated buffer.</param>
 /// <param name="IsPinned">Indicates whether the printer is pinned for quick access.</param>
-public sealed record PrinterDto(
+/// <param name="LastViewedDocumentId">Identifier of the last document viewed by the current user.</param>
+public sealed record PrinterResponseDto(
     Guid Id,
     string DisplayName,
     string Protocol,
@@ -23,4 +24,5 @@ public sealed record PrinterDto(
     bool EmulateBufferCapacity,
     decimal? BufferDrainRate,
     int? BufferMaxCapacity,
-    bool IsPinned);
+    bool IsPinned,
+    Guid? LastViewedDocumentId);
