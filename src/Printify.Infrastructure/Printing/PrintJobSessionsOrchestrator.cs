@@ -1,7 +1,4 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;

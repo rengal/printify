@@ -130,6 +130,30 @@ namespace Printify.Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "document_media",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    document_element_id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    is_deleted = table.Column<bool>(type: "INTEGER", nullable: false),
+                    content_type = table.Column<string>(type: "TEXT", nullable: false),
+                    length = table.Column<long>(type: "INTEGER", nullable: true),
+                    checksum = table.Column<string>(type: "TEXT", nullable: true),
+                    url = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_document_media", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_document_media_document_elements_document_element_id",
+                        column: x => x.document_element_id,
+                        principalTable: "document_elements",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_anonymous_sessions_linked_user_id",
                 table: "anonymous_sessions",
@@ -139,6 +163,17 @@ namespace Printify.Infrastructure.Migrations
                 name: "IX_document_elements_document_id_sequence",
                 table: "document_elements",
                 columns: new[] { "document_id", "sequence" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_document_media_checksum",
+                table: "document_media",
+                column: "checksum");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_document_media_document_element_id",
+                table: "document_media",
+                column: "document_element_id",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -159,7 +194,7 @@ namespace Printify.Infrastructure.Migrations
                 name: "anonymous_sessions");
 
             migrationBuilder.DropTable(
-                name: "document_elements");
+                name: "document_media");
 
             migrationBuilder.DropTable(
                 name: "print_jobs");
@@ -169,6 +204,9 @@ namespace Printify.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "users");
+
+            migrationBuilder.DropTable(
+                name: "document_elements");
 
             migrationBuilder.DropTable(
                 name: "documents");

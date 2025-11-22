@@ -125,6 +125,53 @@ namespace Printify.Infrastructure.Migrations
                     b.ToTable("documents");
                 });
 
+            modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.Documents.DocumentMediaEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Checksum")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("checksum");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("DocumentElementId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("document_element_id");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_deleted");
+
+                    b.Property<long?>("Length")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("length");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("url");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Checksum");
+
+                    b.HasIndex("DocumentElementId")
+                        .IsUnique();
+
+                    b.ToTable("document_media");
+                });
+
             modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.PrinterJobs.PrintJobEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -294,6 +341,22 @@ namespace Printify.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Document");
+                });
+
+            modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.Documents.DocumentMediaEntity", b =>
+                {
+                    b.HasOne("Printify.Infrastructure.Persistence.Entities.Documents.DocumentElementEntity", "Element")
+                        .WithOne("Media")
+                        .HasForeignKey("Printify.Infrastructure.Persistence.Entities.Documents.DocumentMediaEntity", "DocumentElementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Element");
+                });
+
+            modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.Documents.DocumentElementEntity", b =>
+                {
+                    b.Navigation("Media");
                 });
 
             modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.Documents.DocumentEntity", b =>

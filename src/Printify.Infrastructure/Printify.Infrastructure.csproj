@@ -22,6 +22,10 @@
     <ProjectReference Include="..\Printify.Application\Printify.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 </Project>
 
 
