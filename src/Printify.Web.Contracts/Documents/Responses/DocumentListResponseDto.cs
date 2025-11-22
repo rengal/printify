@@ -6,4 +6,4 @@ namespace Printify.Web.Contracts.Documents.Responses;
 /// Wrapper containing a page of documents returned by listing endpoints.
 /// </summary>
 /// <param name="Result">Cursor-aware page metadata and the projected documents.</param>
-public sealed record DocumentListResponse(PagedResult<DocumentDto> Result);
+public sealed record DocumentListResponseDto(PagedResult<DocumentDto> Result);

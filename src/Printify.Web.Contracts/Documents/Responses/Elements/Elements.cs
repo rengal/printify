@@ -15,7 +15,7 @@ namespace Printify.Web.Contracts.Documents.Responses.Elements;
 [JsonDerivedType(typeof(PrintBarcode), "printBarcode")]
 [JsonDerivedType(typeof(PrintQrCode), "printQrCode")]
 [JsonDerivedType(typeof(Pulse), "pulse")]
-[JsonDerivedType(typeof(RasterImageDescriptor), "rasterImageDescriptor")]
+[JsonDerivedType(typeof(RasterImageDto), "rasterImage")]
 [JsonDerivedType(typeof(ResetPrinter), "resetPrinter")]
 [JsonDerivedType(typeof(SetBarcodeHeight), "setBarcodeHeight")]
 [JsonDerivedType(typeof(SetBarcodeLabelPosition), "setBarcodeLabelPosition")]
@@ -39,12 +39,12 @@ public abstract record ResponseElement : BaseElement;
 /// <summary>
 /// Marker base for printing response elements that render visible output.
 /// </summary>
-public abstract record ResponsePrintingElement : PrintingElement;
+public abstract record ResponsePrintingElement : ResponseElement;
 
 /// <summary>
 /// Marker base for response elements that modify state or report diagnostics.
 /// </summary>
-public abstract record ResponseNonPrintingElement : NonPrintingElement;
+public abstract record ResponseNonPrintingElement : ResponseElement;
 
 /// <summary>
 /// An audible/attention bell signal.
@@ -123,21 +123,28 @@ public sealed record PrintQrCode(
 public sealed record StoreQrData(string Content) : ResponseNonPrintingElement;
 
 /// <summary>
-/// Descriptor for a raster image stored in external media storage.
+/// Descriptor for media stored in external storage.
 /// </summary>
-/// <param name="Width">Image width in printer dots.</param>
-/// <param name="Height">Image height in printer dots.</param>
 /// <param name="ContentType">MIME type, e.g. "image/png".</param>
 /// <param name="SizeBytes">Size in bytes.</param>
 /// <param name="Sha256">Sha256 checksum.</param>
 /// <param name="Href">Absolute or app-relative URL to retrieve the media bytes.</param>
-public sealed record RasterImageDescriptor(
-    int Width,
-    int Height,
+public sealed record MediaDto(
     string ContentType,
     long? SizeBytes,
     string? Sha256,
-    Uri Href)
+    Uri Href);
+
+/// <summary>
+/// Descriptor for a raster image stored in external media storage.
+/// </summary>
+/// <param name="Width">Image width in printer dots.</param>
+/// <param name="Height">Image height in printer dots.</param>
+/// <param name="Media">Referenced media metadata.</param>
+public sealed record RasterImageDto(
+    int Width,
+    int Height,
+    MediaDto Media)
     : ResponsePrintingElement;
 
 /// <summary>
