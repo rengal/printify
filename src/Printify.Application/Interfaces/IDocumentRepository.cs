@@ -1,4 +1,5 @@
 using Printify.Domain.Documents;
+using Printify.Domain.Media;
 
 namespace Printify.Application.Interfaces;
 
@@ -12,4 +13,6 @@ public interface IDocumentRepository
         CancellationToken ct);
     Task AddAsync(Document document, CancellationToken ct);
     Task<long> CountByPrinterIdAsync(Guid printerId, CancellationToken ct);
+    ValueTask<Media?> GetMediaByIdAsync(Guid id, CancellationToken ct);
+    ValueTask<Media?> GetMediaByChecksumAsync(string checksum, CancellationToken ct);
 }

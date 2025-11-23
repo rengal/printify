@@ -6,6 +6,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents;
+using Printify.Domain.Media;
 using Printify.Infrastructure.Mapping;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Persistence.Entities.Documents;
@@ -79,6 +80,33 @@ public sealed class DocumentRepository : IDocumentRepository
             .AsNoTracking()
             .Where(document => document.PrinterId == printerId)
             .LongCountAsync(ct);
+    }
+
+    public async ValueTask<Media?> GetMediaByIdAsync(Guid id, CancellationToken ct)
+    {
+        var entity = await dbContext.DocumentMedia
+            .AsNoTracking()
+            .FirstOrDefaultAsync(media => media.Id == id, ct)
+            .ConfigureAwait(false);
+
+        return entity is null ? null : DocumentMediaEntityMapper.ToDomain(entity);
+    }
+
+    public async ValueTask<Media?> GetMediaByChecksumAsync(string checksum, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(checksum))
+        {
+            return null;
+        }
+
+        var entity = await dbContext.DocumentMedia
+            .AsNoTracking()
+            .Where(media => media.Checksum == checksum)
+            .OrderByDescending(media => media.CreatedAt)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+        return entity is null ? null : DocumentMediaEntityMapper.ToDomain(entity);
     }
 
     private static int NormalizeLimit(int limit)

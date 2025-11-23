@@ -120,6 +120,38 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
 
         DocumentAssertions.Equal(documentEvent.Document, Protocol.EscPos,
             scenario.ExpectedFinalizedElements ?? scenario.ExpectedElements);
+
+        // Request document via web call and verify
+        var documentId = documentEvent.Document.Id;
+        var response = await environment.Client.GetAsync($"/api/printers/{printerId}/documents/{documentId}");
+        response.EnsureSuccessStatusCode();
+        
+        var retrievedDocument = await response.Content.ReadFromJsonAsync<Domain.Documents.Document>();
+        Assert.NotNull(retrievedDocument);
+        
+        DocumentAssertions.Equal(retrievedDocument, Protocol.EscPos,
+            scenario.ExpectedFinalizedElements ?? scenario.ExpectedElements);
+
+        // Verify RasterImage elements have accessible Media URLs
+        foreach (var element in retrievedDocument.Elements)
+        {
+            if (element is RasterImage rasterImage)
+            {
+                Assert.NotNull(rasterImage.Media.Url);
+                Assert.False(string.IsNullOrWhiteSpace(rasterImage.Media.Url));
+
+                // Verify the media URL is accessible
+                var mediaResponse = await environment.Client.GetAsync(rasterImage.Media.Url);
+                mediaResponse.EnsureSuccessStatusCode();
+
+                // Verify content type is an image
+                var contentType = mediaResponse.Content.Headers.ContentType?.MediaType;
+                Assert.NotNull(contentType);
+                Assert.True(contentType.StartsWith("image/"),
+                    $"Expected image content type, but got {contentType}");
+            }
+        }
+
     }
 
     private static async Task<TestPrinterChannel> CreatePrinterAsync(
