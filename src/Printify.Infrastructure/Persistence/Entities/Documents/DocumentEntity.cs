@@ -80,10 +80,10 @@ public sealed class DocumentMediaEntity
     public string ContentType { get; set; } = string.Empty;
 
     [Column("length")]
-    public long? Length { get; set; }
+    public long Length { get; set; }
 
     [Column("checksum")]
-    public string? Checksum { get; set; }
+    public string Checksum { get; set; } = string.Empty;
 
     [Column("url")]
     public string Url { get; set; } = string.Empty;

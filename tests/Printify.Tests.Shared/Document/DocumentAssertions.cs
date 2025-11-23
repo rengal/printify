@@ -23,12 +23,21 @@ public static class DocumentAssertions
                 case PrinterError:
                     _ = Assert.IsType<PrinterError>(actualElement);
                     break;
-                case RasterImageUpload expectedRaster:
-                    var actualRaster = Assert.IsType<RasterImageUpload>(actualElement);
-                    Assert.Equal(expectedRaster.Width, actualRaster.Width);
-                    Assert.Equal(expectedRaster.Height, actualRaster.Height);
-                    Assert.Equal(expectedRaster.Media.ContentType, actualRaster.Media.ContentType);
-                    Assert.True(actualRaster.Media.Content.Length > 0);
+                case RasterImageUpload expectedRasterImageUpload:
+                    var actualRasterImageUpload = Assert.IsType<RasterImageUpload>(actualElement);
+                    Assert.Equal(expectedRasterImageUpload.Width, actualRasterImageUpload.Width);
+                    Assert.Equal(expectedRasterImageUpload.Height, actualRasterImageUpload.Height);
+                    Assert.Equal(expectedRasterImageUpload.Media.ContentType, actualRasterImageUpload.Media.ContentType);
+                    Assert.True(actualRasterImageUpload.Media.Content.Length > 0);
+                    break;
+                case RasterImage expectedRasterImage:
+                    var actualRasterImage = Assert.IsType<RasterImage>(actualElement);
+                    Assert.Equal(expectedRasterImage.Width, actualRasterImage.Width);
+                    Assert.Equal(expectedRasterImage.Height, actualRasterImage.Height);
+                    Assert.Equal(expectedRasterImage.Media.ContentType, actualRasterImage.Media.ContentType);
+                    Assert.NotEmpty(actualRasterImage.Media.Checksum);
+                    Assert.NotEmpty(actualRasterImage.Media.Url);
+                    Assert.Equal(expectedRasterImage.Media.Length, actualRasterImage.Media.Length);
                     break;
                 default:
                     Assert.Equal(expected, actualElement);

@@ -80,7 +80,6 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         string userPrefix,
         EscPosChunkStrategy strategy)
     {
-        strategy = EscPosChunkStrategies.SingleByte; //todo debugnow
         await RunScenarioAsync(scenario, userPrefix, strategy, CompletionMode.AdvanceIdleTimeout);
         await RunScenarioAsync(scenario, userPrefix, strategy, CompletionMode.CloseChannel);
     }
@@ -95,7 +94,8 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         await AuthenticateAsync(environment, $"{userPrefix}-{completionMode}");
 
         var printerId = Guid.NewGuid();
-        var channel = await CreatePrinterAsync(environment, printerId, $"EscPos Test Printer {userPrefix}-{completionMode}");
+        var channel =
+            await CreatePrinterAsync(environment, printerId, $"EscPos Test Printer {userPrefix}-{completionMode}");
 
         var streamEnumerator = environment.DocumentStream
             .Subscribe(printerId, CancellationToken.None)
@@ -113,20 +113,13 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
                 break;
         }
 
-        try
-        {
-            var result = await streamEnumerator.MoveNextAsync().AsTask().WaitAsync(IdleTimeout);
-            Assert.True(result);
+        var result = await streamEnumerator.MoveNextAsync().AsTask().WaitAsync(IdleTimeout);
+        Assert.True(result);
 
-            var documentEvent = streamEnumerator.Current;
+        var documentEvent = streamEnumerator.Current;
 
-            DocumentAssertions.Equal(documentEvent.Document, Protocol.EscPos, scenario.ExpectedElements);
-
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-        }
+        DocumentAssertions.Equal(documentEvent.Document, Protocol.EscPos,
+            scenario.ExpectedFinalizedElements ?? scenario.ExpectedElements);
     }
 
     private static async Task<TestPrinterChannel> CreatePrinterAsync(
@@ -174,7 +167,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         // Login to workspace using token and get jwt access token
         var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto(token));
         loginResponse.EnsureSuccessStatusCode();
-        var loginResponseDto = await createWorkspaceResponse.Content.ReadFromJsonAsync<LoginResponseDto>();
+        var loginResponseDto = await loginResponse.Content.ReadFromJsonAsync<LoginResponseDto>();
         Assert.NotNull(loginResponseDto);
         Assert.NotNull(loginResponseDto.Workspace);
         Assert.Equal(workspaceId, loginResponseDto.Workspace.Id);

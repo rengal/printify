@@ -12,7 +12,7 @@ public sealed record Media(
     DateTimeOffset CreatedAt,
     bool IsDeleted,
     string ContentType,
-    long? Length,
-    string? Checksum,
+    long Length,
+    string Checksum,
     string Url
 ) : BaseDomainEntity(Id, CreatedAt, IsDeleted);

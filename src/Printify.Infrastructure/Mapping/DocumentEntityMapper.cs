@@ -149,6 +149,7 @@ internal static class DocumentElementEntityMapper
             StoreQrDataElementPayload => DocumentElementTypeNames.StoreQrData,
             StoredLogoElementPayload => DocumentElementTypeNames.StoredLogo,
             TextLineElementPayload => DocumentElementTypeNames.TextLine,
+            RasterImageElementPayload => DocumentElementTypeNames.RasterImage,
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }
