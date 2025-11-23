@@ -16,8 +16,7 @@ public sealed class TcpPrinterChannelTests
         var port = GetFreeTcpPort();
         var printer = new Printer(
             Guid.NewGuid(),
-            null,
-            null,
+            Guid.NewGuid(),
             "test-printer",
             Protocol.EscPos,
             512,
@@ -78,8 +77,7 @@ public sealed class TcpPrinterChannelTests
         var port = GetFreeTcpPort();
         var printer = new Printer(
             Guid.NewGuid(),
-            null,
-            null,
+            Guid.NewGuid(),
             "multi-connection-printer",
             Protocol.EscPos,
             512,

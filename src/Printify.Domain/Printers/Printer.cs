@@ -4,8 +4,7 @@
 /// Represents virtual printer.
 /// </summary>
 /// <param name="Id">Database-generated identifier.</param>
-/// <param name="OwnerUserId">Identifier of the user that owns the printer, if claimed.</param>
-/// <param name="OwnerAnonymousSessionId">Identifier of the session that registered the printer.</param>
+/// <param name="OwnerWorkspaceId">Identifier of the workspace that owns the printer, if claimed.</param>
 /// <param name="DisplayName">Friendly name shown in UI.</param>
 /// <param name="Protocol">Protocol the printer expects (e.g., escpos).</param>
 /// <param name="WidthInDots">Configured print width in dots.</param>
@@ -30,8 +29,7 @@
 /// <param name="LastViewedDocumentId">Identifier of the last document viewed for this printer.</param>
 public sealed record Printer(
     Guid Id,
-    Guid? OwnerUserId,
-    Guid? OwnerAnonymousSessionId,
+    Guid OwnerWorkspaceId,
     string DisplayName,
     Protocol Protocol,
     int WidthInDots,

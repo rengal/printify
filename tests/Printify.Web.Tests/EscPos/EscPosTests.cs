@@ -1,19 +1,17 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Printify.Application.Interfaces;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
 using Printify.Tests.Shared.Document;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
-using Printify.Web.Contracts.Auth.AnonymousSession.Response;
 using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Contracts.Auth.Responses;
 using Printify.Web.Contracts.Printers.Requests;
-using Printify.Web.Contracts.Users.Requests;
+using Printify.Web.Contracts.Workspaces.Requests;
+using Printify.Web.Contracts.Workspaces.Responses;
 
 namespace Printify.Web.Tests.EscPos;
 
@@ -163,32 +161,27 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
     private static async Task AuthenticateAsync(TestServiceContext.ControllerTestContext environment, string displayName)
     {
         var client = environment.Client;
-        client.DefaultRequestHeaders.Remove("X-Forwarded-For");
-        client.DefaultRequestHeaders.Add("X-Forwarded-For", "127.0.0.1");
 
-        var anonymousResponse = await client.PostAsync("/api/auth/anonymous", new StringContent(string.Empty));
-        anonymousResponse.EnsureSuccessStatusCode();
-        var sessionDto = await anonymousResponse.Content.ReadFromJsonAsync<AnonymousSessionDto>();
-        Assert.NotNull(sessionDto);
+        // Create new workspace
+        var workspaceId = Guid.NewGuid();
+        var createWorkspaceResponse = await client.PostAsJsonAsync("/api/workspaces", new CreateWorkspaceRequestDto(workspaceId, displayName));
+        createWorkspaceResponse.EnsureSuccessStatusCode();
+        var workspaceResponseDto = await createWorkspaceResponse.Content.ReadFromJsonAsync<WorkspaceResponseDto>();
+        Assert.NotNull(workspaceResponseDto);
+        Assert.Equal(workspaceId, workspaceResponseDto.Id);
+        var token = workspaceResponseDto.Token;
 
-        var userId = Guid.NewGuid();
-        var createUserResponse = await client.PostAsJsonAsync("/api/users", new CreateUserRequestDto(userId, displayName));
-        createUserResponse.EnsureSuccessStatusCode();
-
-        await using (var scope = environment.CreateScope())
-        {
-            var jwtGenerator = scope.ServiceProvider.GetRequiredService<IJwtTokenGenerator>();
-            var anonymousToken = jwtGenerator.GenerateToken(null, sessionDto!.Id);
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", anonymousToken);
-        }
-
-        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto(userId));
+        // Login to workspace using token and get jwt access token
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto(token));
         loginResponse.EnsureSuccessStatusCode();
+        var loginResponseDto = await createWorkspaceResponse.Content.ReadFromJsonAsync<LoginResponseDto>();
+        Assert.NotNull(loginResponseDto);
+        Assert.NotNull(loginResponseDto.Workspace);
+        Assert.Equal(workspaceId, loginResponseDto.Workspace.Id);
+        var accessToken = loginResponseDto.AccessToken;
 
-        var loginDto = await loginResponse.Content.ReadFromJsonAsync<LoginResponseDto>();
-        Assert.NotNull(loginDto);
-
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginDto!.AccessToken);
+        // Set jwt access token for further requests
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
 
     private static async Task SendWithChunkStrategyAsync(

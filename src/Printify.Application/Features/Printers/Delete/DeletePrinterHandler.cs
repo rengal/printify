@@ -15,7 +15,7 @@ public sealed class DeletePrinterHandler(
         ArgumentNullException.ThrowIfNull(request);
 
         var printer = await printerRepository
-            .GetByIdAsync(request.PrinterId, request.Context.UserId, request.Context.AnonymousSessionId, ct)
+            .GetByIdAsync(request.PrinterId, request.Context.WorkspaceId, ct)
             .ConfigureAwait(false);
 
         if (printer is null)

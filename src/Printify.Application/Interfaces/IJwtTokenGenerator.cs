@@ -2,5 +2,5 @@
 
 public interface IJwtTokenGenerator
 {
-    string GenerateToken(Guid? userId, Guid? sessionId);
+    string GenerateToken(Guid workspaceId);
 }

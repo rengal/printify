@@ -1,16 +1,12 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using Printify.Infrastructure.Persistence.Entities;
 
 namespace Printify.Infrastructure.Persistence.Entities.Printers;
 
 [Table("printers")]
 public sealed class PrinterEntity : BaseEntity
 {
-    [Column("owner_user_id")]
-    public Guid? OwnerUserId { get; set; }
-
-    [Column("owner_anonymous_session_id")]
-    public Guid? OwnerAnonymousSessionId { get; set; }
+    [Column("owner_workspace_id")]
+    public Guid OwnerWorkspaceId { get; set; }
 
     [Column("display_name")]
     public string DisplayName { get; set; } = string.Empty;

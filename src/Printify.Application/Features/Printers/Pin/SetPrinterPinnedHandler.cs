@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using MediatR;
 using Printify.Application.Interfaces;
 using Printify.Domain.Printers;
@@ -14,7 +11,7 @@ public sealed class SetPrinterPinnedHandler(IPrinterRepository printerRepository
         ArgumentNullException.ThrowIfNull(request);
 
         var printer = await printerRepository
-            .GetByIdAsync(request.PrinterId, request.Context.UserId, request.Context.AnonymousSessionId, cancellationToken)
+            .GetByIdAsync(request.PrinterId, request.Context.WorkspaceId, cancellationToken)
             .ConfigureAwait(false);
 
         if (printer is null)
@@ -23,7 +20,7 @@ public sealed class SetPrinterPinnedHandler(IPrinterRepository printerRepository
         }
 
         await printerRepository
-            .SetPinnedAsync(request.PrinterId, request.Context.UserId, request.Context.AnonymousSessionId, request.IsPinned, cancellationToken)
+            .SetPinnedAsync(request.PrinterId, request.Context.WorkspaceId, request.IsPinned, cancellationToken)
             .ConfigureAwait(false);
 
         return printer with { IsPinned = request.IsPinned };

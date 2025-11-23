@@ -1,4 +1,3 @@
-using System;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -69,8 +68,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IEscPosCommandTrieProvider, EscPosCommandTrieProvider>();
 
         // Repositories
-        services.AddScoped<IAnonymousSessionRepository, AnonymousSessionRepository>();
-        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
         services.AddScoped<IPrinterRepository, PrinterRepository>();
         services.AddScoped<IPrintJobRepository, PrintJobRepository>();
         services.AddScoped<IDocumentRepository, DocumentRepository>();

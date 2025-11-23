@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +6,6 @@ using Printify.Application.Interfaces;
 using Printify.Domain.Printers;
 using Printify.Infrastructure.Mapping;
 using Printify.Infrastructure.Persistence;
-using Printify.Infrastructure.Persistence.Entities.Printers;
 
 namespace Printify.Infrastructure.Repositories;
 
@@ -24,13 +22,12 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         return entity?.ToDomain();
     }
 
-
-    public async ValueTask<Printer?> GetByIdAsync(Guid id, Guid? ownerUserId, Guid? ownerSessionId, CancellationToken ct)
+    public async ValueTask<Printer?> GetByIdAsync(Guid id, Guid? workspaceId, CancellationToken ct)
     {
         var entity = await dbContext.Printers
             .AsNoTracking()
-            .Where(p => !p.IsDeleted)
-            .Where(OwnershipPredicate(ownerUserId, ownerSessionId))
+            .Where(p => p.Id == id && !p.IsDeleted)
+            .Where(p => workspaceId == null || p.OwnerWorkspaceId == workspaceId)
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
         return entity?.ToDomain();
@@ -46,15 +43,14 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
             .ConfigureAwait(false);
     }
 
-    public async ValueTask<IReadOnlyList<Printer>> ListOwnedAsync(Guid? ownerUserId, Guid? ownerSessionId, CancellationToken ct)
+    public async ValueTask<IReadOnlyList<Printer>> ListOwnedAsync(Guid? workspaceId, CancellationToken ct)
     {
-        if (ownerUserId is null && ownerSessionId is null)
+        if (workspaceId is null)
             return [];
 
         return await dbContext.Printers
             .AsNoTracking()
-            .Where(p => !p.IsDeleted)
-            .Where(OwnershipPredicate(ownerUserId, ownerSessionId))
+            .Where(p => !p.IsDeleted && p.OwnerWorkspaceId == workspaceId)
             .Select(e => e.ToDomain())
             .ToListAsync(ct)
             .ConfigureAwait(false);
@@ -85,12 +81,11 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task SetPinnedAsync(Guid id, Guid? ownerUserId, Guid? ownerSessionId, bool isPinned,
-        CancellationToken ct)
+    public async Task SetPinnedAsync(Guid id, Guid? workspaceId, bool isPinned, CancellationToken ct)
     {
         var entity = await dbContext.Printers
             .Where(p => p.Id == id && !p.IsDeleted)
-            .Where(OwnershipPredicate(ownerUserId, ownerSessionId))
+            .Where(p => workspaceId == null || p.OwnerWorkspaceId == workspaceId)
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 
@@ -131,19 +126,5 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         var port = ((IPEndPoint)listener.LocalEndpoint).Port;
         listener.Stop();
         return ValueTask.FromResult(port);
-    }
-
-    private static Expression<Func<PrinterEntity, bool>> OwnershipPredicate(Guid? ownerUserId, Guid? ownerSessionId)
-    {
-        if (ownerUserId is null && ownerSessionId is null)
-            return _ => false;
-
-        if (ownerUserId is not null && ownerSessionId is null)
-            return p => p.OwnerUserId == ownerUserId;
-
-        if (ownerUserId is null && ownerSessionId is not null)
-            return p => p.OwnerAnonymousSessionId == ownerSessionId;
-
-        return p => p.OwnerUserId == ownerUserId || p.OwnerAnonymousSessionId == ownerSessionId;
     }
 }

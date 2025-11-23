@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using MediatR;
 using Printify.Application.Interfaces;
 using Printify.Domain.Printers;
@@ -16,8 +13,7 @@ public sealed class GetPrinterHandler(IPrinterRepository printerRepository)
 
         return printerRepository.GetByIdAsync(
             request.PrinterId,
-            request.Context.UserId,
-            request.Context.AnonymousSessionId,
+            request.Context.WorkspaceId,
             cancellationToken).AsTask();
     }
 }

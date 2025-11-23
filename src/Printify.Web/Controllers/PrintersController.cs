@@ -8,7 +8,6 @@ using Printify.Application.Features.Printers.Documents.Get;
 using Printify.Application.Features.Printers.Documents.List;
 using Printify.Application.Features.Printers.Get;
 using Printify.Application.Features.Printers.List;
-using Printify.Application.Features.Printers.Update;
 using Printify.Application.Printing;
 using Printify.Web.Contracts.Documents.Requests;
 using Printify.Web.Contracts.Documents.Responses;
@@ -53,19 +52,13 @@ public sealed class PrintersController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<PrinterResponseDto>>> List(CancellationToken cancellationToken)
     {
         var context = HttpContext.CaptureRequestContext();
-        if (context.UserId is null && context.AnonymousSessionId is null)
+        if (context.WorkspaceId is null)
         {
             return Forbid();
         }
 
         var printers = await mediator.Send(new ListPrintersQuery(context), cancellationToken);
         return Ok(printers.Select(printer => printer.ToResponseDto()).ToList());
-    }
-
-    [HttpPost("resolveTemporary")]
-    public Task<IActionResult> ResolveTemporary([FromBody] ResolveTemporaryRequest request, CancellationToken cancellationToken)
-    {
-        return Task.FromResult<IActionResult>(NoContent());
     }
 
     [Authorize]
@@ -230,6 +223,4 @@ public sealed class PrintersController : ControllerBase
             return NotFound();
         }
     }
-
-    public sealed record ResolveTemporaryRequest(IReadOnlyList<long> PrinterIds);
 }

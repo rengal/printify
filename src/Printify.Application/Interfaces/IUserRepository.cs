@@ -1,15 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Printify.Domain.Users;
+using Printify.Domain.Workspaces;
 
 namespace Printify.Application.Interfaces;
 
-public interface IUserRepository
+public interface IWorkspaceRepository
 {
-    ValueTask<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
-    ValueTask<User?> GetByDisplayNameAsync(string displayName, CancellationToken cancellationToken);
-    Task AddAsync(User user, CancellationToken cancellationToken);
-    Task<IReadOnlyList<User>> ListActiveAsync(CancellationToken cancellationToken);
+    ValueTask<Workspace?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    ValueTask<Workspace?> GetByTokenAsync(string token, CancellationToken cancellationToken);
+    Task AddAsync(Workspace workspace, CancellationToken cancellationToken);
 }

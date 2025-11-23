@@ -16,8 +16,7 @@ public sealed class UpdatePrinterHandler(
 
         var printer = await printerRepository.GetByIdAsync(
             request.PrinterId,
-            request.Context.UserId,
-            request.Context.AnonymousSessionId,
+            request.Context.WorkspaceId,
             cancellationToken).ConfigureAwait(false);
 
         if (printer is null)

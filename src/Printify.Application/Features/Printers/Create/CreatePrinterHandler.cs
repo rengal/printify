@@ -1,4 +1,5 @@
 using MediatR;
+using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
@@ -7,8 +8,7 @@ namespace Printify.Application.Features.Printers.Create;
 
 public sealed class CreatePrinterHandler(
     IPrinterRepository printerRepository,
-    IPrinterListenerOrchestrator listenerOrchestrator,
-    IPrinterListenerFactory listenerFactory)
+    IPrinterListenerOrchestrator listenerOrchestrator)
     : IRequestHandler<CreatePrinterCommand, Printer>
 {
     public async Task<Printer> Handle(
@@ -16,20 +16,22 @@ public sealed class CreatePrinterHandler(
         CancellationToken ct)
     {
         var existing = await printerRepository
-            .GetByIdAsync(request.PrinterId, request.Context.UserId, request.Context.AnonymousSessionId, ct)
+            .GetByIdAsync(request.PrinterId, request.Context.WorkspaceId, ct)
             .ConfigureAwait(false);
         if (existing is not null)
         {
             return existing;
         }
 
+        if (request.Context.WorkspaceId is null)
+            throw new AuthenticationFailedException("Workspace is not set.");
+
         var listenTcpPortNumber = request.TcpListenPort
             ?? await printerRepository.GetFreeTcpPortNumber(ct).ConfigureAwait(false);
 
         var printer = new Printer(
             request.PrinterId,
-            request.Context.UserId,
-            request.Context.AnonymousSessionId,
+            request.Context.WorkspaceId.Value,
             request.DisplayName,
             request.Protocol,
             request.WidthInDots,

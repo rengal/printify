@@ -1,6 +1,6 @@
-using System.Text;
 using Printify.Web.Extensions;
 using Printify.Web.Middleware;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 

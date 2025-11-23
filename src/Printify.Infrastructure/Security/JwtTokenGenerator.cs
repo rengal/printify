@@ -26,23 +26,15 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
         signingKey = new SymmetricSecurityKey(keyBytes);
     }
 
-    public string GenerateToken(Guid? userId, Guid? sessionId)
+    public string GenerateToken(Guid workspaceId)
     {
-        if (userId is null && sessionId is null)
-            throw new ArgumentException("Either userId or sessionId must be provided.");
-
         var now = DateTime.UtcNow;
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("D")),
             new(JwtRegisteredClaimNames.Iat, ((DateTimeOffset)now).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+            new(JwtRegisteredClaimNames.Sub, workspaceId.ToString("D"))
         };
-
-        if (userId.HasValue)
-            claims.Add(new Claim(JwtRegisteredClaimNames.Sub, userId.Value.ToString("D")));
-
-        if (sessionId.HasValue)
-            claims.Add(new Claim("sessionId", sessionId.Value.ToString()));
 
         var creds = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
         var expires = now.AddSeconds(opts.ExpiresInSeconds);

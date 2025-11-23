@@ -1,3 +1,4 @@
+using Printify.Application.Features.Workspaces.CreateWorkspace;
 using Printify.Domain.Printers;
 using Printify.Domain.Requests;
 using Features = Printify.Application.Features;
@@ -52,14 +53,14 @@ internal static class CommandMapper
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return new Features.Auth.Login.LoginCommand(context, request.UserId);
+        return new Features.Auth.Login.LoginCommand(context, request.Token);
     }
 
-    internal static Features.Users.CreateUser.CreateUserCommand ToCommand(this WebApi.Users.Requests.CreateUserRequestDto request, RequestContext context)
+    internal static CreateWorkspaceCommand ToCommand(this WebApi.Workspaces.Requests.CreateWorkspaceRequestDto request, RequestContext context)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return new Features.Users.CreateUser.CreateUserCommand(context, request.Id, request.DisplayName);
+        return new CreateWorkspaceCommand(context, request.Id, request.OwnerName);
     }
 
     private static Protocol ParseProtocol(string protocol)

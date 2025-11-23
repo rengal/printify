@@ -10,8 +10,7 @@ internal static class PrinterEntityMapper
         ArgumentNullException.ThrowIfNull(printer);
         ArgumentNullException.ThrowIfNull(entity);
         entity.Id = printer.Id;
-        entity.OwnerUserId = printer.OwnerUserId;
-        entity.OwnerAnonymousSessionId = printer.OwnerAnonymousSessionId;
+        entity.OwnerWorkspaceId = printer.OwnerWorkspaceId;
         entity.DisplayName = printer.DisplayName;
         entity.Protocol = ProtocolMapper.ToString(printer.Protocol);
         entity.WidthInDots = printer.WidthInDots;
@@ -42,8 +41,7 @@ internal static class PrinterEntityMapper
 
         return new Printer(
             entity.Id,
-            entity.OwnerUserId,
-            entity.OwnerAnonymousSessionId,
+            entity.OwnerWorkspaceId,
             entity.DisplayName,
             ProtocolMapper.ParseProtocol(entity.Protocol),
             entity.WidthInDots,

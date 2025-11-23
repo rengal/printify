@@ -1,8 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using MediatR;
+using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Domain.Printers;
 
@@ -17,20 +14,11 @@ public sealed class ListPrintersHandler(IPrinterRepository printerRepository)
 
         var context = request.Context;
 
-        if (context.UserId is null && context.AnonymousSessionId is null)
-        {
-            throw new InvalidOperationException("At least one owner identifier must be provided.");
-        }
-
-        if (context.UserId is not null)
-        {
-            return await printerRepository
-                .ListOwnedAsync(context.UserId, null, cancellationToken)
-                .ConfigureAwait(false);
-        }
+        if (context.WorkspaceId is null)
+            throw new BadRequestException("Workspace identifier must be provided.");
 
         return await printerRepository
-            .ListOwnedAsync(null, context.AnonymousSessionId, cancellationToken)
+            .ListOwnedAsync(context.WorkspaceId, cancellationToken)
             .ConfigureAwait(false);
     }
 }

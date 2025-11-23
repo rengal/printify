@@ -13,7 +13,7 @@ namespace Printify.Web.Contracts.Printers.Responses;
 /// <param name="BufferDrainRate">Drain rate for the simulated buffer.</param>
 /// <param name="BufferMaxCapacity">Maximum capacity of the simulated buffer.</param>
 /// <param name="IsPinned">Indicates whether the printer is pinned for quick access.</param>
-/// <param name="LastViewedDocumentId">Identifier of the last document viewed by the current user.</param>
+/// <param name="LastViewedDocumentId">Identifier of the last viewed document</param>
 public sealed record PrinterResponseDto(
     Guid Id,
     string DisplayName,
