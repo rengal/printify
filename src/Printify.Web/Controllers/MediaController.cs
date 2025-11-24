@@ -1,30 +1,24 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Printify.Domain.Services;
+using Printify.Application.Features.Media.GetMedia;
 
 namespace Printify.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class MediaController : ControllerBase
+public sealed class MediaController([NotNull] IMediator mediator) : ControllerBase
 {
-    private readonly IMediaStorage mediaStorage;
-
-    public MediaController(IMediaStorage mediaStorage)
-    {
-        this.mediaStorage = mediaStorage;
-    }
-
     [HttpGet("{mediaId:guid}")]
     public async Task<IActionResult> GetAsync(Guid mediaId, CancellationToken cancellationToken)
     {
-        var stream = await mediaStorage.OpenReadAsync(mediaId, cancellationToken).ConfigureAwait(false);
-        if (stream is null)
+        var result = await mediator.Send(new GetMediaQuery(mediaId), cancellationToken).ConfigureAwait(false);
+        if (result is null)
         {
             return NotFound();
         }
 
-        // Return the raw blob stream; MVC disposes the stream once the response completes.
-        return File(stream, "application/octet-stream");
+        return File(result.Content, result.ContentType);
     }
 }
