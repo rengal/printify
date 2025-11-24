@@ -53,10 +53,13 @@ public sealed class DocumentElementEntity
     [Column("payload", TypeName = "TEXT")]
     public string Payload { get; set; } = string.Empty;
 
+    [Column("media_id")]
+    public Guid? MediaId { get; set; }
+
     [ForeignKey(nameof(DocumentId))]
     public DocumentEntity? Document { get; set; }
 
-    [InverseProperty(nameof(DocumentMediaEntity.Element))]
+    [ForeignKey(nameof(MediaId))]
     public DocumentMediaEntity? Media { get; set; }
 }
 
@@ -66,9 +69,6 @@ public sealed class DocumentMediaEntity
     [Key]
     [Column("id")]
     public Guid Id { get; set; }
-
-    [Column("document_element_id")]
-    public Guid DocumentElementId { get; set; }
 
     [Column("created_at")]
     public DateTimeOffset CreatedAt { get; set; }
@@ -87,7 +87,4 @@ public sealed class DocumentMediaEntity
 
     [Column("url")]
     public string Url { get; set; } = string.Empty;
-
-    [ForeignKey(nameof(DocumentElementId))]
-    public DocumentElementEntity? Element { get; set; }
 }

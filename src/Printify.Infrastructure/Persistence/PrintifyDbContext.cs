@@ -58,9 +58,9 @@ public sealed class PrintifyDbContext : DbContext
                 .IsUnique();
 
             entity.HasOne(element => element.Media)
-                .WithOne(media => media.Element)
-                .HasForeignKey<DocumentMediaEntity>(media => media.DocumentElementId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .WithMany()
+                .HasForeignKey(element => element.MediaId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<DocumentMediaEntity>(entity =>

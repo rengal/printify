@@ -31,6 +31,7 @@ public sealed class DocumentRepository : IDocumentRepository
         var entity = await dbContext.Documents
             .AsNoTracking()
             .Include(document => document.Elements)
+            .ThenInclude(element => element.Media)
             .FirstOrDefaultAsync(document => document.Id == id, ct)
             .ConfigureAwait(false);
 
@@ -49,6 +50,7 @@ public sealed class DocumentRepository : IDocumentRepository
         var query = dbContext.Documents
             .AsNoTracking()
             .Include(document => document.Elements)
+            .ThenInclude(element => element.Media)
             .Where(document => document.PrinterId == printerId);
 
         var entities = await query

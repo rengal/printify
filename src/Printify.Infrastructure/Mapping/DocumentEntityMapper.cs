@@ -37,7 +37,7 @@ internal static class DocumentEntityMapper
             var elementEntity = DocumentElementEntityMapper.ToEntity(document.Id, dto, index++);
             if (element is RasterImage raster)
             {
-                elementEntity.Media = DocumentMediaEntityMapper.ToEntity(elementEntity.Id, raster.Media);
+                elementEntity.Media = DocumentMediaEntityMapper.ToEntity(raster.Media);
             }
 
             elementEntities.Add(elementEntity);
@@ -157,14 +157,13 @@ internal static class DocumentElementEntityMapper
 
 internal static class DocumentMediaEntityMapper
 {
-    internal static DocumentMediaEntity ToEntity(Guid documentElementId, Media media)
+    internal static DocumentMediaEntity ToEntity(Media media)
     {
         ArgumentNullException.ThrowIfNull(media);
 
         return new DocumentMediaEntity
         {
             Id = media.Id,
-            DocumentElementId = documentElementId,
             CreatedAt = media.CreatedAt,
             IsDeleted = media.IsDeleted,
             ContentType = media.ContentType,

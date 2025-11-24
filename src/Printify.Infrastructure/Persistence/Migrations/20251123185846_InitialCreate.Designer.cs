@@ -2,17 +2,20 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Printify.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace Printify.Infrastructure.Migrations
+namespace Printify.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(PrintifyDbContext))]
-    partial class PrintifyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251123185846_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.10");
@@ -33,6 +36,10 @@ namespace Printify.Infrastructure.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("type");
 
+                    b.Property<Guid?>("MediaId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("media_id");
+
                     b.Property<string>("Payload")
                         .IsRequired()
                         .HasColumnType("TEXT")
@@ -43,6 +50,8 @@ namespace Printify.Infrastructure.Migrations
                         .HasColumnName("sequence");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MediaId");
 
                     b.HasIndex("DocumentId", "Sequence")
                         .IsUnique();
@@ -111,10 +120,6 @@ namespace Printify.Infrastructure.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("created_at");
 
-                    b.Property<Guid>("DocumentElementId")
-                        .HasColumnType("TEXT")
-                        .HasColumnName("document_element_id");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER")
                         .HasColumnName("is_deleted");
@@ -131,9 +136,6 @@ namespace Printify.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Checksum");
-
-                    b.HasIndex("DocumentElementId")
-                        .IsUnique();
 
                     b.ToTable("document_media");
                 });
@@ -301,22 +303,13 @@ namespace Printify.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Printify.Infrastructure.Persistence.Entities.Documents.DocumentMediaEntity", "Media")
+                        .WithMany()
+                        .HasForeignKey("MediaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Document");
-                });
 
-            modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.Documents.DocumentMediaEntity", b =>
-                {
-                    b.HasOne("Printify.Infrastructure.Persistence.Entities.Documents.DocumentElementEntity", "Element")
-                        .WithOne("Media")
-                        .HasForeignKey("Printify.Infrastructure.Persistence.Entities.Documents.DocumentMediaEntity", "DocumentElementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Element");
-                });
-
-            modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.Documents.DocumentElementEntity", b =>
-                {
                     b.Navigation("Media");
                 });
 

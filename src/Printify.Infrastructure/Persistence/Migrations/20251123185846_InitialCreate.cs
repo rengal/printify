@@ -3,14 +3,31 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Printify.Infrastructure.Migrations
+namespace Printify.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddDocumentMediaChecksumIndex : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "document_media",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    created_at = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    is_deleted = table.Column<bool>(type: "INTEGER", nullable: false),
+                    content_type = table.Column<string>(type: "TEXT", nullable: false),
+                    length = table.Column<long>(type: "INTEGER", nullable: false),
+                    checksum = table.Column<string>(type: "TEXT", nullable: false),
+                    url = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_document_media", x => x.id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "documents",
                 columns: table => new
@@ -96,39 +113,22 @@ namespace Printify.Infrastructure.Migrations
                     document_id = table.Column<Guid>(type: "TEXT", nullable: false),
                     sequence = table.Column<int>(type: "INTEGER", nullable: false),
                     type = table.Column<string>(type: "TEXT", nullable: false),
-                    payload = table.Column<string>(type: "TEXT", nullable: false)
+                    payload = table.Column<string>(type: "TEXT", nullable: false),
+                    media_id = table.Column<Guid>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_document_elements", x => x.id);
                     table.ForeignKey(
+                        name: "FK_document_elements_document_media_media_id",
+                        column: x => x.media_id,
+                        principalTable: "document_media",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
                         name: "FK_document_elements_documents_document_id",
                         column: x => x.document_id,
                         principalTable: "documents",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "document_media",
-                columns: table => new
-                {
-                    id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    document_element_id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    created_at = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    is_deleted = table.Column<bool>(type: "INTEGER", nullable: false),
-                    content_type = table.Column<string>(type: "TEXT", nullable: false),
-                    length = table.Column<long>(type: "INTEGER", nullable: false),
-                    checksum = table.Column<string>(type: "TEXT", nullable: false),
-                    url = table.Column<string>(type: "TEXT", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_document_media", x => x.id);
-                    table.ForeignKey(
-                        name: "FK_document_media_document_elements_document_element_id",
-                        column: x => x.document_element_id,
-                        principalTable: "document_elements",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -140,15 +140,14 @@ namespace Printify.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_document_elements_media_id",
+                table: "document_elements",
+                column: "media_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_document_media_checksum",
                 table: "document_media",
                 column: "checksum");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_document_media_document_element_id",
-                table: "document_media",
-                column: "document_element_id",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_documents_printer_created_at_id",
@@ -165,7 +164,7 @@ namespace Printify.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "document_media");
+                name: "document_elements");
 
             migrationBuilder.DropTable(
                 name: "print_jobs");
@@ -177,7 +176,7 @@ namespace Printify.Infrastructure.Migrations
                 name: "workspaces");
 
             migrationBuilder.DropTable(
-                name: "document_elements");
+                name: "document_media");
 
             migrationBuilder.DropTable(
                 name: "documents");
