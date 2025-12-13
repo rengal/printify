@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
 namespace Printify.Web.Extensions;
@@ -15,13 +14,6 @@ public static class AuthenticationExtensions
         var secretKey = jwt["SecretKey"];
         var issuer = jwt["Issuer"];
         var audience = jwt["Audience"];
-
-        System.Diagnostics.Debug.WriteLine("=== JWT Configuration ===");
-        System.Diagnostics.Debug.WriteLine($"SecretKey: {secretKey}");
-        System.Diagnostics.Debug.WriteLine($"SecretKey Length: {secretKey?.Length ?? 0}");
-        System.Diagnostics.Debug.WriteLine($"Issuer: {issuer}");
-        System.Diagnostics.Debug.WriteLine($"Audience: {audience}");
-        System.Diagnostics.Debug.WriteLine("========================");
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!));
 

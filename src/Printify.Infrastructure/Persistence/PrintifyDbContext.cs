@@ -21,8 +21,6 @@ public sealed class PrintifyDbContext : DbContext
 
     public DbSet<DocumentEntity> Documents => Set<DocumentEntity>();
 
-    public DbSet<DocumentElementEntity> DocumentElements => Set<DocumentElementEntity>();
-
     public DbSet<DocumentMediaEntity> DocumentMedia => Set<DocumentMediaEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

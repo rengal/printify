@@ -4,18 +4,18 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Printify.Application.Interfaces;
-using Printify.Infrastructure.Config;
+using Printify.Domain.Config;
 
 namespace Printify.Infrastructure.Security;
 
 public sealed class JwtTokenValidator : ITokenValidator
 {
-    private readonly TokenValidationParameters _parameters;
+    private readonly TokenValidationParameters parameters;
 
     public JwtTokenValidator(IOptions<JwtOptions> options)
     {
         var opts = options.Value;
-        _parameters = new TokenValidationParameters
+        parameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidIssuer = opts.Issuer,
@@ -31,7 +31,7 @@ public sealed class JwtTokenValidator : ITokenValidator
     public ClaimsPrincipal Validate(string token)
     {
         var handler = new JwtSecurityTokenHandler();
-        var principal = handler.ValidateToken(token, _parameters, out _);
+        var principal = handler.ValidateToken(token, parameters, out _);
         return principal;
     }
 }

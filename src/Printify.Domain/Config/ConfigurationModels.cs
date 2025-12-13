@@ -16,9 +16,23 @@ public sealed class ListenerOptions
 /// </summary>
 public sealed class Storage
 {
-    [ConfigurationKeyName("database_path")]
-    public string DatabasePath { get; init; } = "";
+    public string DatabasePath { get; init; } = string.Empty;
     
-    [ConfigurationKeyName("media_root_path")]
-    public string MediaRootPath { get; init; } = string.Empty;
+    public string MediaRootPath { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Provides configuration for repository implementations backed by SQLite.
+/// </summary>
+public sealed class RepositoryOptions
+{
+    public string ConnectionString { get; set; } = string.Empty;
+}
+
+public sealed class JwtOptions
+{
+    public string SecretKey { get; set; } = null!;
+    public string Issuer { get; set; } = null!;
+    public string Audience { get; set; } = null!;
+    public long ExpiresInSeconds { get; set; } = 3600 * 24 * 100; // 100 days
 }

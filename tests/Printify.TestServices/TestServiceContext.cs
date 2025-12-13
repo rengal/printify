@@ -7,20 +7,16 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Printify.Application.Interfaces;
 using Printify.Domain.Config;
-using Printify.Infrastructure.Config;
 using Printify.Infrastructure.Persistence;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using Printify.Domain.Services;
 using Printify.Application.Printing;
-using Printify.Domain.Core;
 using Printify.TestServices.Printing;
-using ListenerOptions = Printify.Domain.Config.ListenerOptions;
 
 namespace Printify.TestServices;
 
-public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions listenerOptions)
+public sealed class TestServiceContext(ServiceProvider provider)
     : IAsyncDisposable, IDisposable
 {
     private const string InMemoryConnectionStringFormat = "Data Source=file:{0}?mode=memory&cache=shared";
@@ -41,7 +37,7 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
             {
                 services.PostConfigure<RepositoryOptions>(options => options.ConnectionString = connectionString);
                 var tempStorageRoot = Path.Combine(Path.GetTempPath(), "printify-tests", Guid.NewGuid().ToString("N"));
-                services.PostConfigure<Storage>(options => options.BlobPath = tempStorageRoot);
+                services.PostConfigure<Storage>(options => options.MediaRootPath = tempStorageRoot);
 
                 services.RemoveAll<SqliteConnection>();
                 services.RemoveAll<DbContextOptions<PrintifyDbContext>>();
@@ -66,21 +62,10 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
             context.Database.EnsureCreated();
         }
 
-        return new ControllerTestContext(configuredFactory, connection, GetListenerOptions());
+        return new ControllerTestContext(configuredFactory, connection);
     }
 
     public ServiceProvider Provider { get; } = provider;
-
-    public ListenerOptions ListenerOptions { get; } = listenerOptions;
-
-    private static ListenerOptions GetListenerOptions()
-    {
-        return new ListenerOptions
-        {
-            Port = GetFreePort(),
-            IdleTimeoutInMs = 1000
-        };
-    }
 
     private static int GetFreePort()
     {
@@ -111,20 +96,16 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
         private readonly SqliteConnection connection;
         private readonly HttpClient client;
 
-        internal ControllerTestContext(WebApplicationFactory<Program> factory, SqliteConnection connection,
-            ListenerOptions listenerOptions)
+        internal ControllerTestContext(WebApplicationFactory<Program> factory, SqliteConnection connection)
         {
             Factory = factory;
             this.connection = connection;
-            ListenerOptions = listenerOptions;
             client = factory.CreateClient();
         }
 
         public WebApplicationFactory<Program> Factory { get; }
 
         public HttpClient Client => client;
-
-        public ListenerOptions ListenerOptions { get; }
 
         public AsyncServiceScope CreateScope() => Factory.Services.CreateAsyncScope();
 
@@ -162,9 +143,9 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
             {
                 using var scope = Factory.Services.CreateScope();
                 var storage = scope.ServiceProvider.GetRequiredService<IOptions<Storage>>().Value;
-                if (!string.IsNullOrWhiteSpace(storage.BlobPath) && Directory.Exists(storage.BlobPath))
+                if (!string.IsNullOrWhiteSpace(storage.MediaRootPath) && Directory.Exists(storage.MediaRootPath))
                 {
-                    Directory.Delete(storage.BlobPath, recursive: true);
+                    Directory.Delete(storage.MediaRootPath, recursive: true);
                 }
             }
             catch

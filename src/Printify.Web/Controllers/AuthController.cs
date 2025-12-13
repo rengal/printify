@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Auth.GetCurrentWorkspace;
 using Printify.Application.Interfaces;
-using Printify.Infrastructure.Config;
+using Printify.Domain.Config;
 using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Contracts.Auth.Responses;
 using Printify.Web.Contracts.Workspaces.Responses;

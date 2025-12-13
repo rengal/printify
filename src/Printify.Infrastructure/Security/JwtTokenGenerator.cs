@@ -4,7 +4,7 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Printify.Application.Interfaces;
-using Printify.Infrastructure.Config;
+using Printify.Domain.Config;
 
 namespace Printify.Infrastructure.Security;
 

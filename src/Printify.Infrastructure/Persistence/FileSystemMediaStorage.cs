@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Printify.Application.Interfaces;
 using Printify.Domain.Config;
@@ -19,14 +18,15 @@ public sealed class FileSystemMediaStorage : IMediaStorage
 
     public FileSystemMediaStorage(
         IOptions<Storage> options,
-        IServiceProvider serviceProvider)  // ← Inject service provider
+        IServiceProvider serviceProvider)  // Inject service provider
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(serviceProvider);
-        
+
         this.serviceProvider = serviceProvider;
-        
+
         var value = options.Value.MediaRootPath;
+
         rootPath = string.IsNullOrWhiteSpace(value) ? string.Empty : Path.GetFullPath(value);
         if (!string.IsNullOrWhiteSpace(rootPath))
         {

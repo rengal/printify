@@ -8,7 +8,6 @@ using Printify.Application.Pipeline;
 using Printify.Domain.Config;
 using Printify.Domain.Services;
 using Printify.Infrastructure.Clock;
-using Printify.Infrastructure.Config;
 using Printify.Infrastructure.Media;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Printing;
@@ -16,7 +15,6 @@ using Printify.Infrastructure.Printing.EscPos;
 using Printify.Infrastructure.Printing.Factories;
 using Printify.Infrastructure.Repositories;
 using Printify.Infrastructure.Security;
-using ListenerOptions = Printify.Domain.Config.ListenerOptions;
 
 namespace Printify.Web.Extensions;
 
@@ -52,10 +50,16 @@ public static class ServiceCollectionExtensions
         // Database
         services.AddDbContext<PrintifyDbContext>((serviceProvider, options) =>
         {
-            var repositoryOptions = serviceProvider
-                .GetRequiredService<IOptions<RepositoryOptions>>()
+            var storageOptions = serviceProvider
+                .GetRequiredService<IOptions<Storage>>()
                 .Value;
-            options.UseSqlite(repositoryOptions.ConnectionString);
+
+            var dbRoot = ResolvePath(storageOptions.DatabasePath, "db");
+            var filePath = Path.Combine(dbRoot, "printify.db");
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+            var connectionString = $"Data Source={filePath};Cache=Shared";
+
+            options.UseSqlite(connectionString);
         });
 
         services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
@@ -81,5 +85,29 @@ public static class ServiceCollectionExtensions
         //services.AddHostedService<PrinterListenerBootstrapper>();
 
         return services;
+    }
+
+    private static string ResolvePath(string? configuredPath, string fallbackSubfolder)
+    {
+        if (!string.IsNullOrWhiteSpace(configuredPath))
+        {
+            var expanded = Environment.ExpandEnvironmentVariables(configuredPath);
+            if (expanded.StartsWith("~", StringComparison.Ordinal))
+            {
+                var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                var trimmed = expanded.TrimStart('~', Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                expanded = Path.Combine(home, trimmed);
+            }
+
+            return Path.GetFullPath(expanded);
+        }
+
+        var appData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (string.IsNullOrWhiteSpace(appData))
+        {
+            appData = Path.GetTempPath();
+        }
+
+        return Path.Combine(appData, "virtual-printer", fallbackSubfolder);
     }
 }
