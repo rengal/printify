@@ -48,7 +48,11 @@ public static class DocumentMapper
                 barcode.Width,
                 barcode.Height,
                 ToMediaDto(barcode.Media)),
-            DomainElements.PrintQrCode => throw new NotSupportedException("PrintQrCode elements must be rendered before publishing."),
+            DomainElements.PrintQrCode qr => new ResponseElements.PrintQrCodeDto(
+                qr.Data,
+                qr.Width,
+                qr.Height,
+                ToMediaDto(qr.Media)),
             DomainElements.Pulse pulse => new ResponseElements.PulseDto(
                 pulse.Pin,
                 pulse.OnTimeMs,

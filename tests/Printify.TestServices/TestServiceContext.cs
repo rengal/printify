@@ -4,9 +4,12 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Printify.Application.Interfaces;
+using Printify.Domain.Config;
 using Printify.Infrastructure.Config;
 using Printify.Infrastructure.Persistence;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using Printify.Domain.Services;
@@ -37,6 +40,8 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
             builder.ConfigureTestServices(services =>
             {
                 services.PostConfigure<RepositoryOptions>(options => options.ConnectionString = connectionString);
+                var tempStorageRoot = Path.Combine(Path.GetTempPath(), "printify-tests", Guid.NewGuid().ToString("N"));
+                services.PostConfigure<Storage>(options => options.BlobPath = tempStorageRoot);
 
                 services.RemoveAll<SqliteConnection>();
                 services.RemoveAll<DbContextOptions<PrintifyDbContext>>();
@@ -153,9 +158,21 @@ public sealed class TestServiceContext(ServiceProvider provider, ListenerOptions
                 // already disposed elsewhere - ignore
             }
 
+            try
+            {
+                using var scope = Factory.Services.CreateScope();
+                var storage = scope.ServiceProvider.GetRequiredService<IOptions<Storage>>().Value;
+                if (!string.IsNullOrWhiteSpace(storage.BlobPath) && Directory.Exists(storage.BlobPath))
+                {
+                    Directory.Delete(storage.BlobPath, recursive: true);
+                }
+            }
+            catch
+            {
+                // best-effort cleanup
+            }
+
             await Factory.DisposeAsync().ConfigureAwait(false);
         }
     }
 }
-
-

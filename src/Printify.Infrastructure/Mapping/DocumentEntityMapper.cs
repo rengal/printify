@@ -41,6 +41,14 @@ internal static class DocumentEntityMapper
             {
                 elementEntity.Media = DocumentMediaEntityMapper.ToEntity(raster.Media);
             }
+            else if (element is PrintBarcode barcode)
+            {
+                elementEntity.Media = DocumentMediaEntityMapper.ToEntity(barcode.Media);
+            }
+            else if (element is PrintQrCode qr)
+            {
+                elementEntity.Media = DocumentMediaEntityMapper.ToEntity(qr.Media);
+            }
 
             elementEntities.Add(elementEntity);
         }
@@ -193,4 +201,3 @@ internal static class DocumentMediaEntityMapper
             entity.Url);
     }
 }
-

@@ -25,6 +25,11 @@ public sealed class MediaController([NotNull] IMediator mediator) : ControllerBa
             Response.Headers.ETag = $"\"sha256:{result.Checksum}\"";
         }
 
-        return File(result.Content, result.ContentType);
+        // Explicitly set the content type so downstream callers (and tests) observe the original media MIME type.
+        var contentType = string.IsNullOrWhiteSpace(result.ContentType)
+            ? "application/octet-stream"
+            : result.ContentType;
+
+        return File(result.Content, contentType);
     }
 }

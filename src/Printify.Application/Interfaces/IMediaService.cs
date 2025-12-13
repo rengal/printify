@@ -1,4 +1,6 @@
-﻿using Printify.Domain.Media;
+﻿using Printify.Domain.Documents.Elements;
+using Printify.Domain.Media;
+using Printify.Domain.Printers;
 
 namespace Printify.Application.Interfaces;
 
@@ -15,4 +17,29 @@ public interface IMediaService
     /// <param name="format">Target image format (e.g., "image/png", "image/jpeg").</param>
     /// <returns>MediaUpload ready for transmission or storage.</returns>
     MediaUpload ConvertToMediaUpload(MonochromeBitmap bitmap, string format = "image/png");
+
+    /// <summary>
+    /// Generates a barcode image using the supplied payload and rendering options.
+    /// </summary>
+    RasterImageUpload GenerateBarcodeMedia(PrintBarcodeUpload upload, BarcodeRenderOptions options);
+
+    /// <summary>
+    /// Generates a QR code image using the supplied payload and rendering options.
+    /// </summary>
+    RasterImageUpload GenerateQrMedia(QrRenderOptions options);
 }
+
+public sealed record BarcodeRenderOptions(
+    int? HeightInDots,
+    int? ModuleWidthInDots,
+    BarcodeLabelPosition? LabelPosition,
+    TextJustification? Justification,
+    int? PrinterWidthInDots);
+
+public sealed record QrRenderOptions(
+    string Data,
+    QrModel Model,
+    int? ModuleSizeInDots,
+    QrErrorCorrectionLevel? ErrorCorrectionLevel,
+    TextJustification? Justification,
+    int? PrinterWidthInDots);

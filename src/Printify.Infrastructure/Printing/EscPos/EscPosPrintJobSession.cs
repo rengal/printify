@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using System.Text;
+﻿using System.Text;
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Core;

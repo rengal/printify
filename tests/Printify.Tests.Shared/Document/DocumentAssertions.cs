@@ -6,6 +6,7 @@ using Printify.Web.Contracts.Documents.Responses.Elements;
 using Printify.Web.Mapping;
 using Xunit;
 using PrinterError = Printify.Domain.Documents.Elements.PrinterError;
+using System.Linq;
 
 namespace Printify.Tests.Shared.Document;
 
@@ -25,6 +26,22 @@ public static class DocumentAssertions
 
             switch (expected)
             {
+                case PrintBarcodeDto expectedBarcode:
+                    var actualBarcode = Assert.IsType<PrintBarcodeDto>(actualElement);
+                    Assert.Equal(expectedBarcode.Symbology, actualBarcode.Symbology);
+                    Assert.NotNull(actualBarcode.Media);
+                    Assert.False(string.IsNullOrWhiteSpace(actualBarcode.Media.Sha256));
+                    Assert.False(string.IsNullOrWhiteSpace(actualBarcode.Media.Url));
+                    Assert.True(actualBarcode.Media.Length > 0);
+                    break;
+                case PrintQrCodeDto expectedQr:
+                    var actualQr = Assert.IsType<PrintQrCodeDto>(actualElement);
+                    Assert.Equal(expectedQr.Data, actualQr.Data);
+                    Assert.NotNull(actualQr.Media);
+                    Assert.False(string.IsNullOrWhiteSpace(actualQr.Media.Sha256));
+                    Assert.False(string.IsNullOrWhiteSpace(actualQr.Media.Url));
+                    Assert.True(actualQr.Media.Length > 0);
+                    break;
                 case RasterImageDto expectedRasterImage:
                     var actualRasterImage = Assert.IsType<RasterImageDto>(actualElement);
                     Assert.Equal(expectedRasterImage.Width, actualRasterImage.Width);
@@ -57,6 +74,28 @@ public static class DocumentAssertions
             {
                 case PrinterError:
                     _ = Assert.IsType<PrinterError>(actualElement);
+                    break;
+                case PrintBarcode expectedBarcode:
+                    var actualBarcode = Assert.IsType<PrintBarcode>(actualElement);
+                    Assert.Equal(expectedBarcode.Symbology, actualBarcode.Symbology);
+                    Assert.True(actualBarcode.Width > 0);
+                    Assert.True(actualBarcode.Height > 0);
+                    Assert.NotNull(actualBarcode.Media);
+                    Assert.False(string.IsNullOrWhiteSpace(actualBarcode.Media.ContentType));
+                    Assert.True(actualBarcode.Media.Length > 0);
+                    Assert.False(string.IsNullOrWhiteSpace(actualBarcode.Media.Sha256Checksum));
+                    Assert.False(string.IsNullOrWhiteSpace(actualBarcode.Media.Url));
+                    break;
+                case PrintQrCode expectedQr:
+                    var actualQr = Assert.IsType<PrintQrCode>(actualElement);
+                    Assert.Equal(expectedQr.Data, actualQr.Data);
+                    Assert.True(actualQr.Width > 0);
+                    Assert.True(actualQr.Height > 0);
+                    Assert.NotNull(actualQr.Media);
+                    Assert.False(string.IsNullOrWhiteSpace(actualQr.Media.ContentType));
+                    Assert.True(actualQr.Media.Length > 0);
+                    Assert.False(string.IsNullOrWhiteSpace(actualQr.Media.Sha256Checksum));
+                    Assert.False(string.IsNullOrWhiteSpace(actualQr.Media.Url));
                     break;
                 case RasterImageUpload expectedRasterImageUpload:
                     var actualRasterImageUpload = Assert.IsType<RasterImageUpload>(actualElement);

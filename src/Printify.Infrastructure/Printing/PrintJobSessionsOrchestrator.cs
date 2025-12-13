@@ -89,39 +89,121 @@ public sealed class PrintJobSessionsOrchestrator(
         var mediaStorage = services.GetRequiredService<IMediaStorage>();
         var documentRepository = services.GetRequiredService<IDocumentRepository>();
         var printerRepository = services.GetRequiredService<IPrinterRepository>();
+        var mediaService = services.GetRequiredService<IMediaService>();
         var sourceElements = document.Elements;
         var changed = false;
         var resultElements = new List<Element>(sourceElements.Count);
 
         var printer = await printerRepository.GetByIdAsync(document.PrinterId, ct).ConfigureAwait(false);
+        var barcodeState = new BarcodeState();
+        var qrState = new QrState();
+        TextJustification? justification = null;
 
         foreach (var sourceElement in sourceElements)
         {
-            if (sourceElement is RasterImageUpload rasterUpload)
+            if (sourceElement is RasterImageUpload or PrintQrCodeUpload or PrintBarcodeUpload)
             {
                 if (printer == null)
                     continue;
 
+                //Domain.Media.MediaUpload media = null;
+                RasterImageUpload? imageUpload = null;
+
+                switch (sourceElement)
+                {
+                    case RasterImageUpload rasterImageUpload:
+                        imageUpload = rasterImageUpload;
+                        break;
+                    case PrintQrCodeUpload when string.IsNullOrEmpty(qrState.Payload):
+                        continue;
+                    case PrintQrCodeUpload:
+                        imageUpload = mediaService.GenerateQrMedia(new QrRenderOptions(
+                            qrState.Payload,
+                            qrState.Model,
+                            qrState.ModuleSizeInDots,
+                            qrState.ErrorCorrectionLevel,
+                            justification,
+                            printer.WidthInDots));
+                        break;
+                    case PrintBarcodeUpload barcodeUpload when string.IsNullOrEmpty(barcodeUpload.Data):
+                        continue;
+                    case PrintBarcodeUpload barcodeUpload:
+                        imageUpload = mediaService.GenerateBarcodeMedia(
+                            barcodeUpload,
+                            new BarcodeRenderOptions(
+                                barcodeState.HeightInDots,
+                                barcodeState.ModuleWidthInDots,
+                                barcodeState.LabelPosition,
+                                justification,
+                                printer.WidthInDots));
+                        break;
+                }
+
                 // Images are content-addressed (SHA-256), enabling safe deduplication without relying on file names or IDs.
-                var sha256Checksum = Sha256Checksum.ComputeLowerHex(rasterUpload.Media.Content.Span);
+                var sha256Checksum = Sha256Checksum.ComputeLowerHex(imageUpload!.Media.Content.Span);
 
                 var savedMedia = await documentRepository
                                      .GetMediaByChecksumAsync(sha256Checksum, printer.OwnerWorkspaceId, ct)
                                      .ConfigureAwait(false) ??
-                                 await mediaStorage.SaveAsync(rasterUpload.Media, printer.OwnerWorkspaceId, sha256Checksum, ct)
+                                 await mediaStorage.SaveAsync(imageUpload.Media, printer.OwnerWorkspaceId,
+                                         sha256Checksum, ct)
                                      .ConfigureAwait(false);
 
-                resultElements.Add(new RasterImage(rasterUpload.Width, rasterUpload.Height, savedMedia));
+
+                switch (sourceElement)
+                {
+                    case RasterImageUpload:
+                        resultElements.Add(new RasterImage(imageUpload.Width, imageUpload.Height, savedMedia));
+                        break;
+                    case PrintQrCodeUpload:
+                        if (!string.IsNullOrEmpty(qrState.Payload))
+                            resultElements.Add(new PrintQrCode(qrState.Payload, imageUpload.Width, imageUpload.Height,
+                                savedMedia));
+                        break;
+                    case PrintBarcodeUpload barcodeUpload:
+                        resultElements.Add(new PrintBarcode(barcodeUpload.Symbology, barcodeUpload.Data,
+                            imageUpload.Width, imageUpload.Height,
+                            savedMedia));
+                        break;
+                }
+
                 changed = true;
+                continue;
             }
-            else
-            {
-                resultElements.Add(sourceElement);
-            }
+
+            if (sourceElement is SetBarcodeHeight barcodeHeight)
+                barcodeState = barcodeState with { HeightInDots = barcodeHeight.HeightInDots };
+            else if (sourceElement is SetBarcodeModuleWidth moduleWidth)
+                barcodeState = barcodeState with { ModuleWidthInDots = moduleWidth.ModuleWidth };
+            else if (sourceElement is SetBarcodeLabelPosition labelPosition)
+                barcodeState = barcodeState with { LabelPosition = labelPosition.Position };
+            else if (sourceElement is SetQrModel qrModel)
+                qrState = qrState with { Model = qrModel.Model };
+            else if (sourceElement is SetQrModuleSize qrModuleSize)
+                qrState = qrState with { ModuleSizeInDots = qrModuleSize.ModuleSize };
+            else if (sourceElement is SetQrErrorCorrection qrErrorCorrection)
+                qrState = qrState with { ErrorCorrectionLevel = qrErrorCorrection.Level };
+            else if (sourceElement is StoreQrData qrData)
+                qrState = qrState with { Payload = qrData.Content };
+            else if (sourceElement is SetJustification justificationElement)
+                justification = justificationElement.Justification;
+
+            resultElements.Add(sourceElement);
         }
 
         return changed
             ? document with { Elements = resultElements.AsReadOnly() }
             : document;
     }
+
+    private sealed record BarcodeState(
+        int? HeightInDots = null,
+        int? ModuleWidthInDots = null,
+        BarcodeLabelPosition? LabelPosition = null);
+
+    private sealed record QrState(
+        string? Payload = null,
+        QrModel Model = QrModel.Model2,
+        int? ModuleSizeInDots = null,
+        QrErrorCorrectionLevel? ErrorCorrectionLevel = null);
 }

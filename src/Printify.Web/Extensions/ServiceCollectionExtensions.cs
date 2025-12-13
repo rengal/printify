@@ -29,9 +29,7 @@ public static class ServiceCollectionExtensions
     {
         // Configuration
         services.Configure<ListenerOptions>(configuration.GetSection("Listener"));
-        services.Configure<Page>(configuration.GetSection("Page"));
         services.Configure<Storage>(configuration.GetSection("Storage"));
-        services.Configure<BufferOptions>(configuration.GetSection("Buffer"));
         services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
         services.Configure<RepositoryOptions>(configuration.GetSection("Repository"));
 

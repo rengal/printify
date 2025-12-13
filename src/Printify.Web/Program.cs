@@ -6,7 +6,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-builder.Configuration.AddJsonFile("config.json", optional: false, reloadOnChange: true);
 builder.Services.AddControllers();
 builder.Services.AddServices(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
