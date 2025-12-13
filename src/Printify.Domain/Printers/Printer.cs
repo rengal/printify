@@ -27,6 +27,7 @@
 /// <param name="IsPinned">Indicates whether the printer is pinned for quick access.</param>
 /// <param name="IsDeleted">Soft-delete marker for the printer.</param>
 /// <param name="LastViewedDocumentId">Identifier of the last document viewed for this printer.</param>
+/// <param name="LastDocumentReceivedAt">Timestamp of the most recently persisted document for this printer.</param>
 public sealed record Printer(
     Guid Id,
     Guid OwnerWorkspaceId,
@@ -42,5 +43,6 @@ public sealed record Printer(
     int? BufferMaxCapacity,
     bool IsPinned,
     bool IsDeleted,
-    Guid? LastViewedDocumentId)
+    Guid? LastViewedDocumentId,
+    DateTimeOffset? LastDocumentReceivedAt)
     : BaseDomainEntity(Id, CreatedAt, IsDeleted);

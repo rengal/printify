@@ -119,6 +119,22 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         }
     }
 
+    public async Task SetLastDocumentReceivedAtAsync(Guid id, DateTimeOffset timestamp, CancellationToken ct)
+    {
+        var entity = await dbContext.Printers
+            .Where(p => p.Id == id && !p.IsDeleted)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+        if (entity is null)
+        {
+            return;
+        }
+
+        entity.LastDocumentReceivedAt = timestamp;
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
     public ValueTask<int> GetFreeTcpPortNumber(CancellationToken ct)
     {
         var listener = new TcpListener(IPAddress.Loopback, 0);

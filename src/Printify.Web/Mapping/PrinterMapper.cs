@@ -19,7 +19,8 @@ internal static class PrinterMapper
             printer.BufferDrainRate,
             printer.BufferMaxCapacity,
             printer.IsPinned,
-            printer.LastViewedDocumentId);
+            printer.LastViewedDocumentId,
+            printer.LastDocumentReceivedAt);
     }
 
     internal static string ToDto(this Protocol protocol)

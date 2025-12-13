@@ -40,4 +40,7 @@ public sealed class PrinterEntity : BaseEntity
 
     [Column("last_viewed_document_id")]
     public Guid? LastViewedDocumentId { get; set; }
+
+    [Column("last_document_received_at")]
+    public DateTimeOffset? LastDocumentReceivedAt { get; set; }
 }

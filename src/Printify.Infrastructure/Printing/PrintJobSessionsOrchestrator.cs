@@ -71,7 +71,10 @@ public sealed class PrintJobSessionsOrchestrator(
             await using var scope = scopeFactory.CreateAsyncScope();
             var finalizedDocument = await FinalizeDocumentAsync(document, scope.ServiceProvider, ct).ConfigureAwait(false);
             var documentRepository = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
+            var printerRepository = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
             await documentRepository.AddAsync(finalizedDocument, ct).ConfigureAwait(false);
+            await printerRepository.SetLastDocumentReceivedAtAsync(finalizedDocument.PrinterId, finalizedDocument.CreatedAt, ct)
+                .ConfigureAwait(false);
             documentStream.Publish(new DocumentStreamEvent(finalizedDocument));
         }
     }

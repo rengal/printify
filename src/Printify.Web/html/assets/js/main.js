@@ -5,7 +5,7 @@
         let workspaceName = null;
         let accessToken = null;
 
-        // Mock Data (to be replaced with API wiring for printers/documents)
+        // Data
         let printers = [];
         let documents = {};
         let selectedPrinterId = null;
@@ -40,6 +40,48 @@
             return await response.json();
         }
 
+        function normalizeProtocol(protocol) {
+            if (!protocol) return 'escpos';
+            const normalized = protocol.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (normalized.includes('esc')) return 'escpos';
+            return normalized;
+        }
+
+        function mapPrinterDto(dto, index) {
+            return {
+                id: dto.id,
+                name: dto.displayName,
+                protocol: dto.protocol,
+                width: dto.widthInDots,
+                height: dto.heightInDots,
+                port: dto.tcpListenPort,
+                emulateBuffer: dto.emulateBufferCapacity,
+                bufferSize: dto.bufferMaxCapacity || 0,
+                drainRate: dto.bufferDrainRate || 0,
+                pinned: dto.isPinned,
+                lastDocumentAt: dto.lastDocumentReceivedAt ? new Date(dto.lastDocumentReceivedAt) : null,
+                newDocs: 0,
+                pinOrder: index
+            };
+        }
+
+        async function loadPrinters(selectId = null) {
+            try {
+                const list = await apiRequest('/api/printers');
+                printers = list.map((p, idx) => mapPrinterDto(p, idx));
+                if (selectId && printers.some(p => p.id === selectId)) {
+                    selectedPrinterId = selectId;
+                } else if (!selectedPrinterId && printers.length > 0) {
+                    selectedPrinterId = printers[0].id;
+                }
+                renderSidebar();
+                renderDocuments();
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || 'Failed to load printers', true);
+            }
+        }
+
         // Token Generation
         const ADJECTIVES = ['happy', 'bright', 'swift', 'calm', 'bold', 'wise', 'kind', 'brave', 'quick', 'cool', 'warm', 'fresh', 'smart', 'clear', 'neat'];
         const NOUNS = ['tiger', 'eagle', 'wolf', 'bear', 'lion', 'hawk', 'fox', 'deer', 'owl', 'seal', 'crow', 'swan', 'lynx', 'orca', 'puma'];
@@ -57,6 +99,7 @@
 
         // Utility Functions
         function formatRelativeTime(date) {
+            if (!date) return '';
             const now = new Date();
             const diff = now - date;
             const minutes = Math.floor(diff / 60000);
@@ -72,6 +115,7 @@
         }
 
         function formatDateTime(date) {
+            if (!date) return '—';
             const day = String(date.getDate()).padStart(2, '0');
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
@@ -110,7 +154,7 @@
             otherSection.style.display = otherPrinters.length > 0 ? 'block' : 'none';
 
             pinnedList.innerHTML = pinnedPrinters.map(p => `
-            <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter(${p.id})">
+            <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
               <div class="list-item-icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="12" y1="17" x2="12" y2="22"></line>
@@ -124,12 +168,12 @@
                 </div>
                 <div class="list-item-line2">Last: ${formatDateTime(p.lastDocumentAt)} · ${formatRelativeTime(p.lastDocumentAt)}</div>
               </div>
-              <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, ${p.id}, true)">⋯</button>
+              <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, '${p.id}', true)">⋯</button>
             </div>
           `).join('');
 
             otherList.innerHTML = otherPrinters.map(p => `
-            <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter(${p.id})">
+            <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
               <div class="list-item-icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="6 9 6 2 18 2 18 9"></polyline>
@@ -143,7 +187,7 @@
                 </div>
                 <div class="list-item-line2">${p.protocol} · ${p.width} dots</div>
               </div>
-              <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, ${p.id}, false)">⋯</button>
+              <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, '${p.id}', false)">⋯</button>
             </div>
           `).join('');
         }
@@ -153,7 +197,7 @@
             const printer = printers.find(p => p.id === id);
             if (printer) {
                 printer.newDocs = 0;
-                document.getElementById('topbarTitle').textContent = `${printer.name} · ${printer.protocol} · ${printer.width} dots`;
+                document.getElementById('topbarTitle').textContent = `${printer.name} · ${printer.protocol.toUpperCase()} · ${printer.width} dots`;
                 renderDocuments();
                 renderSidebar();
             }
@@ -243,8 +287,8 @@
             menu.style.top = event.clientY + 'px';
 
             menu.innerHTML = `
-            <div class="menu-item" onclick="editPrinter(${printerId})">Edit</div>
-            <div class="menu-item" onclick="togglePin(${printerId})">${isPinned ? 'Unpin' : 'Pin'}</div>
+            <div class="menu-item" onclick="editPrinter('${printerId}')">Edit</div>
+            <div class="menu-item" onclick="togglePin('${printerId}')">${isPinned ? 'Unpin' : 'Pin'}</div>
           `;
 
             document.body.appendChild(menu);
@@ -257,15 +301,20 @@
             }, 0);
         }
 
-        function togglePin(printerId) {
+        async function togglePin(printerId) {
             const printer = printers.find(p => p.id === printerId);
-            if (printer) {
-                printer.pinned = !printer.pinned;
-                if (printer.pinned) {
-                    printer.pinOrder = printers.filter(p => p.pinned).length;
-                }
-                renderSidebar();
-                showToast(printer.pinned ? 'Printer pinned' : 'Printer unpinned');
+            if (!printer) return;
+
+            try {
+                await apiRequest(`/api/printers/${printerId}/pin`, {
+                    method: 'POST',
+                    body: JSON.stringify({ isPinned: !printer.pinned })
+                });
+                await loadPrinters(printerId);
+                showToast(!printer.pinned ? 'Printer pinned' : 'Printer unpinned');
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || 'Failed to toggle pin', true);
             }
         }
 
@@ -288,15 +337,12 @@
                 </div>
 
                 <div class="field-group">
-                  <div class="field">
-                    <label class="label required">Protocol</label>
-                    <select class="input" id="printerProtocol">
-                      <option>ESC/POS</option>
-                      <option>Star Line Mode</option>
-                      <option>ZPL</option>
-                      <option>EPL</option>
-                    </select>
-                  </div>
+                    <div class="field">
+                      <label class="label required">Protocol</label>
+                      <select class="input" id="printerProtocol">
+                        <option value="escpos">ESC/POS</option>
+                      </select>
+                    </div>
 
                   <div class="field">
                     <label class="label">Width (dots)</label>
@@ -358,15 +404,12 @@
                 </div>
 
                 <div class="field-group">
-                  <div class="field">
-                    <label class="label required">Protocol</label>
-                    <select class="input" id="printerProtocol">
-                      <option ${printer.protocol === 'ESC/POS' ? 'selected' : ''}>ESC/POS</option>
-                      <option ${printer.protocol === 'Star Line Mode' ? 'selected' : ''}>Star Line Mode</option>
-                      <option ${printer.protocol === 'ZPL' ? 'selected' : ''}>ZPL</option>
-                      <option ${printer.protocol === 'EPL' ? 'selected' : ''}>EPL</option>
-                    </select>
-                  </div>
+                    <div class="field">
+                      <label class="label required">Protocol</label>
+                      <select class="input" id="printerProtocol">
+                      <option value="escpos" ${printer.protocol.toLowerCase() === 'escpos' ? 'selected' : ''}>ESC/POS</option>
+                      </select>
+                    </div>
 
                   <div class="field">
                     <label class="label">Width (dots)</label>
@@ -406,7 +449,7 @@
             document.getElementById('modalContainer').appendChild(modal);
         }
 
-        function createPrinter() {
+        async function createPrinter() {
             const name = document.getElementById('printerName').value.trim();
             const protocol = document.getElementById('printerProtocol').value;
             const width = parseInt(document.getElementById('printerWidth').value) || 576;
@@ -427,31 +470,37 @@
                 return;
             }
 
-            const newPrinter = {
-                id: printers.length + 1,
-                name,
-                workspaceToken: workspaceToken,
-                protocol,
-                width,
-                emulateBuffer,
-                bufferSize,
-                drainRate,
-                pinned: false,
-                lastDocumentAt: new Date(),
-                newDocs: 0,
-                pinOrder: printers.filter(p => p.pinned).length
-            };
+            try
+            {
+                const request = {
+                    id: crypto.randomUUID(),
+                    displayName: name,
+                    protocol: normalizeProtocol(protocol),
+                    widthInDots: width,
+                    heightInDots: null,
+                    tcpListenPort: 9106,
+                    emulateBufferCapacity: emulateBuffer,
+                    bufferDrainRate: drainRate,
+                    bufferMaxCapacity: bufferSize
+                };
 
-            printers.push(newPrinter);
-            documents[newPrinter.id] = [];
+                const created = await apiRequest('/api/printers', {
+                    method: 'POST',
+                    body: JSON.stringify(request)
+                });
 
-            closeModal();
-            renderSidebar();
-            selectPrinter(newPrinter.id);
-            showToast('Printer created successfully');
+                await loadPrinters(created.id);
+                closeModal();
+                showToast('Printer created successfully');
+            }
+            catch (err)
+            {
+                console.error(err);
+                showToast(err.message || 'Failed to create printer', true);
+            }
         }
 
-        function updatePrinter(printerId) {
+        async function updatePrinter(printerId) {
             const printer = printers.find(p => p.id === printerId);
             if (!printer) return;
 
@@ -475,19 +524,31 @@
                 return;
             }
 
-            printer.name = name;
-            printer.protocol = protocol;
-            printer.width = width;
-            printer.emulateBuffer = emulateBuffer;
-            printer.bufferSize = bufferSize;
-            printer.drainRate = drainRate;
+            try {
+                const request = {
+                    displayName: name,
+                    protocol: normalizeProtocol(protocol),
+                    widthInDots: width,
+                    heightInDots: null,
+                    tcpListenPort: printer.port || 9106,
+                    emulateBufferCapacity: emulateBuffer,
+                    bufferDrainRate: drainRate,
+                    bufferMaxCapacity: bufferSize
+                };
 
-            closeModal();
-            renderSidebar();
-            if (selectedPrinterId === printerId) {
-                document.getElementById('topbarTitle').textContent = `${name} · ${protocol} · ${width} dots`;
+                await apiRequest(`/api/printers/${printerId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(request)
+                });
+
+                await loadPrinters(printerId);
+                closeModal();
+                showToast('Printer updated successfully');
             }
-            showToast('Printer updated successfully');
+            catch (err) {
+                console.error(err);
+                showToast(err.message || 'Failed to update printer', true);
+            }
         }
 
         function closeModal() {
@@ -665,6 +726,7 @@
 
             // Fetch current workspace to confirm auth
             await apiRequest('/api/auth/me');
+            await loadPrinters();
         }
 
         function showTokenDialog(token) {
@@ -840,6 +902,7 @@
             workspaceToken = savedToken;
             workspaceName = savedName;
             accessToken = savedAccessToken;
+            loadPrinters();
         }
 
         updateUserDisplay();

@@ -12,5 +12,6 @@ public interface IPrinterRepository
     Task UpdateAsync(Printer printer, CancellationToken ct);
     Task DeleteAsync(Printer printer, CancellationToken ct);
     Task SetPinnedAsync(Guid id, Guid? workspaceId, bool isPinned, CancellationToken ct);
+    Task SetLastDocumentReceivedAtAsync(Guid id, DateTimeOffset timestamp, CancellationToken ct);
     ValueTask<int> GetFreeTcpPortNumber(CancellationToken ct);
 }

@@ -1,7 +1,8 @@
-using Printify.Web.Extensions;
+using Microsoft.EntityFrameworkCore;
 using Printify.Web.Middleware;
 using System.Text;
 using Printify.Infrastructure.Persistence;
+using Printify.Web.Extensions;
 using Microsoft.Extensions.FileProviders;
 using System.IO;
 
@@ -34,11 +35,11 @@ if (Directory.Exists(htmlRoot))
     });
 }
 
-// Ensure SQLite schema exists on first run.
+// Ensure SQLite schema exists on first run and apply migrations.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
 app.UseAuthentication();
