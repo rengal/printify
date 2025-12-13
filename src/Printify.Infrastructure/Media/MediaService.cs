@@ -51,13 +51,8 @@ public sealed class MediaService : IMediaService
         image.Save(ms, encoder);
         var content = ms.ToArray();
 
-        // Calculate checksum
-        var checksum = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
-
         return new MediaUpload(
             ContentType: format,
-            Length: content.Length,
-            Checksum: checksum,
             Content: content
         );
     }

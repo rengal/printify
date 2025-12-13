@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text;
 
 namespace Printify.Tests.Shared.EscPos;
@@ -114,7 +113,7 @@ public static class EscPosScenarioData
             [
                 // Note: PNG data, length, and checksum are not generated in this test scenario as they would require complex image encoding.
                 // The empty ReadOnlyMemory<byte> is used as a placeholder to verify command parsing structure.
-                new RasterImageUpload(8, 1, new MediaUpload("image/png", null, null, ReadOnlyMemory<byte>.Empty))
+                new RasterImageUpload(8, 1, new MediaUpload("image/png", ReadOnlyMemory<byte>.Empty))
             ],
             ExpectedFinalizedElements:
             [

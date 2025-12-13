@@ -35,7 +35,7 @@ public static class DocumentAssertions
                     Assert.Equal(expectedRasterImage.Width, actualRasterImage.Width);
                     Assert.Equal(expectedRasterImage.Height, actualRasterImage.Height);
                     Assert.Equal(expectedRasterImage.Media.ContentType, actualRasterImage.Media.ContentType);
-                    Assert.NotEmpty(actualRasterImage.Media.Checksum);
+                    Assert.NotEmpty(actualRasterImage.Media.Sha256Checksum);
                     Assert.NotEmpty(actualRasterImage.Media.Url);
                     Assert.Equal(expectedRasterImage.Media.Length, actualRasterImage.Media.Length);
                     break;

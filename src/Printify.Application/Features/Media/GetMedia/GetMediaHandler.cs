@@ -31,6 +31,6 @@ public sealed class GetMediaHandler : IRequestHandler<GetMediaQuery, MediaDownlo
             return null;
         }
 
-        return new MediaDownloadResult(stream, media.ContentType);
+        return new MediaDownloadResult(stream, media.ContentType, media.Sha256Checksum);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Documents.Elements;
@@ -149,6 +150,28 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
                 Assert.NotNull(contentType);
                 Assert.True(contentType.StartsWith("image/"),
                     $"Expected image content type, but got {contentType}");
+
+                var responseLength = mediaResponse.Content.Headers.ContentLength;
+                Assert.NotNull(responseLength);
+                Assert.Equal(rasterImage.Media.Length, responseLength.Value);
+
+                var payload = await mediaResponse.Content.ReadAsByteArrayAsync();
+                Assert.Equal(responseLength.Value, payload.LongLength);
+                Assert.Equal(rasterImage.Media.Length, payload.LongLength);
+
+                if (!string.IsNullOrWhiteSpace(rasterImage.Media.Sha256Checksum))
+                {
+                    var computedChecksum = Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant();
+                    Assert.Equal(rasterImage.Media.Sha256Checksum, computedChecksum);
+
+                    var eTag = mediaResponse.Headers.ETag?.Tag;
+                    Assert.NotNull(eTag);
+                    Assert.StartsWith("\"sha256:", eTag, StringComparison.OrdinalIgnoreCase);
+                    var eTagValue = eTag.Trim('"');
+                    var eTagChecksum = eTagValue.Split(':', 2).ElementAtOrDefault(1);
+                    Assert.False(string.IsNullOrWhiteSpace(eTagChecksum));
+                    Assert.Equal(computedChecksum, eTagChecksum!.ToLowerInvariant());
+                }
             }
         }
 

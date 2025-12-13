@@ -1,9 +1,8 @@
-using System;
-using System.IO;
 using Microsoft.Extensions.Options;
 using Printify.Domain.Config;
 using Printify.Domain.Media;
 using Printify.Domain.Services;
+using System.Security.Cryptography;
 
 namespace Printify.Infrastructure.Persistence;
 
@@ -28,7 +27,8 @@ public sealed class FileSystemMediaStorage : IMediaStorage
         //Directory.CreateDirectory(rootPath);
     }
 
-    public async ValueTask<Domain.Media.Media> SaveAsync(MediaUpload upload, CancellationToken cancellationToken = default)
+    public async ValueTask<Domain.Media.Media> SaveAsync(MediaUpload upload,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(upload);
 
@@ -37,7 +37,8 @@ public sealed class FileSystemMediaStorage : IMediaStorage
         var dataPath = GetDataPath(blobId);
         Directory.CreateDirectory(Path.GetDirectoryName(dataPath)!);
 
-        await using (var file = new FileStream(dataPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true))
+        await using (var file = new FileStream(dataPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920,
+                         useAsync: true))
         {
             if (!upload.Content.IsEmpty)
             {
@@ -47,7 +48,7 @@ public sealed class FileSystemMediaStorage : IMediaStorage
             await file.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        var effectiveLength = upload.Length ?? upload.Content.Length;
+        var sha256Checksum = Convert.ToHexString(SHA256.HashData(upload.Content.ToArray())).ToLowerInvariant(); //todo debugnow is effective?
         var url = BuildMediaUrl(mediaId);
 
         return new Domain.Media.Media(
@@ -55,8 +56,8 @@ public sealed class FileSystemMediaStorage : IMediaStorage
             DateTimeOffset.UtcNow,
             IsDeleted: false,
             upload.ContentType,
-            effectiveLength,
-            upload.Checksum,
+            upload.Content.Length,
+            sha256Checksum,
             url);
     }
 

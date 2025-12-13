@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using MediaRecord = Printify.Domain.Media.Media;
 using MediaUpload = Printify.Domain.Media.MediaUpload;
 

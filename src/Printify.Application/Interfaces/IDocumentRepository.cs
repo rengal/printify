@@ -14,5 +14,5 @@ public interface IDocumentRepository
     Task AddAsync(Document document, CancellationToken ct);
     Task<long> CountByPrinterIdAsync(Guid printerId, CancellationToken ct);
     ValueTask<Media?> GetMediaByIdAsync(Guid id, CancellationToken ct);
-    ValueTask<Media?> GetMediaByChecksumAsync(string checksum, CancellationToken ct);
+    ValueTask<Media?> GetMediaByChecksumAsync(string sha256Checksum, CancellationToken ct);
 }

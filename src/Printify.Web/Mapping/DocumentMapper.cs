@@ -161,7 +161,7 @@ internal static class DocumentMapper
         return new ResponseElements.MediaDto(
             media.ContentType,
             media.Length,
-            media.Checksum,
+            media.Sha256Checksum,
             CreateUri(media.Url));
     }
 

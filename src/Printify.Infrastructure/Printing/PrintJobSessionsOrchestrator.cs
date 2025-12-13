@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -86,6 +87,7 @@ public sealed class PrintJobSessionsOrchestrator(
         ArgumentNullException.ThrowIfNull(services);
 
         var mediaStorage = services.GetRequiredService<IMediaStorage>();
+        var documentRepository = services.GetRequiredService<IDocumentRepository>();
         var sourceElements = document.Elements ?? [];
         var changed = false;
         var resultElements = new List<Element>(sourceElements.Count);
@@ -94,8 +96,10 @@ public sealed class PrintJobSessionsOrchestrator(
         {
             if (sourceElement is RasterImageUpload rasterUpload)
             {
-                var media = await mediaStorage.SaveAsync(rasterUpload.Media, ct).ConfigureAwait(false);
-                resultElements.Add(new RasterImage(rasterUpload.Width, rasterUpload.Height, media));
+                var sha256Checksum = Convert.ToHexString(SHA256.HashData(rasterUpload.Media.Content.ToArray())).ToLowerInvariant(); //todo debugnow is effective?
+                var savedMedia = await documentRepository.GetMediaByChecksumAsync(sha256Checksum, ct).ConfigureAwait(false) ??
+                            await mediaStorage.SaveAsync(rasterUpload.Media, ct).ConfigureAwait(false); //todo debugnow optimize to avoid double checksum
+                resultElements.Add(new RasterImage(rasterUpload.Width, rasterUpload.Height, savedMedia));
                 changed = true;
             }
             else

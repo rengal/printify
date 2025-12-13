@@ -19,6 +19,11 @@ public sealed class MediaController([NotNull] IMediator mediator) : ControllerBa
             return NotFound();
         }
 
+        if (!string.IsNullOrWhiteSpace(result.Checksum))
+        {
+            Response.Headers.ETag = $"\"sha256:{result.Checksum}\"";
+        }
+
         return File(result.Content, result.ContentType);
     }
 }

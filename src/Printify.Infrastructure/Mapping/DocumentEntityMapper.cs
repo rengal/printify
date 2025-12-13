@@ -168,7 +168,7 @@ internal static class DocumentMediaEntityMapper
             IsDeleted = media.IsDeleted,
             ContentType = media.ContentType,
             Length = media.Length,
-            Checksum = media.Checksum,
+            Checksum = media.Sha256Checksum,
             Url = media.Url
         };
     }
