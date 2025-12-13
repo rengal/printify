@@ -1,4 +1,6 @@
-﻿namespace Printify.Infrastructure.Mapping;
+﻿using Printify.Domain.Mapping;
+
+namespace Printify.Infrastructure.Mapping;
 
 using System;
 using System.Collections.Generic;
@@ -29,7 +31,7 @@ internal static class DocumentEntityMapper
         };
 
         var elementEntities = new List<DocumentElementEntity>();
-        var elements = document.Elements ?? Array.Empty<Element>();
+        var elements = document.Elements;
         var index = 0;
         foreach (var element in elements)
         {

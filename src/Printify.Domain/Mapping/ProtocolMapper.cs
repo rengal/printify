@@ -1,10 +1,10 @@
 using Printify.Domain.Printers;
 
-namespace Printify.Infrastructure.Mapping;
+namespace Printify.Domain.Mapping;
 
-internal static class ProtocolMapper
+public static class ProtocolMapper
 {
-    internal static Protocol ParseProtocol(string protocol)
+    public static Protocol ParseProtocol(string protocol)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(protocol);
         if (protocol.ToLower() == "escpos")
@@ -15,7 +15,7 @@ internal static class ProtocolMapper
         throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Protocol is not supported.");
     }
 
-    internal static string ToString(Protocol protocol)
+    public static string ToString(Protocol protocol)
     {
         return protocol switch
         {

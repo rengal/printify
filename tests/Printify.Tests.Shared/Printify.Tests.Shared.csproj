@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Printify.Domain\Printify.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Printify.Web.Contracts\Printify.Web.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

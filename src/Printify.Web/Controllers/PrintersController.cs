@@ -152,7 +152,7 @@ public sealed class PrintersController : ControllerBase
             return NotFound();
         }
 
-        return Ok(document);
+        return Ok(DocumentMapper.ToResponseDto(document));
     }
 
     [Authorize]

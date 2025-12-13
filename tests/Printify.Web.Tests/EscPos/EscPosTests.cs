@@ -3,16 +3,19 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Printify.Application.Printing.Events;
-using Printify.Domain.Documents.Elements;
+using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
 using Printify.Tests.Shared.Document;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
 using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Contracts.Auth.Responses;
+using Printify.Web.Contracts.Documents.Responses;
+using Printify.Web.Contracts.Documents.Responses.Elements;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Workspaces.Requests;
 using Printify.Web.Contracts.Workspaces.Responses;
+using Bell = Printify.Domain.Documents.Elements.Bell;
 
 namespace Printify.Web.Tests.EscPos;
 
@@ -126,23 +129,32 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         var documentId = documentEvent.Document.Id;
         var response = await environment.Client.GetAsync($"/api/printers/{printerId}/documents/{documentId}");
         response.EnsureSuccessStatusCode();
-        
-        var retrievedDocument = await response.Content.ReadFromJsonAsync<Domain.Documents.Document>();
+
+        // Read response content as string
+        var responseContent = await response.Content.ReadAsStringAsync();
+
+        // Parse JSON with custom options
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        var retrievedDocument = System.Text.Json.JsonSerializer.Deserialize<DocumentDto>(responseContent, options);
+
         Assert.NotNull(retrievedDocument);
-        
-        DocumentAssertions.Equal(retrievedDocument, Protocol.EscPos,
+
+        DocumentAssertions.Equal(retrievedDocument, ProtocolMapper.ToString(Protocol.EscPos),
             scenario.ExpectedFinalizedElements ?? scenario.ExpectedElements);
 
         // Verify RasterImage elements have accessible Media URLs
         foreach (var element in retrievedDocument.Elements)
         {
-            if (element is RasterImage rasterImage)
+            if (element is RasterImageDto rasterImage)
             {
-                Assert.NotNull(rasterImage.Media.Url);
-                Assert.False(string.IsNullOrWhiteSpace(rasterImage.Media.Url));
+                Assert.NotNull(rasterImage.Media.Href);
+                Assert.False(string.IsNullOrWhiteSpace(rasterImage.Media.Href.LocalPath));
 
                 // Verify the media URL is accessible
-                var mediaResponse = await environment.Client.GetAsync(rasterImage.Media.Url);
+                var mediaResponse = await environment.Client.GetAsync(rasterImage.Media.Href.LocalPath);
                 mediaResponse.EnsureSuccessStatusCode();
 
                 // Verify content type is an image
@@ -159,10 +171,11 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
                 Assert.Equal(responseLength.Value, payload.LongLength);
                 Assert.Equal(rasterImage.Media.Length, payload.LongLength);
 
-                if (!string.IsNullOrWhiteSpace(rasterImage.Media.Sha256Checksum))
+                // Verify SHA-256 checksum is valid
+                if (!string.IsNullOrWhiteSpace(rasterImage.Media.Sha256))
                 {
                     var computedChecksum = Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant();
-                    Assert.Equal(rasterImage.Media.Sha256Checksum, computedChecksum);
+                    Assert.Equal(rasterImage.Media.Sha256, computedChecksum);
 
                     var eTag = mediaResponse.Headers.ETag?.Tag;
                     Assert.NotNull(eTag);
@@ -170,7 +183,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
                     var eTagValue = eTag.Trim('"');
                     var eTagChecksum = eTagValue.Split(':', 2).ElementAtOrDefault(1);
                     Assert.False(string.IsNullOrWhiteSpace(eTagChecksum));
-                    Assert.Equal(computedChecksum, eTagChecksum!.ToLowerInvariant());
+                    Assert.Equal(computedChecksum, eTagChecksum.ToLowerInvariant());
                 }
             }
         }

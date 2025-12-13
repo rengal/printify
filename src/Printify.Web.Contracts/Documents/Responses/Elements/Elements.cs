@@ -126,12 +126,12 @@ public sealed record StoreQrData(string Content) : ResponseNonPrintingElement;
 /// Descriptor for media stored in external storage.
 /// </summary>
 /// <param name="ContentType">MIME type, e.g. "image/png".</param>
-/// <param name="SizeBytes">Size in bytes.</param>
+/// <param name="Length">Length in bytes.</param>
 /// <param name="Sha256">Sha256 checksum.</param>
 /// <param name="Href">Absolute or app-relative URL to retrieve the media bytes.</param>
 public sealed record MediaDto(
     string ContentType,
-    long? SizeBytes,
+    long? Length,
     string? Sha256,
     Uri Href);
 

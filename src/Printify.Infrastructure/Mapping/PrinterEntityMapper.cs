@@ -1,3 +1,4 @@
+using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
 using Printify.Infrastructure.Persistence.Entities.Printers;
 
