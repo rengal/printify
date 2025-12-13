@@ -9,7 +9,6 @@ using Printify.Domain.Documents;
 using Printify.Domain.Media;
 using Printify.Infrastructure.Mapping;
 using Printify.Infrastructure.Persistence;
-using Printify.Infrastructure.Persistence.Entities.Documents;
 
 /// <summary>
 /// Persists printer documents inside the shared DbContext so they can be queried and streamed later.
@@ -94,17 +93,14 @@ public sealed class DocumentRepository : IDocumentRepository
         return entity is null ? null : DocumentMediaEntityMapper.ToDomain(entity);
     }
 
-    public async ValueTask<Media?> GetMediaByChecksumAsync(string checksum, CancellationToken ct)
+    public async ValueTask<Media?> GetMediaByChecksumAsync(string checksum, Guid? ownerWorkspaceId, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(checksum))
-        {
             return null;
-        }
 
         var entity = await dbContext.DocumentMedia
             .AsNoTracking()
-            .Where(media => media.Checksum == checksum)
-            .OrderByDescending(media => media.CreatedAt)
+            .Where(media => media.Checksum == checksum && (ownerWorkspaceId == null || media.OwnerWorkspaceId == ownerWorkspaceId))
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 

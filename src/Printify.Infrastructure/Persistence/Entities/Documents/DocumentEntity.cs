@@ -70,6 +70,9 @@ public sealed class DocumentMediaEntity
     [Column("id")]
     public Guid Id { get; set; }
 
+    [Column("owner_workspace_id")]
+    public Guid? OwnerWorkspaceId { get; set; }
+
     [Column("created_at")]
     public DateTimeOffset CreatedAt { get; set; }
 

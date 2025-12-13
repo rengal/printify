@@ -11,8 +11,17 @@ public interface IMediaStorage
 {
     /// <summary>
     /// Persists an uploaded payload and returns the resulting <see cref="MediaRecord"/> aggregate.
+     /// </summary>
+    ValueTask<MediaRecord> SaveAsync(MediaUpload upload, Guid? ownerWorkspaceId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Persists an uploaded payload and returns the resulting <see cref="MediaRecord"/> aggregate, reusing a precomputed checksum.
     /// </summary>
-    ValueTask<MediaRecord> SaveAsync(MediaUpload upload, CancellationToken cancellationToken = default);
+    ValueTask<MediaRecord> SaveAsync(
+        MediaUpload upload,
+        Guid? ownerWorkspaceId,
+        string sha256Checksum,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Opens a read-only stream for the specified media. Returns <c>null</c> when not found.

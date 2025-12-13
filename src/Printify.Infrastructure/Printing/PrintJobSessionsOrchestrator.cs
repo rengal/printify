@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -7,6 +5,8 @@ using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
+using Printify.Infrastructure.Cryptography;
+using System.Collections.Concurrent;
 
 namespace Printify.Infrastructure.Printing;
 
@@ -88,17 +88,29 @@ public sealed class PrintJobSessionsOrchestrator(
 
         var mediaStorage = services.GetRequiredService<IMediaStorage>();
         var documentRepository = services.GetRequiredService<IDocumentRepository>();
-        var sourceElements = document.Elements ?? [];
+        var printerRepository = services.GetRequiredService<IPrinterRepository>();
+        var sourceElements = document.Elements;
         var changed = false;
         var resultElements = new List<Element>(sourceElements.Count);
+
+        var printer = await printerRepository.GetByIdAsync(document.PrinterId, ct).ConfigureAwait(false);
 
         foreach (var sourceElement in sourceElements)
         {
             if (sourceElement is RasterImageUpload rasterUpload)
             {
-                var sha256Checksum = Convert.ToHexString(SHA256.HashData(rasterUpload.Media.Content.ToArray())).ToLowerInvariant(); //todo debugnow is effective?
-                var savedMedia = await documentRepository.GetMediaByChecksumAsync(sha256Checksum, ct).ConfigureAwait(false) ??
-                            await mediaStorage.SaveAsync(rasterUpload.Media, ct).ConfigureAwait(false); //todo debugnow optimize to avoid double checksum
+                if (printer == null)
+                    continue;
+
+                // Images are content-addressed (SHA-256), enabling safe deduplication without relying on file names or IDs.
+                var sha256Checksum = Sha256Checksum.ComputeLowerHex(rasterUpload.Media.Content.Span);
+
+                var savedMedia = await documentRepository
+                                     .GetMediaByChecksumAsync(sha256Checksum, printer.OwnerWorkspaceId, ct)
+                                     .ConfigureAwait(false) ??
+                                 await mediaStorage.SaveAsync(rasterUpload.Media, printer.OwnerWorkspaceId, sha256Checksum, ct)
+                                     .ConfigureAwait(false);
+
                 resultElements.Add(new RasterImage(rasterUpload.Width, rasterUpload.Height, savedMedia));
                 changed = true;
             }

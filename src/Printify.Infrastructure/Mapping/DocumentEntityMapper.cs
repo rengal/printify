@@ -164,6 +164,7 @@ internal static class DocumentMediaEntityMapper
         return new DocumentMediaEntity
         {
             Id = media.Id,
+            OwnerWorkspaceId = media.OwnerWorkspaceId,
             CreatedAt = media.CreatedAt,
             IsDeleted = media.IsDeleted,
             ContentType = media.ContentType,
@@ -179,6 +180,7 @@ internal static class DocumentMediaEntityMapper
 
         return new Media(
             entity.Id,
+            entity.OwnerWorkspaceId,
             entity.CreatedAt,
             entity.IsDeleted,
             entity.ContentType,

@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +12,9 @@ public sealed class MediaController([NotNull] IMediator mediator) : ControllerBa
     [HttpGet("{mediaId:guid}")]
     public async Task<IActionResult> GetAsync(Guid mediaId, CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(new GetMediaQuery(mediaId), cancellationToken).ConfigureAwait(false);
+        var result = await mediator
+            .Send(new GetMediaQuery(mediaId), cancellationToken)
+            .ConfigureAwait(false);
         if (result is null)
         {
             return NotFound();

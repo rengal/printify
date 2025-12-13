@@ -2,7 +2,7 @@ using Microsoft.Extensions.Options;
 using Printify.Domain.Config;
 using Printify.Domain.Media;
 using Printify.Domain.Services;
-using System.Security.Cryptography;
+using Printify.Infrastructure.Cryptography;
 
 namespace Printify.Infrastructure.Persistence;
 
@@ -17,20 +17,37 @@ public sealed class FileSystemMediaStorage : IMediaStorage
     {
         ArgumentNullException.ThrowIfNull(options);
         var value = options.Value.BlobPath;
-        if (string.IsNullOrWhiteSpace(value))
+        rootPath = string.IsNullOrWhiteSpace(value) ? string.Empty : Path.GetFullPath(value);
+        if (!string.IsNullOrWhiteSpace(rootPath))
         {
-            //throw new ArgumentException("RootPath must be configured", nameof(options)); //todo debugnow
-            rootPath = string.Empty;
+            Directory.CreateDirectory(rootPath);
         }
-
-        //rootPath = Path.GetFullPath(value);
-        //Directory.CreateDirectory(rootPath);
     }
 
-    public async ValueTask<Domain.Media.Media> SaveAsync(MediaUpload upload,
+    public async ValueTask<Domain.Media.Media> SaveAsync(
+        MediaUpload upload,
+        Guid? ownerWorkspaceId,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(upload);
+
+        // Checksum is used for content-addressed deduplication; compute it once per upload where possible.
+        var sha256Checksum = Sha256Checksum.ComputeLowerHex(upload.Content.Span);
+        return await SaveAsync(upload, ownerWorkspaceId, sha256Checksum, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async ValueTask<Domain.Media.Media> SaveAsync(
+        MediaUpload upload,
+        Guid? ownerWorkspaceId,
+        string sha256Checksum,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(upload);
+        if (string.IsNullOrWhiteSpace(sha256Checksum))
+        {
+            // Guard against inconsistent callers; storage always persists a checksum for downstream lookups and caching.
+            sha256Checksum = Sha256Checksum.ComputeLowerHex(upload.Content.Span);
+        }
 
         var mediaId = Guid.NewGuid();
         var blobId = mediaId.ToString("N");
@@ -44,15 +61,13 @@ public sealed class FileSystemMediaStorage : IMediaStorage
             {
                 await file.WriteAsync(upload.Content, cancellationToken).ConfigureAwait(false);
             }
-
-            await file.FlushAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        var sha256Checksum = Convert.ToHexString(SHA256.HashData(upload.Content.ToArray())).ToLowerInvariant(); //todo debugnow is effective?
         var url = BuildMediaUrl(mediaId);
 
         return new Domain.Media.Media(
             mediaId,
+            ownerWorkspaceId,
             DateTimeOffset.UtcNow,
             IsDeleted: false,
             upload.ContentType,

@@ -119,7 +119,7 @@ public static class EscPosScenarioData
             [
                 // Note: PNG data, length, and checksum are not generated in this test scenario as they would require complex image encoding.
                 // The empty ReadOnlyMemory<byte> is used as a placeholder to verify command parsing structure.
-                new RasterImage(8, 1, new Media(Guid.Empty, DateTimeOffset.Now, false,
+                new RasterImage(8, 1, new Media(Guid.Empty, null, DateTimeOffset.Now, false,
                     "image/png", 90, string.Empty, string.Empty))
             ])
     ];

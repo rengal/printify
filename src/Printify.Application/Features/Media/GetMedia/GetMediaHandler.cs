@@ -19,7 +19,10 @@ public sealed class GetMediaHandler : IRequestHandler<GetMediaQuery, MediaDownlo
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var media = await documentRepository.GetMediaByIdAsync(request.MediaId, cancellationToken).ConfigureAwait(false);
+        // Media is workspace-scoped; do not allow anonymous downloads.
+        var media = await documentRepository
+            .GetMediaByIdAsync(request.MediaId, cancellationToken)
+            .ConfigureAwait(false);
         if (media is null || media.IsDeleted)
         {
             return null;
