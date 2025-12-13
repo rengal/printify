@@ -161,18 +161,6 @@ public enum BarcodeLabelPosition
 }
 
 /// <summary>
-/// Cash drawer pin selection for pulse commands.
-/// </summary>
-public enum PulsePin
-{
-    /// <summary>Drawer 1 pin.</summary>
-    Drawer1,
-
-    /// <summary>Drawer 2 pin.</summary>
-    Drawer2
-}
-
-/// <summary>
 /// Error correction levels supported by QR codes in ESC/POS.
 /// </summary>
 public enum QrErrorCorrectionLevel
@@ -308,21 +296,45 @@ public sealed record GetPrinterStatus(
 /// </summary>
 /// <param name="Symbology">Selected barcode symbology.</param>
 /// <param name="Data">Raw data payload to encode.</param>
-public sealed record PrintBarcode(BarcodeSymbology Symbology, string Data)
+public sealed record PrintBarcodeUpload(
+    BarcodeSymbology Symbology,
+    string Data)
+    : PrintingElement;
+
+/// <summary>
+/// Renders a one-dimensional barcode using the GS k command family.
+/// </summary>
+/// <param name="Symbology">Selected barcode symbology.</param>
+/// <param name="Data">Raw data payload to encode.</param>
+public sealed record PrintBarcode(
+    BarcodeSymbology Symbology,
+    string Data,
+    int Width,
+    int Height,
+    DomainMedia Media)
     : PrintingElement;
 
 /// <summary>
 /// Emits a QR code print request using the last stored payload.
 /// </summary>
-public sealed record PrintQrCode : PrintingElement;
+public sealed record PrintQrCodeUpload : PrintingElement;
+
+/// <summary>
+/// Emits a QR code print request using the last stored payload.
+/// </summary>
+public sealed record PrintQrCode(
+    string Data,
+    int Width,
+    int Height,
+    DomainMedia Media) : PrintingElement;
 
 /// <summary>
 /// A cash drawer pulse signal sent to a specific pin.
 /// </summary>
-/// <param name="Pin">Target drawer pin (e.g., Drawer1/Drawer2).</param>
+/// <param name="Pin">Target drawer pin.</param>
 /// <param name="OnTimeMs">Pulse ON interval in milliseconds.</param>
 /// <param name="OffTimeMs">Pulse OFF interval in milliseconds.</param>
-public sealed record Pulse(PulsePin Pin, int OnTimeMs, int OffTimeMs)
+public sealed record Pulse(int Pin, int OnTimeMs, int OffTimeMs)
     : NonPrintingElement;
 
 /// <summary>

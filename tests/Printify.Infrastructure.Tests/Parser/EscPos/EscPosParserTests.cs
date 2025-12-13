@@ -24,7 +24,7 @@ public partial class EscPosParserTests(EscPosParserFixture fixture) : IClassFixt
         }
 
         parser.Complete();
-        DocumentAssertions.Equal(scenario.ExpectedElements, elements);
+        DocumentAssertions.Equal(scenario.ExpectedRequestElements, elements);
     }
 
     private void AssertScenarioAcrossAllStrategies(EscPosScenario scenario)

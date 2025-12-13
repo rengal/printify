@@ -3,14 +3,14 @@ namespace Printify.Web.Contracts.Documents.Shared.Elements;
 /// <summary>
 /// Base contract for all document elements with sequencing metadata.
 /// </summary>
-public abstract record BaseElement;
+public abstract record BaseElementDto;
 
 /// <summary>
 /// Marker base for elements that produce visible output during printing.
 /// </summary>
-public abstract record PrintingElement : BaseElement;
+public abstract record PrintingElementDto : BaseElementDto;
 
 /// <summary>
 /// Marker base for elements that modify state or encode diagnostics without rendering.
 /// </summary>
-public abstract record NonPrintingElement : BaseElement;
+public abstract record NonPrintingElementDto : BaseElementDto;

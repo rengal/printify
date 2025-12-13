@@ -1,0 +1,82 @@
+using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printers;
+
+namespace Printify.Domain.Mapping;
+
+public static class DomainMapper
+{
+        
+    public static Protocol ParseProtocol(string protocol)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(protocol);
+        return protocol switch
+        {
+            "EscPos" => Protocol.EscPos,
+            _ => throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Protocol is not supported.")
+        };
+    }
+
+    public static string ToString(Protocol protocol)
+    {
+        return protocol switch
+        {
+            Protocol.EscPos => "EscPos",
+            _ => throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Unsupported protocol value.")
+        };
+    }
+
+    public static BarcodeSymbology ParseBarcodeSymbology(string symbology)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbology);
+        return Enum.Parse<BarcodeSymbology>(symbology, false);
+    }
+
+    public static string ToString(BarcodeSymbology symbology)
+    {
+        return symbology.ToString();
+    }
+
+    public static BarcodeLabelPosition ParseBarcodeLabelPosition(string position)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(position);
+        return Enum.Parse<BarcodeLabelPosition>(position, false);
+    }
+
+    public static string ToString(BarcodeLabelPosition position)
+    {
+        return position.ToString();
+    }
+
+    public static QrErrorCorrectionLevel ParseQrErrorCorrectionLevel(string level)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(level);
+        return Enum.Parse<QrErrorCorrectionLevel>(level, false);
+    }
+
+    public static string ToString(QrErrorCorrectionLevel level)
+    {
+        return level.ToString();
+    }
+
+    public static QrModel ParseQrModel(string model)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+        return Enum.Parse<QrModel>(model, false);
+    }
+
+    public static string ToString(QrModel model)
+    {
+        return model.ToString();
+    }
+
+    public static TextJustification ParseTextJustification(string justification)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(justification);
+        return Enum.Parse<TextJustification>(justification, false);
+    }
+
+    public static string ToString(TextJustification justification)
+    {
+        return justification.ToString();
+    }
+}

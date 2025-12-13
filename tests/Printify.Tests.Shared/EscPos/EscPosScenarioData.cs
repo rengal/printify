@@ -25,75 +25,75 @@ public static class EscPosScenarioData
     public static TheoryData<EscPosScenario> BellScenarios { get; } =
     [
         new(Input: [0x07],
-            ExpectedElements: [new Bell()]),
+            ExpectedRequestElements: [new Bell()]),
         new(
             Input: Enumerable.Repeat((byte)0x07, 10).ToArray(),
-            ExpectedElements: Enumerable.Range(0, 10).Select(_ => new Bell()).ToArray())
+            ExpectedRequestElements: Enumerable.Range(0, 10).Select(_ => new Bell()).ToArray())
     ];
 
     public static TheoryData<EscPosScenario> TextScenarios { get; } =
     [
-        new(Input: "A"u8.ToArray(), ExpectedElements: [new TextLine("A")]),
-        new(Input: "ABC\n"u8.ToArray(), ExpectedElements: [new TextLine("ABC")]),
-        new(Input: "ABC"u8.ToArray(), ExpectedElements: [new TextLine("ABC")]),
-        new(Input: "ABC"u8.ToArray(), ExpectedElements: [new TextLine("ABC")]),
+        new(Input: "A"u8.ToArray(), ExpectedRequestElements: [new TextLine("A")]),
+        new(Input: "ABC\n"u8.ToArray(), ExpectedRequestElements: [new TextLine("ABC")]),
+        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new TextLine("ABC")]),
+        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new TextLine("ABC")]),
         new(
             Input: "ABC\nDEF\nG"u8.ToArray(),
-            ExpectedElements: [new TextLine("ABC"), new TextLine("DEF"), new TextLine("G")]),
-        new(Input: "ABC"u8.ToArray(), ExpectedElements: [new TextLine("ABC")]),
+            ExpectedRequestElements: [new TextLine("ABC"), new TextLine("DEF"), new TextLine("G")]),
+        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new TextLine("ABC")]),
         new(
             Input: Encoding.ASCII.GetBytes(new string('A', 10_000)),
-            ExpectedElements: [new TextLine(new string('A', 10_000))]),
+            ExpectedRequestElements: [new TextLine(new string('A', 10_000))]),
         new(
             Input: [.. "ABC"u8, 0x07],
-            ExpectedElements: [new TextLine("ABC"), new Bell()]),
+            ExpectedRequestElements: [new TextLine("ABC"), new Bell()]),
         new(
             Input: [.. "ABC"u8, 0x07, .. "DEF"u8, 0x07],
-            ExpectedElements: [new TextLine("ABC"), new Bell(), new TextLine("DEF"), new Bell()]),
+            ExpectedRequestElements: [new TextLine("ABC"), new Bell(), new TextLine("DEF"), new Bell()]),
         new(
             Input: [.. "ABC"u8, 0x07, .. "DEF\n"u8, 0x07],
-            ExpectedElements: [new TextLine("ABC"), new Bell(), new TextLine("DEF"), new Bell()]),
+            ExpectedRequestElements: [new TextLine("ABC"), new Bell(), new TextLine("DEF"), new Bell()]),
         new(
             Input: "\n"u8.ToArray(),
-            ExpectedElements: [new TextLine("")]),
+            ExpectedRequestElements: [new TextLine("")]),
         new(
             Input: "\n\n\n"u8.ToArray(),
-            ExpectedElements: [new TextLine(""),new TextLine(""),new TextLine("")])
+            ExpectedRequestElements: [new TextLine(""),new TextLine(""),new TextLine("")])
     ];
 
     public static TheoryData<EscPosScenario> PagecutScenarios { get; } =
     [
-        new(Input: [Esc, (byte)'i'], ExpectedElements: [new Pagecut(PagecutMode.PartialOnePoint)]),
-        new(Input: [Gs, 0x56, 0x00], ExpectedElements: [new Pagecut(PagecutMode.Full)]),
-        new(Input: [Gs, 0x56, 0x30], ExpectedElements: [new Pagecut(PagecutMode.Full)]),
-        new(Input: [Gs, 0x56, 0x01], ExpectedElements: [new Pagecut(PagecutMode.Partial)]),
-        new(Input: [Gs, 0x56, 0x31], ExpectedElements: [new Pagecut(PagecutMode.Partial)]),
-        new(Input: [Gs, 0x56, 0x41, 0x05], ExpectedElements: [new Pagecut(PagecutMode.Full, 0x05)]),
-        new(Input: [Gs, 0x56, 0x42, 0x20], ExpectedElements: [new Pagecut(PagecutMode.Partial, 0x20)]),
-        new(Input: [Gs, 0x56, 0x61, 0x05], ExpectedElements: [new Pagecut(PagecutMode.Full, 0x05)]),
-        new(Input: [Gs, 0x56, 0x62, 0x20], ExpectedElements: [new Pagecut(PagecutMode.Partial, 0x20)]),
-        new(Input: [Gs, 0x56, 0x67, 0x05], ExpectedElements: [new Pagecut(PagecutMode.Full, 0x05)]),
-        new(Input: [Gs, 0x56, 0x68, 0x20], ExpectedElements: [new Pagecut(PagecutMode.Partial, 0x20)])
+        new(Input: [Esc, (byte)'i'], ExpectedRequestElements: [new Pagecut(PagecutMode.PartialOnePoint)]),
+        new(Input: [Gs, 0x56, 0x00], ExpectedRequestElements: [new Pagecut(PagecutMode.Full)]),
+        new(Input: [Gs, 0x56, 0x30], ExpectedRequestElements: [new Pagecut(PagecutMode.Full)]),
+        new(Input: [Gs, 0x56, 0x01], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial)]),
+        new(Input: [Gs, 0x56, 0x31], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial)]),
+        new(Input: [Gs, 0x56, 0x41, 0x05], ExpectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05)]),
+        new(Input: [Gs, 0x56, 0x42, 0x20], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20)]),
+        new(Input: [Gs, 0x56, 0x61, 0x05], ExpectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05)]),
+        new(Input: [Gs, 0x56, 0x62, 0x20], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20)]),
+        new(Input: [Gs, 0x56, 0x67, 0x05], ExpectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05)]),
+        new(Input: [Gs, 0x56, 0x68, 0x20], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20)])
     ];
 
     public static TheoryData<EscPosScenario> PulseScenarios { get; } =
     [
         new(
             Input: [Esc, (byte)'p', 0x01, 0x05, 0x0A],
-            ExpectedElements: [new Pulse(PulsePin.Drawer2, 0x05, 0x0A)]),
+            ExpectedRequestElements: [new Pulse(1, 0x05, 0x0A)]),
         new(
             Input: [Esc, (byte)'p', 0x00, 0x7D, 0x7F],
-            ExpectedElements: [new Pulse(PulsePin.Drawer1, 0x7D, 0x7F)]),
+            ExpectedRequestElements: [new Pulse(0, 0x7D, 0x7F)]),
         new(
             Input:
             [
                 Esc, (byte)'p', 0x00, 0x08, 0x16,
                 Esc, (byte)'p', 0x01, 0x02, 0x03
             ],
-            ExpectedElements:
+            ExpectedRequestElements:
             [
-                new Pulse(PulsePin.Drawer1, 0x08, 0x16),
-                new Pulse(PulsePin.Drawer2, 0x02, 0x03)
+                new Pulse(0, 0x08, 0x16),
+                new Pulse(1, 0x02, 0x03)
             ])
     ];
 
@@ -109,18 +109,17 @@ public static class EscPosScenarioData
                 0x01, 0x00, // yL yH: height in dots (1 dot)
                 0xFF // Bitmap data: 8 black pixels (11111111)
             ],
-            ExpectedElements:
+            ExpectedRequestElements:
             [
                 // Note: PNG data, length, and checksum are not generated in this test scenario as they would require complex image encoding.
                 // The empty ReadOnlyMemory<byte> is used as a placeholder to verify command parsing structure.
                 new RasterImageUpload(8, 1, new MediaUpload("image/png", ReadOnlyMemory<byte>.Empty))
             ],
-            ExpectedFinalizedElements:
+            ExpectedPersistedElements:
             [
                 // Note: PNG data, length, and checksum are not generated in this test scenario as they would require complex image encoding.
                 // The empty ReadOnlyMemory<byte> is used as a placeholder to verify command parsing structure.
-                new RasterImage(8, 1, new Media(Guid.Empty, null, DateTimeOffset.Now, false,
-                    "image/png", 90, string.Empty, string.Empty))
+                new RasterImage(8, 1, Media.CreateDefaultPng(90))
             ])
     ];
 
@@ -135,7 +134,7 @@ public static class EscPosScenarioData
                 Esc, 0x21, 0x31,
                 Esc, 0x21, 0x02
             ],
-            ExpectedElements:
+            ExpectedRequestElements:
             [
                 new SetFont(0, false, false),
                 new SetFont(1, false, false),
@@ -151,7 +150,7 @@ public static class EscPosScenarioData
                 Esc, (byte)'E', 0x01,
                 Esc, (byte)'E', 0x00
             ],
-            ExpectedElements:
+            ExpectedRequestElements:
             [
                 new SetBoldMode(true),
                 new SetBoldMode(false),
@@ -168,7 +167,7 @@ public static class EscPosScenarioData
                 Gs, 0x42, 0x00,
                 Gs, 0x42, 0x01
             ],
-            ExpectedElements:
+            ExpectedRequestElements:
             [
                 new SetUnderlineMode(true),
                 new SetUnderlineMode(true),

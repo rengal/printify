@@ -1,7 +1,6 @@
-using System.Linq;
-using System.Reflection;
 using System.Text;
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Media;
 using Xunit;
 
 namespace Printify.Tests.Shared.EscPos;
@@ -11,70 +10,110 @@ namespace Printify.Tests.Shared.EscPos;
 /// </summary>
 public static class EscPosGoldenCases
 {
-    private static readonly IReadOnlyDictionary<string, IReadOnlyList<Element>> expectations =
-        new Dictionary<string, IReadOnlyList<Element>>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["case01"] =
-            [
-                new ResetPrinter(),
-                new SetFont(0, false, false),
-                new SetCodePage("866"),
-                new SetFont(0, false, false),
-                new TextLine(Pad("font 0", 42)),
-                new Pagecut(PagecutMode.Partial, 0)
-            ],
-            ["case02"] =
-            [
-                new ResetPrinter(),
-                new SetFont(0, false, false),
-                new SetCodePage("866"),
-                new SetFont(0, false, false),
-                new TextLine(Pad("font 0", 42)),
-                new SetFont(1, true, true),
-                new TextLine(Pad("font 1", 28)),
-                new SetFont(0, true, true),
-                new TextLine(Pad("font 2", 21)),
-                new Pagecut(PagecutMode.Partial, 0)
-            ],
-            ["case03"] =
-            [
-                new ResetPrinter(),
-                new SetFont(0, false, false),
-                new SetCodePage("866"),
-                new SetFont(0, false, false),
-                new SetJustification(TextJustification.Right),
-                new SetBarcodeHeight(101),
-                new SetBarcodeModuleWidth(3),
-                new SetBarcodeLabelPosition(BarcodeLabelPosition.Below),
-                new PrintBarcode(BarcodeSymbology.Ean13, "1234567890128"),
-                new SetJustification(TextJustification.Left),
-                new TextLine(string.Empty),
-                new Pagecut(PagecutMode.Partial, 0)
-            ],
-            ["case04"] =
-            [
-                new ResetPrinter(),
-                new SetFont(0, false, false),
-                new SetCodePage("866"),
-                new SetJustification(TextJustification.Left),
-                new SetQrModel(QrModel.Model2),
-                new SetQrModuleSize(7),
-                new SetQrErrorCorrection(QrErrorCorrectionLevel.Low),
-                new StoreQrData("https://google.com"),
-                new PrintQrCode(),
-                new TextLine(string.Empty),
-                new Pagecut(PagecutMode.Partial, 0)
-            ],
-            ["case05"] =
-            [
-                new ResetPrinter(),
-                new SetFont(0, false, false),
-                new StoredLogo(0),
-                new Pagecut(PagecutMode.Partial, 0)
-            ]
-        };
+    private static readonly
+        IReadOnlyDictionary<string, (IReadOnlyList<Element>, IReadOnlyList<Element>?)> expectations =
+            new Dictionary<string, (IReadOnlyList<Element> expectedRequestElement, IReadOnlyList<Element>?
+                expectedFinalizedElements)>
+            {
+                ["case01"] = (
+                    expectedRequestElement:
+                    [
+                        new ResetPrinter(),
+                        new SetFont(0, false, false),
+                        new SetCodePage("866"),
+                        new SetFont(0, false, false),
+                        new TextLine(Pad("font 0", 42)),
+                        new Pagecut(PagecutMode.Partial, 0)
+                    ],
+                    expectedFinalizedElements: null), // the same as elements
+                ["case02"] = (
+                    expectedRequestElement:
+                    [
+                        new ResetPrinter(),
+                        new SetFont(0, false, false),
+                        new SetCodePage("866"),
+                        new SetFont(0, false, false),
+                        new TextLine(Pad("font 0", 42)),
+                        new SetFont(1, true, true),
+                        new TextLine(Pad("font 1", 28)),
+                        new SetFont(0, true, true),
+                        new TextLine(Pad("font 2", 21)),
+                        new Pagecut(PagecutMode.Partial, 0)
+                    ],
+                    expectedFinalizedElements: null), // the same as elements
+                ["case03"] = (
+                    expectedRequestElement:
+                    [
+                        new ResetPrinter(),
+                        new SetFont(0, false, false),
+                        new SetCodePage("866"),
+                        new SetFont(0, false, false),
+                        new SetJustification(TextJustification.Right),
+                        new SetBarcodeHeight(101),
+                        new SetBarcodeModuleWidth(3),
+                        new SetBarcodeLabelPosition(BarcodeLabelPosition.Below),
+                        new PrintBarcodeUpload(BarcodeSymbology.Ean13, "1234567890128"),
+                        new SetJustification(TextJustification.Left),
+                        new TextLine(string.Empty),
+                        new Pagecut(PagecutMode.Partial, 0)
+                    ],
+                    expectedFinalizedElements:
+                    [
+                        new ResetPrinter(),
+                        new SetFont(0, false, false),
+                        new SetCodePage("866"),
+                        new SetFont(0, false, false),
+                        new SetJustification(TextJustification.Right),
+                        new SetBarcodeHeight(101),
+                        new SetBarcodeModuleWidth(3),
+                        new SetBarcodeLabelPosition(BarcodeLabelPosition.Below),
+                        new PrintBarcode(BarcodeSymbology.Ean13, "1234567890128", 0, 0, Media.CreateDefaultPng(1)),
+                        new SetJustification(TextJustification.Left),
+                        new TextLine(string.Empty),
+                        new Pagecut(PagecutMode.Partial, 0)
+                    ]),
+                ["case04"] = (
+                    expectedRequestElement:
+                    [
+                        new ResetPrinter(),
+                        new SetFont(0, false, false),
+                        new SetCodePage("866"),
+                        new SetJustification(TextJustification.Left),
+                        new SetQrModel(QrModel.Model2),
+                        new SetQrModuleSize(7),
+                        new SetQrErrorCorrection(QrErrorCorrectionLevel.Low),
+                        new StoreQrData("https://google.com"),
+                        new PrintQrCodeUpload(),
+                        new TextLine(string.Empty),
+                        new Pagecut(PagecutMode.Partial, 0)
+                    ],
+                    expectedFinalizedElements:
+                    [
+                        new ResetPrinter(),
+                        new SetFont(0, false, false),
+                        new SetCodePage("866"),
+                        new SetJustification(TextJustification.Left),
+                        new SetQrModel(QrModel.Model2),
+                        new SetQrModuleSize(7),
+                        new SetQrErrorCorrection(QrErrorCorrectionLevel.Low),
+                        new StoreQrData("https://google.com"),
+                        new PrintQrCode("https://google.com", 0, 0, Media.CreateDefaultPng(2)),
+                        new TextLine(string.Empty),
+                        new Pagecut(PagecutMode.Partial, 0)
+                    ]), // the same as elements
+                ["case05"] = (
+                    expectedRequestElement:
+                        [
+                            new ResetPrinter(),
+                            new SetFont(0, false, false),
+                            new StoredLogo(0),
+                            new Pagecut(PagecutMode.Partial, 0)
+                        ],
+                        expectedFinalizedElements: null), // the same as elements
+            };
 
-    public static IReadOnlyDictionary<string, IReadOnlyList<Element>> Expectations => expectations;
+    public static
+        IReadOnlyDictionary<string, (IReadOnlyList<Element> expectedRequestElement, IReadOnlyList<Element> expectedPersistedElements)> Expectations => expectations;
 
     public static TheoryData<string, byte[]> Cases { get; } = BuildCases();
 

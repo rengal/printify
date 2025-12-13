@@ -6,8 +6,8 @@ public partial class EscPosParserTests
     [MemberData(nameof(EscPosGoldenCases.Cases), MemberType = typeof(EscPosGoldenCases))]
     public void Parser_Golden_Cases_ProduceExpectedElements(string caseId, byte[] payload)
     {
-        Assert.True(EscPosGoldenCases.Expectations.TryGetValue(caseId, out var expectedElements));
-        var scenario = new EscPosScenario(payload, expectedElements);
+        Assert.True(EscPosGoldenCases.Expectations.TryGetValue(caseId, out var value));
+        var scenario = new EscPosScenario(payload, value.expectedRequestElement, value.expectedPersistedElements);
         AssertScenarioAcrossAllStrategies(scenario);
     }
 }

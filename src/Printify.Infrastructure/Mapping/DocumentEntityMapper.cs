@@ -26,7 +26,7 @@ internal static class DocumentEntityMapper
             PrinterId = document.PrinterId,
             Version = document.Version == 0 ? Document.CurrentVersion : document.Version,
             CreatedAt = document.CreatedAt,
-            Protocol = ProtocolMapper.ToString(document.Protocol),
+            Protocol = DomainMapper.ToString(document.Protocol),
             ClientAddress = document.ClientAddress
         };
 
@@ -54,7 +54,7 @@ internal static class DocumentEntityMapper
     {
         ArgumentNullException.ThrowIfNull(entity);
 
-        var protocol = ProtocolMapper.ParseProtocol(entity.Protocol);
+        var protocol = DomainMapper.ParseProtocol(entity.Protocol);
         var elements = entity.Elements
             .OrderBy(element => element.Sequence)
             .Select(elementEntity =>
@@ -172,6 +172,7 @@ internal static class DocumentMediaEntityMapper
             ContentType = media.ContentType,
             Length = media.Length,
             Checksum = media.Sha256Checksum,
+            FileName = media.FileName,
             Url = media.Url
         };
     }
@@ -188,6 +189,7 @@ internal static class DocumentMediaEntityMapper
             entity.ContentType,
             entity.Length,
             entity.Checksum,
+            entity.FileName,
             entity.Url);
     }
 }

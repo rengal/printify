@@ -63,7 +63,7 @@ public sealed class QrCodeDescriptor : ICommandDescriptor
                     : string.Empty),
             0x51
                 // GS ( k <Function 0x51> - QR Code: Print the symbol data in the symbol storage area
-                => new PrintQrCode(),
+                => new PrintQrCodeUpload(),
             _ => null
         };
 

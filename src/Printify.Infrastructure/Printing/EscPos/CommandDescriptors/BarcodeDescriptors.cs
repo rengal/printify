@@ -130,7 +130,7 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
             consumed = terminator + 1;
         }
 
-        return MatchResult.Matched(consumed, new PrintBarcode(symbology, content));
+        return MatchResult.Matched(consumed, new PrintBarcodeUpload(symbology, content));
     }
 
     private static bool TryResolveBarcodeSymbology(byte value, out BarcodeSymbology symbology)

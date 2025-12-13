@@ -17,7 +17,7 @@ internal static class PrinterJobEntityMapper
             IsDeleted = job.IsDeleted,
             PrinterId = job.Printer.Id,
             DisplayName = job.Printer.DisplayName,
-            Protocol = ProtocolMapper.ToString(job.Printer.Protocol),
+            Protocol = DomainMapper.ToString(job.Printer.Protocol),
             WidthInDots = job.Printer.WidthInDots,
             HeightInDots = job.Printer.HeightInDots,
             ClientAddress = job.ClientAddress

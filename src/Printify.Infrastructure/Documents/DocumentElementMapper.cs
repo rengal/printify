@@ -26,12 +26,19 @@ public static class DocumentElementMapper
             GetPrinterStatus status => new PrinterStatusElementPayload(status.StatusByte, status.AdditionalStatusByte),
             PrintBarcode barcode => new PrintBarcodeElementPayload(
                 SerializeEnum(barcode.Symbology, BarcodeSymbology.Code39),
-                barcode.Data),
-            PrintQrCode => new PrintQrCodeElementPayload(),
-            Pulse pulse => new PulseElementPayload(
-                SerializeEnum(pulse.Pin, Domain.Documents.Elements.PulsePin.Drawer1),
-                pulse.OnTimeMs,
-                pulse.OffTimeMs),
+                barcode.Data,
+                barcode.Width,
+                barcode.Height,
+                barcode.Media.Id),
+            PrintQrCode qrCode => new PrintQrCodeElementPayload(
+                qrCode.Data,
+                qrCode.Width,
+                qrCode.Height,
+                qrCode.Media.Id),
+            RasterImage image => new RasterImageElementPayload(image.Width,
+                image.Height,
+                image.Media.Id),
+            Pulse pulse => new PulseElementPayload(pulse.Pin, pulse.OnTimeMs, pulse.OffTimeMs),
             ResetPrinter => new ResetPrinterElementPayload(),
             SetBarcodeHeight height => new SetBarcodeHeightElementPayload(height.HeightInDots),
             SetBarcodeLabelPosition position => new SetBarcodeLabelPositionElementPayload(
@@ -53,7 +60,6 @@ public static class DocumentElementMapper
             StoreQrData store => new StoreQrDataElementPayload(store.Content),
             StoredLogo logo => new StoredLogoElementPayload(logo.LogoId),
             TextLine textLine => new TextLineElementPayload(textLine.Text),
-            RasterImage image => new RasterImageElementPayload(image.Width, image.Height),
             RasterImageUpload => throw new NotSupportedException("Raster image persistence is handled separately."),
             _ => throw new NotSupportedException($"Element type '{element.GetType().Name}' is not supported.")
         };
@@ -73,13 +79,19 @@ public static class DocumentElementMapper
             PrinterErrorElementPayload printerError => new PrinterError(printerError.Message ?? string.Empty),
             PrinterStatusElementPayload status => new GetPrinterStatus(status.StatusByte, status.AdditionalStatusByte),
             PrintBarcodeElementPayload barcode => new PrintBarcode(
-                ParseEnumOrDefault(barcode.Symbology, BarcodeSymbology.Code39),
-                barcode.Data ?? string.Empty),
-            PrintQrCodeElementPayload => new PrintQrCode(),
-            PulseElementPayload pulse => new Pulse(
-                ParseEnumOrDefault(pulse.Pin, Domain.Documents.Elements.PulsePin.Drawer1),
-                pulse.OnTimeMs,
-                pulse.OffTimeMs),
+                ParseEnumOrDefault(barcode.Symbology, BarcodeSymbology.Code128),
+                barcode.Data,
+                barcode.Width,
+                barcode.Height,
+                media),
+                //media ?? throw new InvalidOperationException("Raster image metadata is missing.")),
+            PrintQrCodeElementPayload qrCode => new PrintQrCode(
+                qrCode.Data,
+                qrCode.Width,
+                qrCode.Height,
+                media),
+                //media ?? throw new InvalidOperationException("Raster image metadata is missing.")),
+            PulseElementPayload pulse => new Pulse(pulse.Pin, pulse.OnTimeMs, pulse.OffTimeMs),
             ResetPrinterElementPayload => new ResetPrinter(),
             SetBarcodeHeightElementPayload height => new SetBarcodeHeight(height.HeightInDots),
             SetBarcodeLabelPositionElementPayload position => new SetBarcodeLabelPosition(
@@ -104,9 +116,10 @@ public static class DocumentElementMapper
             StoreQrDataElementPayload store => new StoreQrData(store.Content ?? string.Empty),
             StoredLogoElementPayload logo => new StoredLogo(logo.LogoId),
             TextLineElementPayload textLine => new TextLine(textLine.Text ?? string.Empty),
-            RasterImageElementPayload raster => media is null
-                ? throw new InvalidOperationException("Raster image metadata is missing.")
-                : new RasterImage(raster.Width, raster.Height, media),
+            RasterImageElementPayload raster => new RasterImage(
+                raster.Width,
+                raster.Height,
+                media),
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }

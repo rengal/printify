@@ -61,14 +61,26 @@ public sealed record PrinterStatusElementPayload(
 
 public sealed record PrintBarcodeElementPayload(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Symbology,
-    string Data)
+    string Data,
+    int Width,
+    int Height,
+    Guid MediaId)
     : DocumentElementPayload;
 
-public sealed record PrintQrCodeElementPayload : DocumentElementPayload;
+public sealed record PrintQrCodeElementPayload(
+    string Data,
+    int Width,
+    int Height,
+    Guid MediaId)
+    : DocumentElementPayload;
+
+public sealed record RasterImageElementPayload(
+    int Width,
+    int Height,
+    Guid MediaId) : DocumentElementPayload;
 
 public sealed record PulseElementPayload(
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    string? Pin,
+    int Pin,
     int OnTimeMs,
     int OffTimeMs)
     : DocumentElementPayload;
@@ -134,5 +146,3 @@ public sealed record StoreQrDataElementPayload(string Content) : DocumentElement
 public sealed record StoredLogoElementPayload(int LogoId) : DocumentElementPayload;
 
 public sealed record TextLineElementPayload(string Text) : DocumentElementPayload;
-
-public sealed record RasterImageElementPayload(int Width, int Height) : DocumentElementPayload;

@@ -19,4 +19,4 @@ public sealed record DocumentDto(
     DateTimeOffset Timestamp,
     string Protocol,
     string? ClientAddress,
-    IReadOnlyList<ResponseElement> Elements);
+    IReadOnlyList<ResponseElementDto> Elements);

@@ -7,9 +7,9 @@ using Printify.Domain.Documents.Elements;
 /// and the elements that must be produced after parsing it.
 /// </summary>
 /// <param name="Input">Raw ESC/POS byte sequence to parse.</param>
-/// <param name="ExpectedElements">Expected elements containing upload-stage media (RasterImageUpload, MediaUpload) for internal service testing.</param>
-/// <param name="ExpectedFinalizedElements">Expected elements containing finalized, persisted media (RasterImage, Media) for public API testing. If null, uses ExpectedElements.</param>
+/// <param name="ExpectedRequestElements">Expected elements containing upload-stage media (RasterImageUpload, MediaUpload) for internal service testing.</param>
+/// <param name="ExpectedPersistedElements">Expected elements containing finalized, persisted media (RasterImage, Media) for public API testing. If null, uses ExpectedElements.</param>
 public sealed record EscPosScenario(
     byte[] Input,
-    IReadOnlyList<Element> ExpectedElements,
-    IReadOnlyList<Element>? ExpectedFinalizedElements = null);
+    IReadOnlyList<Element> ExpectedRequestElements,
+    IReadOnlyList<Element>? ExpectedPersistedElements = null);

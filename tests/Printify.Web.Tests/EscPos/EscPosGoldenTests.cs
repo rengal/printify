@@ -8,8 +8,8 @@ public class EscPosGoldenTests(WebApplicationFactory<Program> factory) : EscPosT
     [MemberData(nameof(EscPosGoldenCases.Cases), MemberType = typeof(EscPosGoldenCases))]
     public async Task EscPos_Golden_Cases_ProduceExpectedDocuments(string caseId, byte[] payload)
     {
-        Assert.True(EscPosGoldenCases.Expectations.TryGetValue(caseId, out var expectedElements));
-        var scenario = new EscPosScenario(payload, expectedElements);
+        Assert.True(EscPosGoldenCases.Expectations.TryGetValue(caseId, out var value));
+        var scenario = new EscPosScenario(payload, value.expectedRequestElement, value.expectedPersistedElements);
         await RunScenarioAsync(scenario);
     }
 }

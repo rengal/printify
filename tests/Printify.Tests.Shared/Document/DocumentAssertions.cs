@@ -1,7 +1,9 @@
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
 using Printify.Web.Contracts.Documents.Responses;
 using Printify.Web.Contracts.Documents.Responses.Elements;
+using Printify.Web.Mapping;
 using Xunit;
 using PrinterError = Printify.Domain.Documents.Elements.PrinterError;
 
@@ -9,7 +11,7 @@ namespace Printify.Tests.Shared.Document;
 
 public static class DocumentAssertions
 {
-    public static void Equal(IReadOnlyList<Element> expectedElements, IReadOnlyList<ResponseElement> actualElements)
+    public static void Equal(IReadOnlyList<ResponseElementDto> expectedElements, IReadOnlyList<ResponseElementDto> actualElements)
     {
         Assert.NotNull(expectedElements);
         Assert.Equal(expectedElements.Count, actualElements.Count);
@@ -23,17 +25,17 @@ public static class DocumentAssertions
 
             switch (expected)
             {
-                case PrinterError:
-                    _ = Assert.IsType<PrinterError>(actualElement);
-                    break;
-                case RasterImage expectedRasterImage:
+                case RasterImageDto expectedRasterImage:
                     var actualRasterImage = Assert.IsType<RasterImageDto>(actualElement);
                     Assert.Equal(expectedRasterImage.Width, actualRasterImage.Width);
                     Assert.Equal(expectedRasterImage.Height, actualRasterImage.Height);
                     Assert.Equal(expectedRasterImage.Media.ContentType, actualRasterImage.Media.ContentType);
                     Assert.True(!string.IsNullOrEmpty(actualRasterImage.Media.Sha256));
-                    Assert.NotNull(actualRasterImage.Media.Href);
+                    Assert.True(!string.IsNullOrEmpty(actualRasterImage.Media.Url));
                     Assert.Equal(expectedRasterImage.Media.Length, actualRasterImage.Media.Length);
+                    break;
+                default:
+                    Assert.Equal(expected, actualElement);
                     break;
             }
         }
@@ -79,7 +81,7 @@ public static class DocumentAssertions
         }
     }
 
-    public static void Equal(Domain.Documents.Document? actual, Protocol expectedProtocol, IReadOnlyList<Element> expectedElements)
+    public static void Equal(IReadOnlyList<Element> expectedElements, Protocol expectedProtocol, Domain.Documents.Document? actual)
     {
         Assert.NotNull(actual);
         Assert.Equal(expectedProtocol, actual.Protocol);
@@ -87,11 +89,22 @@ public static class DocumentAssertions
         Equal(expectedElements, actual.Elements.ToList());
     }
 
-    public static void Equal(DocumentDto? actual, string expectedProtocol, IReadOnlyList<Element> expectedElements)
+    public static void Equal(IReadOnlyList<Element> expectedElements, Protocol expectedProtocol, DocumentDto? actual)
     {
         Assert.NotNull(actual);
-        Assert.Equal(expectedProtocol, actual.Protocol);
+        Assert.Equal(DomainMapper.ToString(expectedProtocol), actual.Protocol);
 
-        Equal(expectedElements, actual.Elements.ToList());
+        Equal(expectedElements.Select(DocumentMapper.ToResponseElement).ToList(),
+            actual.Elements.ToList());
     }
+    /*
+    public static void Equal(Domain.Documents.Document expected, DocumentDto actual)
+    {
+        Assert.NotNull(expected);
+        Assert.NotNull(actual);
+
+        var expectedDocumentDto = DocumentMapper.ToResponseDto(expected);
+
+        Equal(expectedDocumentDto, actual);
+    }*/
 }

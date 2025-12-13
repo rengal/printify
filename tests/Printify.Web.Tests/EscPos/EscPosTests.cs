@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Printify.Application.Printing.Events;
-using Printify.Domain.Mapping;
+using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
 using Printify.Tests.Shared.Document;
 using Printify.TestServices;
@@ -63,12 +63,11 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(stepMs));
         await nextEventTask.WaitAsync(TimeSpan.FromMilliseconds(500));
 
+        var expectedElements = new List<Element> { new Bell() };
+
         Assert.True(nextEventTask.Result);
         var documentEvent = streamEnumerator.Current;
-        DocumentAssertions.Equal(documentEvent.Document, Protocol.EscPos,
-        [
-            new Bell()
-        ]);
+        DocumentAssertions.Equal(expectedElements, Protocol.EscPos, documentEvent.Document);
     }
 
     protected async Task RunScenarioAsync(EscPosScenario scenario)
@@ -122,8 +121,8 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
 
         var documentEvent = streamEnumerator.Current;
 
-        DocumentAssertions.Equal(documentEvent.Document, Protocol.EscPos,
-            scenario.ExpectedFinalizedElements ?? scenario.ExpectedElements);
+        DocumentAssertions.Equal(scenario.ExpectedPersistedElements ?? scenario.ExpectedRequestElements,
+            Protocol.EscPos, documentEvent.Document);
 
         // Request document via web call and verify
         var documentId = documentEvent.Document.Id;
@@ -142,19 +141,17 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
 
         Assert.NotNull(retrievedDocument);
 
-        DocumentAssertions.Equal(retrievedDocument, ProtocolMapper.ToString(Protocol.EscPos),
-            scenario.ExpectedFinalizedElements ?? scenario.ExpectedElements);
+        DocumentAssertions.Equal(scenario.ExpectedPersistedElements ?? scenario.ExpectedRequestElements, Protocol.EscPos, retrievedDocument);
 
         // Verify RasterImage elements have accessible Media URLs
         foreach (var element in retrievedDocument.Elements)
         {
             if (element is RasterImageDto rasterImage)
             {
-                Assert.NotNull(rasterImage.Media.Href);
-                Assert.False(string.IsNullOrWhiteSpace(rasterImage.Media.Href.LocalPath));
+                Assert.False(string.IsNullOrWhiteSpace(rasterImage.Media.Url));
 
                 // Verify the media URL is accessible
-                var mediaResponse = await environment.Client.GetAsync(rasterImage.Media.Href.LocalPath);
+                var mediaResponse = await environment.Client.GetAsync(rasterImage.Media.Url);
                 mediaResponse.EnsureSuccessStatusCode();
 
                 // Verify content type is an image

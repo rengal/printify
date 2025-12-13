@@ -88,6 +88,9 @@ public sealed class DocumentMediaEntity
     [Column("checksum")]
     public string Checksum { get; set; } = string.Empty;
 
+    [Column("file_name")]
+    public string FileName { get; set; } = string.Empty;
+
     [Column("url")]
     public string Url { get; set; } = string.Empty;
 }

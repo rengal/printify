@@ -13,7 +13,7 @@ internal static class PrinterEntityMapper
         entity.Id = printer.Id;
         entity.OwnerWorkspaceId = printer.OwnerWorkspaceId;
         entity.DisplayName = printer.DisplayName;
-        entity.Protocol = ProtocolMapper.ToString(printer.Protocol);
+        entity.Protocol = DomainMapper.ToString(printer.Protocol);
         entity.WidthInDots = printer.WidthInDots;
         entity.HeightInDots = printer.HeightInDots;
         entity.CreatedAt = printer.CreatedAt;
@@ -44,7 +44,7 @@ internal static class PrinterEntityMapper
             entity.Id,
             entity.OwnerWorkspaceId,
             entity.DisplayName,
-            ProtocolMapper.ParseProtocol(entity.Protocol),
+            DomainMapper.ParseProtocol(entity.Protocol),
             entity.WidthInDots,
             entity.HeightInDots,
             entity.CreatedAt,

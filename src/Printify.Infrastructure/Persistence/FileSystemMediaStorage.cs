@@ -1,4 +1,6 @@
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Printify.Application.Interfaces;
 using Printify.Domain.Config;
 using Printify.Domain.Media;
 using Printify.Domain.Services;
@@ -12,10 +14,17 @@ namespace Printify.Infrastructure.Persistence;
 public sealed class FileSystemMediaStorage : IMediaStorage
 {
     private readonly string rootPath;
+    private readonly IServiceProvider serviceProvider;
 
-    public FileSystemMediaStorage(IOptions<Storage> options)
+    public FileSystemMediaStorage(
+        IOptions<Storage> options,
+        IServiceProvider serviceProvider)  // ← Inject service provider
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+        
+        this.serviceProvider = serviceProvider;
+        
         var value = options.Value.BlobPath;
         rootPath = string.IsNullOrWhiteSpace(value) ? string.Empty : Path.GetFullPath(value);
         if (!string.IsNullOrWhiteSpace(rootPath))
@@ -51,10 +60,11 @@ public sealed class FileSystemMediaStorage : IMediaStorage
 
         var mediaId = Guid.NewGuid();
         var blobId = mediaId.ToString("N");
-        var dataPath = GetDataPath(blobId);
-        Directory.CreateDirectory(Path.GetDirectoryName(dataPath)!);
+        var extension = DetermineFileExtension(upload.ContentType);
+        var fileName = GetDataPath(blobId, extension);
+        Directory.CreateDirectory(Path.GetDirectoryName(fileName)!);
 
-        await using (var file = new FileStream(dataPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920,
+        await using (var file = new FileStream(fileName, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920,
                          useAsync: true))
         {
             if (!upload.Content.IsEmpty)
@@ -73,34 +83,48 @@ public sealed class FileSystemMediaStorage : IMediaStorage
             upload.ContentType,
             upload.Content.Length,
             sha256Checksum,
+            fileName,
             url);
     }
 
-    public ValueTask<Stream?> OpenReadAsync(Guid mediaId, CancellationToken cancellationToken = default)
+    public async ValueTask<Stream?> OpenReadAsync(Guid mediaId, CancellationToken cancellationToken = default)
     {
-        var blobId = ToBlobId(mediaId);
-        var dataPath = GetDataPath(blobId);
-        if (!File.Exists(dataPath))
+        using var scope = serviceProvider.CreateScope();
+        var mediaRepository = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
+
+        var media = await mediaRepository.GetMediaByIdAsync(mediaId, cancellationToken).ConfigureAwait(false);
+        if (media is null || string.IsNullOrWhiteSpace(media.FileName))
         {
-            return ValueTask.FromResult<Stream?>(null);
+            return null;
         }
 
-        Stream stream = new FileStream(dataPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
-        return ValueTask.FromResult<Stream?>(stream);
+        if (!File.Exists(media.FileName))
+        {
+            return null;
+        }
+
+        Stream stream = new FileStream(media.FileName, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+        return stream;
     }
 
-    public ValueTask DeleteAsync(Guid mediaId, CancellationToken cancellationToken = default)
+    public async ValueTask DeleteAsync(Guid mediaId, CancellationToken cancellationToken = default)
     {
-        var blobId = ToBlobId(mediaId);
-        var dataPath = GetDataPath(blobId);
-        TryDelete(dataPath);
-        return ValueTask.CompletedTask;
+        using var scope = serviceProvider.CreateScope();
+        var mediaRepository = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
+
+        var media = await mediaRepository.GetMediaByIdAsync(mediaId, cancellationToken).ConfigureAwait(false);
+        if (media is null || string.IsNullOrWhiteSpace(media.FileName))
+        {
+            return;
+        }
+
+        TryDelete(media.FileName);
     }
 
-    private string GetDataPath(string blobId)
+    private string GetDataPath(string blobId, string extension)
     {
         var shards = GetShardPath(blobId);
-        return Path.Combine(rootPath, shards.folder1, shards.folder2, blobId + ".bin");
+        return Path.Combine(rootPath, shards.folder1, shards.folder2, blobId + "." + extension);
     }
 
     private static string ToBlobId(Guid mediaId)
@@ -121,6 +145,32 @@ public sealed class FileSystemMediaStorage : IMediaStorage
         }
 
         return (blobId[..2], blobId[2..4]);
+    }
+
+    private static string DetermineFileExtension(string contentType)
+    {
+        if (contentType.Contains("png", StringComparison.OrdinalIgnoreCase))
+        {
+            return "png";
+        }
+
+        if (contentType.Contains("jpeg", StringComparison.OrdinalIgnoreCase) ||
+            contentType.Contains("jpg", StringComparison.OrdinalIgnoreCase))
+        {
+            return "jpg";
+        }
+
+        if (contentType.Contains("gif", StringComparison.OrdinalIgnoreCase))
+        {
+            return "gif";
+        }
+
+        if (contentType.Contains("webp", StringComparison.OrdinalIgnoreCase))
+        {
+            return "webp";
+        }
+
+        return "bin";
     }
 
     private static void TryDelete(string path)

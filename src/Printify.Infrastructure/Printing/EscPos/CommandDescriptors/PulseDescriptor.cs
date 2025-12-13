@@ -9,12 +9,6 @@ public sealed class PulseDescriptor : ICommandDescriptor
 {
     private const int FixedLength = 5;
 
-    private static readonly IReadOnlyDictionary<byte, PulsePin> PulsePinMap = new Dictionary<byte, PulsePin>
-    {
-        [0x00] = PulsePin.Drawer1,
-        [0x01] = PulsePin.Drawer2
-    };
-
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, (byte)'p' };
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
@@ -24,7 +18,7 @@ public sealed class PulseDescriptor : ICommandDescriptor
         if (buffer.Length < FixedLength)
             return MatchResult.NeedMore();
 
-        var pin = PulsePinMap.GetValueOrDefault(buffer[2], PulsePin.Drawer1);
+        int pin = buffer[2];
         int onTimeMs = buffer[3];
         int offTimeMs = buffer[4];
 
