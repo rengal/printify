@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Net.Sockets;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
@@ -11,14 +10,14 @@ namespace Printify.TestServices.Printing;
 /// </summary>
 public sealed class TestPrinterListener : IPrinterListener
 {
-    private static readonly ConcurrentDictionary<int, Guid> UsedPorts = new();
-
     private readonly Printer printer;
+    private readonly IServiceScopeFactory scopeFactory;
     private bool disposed;
 
-    public TestPrinterListener(Printer printer)
+    public TestPrinterListener(Printer printer, IServiceScopeFactory scopeFactory)
     {
         this.printer = printer ?? throw new ArgumentNullException(nameof(printer));
+        this.scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     }
 
     public event Func<IPrinterListener, PrinterChannelAcceptedEventArgs, ValueTask>? ChannelAccepted;
@@ -35,12 +34,10 @@ public sealed class TestPrinterListener : IPrinterListener
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        // Simulate OS port binding: fail if another listener already claimed this port.
-        if (!UsedPorts.TryAdd(printer.ListenTcpPortNumber, printer.Id))
-        {
-            Status = PrinterListenerStatus.Failed;
-            throw new SocketException((int)SocketError.AddressAlreadyInUse);
-        }
+        // Track claimed port within the current scope lifetime to align with allocator.
+        using var scope = scopeFactory.CreateScope();
+        var registry = scope.ServiceProvider.GetRequiredService<ITestPortRegistry>();
+        registry.ClaimPort(printer.ListenTcpPortNumber);
 
         Status = PrinterListenerStatus.Listening;
         return Task.CompletedTask;
@@ -50,14 +47,18 @@ public sealed class TestPrinterListener : IPrinterListener
     {
         cancellationToken.ThrowIfCancellationRequested();
         Status = PrinterListenerStatus.Idle;
-        UsedPorts.TryRemove(new KeyValuePair<int, Guid>(printer.ListenTcpPortNumber, printer.Id));
+        using var scope = scopeFactory.CreateScope();
+        var registry = scope.ServiceProvider.GetRequiredService<ITestPortRegistry>();
+        registry.ReleasePort(printer.ListenTcpPortNumber);
         return Task.CompletedTask;
     }
 
     public ValueTask DisposeAsync()
     {
         disposed = true;
-        UsedPorts.TryRemove(new KeyValuePair<int, Guid>(printer.ListenTcpPortNumber, printer.Id));
+        using var scope = scopeFactory.CreateScope();
+        var registry = scope.ServiceProvider.GetRequiredService<ITestPortRegistry>();
+        registry.ReleasePort(printer.ListenTcpPortNumber);
         TestPrinterListenerFactory.Unregister(printer.Id);
         LastChannel = null;
         return ValueTask.CompletedTask;

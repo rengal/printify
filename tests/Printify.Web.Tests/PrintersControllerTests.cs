@@ -1,5 +1,7 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
@@ -198,13 +200,21 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         Assert.NotEqual(firstDto.TcpListenPort, secondDto.TcpListenPort);
     }
 
-    [Fact]
-    public async Task CreateNPrintersInParallel_AssignsUniquePorts()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(5)]
+    [InlineData(10)]
+    [InlineData(20)]
+    [InlineData(50)]
+    [InlineData(100)]
+    public async Task CreateNPrintersInParallel_AssignsUniquePorts(int n)
     {
-        const int n = 2;
         // Scenario: many concurrent clients create printers; server must assign unique ports.
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         await AuthHelper.CreateWorkspaceAndLogin(environment);
+
+        var statusTask = ListenForStatusEventsAsync(environment.Client, n, TimeSpan.FromSeconds(10));
 
         var createTasks = new List<Task<PrinterResponseDto?>>(n);
 
@@ -226,6 +236,11 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
 
         Assert.Equal(ports.Count, ports.Distinct().Count());
         Assert.True(ports.All(p => p > 0));
+
+        var statusEvents = await statusTask;
+        Assert.True(statusEvents.Count >= n);
+        var distinctStatusPrinters = statusEvents.Select(e => e.PrinterId).Distinct().Count();
+        Assert.True(distinctStatusPrinters >= n);
     }
 
     private static async Task<PrinterResponseDto?> CreatePrinterAsync(HttpClient client, CreatePrinterRequestDto request)
@@ -233,5 +248,69 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         var response = await client.PostAsJsonAsync("/api/printers", request);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<PrinterResponseDto>();
+    }
+
+    private static async Task<List<StatusEvent>> ListenForStatusEventsAsync(HttpClient client, int expectedCount, TimeSpan timeout)
+    {
+        using var cts = new CancellationTokenSource(timeout);
+        var events = new List<StatusEvent>();
+
+        using var response = await client.GetAsync("/api/printers/status/stream", HttpCompletionOption.ResponseHeadersRead, cts.Token);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
+        using var reader = new StreamReader(stream);
+
+        string? currentEvent = null;
+        string? currentData = null;
+
+        while (!cts.IsCancellationRequested && events.Count < expectedCount)
+        {
+            var line = await reader.ReadLineAsync();
+            if (line is null)
+            {
+                break;
+            }
+
+            if (line.StartsWith("event:", StringComparison.OrdinalIgnoreCase))
+            {
+                currentEvent = line[6..].Trim();
+            }
+            else if (line.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                currentData = line[5..].Trim();
+            }
+            else if (string.IsNullOrWhiteSpace(line))
+            {
+                if (currentEvent == "status" && !string.IsNullOrEmpty(currentData))
+                {
+                    var ev = JsonSerializer.Deserialize<StatusEvent>(currentData, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                    if (ev != null)
+                    {
+                        events.Add(ev);
+                    }
+                }
+
+                currentEvent = null;
+                currentData = null;
+            }
+        }
+
+        return events;
+    }
+
+    private sealed class StatusEvent
+    {
+        [JsonPropertyName("printerId")]
+        public Guid PrinterId { get; init; }
+
+        [JsonPropertyName("targetState")]
+        public string? TargetState { get; init; }
+
+        [JsonPropertyName("runtimeStatus")]
+        public string? RuntimeStatus { get; init; }
     }
 }

@@ -44,11 +44,13 @@ public sealed class TestServiceContext(ServiceProvider provider)
                 services.RemoveAll<IUnitOfWork>();
                 services.RemoveAll<IClockFactory>();
                 services.RemoveAll<IPrinterListenerFactory>();
+                services.RemoveAll<ITestPortRegistry>();
 
                 services.AddSingleton(connection);
                 services.AddDbContext<PrintifyDbContext>((_, options) => options.UseSqlite(connection));
                 services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
                 services.AddSingleton<IClockFactory, TestClockFactory>();
+                services.AddSingleton<ITestPortRegistry, TestPortRegistry>();
                 services.AddSingleton<IPrinterListenerFactory, TestPrinterListenerFactory>();
             });
         });

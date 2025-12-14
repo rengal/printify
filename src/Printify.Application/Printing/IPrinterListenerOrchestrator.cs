@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-using Printify.Domain.Printers;
+﻿using Printify.Domain.Printers;
 
 namespace Printify.Application.Printing;
 

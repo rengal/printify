@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
 
@@ -8,12 +9,19 @@ namespace Printify.TestServices.Printing;
 public sealed class TestPrinterListenerFactory : IPrinterListenerFactory
 {
     private static readonly ConcurrentDictionary<Guid, TestPrinterListener> listeners = new();
+    private readonly IServiceProvider serviceProvider;
+
+    public TestPrinterListenerFactory(IServiceProvider serviceProvider)
+    {
+        this.serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+    }
 
     public IPrinterListener Create(Printer printer)
     {
         ArgumentNullException.ThrowIfNull(printer);
 
-        var listener = new TestPrinterListener(printer);
+        var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+        var listener = new TestPrinterListener(printer, scopeFactory);
         listeners[printer.Id] = listener;
         return listener;
     }
