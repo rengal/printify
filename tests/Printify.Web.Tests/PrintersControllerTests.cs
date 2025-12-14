@@ -228,14 +228,21 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
             createTasks.Add(CreatePrinterAsync(client, request));
         }
 
-        var created = await Task.WhenAll(createTasks);
-        var ports = created
-            .Where(p => p != null)
-            .Select(p => p!.TcpListenPort)
-            .ToList();
+        try
+        {
+            var created = await Task.WhenAll(createTasks).WaitAsync(TimeSpan.FromSeconds(15));
+            var ports = created
+                .Where(p => p != null)
+                .Select(p => p!.TcpListenPort)
+                .ToList();
 
-        Assert.Equal(ports.Count, ports.Distinct().Count());
-        Assert.True(ports.All(p => p > 0));
+            Assert.Equal(ports.Count, ports.Distinct().Count());
+            Assert.True(ports.All(p => p > 0));
+        }
+        catch (TimeoutException)
+        {
+            throw new TimeoutException("Timed out while creating printers in parallel.");
+        }
 
         var statusEvents = await statusTask;
         var distinctStatusPrinters = statusEvents.Select(e => e.PrinterId).Distinct().Count();
