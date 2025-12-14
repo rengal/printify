@@ -122,7 +122,7 @@ public sealed class PrinterListenerOrchestrator(
     {
         if (!listeners.TryGetValue(printer.Id, out var listener))
         {
-            return new ListenerStatusSnapshot(PrinterListenerStatus.Unknown);
+            return new ListenerStatusSnapshot(PrinterListenerStatus.Idle);
         }
 
         return new ListenerStatusSnapshot(listener.Status);
@@ -149,6 +149,7 @@ public sealed class PrinterListenerOrchestrator(
     private Task UpdateRuntimeStatusAsync(Printer printer, PrinterRuntimeStatus status, string? error, CancellationToken ct)
     {
         var timestamp = DateTimeOffset.UtcNow;
+
         statusStream.Publish(new PrinterStatusEvent(
             printer.OwnerWorkspaceId,
             printer.Id,

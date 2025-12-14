@@ -1,5 +1,3 @@
-using System.Net;
-using System.Net.Sockets;
 using Microsoft.EntityFrameworkCore;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;

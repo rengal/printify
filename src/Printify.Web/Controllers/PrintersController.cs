@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Text;
 using Printify.Application.Features.Printers.Delete;
 using Printify.Application.Features.Printers.Documents.Get;
 using Printify.Application.Features.Printers.Documents.List;
@@ -91,10 +92,7 @@ public sealed class PrintersController : ControllerBase
         {
             await foreach (var statusEvent in statusStream.Subscribe(context.WorkspaceId.Value, cancellationToken))
             {
-                var payload = JsonSerializer.Serialize(statusEvent, jsonOptions);
-                await Response.WriteAsync("event: status\n", cancellationToken);
-                await Response.WriteAsync($"data: {payload}\n\n", cancellationToken);
-                await Response.Body.FlushAsync(cancellationToken);
+                await WriteSseAsync("status", statusEvent.ToResponseDto(), cancellationToken);
             }
         }
         catch (OperationCanceledException)
@@ -123,10 +121,7 @@ public sealed class PrintersController : ControllerBase
         {
             await foreach (var documentEvent in documentStream.Subscribe(id, cancellationToken))
             {
-                var payload = JsonSerializer.Serialize(documentEvent.Document, jsonOptions);
-                await Response.WriteAsync("event: documentReady\n", cancellationToken);
-                await Response.WriteAsync($"data: {payload}\n\n", cancellationToken);
-                await Response.Body.FlushAsync(cancellationToken);
+                await WriteSseAsync("documentReady", DocumentMapper.ToResponseDto(documentEvent.Document), cancellationToken);
             }
         }
         catch (OperationCanceledException)
@@ -143,7 +138,7 @@ public sealed class PrintersController : ControllerBase
     [HttpGet("{id:guid}/documents")]
     public async Task<ActionResult<DocumentListResponseDto>> ListDocuments(
         Guid id,
-        [FromQuery] GetDocumentsRequestDto request,
+        [FromQuery] GetDocumentsRequestDto? request,
         CancellationToken cancellationToken = default)
     {
         var context = HttpContext.CaptureRequestContext();
@@ -296,5 +291,15 @@ public sealed class PrintersController : ControllerBase
         {
             return ValidationProblem(ex.Message);
         }
+    }
+
+    private async Task WriteSseAsync(string eventName, object payload, CancellationToken cancellationToken)
+    {
+        var data = JsonSerializer.Serialize(payload, jsonOptions);
+        var builder = new StringBuilder();
+        builder.Append("event: ").Append(eventName).Append('\n');
+        builder.Append("data: ").Append(data).Append("\n\n");
+        await Response.WriteAsync(builder.ToString(), cancellationToken);
+        await Response.Body.FlushAsync(cancellationToken);
     }
 }

@@ -1,4 +1,5 @@
 using Printify.Application.Printing;
+using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
 using Printify.Web.Contracts.Printers.Responses;
 
@@ -32,7 +33,7 @@ internal static class PrinterMapper
         return new PrinterResponseDto(
             printer.Id,
             printer.DisplayName,
-            printer.Protocol.ToDto(),
+            DomainMapper.ToString(printer.Protocol),
             printer.WidthInDots,
             printer.HeightInDots,
             printer.ListenTcpPortNumber,
@@ -48,13 +49,14 @@ internal static class PrinterMapper
             printer.LastDocumentReceivedAt);
     }
 
-    internal static string ToDto(this Protocol protocol)
+    internal static PrinterStatusEventDto ToResponseDto(this PrinterStatusEvent statusEvent)
     {
-        return protocol switch
-        {
-            Protocol.EscPos => "escpos",
-            _ => throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Unsupported protocol value.")
-        };
+        ArgumentNullException.ThrowIfNull(statusEvent);
+        return new PrinterStatusEventDto(
+            statusEvent.PrinterId,
+            statusEvent.TargetState.ToString(),
+            statusEvent.RuntimeStatus.ToString(),
+            statusEvent.UpdatedAt,
+            statusEvent.Error);
     }
-
 }
