@@ -4,6 +4,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Printify.Application.Interfaces;
 using Printify.Domain.Config;
@@ -35,6 +36,14 @@ public sealed class TestServiceContext(ServiceProvider provider)
         {
             builder.ConfigureTestServices(services =>
             {
+                services.AddLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.AddConsole();
+                    logging.AddDebug();
+                    logging.SetMinimumLevel(LogLevel.Information);
+                });
+
                 services.PostConfigure<RepositoryOptions>(options => options.ConnectionString = connectionString);
                 var tempStorageRoot = Path.Combine(Path.GetTempPath(), "printify-tests", Guid.NewGuid().ToString("N"));
                 services.PostConfigure<Storage>(options => options.MediaRootPath = tempStorageRoot);

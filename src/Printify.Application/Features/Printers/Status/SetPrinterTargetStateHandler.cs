@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
@@ -8,7 +9,8 @@ namespace Printify.Application.Features.Printers.Status;
 
 public sealed class SetPrinterTargetStateHandler(
     IPrinterRepository printerRepository,
-    IPrinterListenerOrchestrator listenerOrchestrator)
+    IPrinterListenerOrchestrator listenerOrchestrator,
+    ILogger<SetPrinterTargetStateHandler> logger)
     : IRequestHandler<SetPrinterTargetStateCommand, Printer>
 {
     public async Task<Printer> Handle(SetPrinterTargetStateCommand request, CancellationToken cancellationToken)
@@ -21,6 +23,11 @@ public sealed class SetPrinterTargetStateHandler(
 
         if (printer is null)
         {
+            logger.LogWarning(
+                "Printer {PrinterId} not found for workspace {WorkspaceId} when setting target state to {TargetState}",
+                request.PrinterId,
+                request.Context.WorkspaceId,
+                request.TargetState);
             throw new InvalidOperationException("Printer not found.");
         }
 
@@ -35,15 +42,27 @@ public sealed class SetPrinterTargetStateHandler(
         {
             try
             {
+                logger.LogInformation(
+                    "Starting listener for printer {PrinterId} in workspace {WorkspaceId}",
+                    request.PrinterId,
+                    request.Context.WorkspaceId);
                 await listenerOrchestrator.AddListenerAsync(updated, cancellationToken).ConfigureAwait(false);
             }
             catch (SocketException)
             {
+                logger.LogWarning(
+                    "Socket error while starting listener for printer {PrinterId} in workspace {WorkspaceId}",
+                    request.PrinterId,
+                    request.Context.WorkspaceId);
                 throw;
             }
         }
         else
         {
+            logger.LogInformation(
+                "Stopping listener for printer {PrinterId} in workspace {WorkspaceId}",
+                request.PrinterId,
+                request.Context.WorkspaceId);
             await listenerOrchestrator.RemoveListenerAsync(updated, cancellationToken).ConfigureAwait(false);
         }
 

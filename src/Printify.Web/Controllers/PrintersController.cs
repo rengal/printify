@@ -1,10 +1,11 @@
 using System.Net.Sockets;
+using System.Text;
 using System.Text.Json;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Text;
 using Printify.Application.Features.Printers.Delete;
 using Printify.Application.Features.Printers.Documents.Get;
 using Printify.Application.Features.Printers.Documents.List;
@@ -30,13 +31,15 @@ public sealed class PrintersController : ControllerBase
     private readonly IPrinterStatusStream statusStream;
     private readonly IPrinterListenerOrchestrator listenerOrchestrator;
     private readonly JsonSerializerOptions jsonOptions;
+    private readonly ILogger<PrintersController> logger;
 
     public PrintersController(
         IMediator mediator,
         IPrinterDocumentStream documentStream,
         IPrinterStatusStream statusStream,
         IPrinterListenerOrchestrator listenerOrchestrator,
-        IOptions<JsonOptions> jsonOptions)
+        IOptions<JsonOptions> jsonOptions,
+        ILogger<PrintersController> logger)
     {
         this.mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         this.documentStream = documentStream ?? throw new ArgumentNullException(nameof(documentStream));
@@ -44,6 +47,7 @@ public sealed class PrintersController : ControllerBase
         this.listenerOrchestrator = listenerOrchestrator ?? throw new ArgumentNullException(nameof(listenerOrchestrator));
         ArgumentNullException.ThrowIfNull(jsonOptions);
         this.jsonOptions = jsonOptions.Value.JsonSerializerOptions;
+        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     [Authorize]
@@ -270,6 +274,12 @@ public sealed class PrintersController : ControllerBase
         var context = HttpContext.CaptureRequestContext();
         try
         {
+            logger.LogInformation(
+                "Received request to set printer {PrinterId} target state to {TargetStatus} for workspace {WorkspaceId}",
+                id,
+                request.TargetStatus,
+                context.WorkspaceId);
+
             var command = new SetPrinterTargetStateCommand(
                 context,
                 id,
@@ -279,16 +289,31 @@ public sealed class PrintersController : ControllerBase
         }
         catch (SocketException ex)
         {
+            logger.LogWarning(
+                ex,
+                "Socket error while starting printer listener for printer {PrinterId} in workspace {WorkspaceId}",
+                id,
+                context.WorkspaceId);
             return Problem(
                 statusCode: StatusCodes.Status409Conflict,
                 detail: $"Unable to start listener for this printer: {ex.Message}");
         }
         catch (InvalidOperationException)
         {
+            logger.LogWarning(
+                "Printer {PrinterId} not found when attempting to set status for workspace {WorkspaceId}",
+                id,
+                context.WorkspaceId);
             return NotFound();
         }
         catch (ArgumentOutOfRangeException ex)
         {
+            logger.LogWarning(
+                ex,
+                "Invalid target status {TargetStatus} for printer {PrinterId} in workspace {WorkspaceId}",
+                request.TargetStatus,
+                id,
+                context.WorkspaceId);
             return ValidationProblem(ex.Message);
         }
     }

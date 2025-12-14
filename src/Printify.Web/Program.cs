@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Printify.Web.Middleware;
 using System.Text;
 using Printify.Infrastructure.Persistence;
@@ -14,6 +15,10 @@ builder.Services.AddControllers();
 builder.Services.AddServices(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 var app = builder.Build();
 
