@@ -27,9 +27,14 @@ public sealed class TcpPrinterChannelTests
             true,
             1024,
             4096,
+            PrinterDesiredStatus.Started,
+            PrinterRuntimeStatus.Unknown,
+            null,
+            null,
             IsPinned: false,
             IsDeleted: false,
-            LastViewedDocumentId: null);
+            LastViewedDocumentId: null,
+            LastDocumentReceivedAt: null);
 
         await using var listener = new TcpPrinterListener(printer, NullLogger<TcpPrinterListener>.Instance);
         await listener.StartAsync(CancellationToken.None);
@@ -88,9 +93,14 @@ public sealed class TcpPrinterChannelTests
             true,
             1024,
             4096,
+            PrinterDesiredStatus.Started,
+            PrinterRuntimeStatus.Unknown,
+            null,
+            null,
             IsPinned: false,
             IsDeleted: false,
-            LastViewedDocumentId: null);
+            LastViewedDocumentId: null,
+            LastDocumentReceivedAt: null);
 
         await using var listener = new TcpPrinterListener(printer, NullLogger<TcpPrinterListener>.Instance);
         await listener.StartAsync(CancellationToken.None);

@@ -24,6 +24,18 @@
 /// Maximum size of the emulated input buffer, in bytes.
 /// When the buffer is full, additional writes are delayed until space becomes available.
 /// </param>
+/// <param name="DesiredStatus">
+/// Desired lifecycle state set by the operator. Drives listener start/stop behavior.
+/// </param>
+/// <param name="RuntimeStatus">
+/// Last known runtime status of the listener (transient, may lag reality).
+/// </param>
+/// <param name="RuntimeStatusUpdatedAt">
+/// Timestamp when <paramref name="RuntimeStatus"/> was last updated.
+/// </param>
+/// <param name="RuntimeStatusError">
+/// Optional diagnostic message associated with <paramref name="RuntimeStatus"/>.
+/// </param>
 /// <param name="IsPinned">Indicates whether the printer is pinned for quick access.</param>
 /// <param name="IsDeleted">Soft-delete marker for the printer.</param>
 /// <param name="LastViewedDocumentId">Identifier of the last document viewed for this printer.</param>
@@ -41,6 +53,10 @@ public sealed record Printer(
     bool EmulateBufferCapacity,
     decimal? BufferDrainRate,
     int? BufferMaxCapacity,
+    PrinterDesiredStatus DesiredStatus,
+    PrinterRuntimeStatus RuntimeStatus,
+    DateTimeOffset? RuntimeStatusUpdatedAt,
+    string? RuntimeStatusError,
     bool IsPinned,
     bool IsDeleted,
     Guid? LastViewedDocumentId,

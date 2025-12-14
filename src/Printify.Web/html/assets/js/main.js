@@ -9,6 +9,7 @@
         let printers = [];
         let documents = {};
         let selectedPrinterId = null;
+        let statusStreamController = null;
 
         function authHeaders() {
             return accessToken
@@ -48,6 +49,8 @@
         }
 
         function mapPrinterDto(dto, index) {
+            const desiredStatus = (dto.desiredStatus || 'started').toLowerCase();
+            const runtimeStatus = (dto.runtimeStatus || 'unknown').toLowerCase();
             return {
                 id: dto.id,
                 name: dto.displayName,
@@ -59,6 +62,10 @@
                 bufferSize: dto.bufferMaxCapacity || 0,
                 drainRate: dto.bufferDrainRate || 0,
                 pinned: dto.isPinned,
+                desiredStatus,
+                runtimeStatus,
+                runtimeStatusAt: dto.runtimeStatusUpdatedAt ? new Date(dto.runtimeStatusUpdatedAt) : null,
+                runtimeStatusError: dto.runtimeStatusError || null,
                 lastDocumentAt: dto.lastDocumentReceivedAt ? new Date(dto.lastDocumentReceivedAt) : null,
                 newDocs: 0,
                 pinOrder: index
@@ -124,6 +131,41 @@
             return `${day}.${month}.${year} ${hours}:${minutes}`;
         }
 
+        function formatPrinterAddress(printer) {
+            if (printer.port) {
+                return `localhost:${printer.port}`;
+            }
+
+            return 'Listener not configured';
+        }
+
+        function formatRuntimeStatus(status) {
+            if (!status) return 'unknown';
+            const normalized = status.toLowerCase();
+            switch (normalized) {
+                case 'starting':
+                    return 'Starting…';
+                case 'started':
+                    return 'Listening';
+                case 'stopped':
+                    return 'Stopped';
+                case 'error':
+                    return 'Error';
+                default:
+                    return 'Unknown';
+            }
+        }
+
+        function runtimeStatusClass(status) {
+            if (!status) return 'status-pill status-unknown';
+            const normalized = status.toLowerCase();
+            if (normalized === 'started') return 'status-pill status-started';
+            if (normalized === 'starting') return 'status-pill status-starting';
+            if (normalized === 'stopped') return 'status-pill status-stopped';
+            if (normalized === 'error') return 'status-pill status-error';
+            return 'status-pill status-unknown';
+        }
+
         function showToast(message, type = 'ok') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
@@ -153,43 +195,71 @@
             pinnedSection.style.display = pinnedPrinters.length > 0 ? 'block' : 'none';
             otherSection.style.display = otherPrinters.length > 0 ? 'block' : 'none';
 
-            pinnedList.innerHTML = pinnedPrinters.map(p => `
-            <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
-              <div class="list-item-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="12" y1="17" x2="12" y2="22"></line>
-                  <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
-                </svg>
-              </div>
-              <div class="list-item-content">
-                <div class="list-item-line1">
-                  <span class="list-item-name">${p.name}</span>
-                  ${p.newDocs > 0 ? `<span class="list-item-badge">● ${p.newDocs}</span>` : ''}
-                </div>
-                <div class="list-item-line2">Last: ${formatDateTime(p.lastDocumentAt)} · ${formatRelativeTime(p.lastDocumentAt)}</div>
-              </div>
-              <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, '${p.id}', true)">⋯</button>
-            </div>
-          `).join('');
+            pinnedList.innerHTML = pinnedPrinters.map(p => {
+                const docInfo = p.lastDocumentAt
+                    ? `Last: ${formatDateTime(p.lastDocumentAt)}`
+                    : 'No documents';
+                const isStarted = p.desiredStatus === 'started';
 
-            otherList.innerHTML = otherPrinters.map(p => `
-            <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
-              <div class="list-item-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                  <rect x="6" y="14" width="12" height="8"></rect>
-                </svg>
-              </div>
-              <div class="list-item-content">
-                <div class="list-item-line1">
-                  <span class="list-item-name">${p.name}</span>
+                return `
+                <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
+                  <div class="list-item-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="17" x2="12" y2="22"></line>
+                      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
+                    </svg>
+                  </div>
+                  <div class="list-item-content">
+                    <div class="list-item-line1">
+                      <span class="list-item-name">${p.name}</span>
+                      ${p.newDocs > 0 ? `<span class="list-item-badge">● ${p.newDocs}</span>` : ''}
+                    </div>
+                    <div class="list-item-line2">${formatPrinterAddress(p)}</div>
+                    <div class="list-item-line2">
+                      <span class="${runtimeStatusClass(p.runtimeStatus)}">${formatRuntimeStatus(p.runtimeStatus)}</span>
+                      <span class="list-item-dot">•</span>
+                      ${docInfo}
+                    </div>
+                  </div>
+                  <div class="list-item-actions">
+                    ${isStarted
+                    ? `<button class="btn btn-secondary btn-xs" onclick="stopPrinter(event, '${p.id}')">Stop</button>`
+                    : `<button class="btn btn-primary btn-xs" onclick="startPrinter(event, '${p.id}')">Start</button>`}
+                  </div>
+                  <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, '${p.id}', true)">⋯</button>
                 </div>
-                <div class="list-item-line2">${p.protocol} · ${p.width} dots</div>
-              </div>
-              <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, '${p.id}', false)">⋯</button>
-            </div>
-          `).join('');
+              `;
+            }).join('');
+
+            otherList.innerHTML = otherPrinters.map(p => {
+                const isStarted = p.desiredStatus === 'started';
+                return `
+                <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
+                  <div class="list-item-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                      <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                  </div>
+                  <div class="list-item-content">
+                    <div class="list-item-line1">
+                      <span class="list-item-name">${p.name}</span>
+                    </div>
+                    <div class="list-item-line2">${formatPrinterAddress(p)}</div>
+                    <div class="list-item-line2">
+                      <span class="${runtimeStatusClass(p.runtimeStatus)}">${formatRuntimeStatus(p.runtimeStatus)}</span>
+                    </div>
+                  </div>
+                  <div class="list-item-actions">
+                    ${isStarted
+                    ? `<button class="btn btn-secondary btn-xs" onclick="stopPrinter(event, '${p.id}')">Stop</button>`
+                    : `<button class="btn btn-primary btn-xs" onclick="startPrinter(event, '${p.id}')">Start</button>`}
+                  </div>
+                  <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, '${p.id}', false)">⋯</button>
+                </div>
+              `;
+            }).join('');
         }
 
         function selectPrinter(id) {
@@ -318,6 +388,33 @@
             }
         }
 
+        async function setPrinterStatus(printerId, desiredStatus) {
+            const printer = printers.find(p => p.id === printerId);
+            if (!printer) return;
+
+            try {
+                await apiRequest(`/api/printers/${printerId}/status`, {
+                    method: 'POST',
+                    body: JSON.stringify({ desiredStatus })
+                });
+                await loadPrinters(printerId);
+                showToast(desiredStatus.toLowerCase() === 'started' ? 'Printer started' : 'Printer stopped');
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || 'Failed to change status', true);
+            }
+        }
+
+        function startPrinter(event, printerId) {
+            event?.stopPropagation();
+            setPrinterStatus(printerId, 'Started');
+        }
+
+        function stopPrinter(event, printerId) {
+            event?.stopPropagation();
+            setPrinterStatus(printerId, 'Stopped');
+        }
+
         function openNewPrinterDialog() {
             if (!workspaceToken) {
                 showWorkspaceDialog();
@@ -441,7 +538,7 @@
 
                 <div class="form-actions">
                   <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                  <button class="btn btn-primary" onclick="updatePrinter(${printerId})">Save</button>
+                  <button class="btn btn-primary" onclick="updatePrinter('${printerId}')">Save</button>
                 </div>
               </div>
             </div>
@@ -726,6 +823,7 @@
 
             // Fetch current workspace to confirm auth
             await apiRequest('/api/auth/me');
+            startStatusStream();
             await loadPrinters();
         }
 
@@ -777,6 +875,7 @@
             printers = [];
             documents = {};
             selectedPrinterId = null;
+            stopStatusStream();
 
             localStorage.removeItem('workspaceToken');
             localStorage.removeItem('workspaceName');
@@ -891,6 +990,93 @@
             }, 0);
         }
 
+        async function startStatusStream() {
+            if (!accessToken || !workspaceToken) {
+                stopStatusStream();
+                return;
+            }
+
+            stopStatusStream();
+
+            const controller = new AbortController();
+            statusStreamController = controller;
+
+            try {
+                const response = await fetch('/api/printers/status/stream', {
+                    method: 'GET',
+                    headers: { ...authHeaders(), 'Accept': 'text/event-stream' },
+                    signal: controller.signal
+                });
+
+                if (!response.ok || !response.body) {
+                    throw new Error('Failed to start status stream');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+
+                    const parts = buffer.split('\n\n');
+                    buffer = parts.pop() || '';
+
+                    for (const part of parts) {
+                        if (!part.trim()) continue;
+
+                        const lines = part.split('\n');
+                        let eventName = 'message';
+                        let data = '';
+
+                        for (const line of lines) {
+                            if (line.startsWith('event:')) {
+                                eventName = line.substring(6).trim();
+                            } else if (line.startsWith('data:')) {
+                                data += line.substring(5).trim();
+                            }
+                        }
+
+                        if (eventName === 'status' && data) {
+                            try {
+                                const payload = JSON.parse(data);
+                                handleStatusEvent(payload);
+                            } catch (e) {
+                                console.error('Failed to parse status event', e);
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                if (!(err instanceof DOMException && err.name === 'AbortError')) {
+                    console.error('Status stream error', err);
+                }
+            }
+        }
+
+        function stopStatusStream() {
+            if (statusStreamController) {
+                statusStreamController.abort();
+                statusStreamController = null;
+            }
+        }
+
+        function handleStatusEvent(payload) {
+            if (!payload?.printerId) return;
+            const idx = printers.findIndex(p => p.id === payload.printerId);
+            if (idx === -1) return;
+
+            const updated = { ...printers[idx] };
+            updated.desiredStatus = (payload.desiredStatus || updated.desiredStatus || '').toLowerCase();
+            updated.runtimeStatus = (payload.runtimeStatus || updated.runtimeStatus || '').toLowerCase();
+            updated.runtimeStatusAt = payload.updatedAt ? new Date(payload.updatedAt) : updated.runtimeStatusAt;
+            updated.runtimeStatusError = payload.error || null;
+            printers[idx] = updated;
+            renderSidebar();
+        }
+
         // Initialize
         initTheme();
 
@@ -902,6 +1088,7 @@
             workspaceToken = savedToken;
             workspaceName = savedName;
             accessToken = savedAccessToken;
+            startStatusStream();
             loadPrinters();
         }
 

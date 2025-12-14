@@ -5,6 +5,17 @@ namespace Printify.Web.Mapping;
 
 internal static class PrinterMapper
 {
+    internal static PrinterDesiredStatus ToDesiredStatus(this string desiredStatus)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(desiredStatus);
+        return desiredStatus.Trim().ToLowerInvariant() switch
+        {
+            "started" or "start" => PrinterDesiredStatus.Started,
+            "stopped" or "stop" => PrinterDesiredStatus.Stopped,
+            _ => throw new ArgumentOutOfRangeException(nameof(desiredStatus), desiredStatus, "Unsupported desired status.")
+        };
+    }
+
     internal static PrinterResponseDto ToResponseDto(this Printer printer)
     {
         ArgumentNullException.ThrowIfNull(printer);
@@ -18,6 +29,10 @@ internal static class PrinterMapper
             printer.EmulateBufferCapacity,
             printer.BufferDrainRate,
             printer.BufferMaxCapacity,
+            printer.DesiredStatus.ToString(),
+            printer.RuntimeStatus.ToString(),
+            printer.RuntimeStatusUpdatedAt,
+            printer.RuntimeStatusError,
             printer.IsPinned,
             printer.LastViewedDocumentId,
             printer.LastDocumentReceivedAt);

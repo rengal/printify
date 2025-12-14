@@ -8,6 +8,7 @@ using Printify.Application.Features.Printers.Documents.Get;
 using Printify.Application.Features.Printers.Documents.List;
 using Printify.Application.Features.Printers.Get;
 using Printify.Application.Features.Printers.List;
+using Printify.Application.Features.Printers.Status;
 using Printify.Application.Printing;
 using Printify.Web.Contracts.Documents.Requests;
 using Printify.Web.Contracts.Documents.Responses;
@@ -24,15 +25,18 @@ public sealed class PrintersController : ControllerBase
 {
     private readonly IMediator mediator;
     private readonly IPrinterDocumentStream documentStream;
+    private readonly IPrinterStatusStream statusStream;
     private readonly JsonSerializerOptions jsonOptions;
 
     public PrintersController(
         IMediator mediator,
         IPrinterDocumentStream documentStream,
+        IPrinterStatusStream statusStream,
         IOptions<JsonOptions> jsonOptions)
     {
         this.mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         this.documentStream = documentStream ?? throw new ArgumentNullException(nameof(documentStream));
+        this.statusStream = statusStream ?? throw new ArgumentNullException(nameof(statusStream));
         ArgumentNullException.ThrowIfNull(jsonOptions);
         this.jsonOptions = jsonOptions.Value.JsonSerializerOptions;
     }
@@ -59,6 +63,37 @@ public sealed class PrintersController : ControllerBase
 
         var printers = await mediator.Send(new ListPrintersQuery(context), cancellationToken);
         return Ok(printers.Select(printer => printer.ToResponseDto()).ToList());
+    }
+
+    [Authorize]
+    [HttpGet("status/stream")]
+    public async Task StreamStatus(CancellationToken cancellationToken)
+    {
+        var context = HttpContext.CaptureRequestContext();
+        if (context.WorkspaceId is null)
+        {
+            Response.StatusCode = StatusCodes.Status403Forbidden;
+            return;
+        }
+
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["X-Accel-Buffering"] = "no";
+        Response.ContentType = "text/event-stream";
+
+        try
+        {
+            await foreach (var statusEvent in statusStream.Subscribe(context.WorkspaceId.Value, cancellationToken))
+            {
+                var payload = JsonSerializer.Serialize(statusEvent, jsonOptions);
+                await Response.WriteAsync("event: status\n", cancellationToken);
+                await Response.WriteAsync($"data: {payload}\n\n", cancellationToken);
+                await Response.Body.FlushAsync(cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // client disconnected
+        }
     }
 
     [Authorize]
@@ -221,6 +256,32 @@ public sealed class PrintersController : ControllerBase
         catch (InvalidOperationException)
         {
             return NotFound();
+        }
+    }
+
+    [Authorize]
+    [HttpPost("{id:guid}/status")]
+    public async Task<ActionResult<PrinterResponseDto>> SetStatus(Guid id, [FromBody] SetPrinterStatusRequestDto request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var context = HttpContext.CaptureRequestContext();
+        try
+        {
+            var command = new SetPrinterDesiredStatusCommand(
+                context,
+                id,
+                request.DesiredStatus.ToDesiredStatus());
+            var printer = await mediator.Send(command, cancellationToken);
+            return Ok(printer.ToResponseDto());
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            return ValidationProblem(ex.Message);
         }
     }
 }

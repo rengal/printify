@@ -35,6 +35,18 @@ public sealed class PrinterEntity : BaseEntity
     [Column("buffer_max_capacity")]
     public int? BufferMaxCapacity { get; set; }
 
+    [Column("desired_status")]
+    public string DesiredStatus { get; set; } = "Started";
+
+    [Column("runtime_status")]
+    public string RuntimeStatus { get; set; } = "Unknown";
+
+    [Column("runtime_status_updated_at")]
+    public DateTimeOffset? RuntimeStatusUpdatedAt { get; set; }
+
+    [Column("runtime_status_error")]
+    public string? RuntimeStatusError { get; set; }
+
     [Column("is_pinned")]
     public bool IsPinned { get; set; }
 

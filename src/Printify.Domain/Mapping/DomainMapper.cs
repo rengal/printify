@@ -79,4 +79,26 @@ public static class DomainMapper
     {
         return justification.ToString();
     }
+
+    public static PrinterDesiredStatus ParsePrinterDesiredStatus(string status)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(status);
+        return Enum.Parse<PrinterDesiredStatus>(status, false);
+    }
+
+    public static string ToString(PrinterDesiredStatus status)
+    {
+        return status.ToString();
+    }
+
+    public static PrinterRuntimeStatus ParsePrinterRuntimeStatus(string status)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(status);
+        return Enum.Parse<PrinterRuntimeStatus>(status, false);
+    }
+
+    public static string ToString(PrinterRuntimeStatus status)
+    {
+        return status.ToString();
+    }
 }

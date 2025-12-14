@@ -68,6 +68,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMediaService, MediaService>();
         services.AddSingleton<IMediaStorage, FileSystemMediaStorage>();
         services.AddSingleton<IEscPosCommandTrieProvider, EscPosCommandTrieProvider>();
+        services.AddSingleton<IPrinterStatusStream, PrinterStatusStream>();
 
         // Repositories
         services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();

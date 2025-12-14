@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using Microsoft.EntityFrameworkCore;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
+using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
 using Printify.Infrastructure.Mapping;
 using Printify.Infrastructure.Persistence;
@@ -81,11 +82,10 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task SetPinnedAsync(Guid id, Guid? workspaceId, bool isPinned, CancellationToken ct)
+    public async Task SetPinnedAsync(Guid id, bool isPinned, CancellationToken ct)
     {
         var entity = await dbContext.Printers
             .Where(p => p.Id == id && !p.IsDeleted)
-            .Where(p => workspaceId == null || p.OwnerWorkspaceId == workspaceId)
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 
@@ -132,6 +132,46 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         }
 
         entity.LastDocumentReceivedAt = timestamp;
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task SetDesiredStatusAsync(Guid id, PrinterDesiredStatus desiredStatus, CancellationToken ct)
+    {
+        var entity = await dbContext.Printers
+            .Where(p => p.Id == id && !p.IsDeleted)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+        if (entity is null)
+        {
+            throw new PrinterNotFoundException(id);
+        }
+
+        var desired = DomainMapper.ToString(desiredStatus);
+        if (string.Equals(entity.DesiredStatus, desired, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        entity.DesiredStatus = desired;
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task SetRuntimeStatusAsync(Guid id, PrinterRuntimeStatus runtimeStatus, DateTimeOffset updatedAt, string? error, CancellationToken ct)
+    {
+        var entity = await dbContext.Printers
+            .Where(p => p.Id == id && !p.IsDeleted)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+        if (entity is null)
+        {
+            return;
+        }
+
+        entity.RuntimeStatus = DomainMapper.ToString(runtimeStatus);
+        entity.RuntimeStatusUpdatedAt = updatedAt;
+        entity.RuntimeStatusError = error;
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 

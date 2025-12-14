@@ -20,7 +20,7 @@ public sealed class SetPrinterPinnedHandler(IPrinterRepository printerRepository
         }
 
         await printerRepository
-            .SetPinnedAsync(request.PrinterId, request.Context.WorkspaceId, request.IsPinned, cancellationToken)
+            .SetPinnedAsync(request.PrinterId, request.IsPinned, cancellationToken)
             .ConfigureAwait(false);
 
         return printer with { IsPinned = request.IsPinned };

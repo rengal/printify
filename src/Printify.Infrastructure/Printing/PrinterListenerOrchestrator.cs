@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
+using Printify.Application.Interfaces;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Printers;
 
@@ -10,6 +12,8 @@ namespace Printify.Infrastructure.Printing;
 public sealed class PrinterListenerOrchestrator(
     IPrinterListenerFactory listenerFactory,
     IPrintJobSessionsOrchestrator printJobSessions,
+    IServiceScopeFactory scopeFactory,
+    IPrinterStatusStream statusStream,
     ILogger<PrinterListenerOrchestrator> logger)
     : IPrinterListenerOrchestrator
 {
@@ -27,15 +31,18 @@ public sealed class PrinterListenerOrchestrator(
         listeners[printer.Id] = listener;
         listener.ChannelAccepted += Listener_ChannelAccepted;
 
+        await UpdateRuntimeStatusAsync(printer, PrinterRuntimeStatus.Starting, null, ct).ConfigureAwait(false);
         try
         {
             await listener.StartAsync(ct).ConfigureAwait(false);
+            await UpdateRuntimeStatusAsync(printer, MapRuntimeStatus(listener.Status), null, ct).ConfigureAwait(false);
         }
         catch
         {
             listener.ChannelAccepted -= Listener_ChannelAccepted;
             listeners.TryRemove(printer.Id, out _);
             await listener.DisposeAsync().ConfigureAwait(false);
+            await UpdateRuntimeStatusAsync(printer, PrinterRuntimeStatus.Error, "Failed to start listener", ct).ConfigureAwait(false);
             throw;
         }
     }
@@ -108,6 +115,7 @@ public sealed class PrinterListenerOrchestrator(
         await listener.DisposeAsync().ConfigureAwait(false);
         logger.LogInformation("Listener removed for printer {PrinterId}", printer.Id);
         listener.ChannelAccepted -= Listener_ChannelAccepted;
+        await UpdateRuntimeStatusAsync(printer, PrinterRuntimeStatus.Stopped, null, ct).ConfigureAwait(false);
     }
 
     public ListenerStatusSnapshot? GetStatus(Printer printer)
@@ -135,6 +143,35 @@ public sealed class PrinterListenerOrchestrator(
             ChannelClosedReason.Cancelled => PrintJobCompletionReason.Canceled,
             ChannelClosedReason.Faulted => PrintJobCompletionReason.Faulted,
             _ => PrintJobCompletionReason.ClientDisconnected
+        };
+    }
+
+    private async Task UpdateRuntimeStatusAsync(Printer printer, PrinterRuntimeStatus status, string? error, CancellationToken ct)
+    {
+        var timestamp = DateTimeOffset.UtcNow;
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var repository = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
+        await repository.SetRuntimeStatusAsync(printer.Id, status, timestamp, error, ct).ConfigureAwait(false);
+
+        statusStream.Publish(new PrinterStatusEvent(
+            printer.OwnerWorkspaceId,
+            printer.Id,
+            printer.DesiredStatus,
+            status,
+            timestamp,
+            error));
+    }
+
+    private static PrinterRuntimeStatus MapRuntimeStatus(PrinterListenerStatus status)
+    {
+        return status switch
+        {
+            PrinterListenerStatus.Unknown => PrinterRuntimeStatus.Unknown,
+            PrinterListenerStatus.Idle => PrinterRuntimeStatus.Stopped,
+            PrinterListenerStatus.OpeningPort => PrinterRuntimeStatus.Starting,
+            PrinterListenerStatus.Listening => PrinterRuntimeStatus.Started,
+            PrinterListenerStatus.Failed => PrinterRuntimeStatus.Error,
+            _ => PrinterRuntimeStatus.Unknown
         };
     }
 }
