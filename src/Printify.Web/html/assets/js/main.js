@@ -1,5 +1,5 @@
 
-        console.info('main.js loaded - revision', '2025-02-20T12:00:00Z');
+        console.info('main.js loaded - revision 2', '2025-02-20T12:00:00Z');
 
         // API + Workspace State
         const apiBase = '';
@@ -83,19 +83,10 @@
         async function loadPrinters(selectId = null) {
             try {
                 const list = await apiRequest('/api/printers');
+                console.debug('loadPrinters fetched', list);
                 printers = list.map((p, idx) => mapPrinterDto(p, idx));
                 if (selectId && printers.some(p => p.id === selectId)) {
                     selectedPrinterId = selectId;
-                } else if (!selectedPrinterId && printers.length > 0) {
-                    selectedPrinterId = printers[0].id;
-                }
-                if (selectedPrinterId) {
-                    try {
-                        await ensureDocumentsLoaded(selectedPrinterId);
-                        await startDocumentStream(selectedPrinterId);
-                    } catch (err) {
-                        console.error('Failed to initialize document stream', err);
-                    }
                 }
                 renderSidebar();
                 renderDocuments();
@@ -221,6 +212,8 @@
             const pinnedPrinters = printers.filter(p => p.pinned).sort((a, b) => a.pinOrder - b.pinOrder);
             const otherPrinters = printers.filter(p => !p.pinned).sort((a, b) => a.name.localeCompare(b.name));
 
+            console.debug('renderSidebar', { total: printers.length, pinned: pinnedPrinters.length, other: otherPrinters.length });
+
             pinnedSection.style.display = pinnedPrinters.length > 0 ? 'block' : 'none';
             otherSection.style.display = otherPrinters.length > 0 ? 'block' : 'none';
 
@@ -301,7 +294,7 @@
                 renderDocuments();
                 try {
                     await ensureDocumentsLoaded(id);
-                    await startDocumentStream(id);
+                    startDocumentStream(id);
                 } catch (err) {
                     console.error('Failed to load documents', err);
                     showToast('Unable to load documents', true);
@@ -590,6 +583,7 @@
             menu.innerHTML = `
             <div class="menu-item" onclick="editPrinter('${printerId}')">Edit</div>
             <div class="menu-item" onclick="togglePin('${printerId}')">${isPinned ? 'Unpin' : 'Pin'}</div>
+            <div class="menu-item danger" onclick="deletePrinter('${printerId}')">Delete</div>
           `;
 
             document.body.appendChild(menu);
@@ -616,6 +610,25 @@
             } catch (err) {
                 console.error(err);
                 showToast(err.message || 'Failed to toggle pin', true);
+            }
+        }
+
+        async function deletePrinter(printerId) {
+            if (!confirm('Delete this printer?')) {
+                return;
+            }
+
+            try {
+                await apiRequest(`/api/printers/${printerId}`, { method: 'DELETE' });
+                if (selectedPrinterId === printerId) {
+                    selectedPrinterId = null;
+                }
+                await loadPrinters();
+                renderDocuments();
+                showToast('Printer deleted');
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || 'Failed to delete printer', true);
             }
         }
 
@@ -1041,6 +1054,7 @@
             });
 
             accessToken = loginResponse.accessToken;
+            workspaceToken = token;
             const workspace = loginResponse.workspace;
             workspaceName = workspace?.ownerName || null;
 
@@ -1056,6 +1070,10 @@
             await apiRequest('/api/auth/me');
             startStatusStream();
             await loadPrinters();
+            if (selectedPrinterId) {
+                await ensureDocumentsLoaded(selectedPrinterId);
+                startDocumentStream(selectedPrinterId);
+            }
         }
 
         function showTokenDialog(token) {
