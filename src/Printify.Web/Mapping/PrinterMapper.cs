@@ -1,3 +1,4 @@
+using Printify.Application.Printing;
 using Printify.Domain.Printers;
 using Printify.Web.Contracts.Printers.Responses;
 
@@ -5,20 +6,29 @@ namespace Printify.Web.Mapping;
 
 internal static class PrinterMapper
 {
-    internal static PrinterDesiredStatus ToDesiredStatus(this string desiredStatus)
+    internal static PrinterTargetState ToTargetState(this string targetState)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(desiredStatus);
-        return desiredStatus.Trim().ToLowerInvariant() switch
+        ArgumentException.ThrowIfNullOrWhiteSpace(targetState);
+        return targetState.Trim().ToLowerInvariant() switch
         {
-            "started" or "start" => PrinterDesiredStatus.Started,
-            "stopped" or "stop" => PrinterDesiredStatus.Stopped,
-            _ => throw new ArgumentOutOfRangeException(nameof(desiredStatus), desiredStatus, "Unsupported desired status.")
+            "started" or "start" => PrinterTargetState.Started,
+            "stopped" or "stop" => PrinterTargetState.Stopped,
+            _ => throw new ArgumentOutOfRangeException(nameof(targetState), targetState, "Unsupported target state.")
         };
     }
 
-    internal static PrinterResponseDto ToResponseDto(this Printer printer)
+    internal static PrinterResponseDto ToResponseDto(this Printer printer, ListenerStatusSnapshot? runtime = null)
     {
         ArgumentNullException.ThrowIfNull(printer);
+        var runtimeStatus = runtime?.Status switch
+        {
+            PrinterListenerStatus.OpeningPort => PrinterRuntimeStatus.Starting,
+            PrinterListenerStatus.Listening => PrinterRuntimeStatus.Started,
+            PrinterListenerStatus.Idle => PrinterRuntimeStatus.Stopped,
+            PrinterListenerStatus.Failed => PrinterRuntimeStatus.Error,
+            _ => PrinterRuntimeStatus.Unknown
+        };
+
         return new PrinterResponseDto(
             printer.Id,
             printer.DisplayName,
@@ -29,10 +39,10 @@ internal static class PrinterMapper
             printer.EmulateBufferCapacity,
             printer.BufferDrainRate,
             printer.BufferMaxCapacity,
-            printer.DesiredStatus.ToString(),
-            printer.RuntimeStatus.ToString(),
-            printer.RuntimeStatusUpdatedAt,
-            printer.RuntimeStatusError,
+            printer.TargetState.ToString(),
+            runtimeStatus.ToString(),
+            runtime?.Status == null ? null : DateTimeOffset.UtcNow,
+            runtimeStatus == PrinterRuntimeStatus.Error ? runtime?.Status.ToString() : null,
             printer.IsPinned,
             printer.LastViewedDocumentId,
             printer.LastDocumentReceivedAt);

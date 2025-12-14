@@ -135,7 +135,7 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task SetDesiredStatusAsync(Guid id, PrinterDesiredStatus desiredStatus, CancellationToken ct)
+    public async Task SetTargetStateAsync(Guid id, PrinterTargetState targetState, CancellationToken ct)
     {
         var entity = await dbContext.Printers
             .Where(p => p.Id == id && !p.IsDeleted)
@@ -147,31 +147,13 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
             throw new PrinterNotFoundException(id);
         }
 
-        var desired = DomainMapper.ToString(desiredStatus);
-        if (string.Equals(entity.DesiredStatus, desired, StringComparison.Ordinal))
+        var desired = DomainMapper.ToString(targetState);
+        if (string.Equals(entity.TargetStatus, desired, StringComparison.Ordinal))
         {
             return;
         }
 
-        entity.DesiredStatus = desired;
-        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
-    }
-
-    public async Task SetRuntimeStatusAsync(Guid id, PrinterRuntimeStatus runtimeStatus, DateTimeOffset updatedAt, string? error, CancellationToken ct)
-    {
-        var entity = await dbContext.Printers
-            .Where(p => p.Id == id && !p.IsDeleted)
-            .FirstOrDefaultAsync(ct)
-            .ConfigureAwait(false);
-
-        if (entity is null)
-        {
-            return;
-        }
-
-        entity.RuntimeStatus = DomainMapper.ToString(runtimeStatus);
-        entity.RuntimeStatusUpdatedAt = updatedAt;
-        entity.RuntimeStatusError = error;
+        entity.TargetStatus = desired;
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 

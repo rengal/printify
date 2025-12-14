@@ -2,5 +2,5 @@ namespace Printify.Web.Contracts.Printers.Requests;
 
 public sealed class SetPrinterStatusRequestDto
 {
-    public required string DesiredStatus { get; init; }
+    public required string TargetStatus { get; init; }
 }

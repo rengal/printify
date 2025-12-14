@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using MediatR;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -5,12 +6,12 @@ using Printify.Domain.Printers;
 
 namespace Printify.Application.Features.Printers.Status;
 
-public sealed class SetPrinterDesiredStatusHandler(
+public sealed class SetPrinterTargetStateHandler(
     IPrinterRepository printerRepository,
     IPrinterListenerOrchestrator listenerOrchestrator)
-    : IRequestHandler<SetPrinterDesiredStatusCommand, Printer>
+    : IRequestHandler<SetPrinterTargetStateCommand, Printer>
 {
-    public async Task<Printer> Handle(SetPrinterDesiredStatusCommand request, CancellationToken cancellationToken)
+    public async Task<Printer> Handle(SetPrinterTargetStateCommand request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -23,26 +24,27 @@ public sealed class SetPrinterDesiredStatusHandler(
             throw new InvalidOperationException("Printer not found.");
         }
 
-        await printerRepository.SetDesiredStatusAsync(
+        await printerRepository.SetTargetStateAsync(
             request.PrinterId,
-            request.DesiredStatus,
+            request.TargetState,
             cancellationToken).ConfigureAwait(false);
 
-        var updated = printer with { DesiredStatus = request.DesiredStatus };
+        var updated = printer with { TargetState = request.TargetState };
 
-        if (request.DesiredStatus == PrinterDesiredStatus.Started)
+        if (request.TargetState == PrinterTargetState.Started)
         {
-            await listenerOrchestrator.AddListenerAsync(updated, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await listenerOrchestrator.AddListenerAsync(updated, cancellationToken).ConfigureAwait(false);
+            }
+            catch (SocketException)
+            {
+                throw;
+            }
         }
         else
         {
             await listenerOrchestrator.RemoveListenerAsync(updated, cancellationToken).ConfigureAwait(false);
-            await printerRepository.SetRuntimeStatusAsync(
-                updated.Id,
-                PrinterRuntimeStatus.Stopped,
-                DateTimeOffset.UtcNow,
-                null,
-                cancellationToken).ConfigureAwait(false);
         }
 
         var refreshed = await printerRepository

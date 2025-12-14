@@ -35,8 +35,8 @@ public sealed class PrinterEntity : BaseEntity
     [Column("buffer_max_capacity")]
     public int? BufferMaxCapacity { get; set; }
 
-    [Column("desired_status")]
-    public string DesiredStatus { get; set; } = "Started";
+    [Column("target_status")]
+    public string TargetStatus { get; set; } = "Started";
 
     [Column("runtime_status")]
     public string RuntimeStatus { get; set; } = "Unknown";

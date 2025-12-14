@@ -1,7 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Printify.Application.Printing;
+﻿using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
 

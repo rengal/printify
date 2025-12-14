@@ -49,7 +49,7 @@
         }
 
         function mapPrinterDto(dto, index) {
-            const desiredStatus = (dto.desiredStatus || 'started').toLowerCase();
+            const targetStatus = (dto.targetStatus || 'started').toLowerCase();
             const runtimeStatus = (dto.runtimeStatus || 'unknown').toLowerCase();
             return {
                 id: dto.id,
@@ -62,7 +62,7 @@
                 bufferSize: dto.bufferMaxCapacity || 0,
                 drainRate: dto.bufferDrainRate || 0,
                 pinned: dto.isPinned,
-                desiredStatus,
+                targetStatus,
                 runtimeStatus,
                 runtimeStatusAt: dto.runtimeStatusUpdatedAt ? new Date(dto.runtimeStatusUpdatedAt) : null,
                 runtimeStatusError: dto.runtimeStatusError || null,
@@ -199,7 +199,7 @@
                 const docInfo = p.lastDocumentAt
                     ? `Last: ${formatDateTime(p.lastDocumentAt)}`
                     : 'No documents';
-                const isStarted = p.desiredStatus === 'started';
+                const isStarted = p.targetStatus === 'started';
 
                 return `
                 <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
@@ -232,7 +232,7 @@
             }).join('');
 
             otherList.innerHTML = otherPrinters.map(p => {
-                const isStarted = p.desiredStatus === 'started';
+                const isStarted = p.targetStatus === 'started';
                 return `
                 <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
                   <div class="list-item-icon">
@@ -388,17 +388,17 @@
             }
         }
 
-        async function setPrinterStatus(printerId, desiredStatus) {
+        async function setPrinterStatus(printerId, targetStatus) {
             const printer = printers.find(p => p.id === printerId);
             if (!printer) return;
 
             try {
                 await apiRequest(`/api/printers/${printerId}/status`, {
                     method: 'POST',
-                    body: JSON.stringify({ desiredStatus })
+                    body: JSON.stringify({ targetStatus })
                 });
                 await loadPrinters(printerId);
-                showToast(desiredStatus.toLowerCase() === 'started' ? 'Printer started' : 'Printer stopped');
+                showToast(targetStatus.toLowerCase() === 'started' ? 'Printer started' : 'Printer stopped');
             } catch (err) {
                 console.error(err);
                 showToast(err.message || 'Failed to change status', true);
@@ -1069,7 +1069,7 @@
             if (idx === -1) return;
 
             const updated = { ...printers[idx] };
-            updated.desiredStatus = (payload.desiredStatus || updated.desiredStatus || '').toLowerCase();
+            updated.targetStatus = (payload.targetState || payload.targetStatus || updated.targetStatus || '').toLowerCase();
             updated.runtimeStatus = (payload.runtimeStatus || updated.runtimeStatus || '').toLowerCase();
             updated.runtimeStatusAt = payload.updatedAt ? new Date(payload.updatedAt) : updated.runtimeStatusAt;
             updated.runtimeStatusError = payload.error || null;

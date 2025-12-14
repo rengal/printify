@@ -24,8 +24,8 @@
 /// Maximum size of the emulated input buffer, in bytes.
 /// When the buffer is full, additional writes are delayed until space becomes available.
 /// </param>
-/// <param name="DesiredStatus">
-/// Desired lifecycle state set by the operator. Drives listener start/stop behavior.
+/// <param name="TargetState">
+/// Target lifecycle state set by the operator. Drives listener start/stop behavior.
 /// </param>
 /// <param name="RuntimeStatus">
 /// Last known runtime status of the listener (transient, may lag reality).
@@ -53,7 +53,7 @@ public sealed record Printer(
     bool EmulateBufferCapacity,
     decimal? BufferDrainRate,
     int? BufferMaxCapacity,
-    PrinterDesiredStatus DesiredStatus,
+    PrinterTargetState TargetState,
     PrinterRuntimeStatus RuntimeStatus,
     DateTimeOffset? RuntimeStatusUpdatedAt,
     string? RuntimeStatusError,

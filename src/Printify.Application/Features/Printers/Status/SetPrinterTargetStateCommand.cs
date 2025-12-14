@@ -4,7 +4,7 @@ using Printify.Domain.Requests;
 
 namespace Printify.Application.Features.Printers.Status;
 
-public sealed record SetPrinterDesiredStatusCommand(
+public sealed record SetPrinterTargetStateCommand(
     RequestContext Context,
     Guid PrinterId,
-    PrinterDesiredStatus DesiredStatus) : IRequest<Printer>;
+    PrinterTargetState TargetState) : IRequest<Printer>;

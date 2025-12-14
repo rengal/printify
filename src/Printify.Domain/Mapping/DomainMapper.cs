@@ -80,13 +80,13 @@ public static class DomainMapper
         return justification.ToString();
     }
 
-    public static PrinterDesiredStatus ParsePrinterDesiredStatus(string status)
+    public static PrinterTargetState ParsePrinterTargetState(string status)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
-        return Enum.Parse<PrinterDesiredStatus>(status, false);
+        return Enum.Parse<PrinterTargetState>(status, false);
     }
 
-    public static string ToString(PrinterDesiredStatus status)
+    public static string ToString(PrinterTargetState status)
     {
         return status.ToString();
     }

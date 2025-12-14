@@ -12,7 +12,7 @@ namespace Printify.Web.Contracts.Printers.Responses;
 /// <param name="EmulateBufferCapacity">Indicates whether buffer simulation is enabled.</param>
 /// <param name="BufferDrainRate">Drain rate for the simulated buffer.</param>
 /// <param name="BufferMaxCapacity">Maximum capacity of the simulated buffer.</param>
-/// <param name="DesiredStatus">Desired lifecycle state (Started/Stopped).</param>
+/// <param name="TargetStatus">Desired lifecycle state (Started/Stopped).</param>
 /// <param name="RuntimeStatus">Last known runtime state reported by the listener.</param>
 /// <param name="RuntimeStatusUpdatedAt">Timestamp when <paramref name="RuntimeStatus"/> was captured.</param>
 /// <param name="RuntimeStatusError">Optional diagnostic message if <paramref name="RuntimeStatus"/> is Error.</param>
@@ -29,7 +29,7 @@ public sealed record PrinterResponseDto(
     bool EmulateBufferCapacity,
     decimal? BufferDrainRate,
     int? BufferMaxCapacity,
-    string DesiredStatus,
+    string TargetStatus,
     string RuntimeStatus,
     DateTimeOffset? RuntimeStatusUpdatedAt,
     string? RuntimeStatusError,

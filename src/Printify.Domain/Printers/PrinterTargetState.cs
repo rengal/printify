@@ -1,9 +1,9 @@
 ﻿namespace Printify.Domain.Printers;
 
 /// <summary>
-/// Desired lifecycle state controlled by the operator.
+/// Target lifecycle state controlled by the operator.
 /// </summary>
-public enum PrinterDesiredStatus
+public enum PrinterTargetState
 {
     Stopped = 0,
     Started = 1

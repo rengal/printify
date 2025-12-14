@@ -9,9 +9,6 @@ namespace Printify.Infrastructure.Printing.Tcp;
 
 public sealed class TcpPrinterListener(Printer printer, ILogger<TcpPrinterListener>? logger = null) : IPrinterListener
 {
-    private const int RetryDelayMs = 10000;
-    private const int MaxRetries = 10;
-
     private TcpListener? listener;
     private CancellationTokenSource? acceptLoopCts;
     private Task? backgroundTask;
@@ -31,45 +28,36 @@ public sealed class TcpPrinterListener(Printer printer, ILogger<TcpPrinterListen
         Status = PrinterListenerStatus.OpeningPort;
         logger?.LogInformation("Starting TCP listener for printer {PrinterId} on port {Port}", printer.Id, printer.ListenTcpPortNumber);
 
-        backgroundTask = Task.Run(() => TryStartListeningLoopAsync(ct), ct);
-        await Task.CompletedTask;
-    }
-
-    private async Task TryStartListeningLoopAsync(CancellationToken ct)
-    {
-        var endpoint = new IPEndPoint(IPAddress.Any, printer.ListenTcpPortNumber);
-        var retries = 0;
-
-        while (!ct.IsCancellationRequested)
+        try
         {
-            try
-            {
-                listener = new TcpListener(endpoint);
-                listener.Start();
+            var endpoint = new IPEndPoint(IPAddress.Any, printer.ListenTcpPortNumber);
+            listener = new TcpListener(endpoint);
+            listener.Start();
 
-                Status = PrinterListenerStatus.Listening;
-                logger?.LogInformation("TCP listener is now active on port {Port}", printer.ListenTcpPortNumber);
+            Status = PrinterListenerStatus.Listening;
+            logger?.LogInformation("TCP listener is now active on port {Port}", printer.ListenTcpPortNumber);
 
-                acceptLoopCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-                await RunAcceptLoopAsync(acceptLoopCts.Token).ConfigureAwait(false);
-                return;
-            }
-            catch (SocketException ex) when (retries < MaxRetries)
-            {
-                retries++;
-                Status = PrinterListenerStatus.OpeningPort;
-                logger?.LogWarning(ex, "Retry {Retry}/{Max} to bind port {Port}", retries, MaxRetries, printer.ListenTcpPortNumber);
-                await Task.Delay(RetryDelayMs, ct).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                logger?.LogError(ex, "Unexpected error starting listener on port {Port}", printer.ListenTcpPortNumber);
-                break;
-            }
+            acceptLoopCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            backgroundTask = RunAcceptLoopAsync(acceptLoopCts.Token);
+            await Task.CompletedTask;
         }
-
-        Status = PrinterListenerStatus.Failed;
-        logger?.LogError("TCP listener failed after {Retries} retries on port {Port}", retries, printer.ListenTcpPortNumber);
+        catch (OperationCanceledException)
+        {
+            Status = PrinterListenerStatus.Failed;
+            throw;
+        }
+        catch (SocketException ex)
+        {
+            Status = PrinterListenerStatus.Failed;
+            logger?.LogError(ex, "Failed to bind port {Port} for printer {PrinterId}", printer.ListenTcpPortNumber, printer.Id);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Status = PrinterListenerStatus.Failed;
+            logger?.LogError(ex, "Unexpected error starting listener on port {Port}", printer.ListenTcpPortNumber);
+            throw;
+        }
     }
 
     private async Task RunAcceptLoopAsync(CancellationToken ct)

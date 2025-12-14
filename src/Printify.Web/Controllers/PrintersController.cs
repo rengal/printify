@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using System.Text.Json;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -26,17 +27,20 @@ public sealed class PrintersController : ControllerBase
     private readonly IMediator mediator;
     private readonly IPrinterDocumentStream documentStream;
     private readonly IPrinterStatusStream statusStream;
+    private readonly IPrinterListenerOrchestrator listenerOrchestrator;
     private readonly JsonSerializerOptions jsonOptions;
 
     public PrintersController(
         IMediator mediator,
         IPrinterDocumentStream documentStream,
         IPrinterStatusStream statusStream,
+        IPrinterListenerOrchestrator listenerOrchestrator,
         IOptions<JsonOptions> jsonOptions)
     {
         this.mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         this.documentStream = documentStream ?? throw new ArgumentNullException(nameof(documentStream));
         this.statusStream = statusStream ?? throw new ArgumentNullException(nameof(statusStream));
+        this.listenerOrchestrator = listenerOrchestrator ?? throw new ArgumentNullException(nameof(listenerOrchestrator));
         ArgumentNullException.ThrowIfNull(jsonOptions);
         this.jsonOptions = jsonOptions.Value.JsonSerializerOptions;
     }
@@ -62,7 +66,10 @@ public sealed class PrintersController : ControllerBase
         }
 
         var printers = await mediator.Send(new ListPrintersQuery(context), cancellationToken);
-        return Ok(printers.Select(printer => printer.ToResponseDto()).ToList());
+        var responses = printers
+            .Select(printer => printer.ToResponseDto(listenerOrchestrator.GetStatus(printer)))
+            .ToList();
+        return Ok(responses);
     }
 
     [Authorize]
@@ -202,7 +209,7 @@ public sealed class PrintersController : ControllerBase
             return NotFound();
         }
 
-        return Ok(printer.ToResponseDto());
+        return Ok(printer.ToResponseDto(listenerOrchestrator.GetStatus(printer)));
     }
 
     [Authorize]
@@ -216,7 +223,7 @@ public sealed class PrintersController : ControllerBase
         {
             var command = request.ToCommand(id, context);
             var printer = await mediator.Send(command, cancellationToken);
-            return Ok(printer.ToResponseDto());
+            return Ok(printer.ToResponseDto(listenerOrchestrator.GetStatus(printer)));
         }
         catch (InvalidOperationException)
         {
@@ -268,12 +275,18 @@ public sealed class PrintersController : ControllerBase
         var context = HttpContext.CaptureRequestContext();
         try
         {
-            var command = new SetPrinterDesiredStatusCommand(
+            var command = new SetPrinterTargetStateCommand(
                 context,
                 id,
-                request.DesiredStatus.ToDesiredStatus());
+                request.TargetStatus.ToTargetState());
             var printer = await mediator.Send(command, cancellationToken);
-            return Ok(printer.ToResponseDto());
+            return Ok(printer.ToResponseDto(listenerOrchestrator.GetStatus(printer)));
+        }
+        catch (SocketException ex)
+        {
+            return Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                detail: $"Unable to start listener for this printer: {ex.Message}");
         }
         catch (InvalidOperationException)
         {

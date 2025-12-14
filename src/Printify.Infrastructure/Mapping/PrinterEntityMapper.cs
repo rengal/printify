@@ -22,10 +22,10 @@ internal static class PrinterEntityMapper
         entity.BufferDrainRate = printer.BufferDrainRate;
         entity.BufferMaxCapacity = printer.BufferMaxCapacity;
         entity.CreatedFromIp = printer.CreatedFromIp;
-        entity.DesiredStatus = DomainMapper.ToString(printer.DesiredStatus);
-        entity.RuntimeStatus = DomainMapper.ToString(printer.RuntimeStatus);
-        entity.RuntimeStatusUpdatedAt = printer.RuntimeStatusUpdatedAt;
-        entity.RuntimeStatusError = printer.RuntimeStatusError;
+        entity.TargetStatus = DomainMapper.ToString(printer.TargetState);
+        entity.RuntimeStatus = DomainMapper.ToString(PrinterRuntimeStatus.Unknown);
+        entity.RuntimeStatusUpdatedAt = null;
+        entity.RuntimeStatusError = null;
         entity.IsPinned = printer.IsPinned;
         entity.IsDeleted = printer.IsDeleted;
         entity.LastViewedDocumentId = printer.LastViewedDocumentId;
@@ -58,10 +58,10 @@ internal static class PrinterEntityMapper
             entity.EmulateBufferCapacity,
             entity.BufferDrainRate,
             entity.BufferMaxCapacity,
-            DomainMapper.ParsePrinterDesiredStatus(entity.DesiredStatus),
-            DomainMapper.ParsePrinterRuntimeStatus(entity.RuntimeStatus),
-            entity.RuntimeStatusUpdatedAt,
-            entity.RuntimeStatusError,
+            DomainMapper.ParsePrinterTargetState(entity.TargetStatus),
+            PrinterRuntimeStatus.Unknown,
+            null,
+            null,
             entity.IsPinned,
             entity.IsDeleted,
             entity.LastViewedDocumentId,

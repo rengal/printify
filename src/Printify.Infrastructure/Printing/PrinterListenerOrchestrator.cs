@@ -146,20 +146,17 @@ public sealed class PrinterListenerOrchestrator(
         };
     }
 
-    private async Task UpdateRuntimeStatusAsync(Printer printer, PrinterRuntimeStatus status, string? error, CancellationToken ct)
+    private Task UpdateRuntimeStatusAsync(Printer printer, PrinterRuntimeStatus status, string? error, CancellationToken ct)
     {
         var timestamp = DateTimeOffset.UtcNow;
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var repository = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
-        await repository.SetRuntimeStatusAsync(printer.Id, status, timestamp, error, ct).ConfigureAwait(false);
-
         statusStream.Publish(new PrinterStatusEvent(
             printer.OwnerWorkspaceId,
             printer.Id,
-            printer.DesiredStatus,
+            printer.TargetState,
             status,
             timestamp,
             error));
+        return Task.CompletedTask;
     }
 
     private static PrinterRuntimeStatus MapRuntimeStatus(PrinterListenerStatus status)
