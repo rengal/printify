@@ -21,7 +21,14 @@ public sealed class DocumentEntity
     public int Version { get; set; }
 
     [Column("created_at")]
-    public DateTimeOffset CreatedAt { get; set; }
+    public long CreatedAtUnixMs { get; set; }
+
+    [NotMapped]
+    public DateTimeOffset CreatedAt
+    {
+        get => DateTimeOffset.FromUnixTimeMilliseconds(CreatedAtUnixMs);
+        set => CreatedAtUnixMs = value.ToUnixTimeMilliseconds();
+    }
 
     [Column("protocol")]
     public string Protocol { get; set; } = string.Empty;

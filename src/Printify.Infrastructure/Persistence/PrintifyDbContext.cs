@@ -44,7 +44,7 @@ public sealed class PrintifyDbContext : DbContext
                 .HasForeignKey(element => element.DocumentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasIndex(document => new { document.PrinterId, document.CreatedAt, document.Id })
+            entity.HasIndex(document => new { document.PrinterId, document.CreatedAtUnixMs, document.Id })
                 .HasDatabaseName("IX_documents_printer_created_at_id");
         });
 

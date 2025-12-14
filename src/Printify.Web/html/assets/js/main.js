@@ -1,4 +1,6 @@
 
+        console.info('main.js loaded - revision', '2025-02-20T12:00:00Z');
+
         // API + Workspace State
         const apiBase = '';
         let workspaceToken = null;
@@ -10,6 +12,8 @@
         let documents = {};
         let selectedPrinterId = null;
         let statusStreamController = null;
+        let documentStreamController = null;
+        let documentStreamPrinterId = null;
 
         function authHeaders() {
             return accessToken
@@ -72,6 +76,10 @@
             };
         }
 
+        function getPrinterById(id) {
+            return printers.find(p => p.id === id) || null;
+        }
+
         async function loadPrinters(selectId = null) {
             try {
                 const list = await apiRequest('/api/printers');
@@ -80,6 +88,14 @@
                     selectedPrinterId = selectId;
                 } else if (!selectedPrinterId && printers.length > 0) {
                     selectedPrinterId = printers[0].id;
+                }
+                if (selectedPrinterId) {
+                    try {
+                        await ensureDocumentsLoaded(selectedPrinterId);
+                        await startDocumentStream(selectedPrinterId);
+                    } catch (err) {
+                        console.error('Failed to initialize document stream', err);
+                    }
                 }
                 renderSidebar();
                 renderDocuments();
@@ -137,6 +153,19 @@
             }
 
             return 'Listener not configured';
+        }
+
+        function escapeHtml(value) {
+            if (value === null || value === undefined) {
+                return '';
+            }
+
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
         function formatRuntimeStatus(status) {
@@ -262,14 +291,217 @@
             }).join('');
         }
 
-        function selectPrinter(id) {
+        async function selectPrinter(id) {
             selectedPrinterId = id;
-            const printer = printers.find(p => p.id === id);
+            const printer = getPrinterById(id);
             if (printer) {
                 printer.newDocs = 0;
                 document.getElementById('topbarTitle').textContent = `${printer.name} · ${printer.protocol.toUpperCase()} · ${printer.width} dots`;
+                renderSidebar();
+                renderDocuments();
+                try {
+                    await ensureDocumentsLoaded(id);
+                    await startDocumentStream(id);
+                } catch (err) {
+                    console.error('Failed to load documents', err);
+                    showToast('Unable to load documents', true);
+                }
+                renderDocuments();
+            }
+        }
+
+        function renderEscPosDocument(elements, printerWidth) {
+            const state = {
+                bold: false,
+                underline: false,
+                reverse: false,
+                justify: 'left',
+                lineSpacing: 0,
+                scaleX: 1,
+                scaleY: 1
+            };
+
+            const lines = [];
+            const width = Math.max(printerWidth || 384, 200);
+
+            for (const element of elements || []) {
+                switch ((element?.type || '').toLowerCase()) {
+                    case 'textline':
+                        lines.push(renderTextLine(element.text || '', state));
+                        break;
+                    case 'setjustification':
+                        state.justify = (element.justification || 'left').toLowerCase();
+                        break;
+                    case 'setboldmode':
+                        state.bold = !!element.isEnabled;
+                        break;
+                    case 'setunderlinemode':
+                        state.underline = !!element.isEnabled;
+                        break;
+                    case 'setreversemode':
+                        state.reverse = !!element.isEnabled;
+                        break;
+                    case 'setlinespacing':
+                        state.lineSpacing = Number(element.spacing) || 0;
+                        break;
+                    case 'resetlinespacing':
+                        state.lineSpacing = 0;
+                        break;
+                    case 'setfont':
+                        state.scaleX = element.isDoubleWidth ? 2 : 1;
+                        state.scaleY = element.isDoubleHeight ? 2 : 1;
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            if (lines.length === 0) {
+                lines.push('<div class="doc-line muted">No printable text</div>');
+            }
+
+            return `<div class="document-paper" style="width:${width}px">${lines.join('')}</div>`;
+        }
+
+        function renderTextLine(text, state) {
+            const classes = ['doc-line'];
+            if (state.bold) classes.push('bold');
+            if (state.underline) classes.push('underline');
+            if (state.reverse) classes.push('reverse');
+            classes.push(`justify-${state.justify || 'left'}`);
+
+            const styles = [];
+            if (state.scaleX !== 1 || state.scaleY !== 1) {
+                styles.push(`transform: scale(${state.scaleX}, ${state.scaleY})`);
+                styles.push('transform-origin: left top');
+                styles.push('display: inline-block');
+            }
+            if (state.lineSpacing > 0) {
+                styles.push(`margin-bottom: ${state.lineSpacing}px`);
+            }
+
+            return `<div class="${classes.join(' ')}"${styles.length ? ` style="${styles.join(';')}"` : ''}>${escapeHtml(text)}</div>`;
+        }
+
+        function mapDocumentDto(dto, printer) {
+            const width = printer?.width || 384;
+            const protocol = (dto.protocol || 'escpos').toLowerCase();
+            const previewHtml = renderEscPosDocument(dto.elements || [], width);
+            return {
+                id: dto.id,
+                printerId: dto.printerId,
+                timestamp: dto.timestamp ? new Date(dto.timestamp) : new Date(),
+                protocol,
+                width,
+                previewHtml
+            };
+        }
+
+        async function ensureDocumentsLoaded(printerId) {
+            if (documents[printerId]) {
+                return;
+            }
+
+            console.debug('Loading documents for printer', printerId);
+            const response = await apiRequest(`/api/printers/${printerId}/documents?limit=50`);
+            const items = response?.result?.items || [];
+            const printer = getPrinterById(printerId);
+            documents[printerId] = items.map(dto => mapDocumentDto(dto, printer));
+        }
+
+        async function startDocumentStream(printerId) {
+            if (!accessToken || !workspaceToken || !printerId) {
+                stopDocumentStream();
+                return;
+            }
+
+            if (documentStreamPrinterId === printerId && documentStreamController) {
+                return;
+            }
+
+            stopDocumentStream();
+
+            const controller = new AbortController();
+            documentStreamController = controller;
+            documentStreamPrinterId = printerId;
+
+            try {
+                const response = await fetch(`/api/printers/${printerId}/documents/stream`, {
+                    method: 'GET',
+                    headers: { ...authHeaders(), 'Accept': 'text/event-stream' },
+                    signal: controller.signal
+                });
+
+                if (!response.ok || !response.body) {
+                    throw new Error('Failed to start document stream');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+
+                    const parts = buffer.split('\n\n');
+                    buffer = parts.pop() || '';
+
+                    for (const part of parts) {
+                        if (!part.trim()) continue;
+
+                        const lines = part.split('\n');
+                        let eventName = 'message';
+                        let data = '';
+
+                        for (const line of lines) {
+                            if (line.startsWith('event:')) {
+                                eventName = line.substring(6).trim();
+                            } else if (line.startsWith('data:')) {
+                                data += line.substring(5).trim();
+                            }
+                        }
+
+                        if (eventName === 'documentReady' && data) {
+                            handleDocumentEvent(printerId, data);
+                        }
+                    }
+                }
+            } catch (err) {
+                if (!(err instanceof DOMException && err.name === 'AbortError')) {
+                    console.error('Document stream error', err);
+                }
+            }
+        }
+
+        function stopDocumentStream() {
+            if (documentStreamController) {
+                documentStreamController.abort();
+                documentStreamController = null;
+                documentStreamPrinterId = null;
+            }
+        }
+
+        function handleDocumentEvent(printerId, rawData) {
+            try {
+                const payload = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                console.debug('Document event received', payload);
+                const printer = getPrinterById(printerId);
+                const mapped = mapDocumentDto(payload, printer);
+                const list = documents[printerId] || [];
+                list.unshift(mapped);
+                documents[printerId] = list.slice(0, 200);
+
+                if (selectedPrinterId !== printerId) {
+                    const target = getPrinterById(printerId);
+                    if (target) target.newDocs += 1;
+                }
+
                 renderDocuments();
                 renderSidebar();
+            } catch (e) {
+                console.error('Failed to parse document event', e);
             }
         }
 
@@ -332,13 +564,12 @@
 
             mainContent.innerHTML = docs.map(doc => `
             <div class="document-item">
-              <div class="document-preview">${doc.content}</div>
+              <div class="document-preview" style="width:${doc.width}px">
+                ${doc.previewHtml}
+              </div>
               <div class="document-meta">
                 <span>${formatRelativeTime(doc.timestamp)}</span>
-                <div class="document-actions">
-                  <button class="btn btn-secondary btn-sm" onclick="downloadDocument(${doc.id})">Download</button>
-                  <button class="btn btn-secondary btn-sm" onclick="replayDocument(${doc.id})">Replay</button>
-                </div>
+                <span class="pill pill-ghost">${(doc.protocol || 'escpos').toUpperCase()}</span>
               </div>
             </div>
           `).join('');
@@ -876,6 +1107,7 @@
             documents = {};
             selectedPrinterId = null;
             stopStatusStream();
+            stopDocumentStream();
 
             localStorage.removeItem('workspaceToken');
             localStorage.removeItem('workspaceName');

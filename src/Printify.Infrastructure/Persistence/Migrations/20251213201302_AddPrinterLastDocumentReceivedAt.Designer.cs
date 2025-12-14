@@ -70,8 +70,8 @@ namespace Printify.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("client_address");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT")
+                    b.Property<long>("CreatedAtUnixMs")
+                        .HasColumnType("INTEGER")
                         .HasColumnName("created_at");
 
                     b.Property<Guid>("PrintJobId")
@@ -93,7 +93,7 @@ namespace Printify.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PrinterId", "CreatedAt", "Id")
+                    b.HasIndex("PrinterId", "CreatedAtUnixMs", "Id")
                         .HasDatabaseName("IX_documents_printer_created_at_id");
 
                     b.ToTable("documents");

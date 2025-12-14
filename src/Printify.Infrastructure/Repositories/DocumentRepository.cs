@@ -53,7 +53,7 @@ public sealed class DocumentRepository : IDocumentRepository
             .Where(document => document.PrinterId == printerId);
 
         var entities = await query
-            .OrderByDescending(document => document.CreatedAt)
+            .OrderByDescending(document => document.CreatedAtUnixMs)
             .ThenByDescending(document => document.Id)
             .Take(effectiveLimit)
             .ToListAsync(ct)

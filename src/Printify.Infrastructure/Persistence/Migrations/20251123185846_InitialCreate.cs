@@ -36,7 +36,7 @@ namespace Printify.Infrastructure.Persistence.Migrations
                     print_job_id = table.Column<Guid>(type: "TEXT", nullable: false),
                     printer_id = table.Column<Guid>(type: "TEXT", nullable: false),
                     version = table.Column<int>(type: "INTEGER", nullable: false),
-                    created_at = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    created_at = table.Column<long>(type: "INTEGER", nullable: false),
                     protocol = table.Column<string>(type: "TEXT", nullable: false),
                     client_address = table.Column<string>(type: "TEXT", nullable: true)
                 },
