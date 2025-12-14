@@ -200,7 +200,6 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
             "EscPos",
             512,
             null,
-            9106,
             false,
             null,
             null);
@@ -286,4 +285,3 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(additionalMs));
     }
 }
-

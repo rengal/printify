@@ -19,7 +19,6 @@ internal static class CommandMapper
             ParseProtocol(request.Protocol),
             request.WidthInDots,
             request.HeightInDots,
-            request.TcpListenPort,
             request.EmulateBufferCapacity,
             request.BufferDrainRate,
             request.BufferMaxCapacity);
@@ -36,7 +35,6 @@ internal static class CommandMapper
             ParseProtocol(request.Protocol),
             request.WidthInDots,
             request.HeightInDots,
-            request.TcpListenPort,
             request.EmulateBufferCapacity,
             request.BufferDrainRate,
             request.BufferMaxCapacity);

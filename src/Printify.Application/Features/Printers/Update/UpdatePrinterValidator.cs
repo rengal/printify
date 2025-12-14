@@ -20,9 +20,5 @@ public sealed class UpdatePrinterValidator : AbstractValidator<UpdatePrinterComm
         RuleFor(command => command.HeightInDots)
             .Must(height => height is null || height >= PrinterConstants.MinHeightInDots)
             .WithMessage($"{nameof(UpdatePrinterCommand.HeightInDots)} must be null or >= {PrinterConstants.MinHeightInDots}");
-
-        RuleFor(command => command.TcpListenPort)
-            .Must(port => port is null || port >= PrinterConstants.MinTcpListenerPort && port <= PrinterConstants.MaxTcpListenerPort)
-            .WithMessage($"{nameof(UpdatePrinterCommand.TcpListenPort)} must be within {PrinterConstants.MinTcpListenerPort}-{PrinterConstants.MaxTcpListenerPort} when provided.");
     }
 }

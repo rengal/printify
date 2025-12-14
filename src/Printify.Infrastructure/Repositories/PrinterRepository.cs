@@ -159,10 +159,14 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
 
     public ValueTask<int> GetFreeTcpPortNumber(CancellationToken ct)
     {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
-        var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return ValueTask.FromResult(port);
+        // Choose next sequential port based on existing printers; fall back to 9101 when none exist.
+        var maxPort = dbContext.Printers
+            .AsNoTracking()
+            .Select(p => (int?)p.ListenTcpPortNumber)
+            .Max() ?? 9100; // so that first printer becomes 9101
+
+        var nextPort = maxPort + 1;
+
+        return ValueTask.FromResult(nextPort);
     }
 }

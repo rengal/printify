@@ -1,4 +1,6 @@
-﻿using Printify.Application.Printing;
+﻿using System.Collections.Concurrent;
+using System.Net.Sockets;
+using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
 
@@ -9,6 +11,8 @@ namespace Printify.TestServices.Printing;
 /// </summary>
 public sealed class TestPrinterListener : IPrinterListener
 {
+    private static readonly ConcurrentDictionary<int, Guid> UsedPorts = new();
+
     private readonly Printer printer;
     private bool disposed;
 
@@ -30,6 +34,14 @@ public sealed class TestPrinterListener : IPrinterListener
     public Task StartAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        // Simulate OS port binding: fail if another listener already claimed this port.
+        if (!UsedPorts.TryAdd(printer.ListenTcpPortNumber, printer.Id))
+        {
+            Status = PrinterListenerStatus.Failed;
+            throw new SocketException((int)SocketError.AddressAlreadyInUse);
+        }
+
         Status = PrinterListenerStatus.Listening;
         return Task.CompletedTask;
     }
@@ -38,12 +50,14 @@ public sealed class TestPrinterListener : IPrinterListener
     {
         cancellationToken.ThrowIfCancellationRequested();
         Status = PrinterListenerStatus.Idle;
+        UsedPorts.TryRemove(new KeyValuePair<int, Guid>(printer.ListenTcpPortNumber, printer.Id));
         return Task.CompletedTask;
     }
 
     public ValueTask DisposeAsync()
     {
         disposed = true;
+        UsedPorts.TryRemove(new KeyValuePair<int, Guid>(printer.ListenTcpPortNumber, printer.Id));
         TestPrinterListenerFactory.Unregister(printer.Id);
         LastChannel = null;
         return ValueTask.CompletedTask;

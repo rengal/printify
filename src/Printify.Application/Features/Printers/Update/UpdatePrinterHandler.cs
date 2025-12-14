@@ -30,7 +30,6 @@ public sealed class UpdatePrinterHandler(
             Protocol = request.Protocol,
             WidthInDots = request.WidthInDots,
             HeightInDots = request.HeightInDots,
-            ListenTcpPortNumber = request.TcpListenPort ?? printer.ListenTcpPortNumber,
             EmulateBufferCapacity = request.EmulateBufferCapacity,
             BufferDrainRate = request.BufferDrainRate,
             BufferMaxCapacity = request.BufferMaxCapacity
@@ -38,11 +37,7 @@ public sealed class UpdatePrinterHandler(
 
         await printerRepository.UpdateAsync(updated, cancellationToken).ConfigureAwait(false);
 
-        if (printer.ListenTcpPortNumber != updated.ListenTcpPortNumber)
-        {
-            await listenerOrchestrator.RemoveListenerAsync(updated, cancellationToken).ConfigureAwait(false);
-            await listenerOrchestrator.AddListenerAsync(updated, cancellationToken).ConfigureAwait(false);
-        }
+        // Listener port is assigned by the server; no port updates allowed from client.
 
         return updated;
     }

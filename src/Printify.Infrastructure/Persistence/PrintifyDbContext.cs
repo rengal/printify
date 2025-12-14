@@ -30,6 +30,10 @@ public sealed class PrintifyDbContext : DbContext
         modelBuilder.Entity<PrinterEntity>()
             .HasIndex(printer => printer.DisplayName);
 
+        modelBuilder.Entity<PrinterEntity>()
+            .HasIndex(printer => printer.ListenTcpPortNumber)
+            .IsUnique();
+
         modelBuilder.Entity<DocumentEntity>(entity =>
         {
             entity.Property(document => document.Protocol)

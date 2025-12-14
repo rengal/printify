@@ -67,20 +67,6 @@ public sealed class TestServiceContext(ServiceProvider provider)
 
     public ServiceProvider Provider { get; } = provider;
 
-    private static int GetFreePort()
-    {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        try
-        {
-            listener.Start();
-            return ((IPEndPoint)listener.LocalEndpoint).Port;
-        }
-        finally
-        {
-            listener.Stop();
-        }
-    }
-
     public ValueTask DisposeAsync()
     {
         return Provider.DisposeAsync();
@@ -119,6 +105,11 @@ public sealed class TestServiceContext(ServiceProvider provider)
             Factory.Services.GetRequiredService<IPrinterDocumentStream>();
 
         public IClockFactory ClockFactory => Factory.Services.GetRequiredService<IClockFactory>();
+
+        public HttpClient CreateClient()
+        {
+            return Factory.CreateClient(new WebApplicationFactoryClientOptions());
+        }
 
         public async ValueTask DisposeAsync()
         {

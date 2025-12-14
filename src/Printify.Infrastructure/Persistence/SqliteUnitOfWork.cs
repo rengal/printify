@@ -22,7 +22,7 @@ public sealed class SqliteUnitOfWork(
 
     public async Task RollbackAsync(CancellationToken cancellationToken)
     {
-        await dbContext.Database.CommitTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await dbContext.Database.RollbackTransactionAsync(cancellationToken).ConfigureAwait(false);
         logger.LogWarning("SQLite transaction rolled back.");
     }
 }

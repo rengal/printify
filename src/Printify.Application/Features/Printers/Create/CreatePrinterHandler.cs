@@ -26,8 +26,7 @@ public sealed class CreatePrinterHandler(
         if (request.Context.WorkspaceId is null)
             throw new AuthenticationFailedException("Workspace is not set.");
 
-        var listenTcpPortNumber = request.TcpListenPort
-            ?? await printerRepository.GetFreeTcpPortNumber(ct).ConfigureAwait(false);
+        var listenTcpPortNumber = await printerRepository.GetFreeTcpPortNumber(ct).ConfigureAwait(false);
 
         var printer = new Printer(
             request.PrinterId,

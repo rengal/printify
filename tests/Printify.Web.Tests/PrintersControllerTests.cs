@@ -20,11 +20,11 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         await AuthHelper.CreateWorkspaceAndLogin(environment);
 
         var printerId = Guid.NewGuid();
-        var createRequest = new CreatePrinterRequestDto(printerId, "Receipt Printer", "EscPos", 512, null, 9100, false, null, null);
+        var createRequest = new CreatePrinterRequestDto(printerId, "Receipt Printer", "EscPos", 512, null, false, null, null);
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
-        var updateBody = new UpdatePrinterRequestDto("Updated Printer", "EscPos", 576, null, 9101, true, 1024m, 4096);
+        var updateBody = new UpdatePrinterRequestDto("Updated Printer", "EscPos", 576, null, true, 1024m, 4096);
         var updateResponse = await client.PutAsJsonAsync($"/api/printers/{printerId}", updateBody);
         updateResponse.EnsureSuccessStatusCode();
 
@@ -32,7 +32,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         Assert.NotNull(updatedPrinter);
         Assert.Equal("Updated Printer", updatedPrinter.DisplayName);
         Assert.Equal(576, updatedPrinter.WidthInDots);
-        Assert.Equal(9101, updatedPrinter.TcpListenPort);
+        Assert.True(updatedPrinter.TcpListenPort > 0);
         Assert.True(updatedPrinter.EmulateBufferCapacity);
         Assert.Equal(1024m, updatedPrinter.BufferDrainRate);
         Assert.Equal(4096, updatedPrinter.BufferMaxCapacity);
@@ -43,7 +43,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         var fetchedPrinter = await fetchResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
         Assert.NotNull(fetchedPrinter);
         Assert.Equal("Updated Printer", fetchedPrinter.DisplayName);
-        Assert.Equal(9101, fetchedPrinter.TcpListenPort);
+        Assert.True(fetchedPrinter.TcpListenPort > 0);
         Assert.True(fetchedPrinter.EmulateBufferCapacity);
         Assert.Equal(1024m, fetchedPrinter.BufferDrainRate);
         Assert.Equal(4096, fetchedPrinter.BufferMaxCapacity);
@@ -59,7 +59,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         await AuthHelper.CreateWorkspaceAndLogin(environment);
 
         var printerId = Guid.NewGuid();
-        var createRequest = new CreatePrinterRequestDto(printerId, "Pin Printer", "EscPos", 512, null, 9104, true, 2048m, 8192);
+        var createRequest = new CreatePrinterRequestDto(printerId, "Pin Printer", "EscPos", 512, null, true, 2048m, 8192);
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -68,7 +68,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         var pinnedPrinter = await pinResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
         Assert.NotNull(pinnedPrinter);
         Assert.True(pinnedPrinter.IsPinned);
-        Assert.Equal(9104, pinnedPrinter.TcpListenPort);
+        Assert.True(pinnedPrinter.TcpListenPort > 0);
         Assert.True(pinnedPrinter.EmulateBufferCapacity);
         Assert.Equal(2048m, pinnedPrinter.BufferDrainRate);
         Assert.Equal(8192, pinnedPrinter.BufferMaxCapacity);
@@ -78,7 +78,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         var fetchedPrinter = await fetchResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
         Assert.NotNull(fetchedPrinter);
         Assert.True(fetchedPrinter.IsPinned);
-        Assert.Equal(9104, fetchedPrinter.TcpListenPort);
+        Assert.True(fetchedPrinter.TcpListenPort > 0);
         Assert.True(fetchedPrinter.EmulateBufferCapacity);
         Assert.Equal(2048m, fetchedPrinter.BufferDrainRate);
         Assert.Equal(8192, fetchedPrinter.BufferMaxCapacity);
@@ -88,7 +88,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         var unpinnedPrinter = await unpinResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
         Assert.NotNull(unpinnedPrinter);
         Assert.False(unpinnedPrinter.IsPinned);
-        Assert.Equal(9104, unpinnedPrinter.TcpListenPort);
+        Assert.True(unpinnedPrinter.TcpListenPort > 0);
         Assert.True(unpinnedPrinter.EmulateBufferCapacity);
         Assert.Equal(2048m, unpinnedPrinter.BufferDrainRate);
         Assert.Equal(8192, unpinnedPrinter.BufferMaxCapacity);
@@ -103,7 +103,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         await AuthHelper.CreateWorkspaceAndLogin(environment);
 
         var printerId = Guid.NewGuid();
-        var createRequest = new CreatePrinterRequestDto(printerId, "Temp Printer", "EscPos", 512, null, 9102, false, null, null);
+        var createRequest = new CreatePrinterRequestDto(printerId, "Temp Printer", "EscPos", 512, null, false, null, null);
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -123,7 +123,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         await AuthHelper.CreateWorkspaceAndLogin(environment);
 
         var printerId = Guid.NewGuid();
-        var createRequest = new CreatePrinterRequestDto(printerId, "Shared Printer", "EscPos", 512, null, 9103, true, 1024, 4096);
+        var createRequest = new CreatePrinterRequestDto(printerId, "Shared Printer", "EscPos", 512, null, true, 1024, 4096);
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -142,7 +142,7 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         await AuthHelper.CreateWorkspaceAndLogin(environment);
 
         var printerId = Guid.NewGuid();
-        var createRequest = new CreatePrinterRequestDto(printerId, "Listener Printer", "EscPos", 384, null, 9105, false, null, null);
+        var createRequest = new CreatePrinterRequestDto(printerId, "Listener Printer", "EscPos", 384, null, false, null, null);
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -167,8 +167,71 @@ public sealed class PrintersControllerTests(WebApplicationFactory<Program> facto
         Assert.True(payload.SequenceEqual(observedPayload));
         Assert.False(channel.IsDisposed);
     }
-   
+
+    [Fact]
+    public async Task CreateTwoPrinters_AssignsDifferentTcpPorts()
+    {
+        // Arrange: create workspace and authenticate
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var client = environment.Client;
+        await AuthHelper.CreateWorkspaceAndLogin(environment);
+
+        // Act: create first printer
+        var firstId = Guid.NewGuid();
+        var firstRequest = new CreatePrinterRequestDto(firstId, "Port Printer 1", "EscPos", 512, null, false, null, null);
+        var firstResponse = await client.PostAsJsonAsync("/api/printers", firstRequest);
+        firstResponse.EnsureSuccessStatusCode();
+        var firstDto = await firstResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
+        Assert.NotNull(firstDto);
+
+        // Act: create second printer
+        var secondId = Guid.NewGuid();
+        var secondRequest = new CreatePrinterRequestDto(secondId, "Port Printer 2", "EscPos", 512, null, false, null, null);
+        var secondResponse = await client.PostAsJsonAsync("/api/printers", secondRequest);
+        secondResponse.EnsureSuccessStatusCode();
+        var secondDto = await secondResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
+        Assert.NotNull(secondDto);
+
+        // Assert: ports are assigned by server and are different
+        Assert.True(firstDto!.TcpListenPort > 0);
+        Assert.True(secondDto!.TcpListenPort > 0);
+        Assert.NotEqual(firstDto.TcpListenPort, secondDto.TcpListenPort);
+    }
+
+    [Fact]
+    public async Task CreateNPrintersInParallel_AssignsUniquePorts()
+    {
+        const int n = 2;
+        // Scenario: many concurrent clients create printers; server must assign unique ports.
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        await AuthHelper.CreateWorkspaceAndLogin(environment);
+
+        var createTasks = new List<Task<PrinterResponseDto?>>(n);
+
+        for (var i = 0; i < n; i++)
+        {
+            var client = environment.CreateClient();
+            client.DefaultRequestHeaders.Authorization = environment.Client.DefaultRequestHeaders.Authorization;
+
+            var printerId = Guid.NewGuid();
+            var request = new CreatePrinterRequestDto(printerId, $"Parallel-{i}", "EscPos", 512, null, false, null, null);
+            createTasks.Add(CreatePrinterAsync(client, request));
+        }
+
+        var created = await Task.WhenAll(createTasks);
+        var ports = created
+            .Where(p => p != null)
+            .Select(p => p!.TcpListenPort)
+            .ToList();
+
+        Assert.Equal(ports.Count, ports.Distinct().Count());
+        Assert.True(ports.All(p => p > 0));
+    }
+
+    private static async Task<PrinterResponseDto?> CreatePrinterAsync(HttpClient client, CreatePrinterRequestDto request)
+    {
+        var response = await client.PostAsJsonAsync("/api/printers", request);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<PrinterResponseDto>();
+    }
 }
-
-
-

@@ -30,9 +30,5 @@ public class CreatePrinterValidator : AbstractValidator<CreatePrinterCommand>
             .Must(height => height is null or >= PrinterConstants.MaxHeightInDots)
             .WithMessage(
                 $"Height in dots must be greater than or equal to {PrinterConstants.MaxHeightInDots}, if specified");
-
-        RuleFor(x => x.TcpListenPort)
-            .Must(tcpListenPort => tcpListenPort is null or >= PrinterConstants.MinTcpListenerPort and <= PrinterConstants.MaxTcpListenerPort)
-            .WithMessage(x => $"{nameof(x.TcpListenPort)} must be in range {PrinterConstants.MinTcpListenerPort}-{PrinterConstants.MaxTcpListenerPort}");
     }
 }
