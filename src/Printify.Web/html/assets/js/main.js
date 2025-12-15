@@ -217,71 +217,37 @@
             pinnedSection.style.display = pinnedPrinters.length > 0 ? 'block' : 'none';
             otherSection.style.display = otherPrinters.length > 0 ? 'block' : 'none';
 
-            pinnedList.innerHTML = pinnedPrinters.map(p => {
-                const docInfo = p.lastDocumentAt
-                    ? `Last: ${formatDateTime(p.lastDocumentAt)}`
-                    : 'No documents';
-                const isStarted = p.targetStatus === 'started';
+            pinnedList.innerHTML = pinnedPrinters.map(p => renderPrinterItem(p, true)).join('');
+            otherList.innerHTML = otherPrinters.map(p => renderPrinterItem(p, false)).join('');
+        }
 
-                return `
-                <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
-                  <div class="list-item-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="12" y1="17" x2="12" y2="22"></line>
-                      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
-                    </svg>
-                  </div>
-                  <div class="list-item-content">
-                    <div class="list-item-line1">
-                      <span class="list-item-name">${p.name}</span>
-                      ${p.newDocs > 0 ? `<span class="list-item-badge">● ${p.newDocs}</span>` : ''}
-                    </div>
-                    <div class="list-item-line2">${formatPrinterAddress(p)}</div>
-                    <div class="list-item-line2">
-                      <span class="${runtimeStatusClass(p.runtimeStatus)}">${formatRuntimeStatus(p.runtimeStatus)}</span>
-                      <span class="list-item-dot">•</span>
-                      ${docInfo}
-                    </div>
-                  </div>
-                  <div class="list-item-actions">
-                    ${isStarted
-                    ? `<button class="btn btn-secondary btn-xs" onclick="stopPrinter(event, '${p.id}')">Stop</button>`
-                    : `<button class="btn btn-primary btn-xs" onclick="startPrinter(event, '${p.id}')">Start</button>`}
-                  </div>
-                  <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, '${p.id}', true)">⋯</button>
-                </div>
-              `;
-            }).join('');
+        function renderPrinterItem(p, isPinned) {
+            const statusClass = runtimeStatusClass(p.runtimeStatus);
+            const statusText = formatRuntimeStatus(p.runtimeStatus);
+            const isStarted = p.targetStatus === 'started';
+            
+            // Format last document info compactly
+            const lastDocText = p.lastDocumentAt ? formatDateTime(p.lastDocumentAt) : '—';
 
-            otherList.innerHTML = otherPrinters.map(p => {
-                const isStarted = p.targetStatus === 'started';
-                return `
-                <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
-                  <div class="list-item-icon">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                      <rect x="6" y="14" width="12" height="8"></rect>
-                    </svg>
-                  </div>
-                  <div class="list-item-content">
-                    <div class="list-item-line1">
-                      <span class="list-item-name">${p.name}</span>
-                    </div>
-                    <div class="list-item-line2">${formatPrinterAddress(p)}</div>
-                    <div class="list-item-line2">
-                      <span class="${runtimeStatusClass(p.runtimeStatus)}">${formatRuntimeStatus(p.runtimeStatus)}</span>
-                    </div>
-                  </div>
-                  <div class="list-item-actions">
-                    ${isStarted
-                    ? `<button class="btn btn-secondary btn-xs" onclick="stopPrinter(event, '${p.id}')">Stop</button>`
-                    : `<button class="btn btn-primary btn-xs" onclick="startPrinter(event, '${p.id}')">Start</button>`}
-                  </div>
-                  <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, '${p.id}', false)">⋯</button>
+            return `
+            <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
+              <div class="list-item-content">
+                <div class="list-item-header">
+                  <span class="list-item-name">${p.name}${isPinned ? ' <span class="pin-indicator" title="Pinned">★</span>' : ''}</span>
+                  ${p.newDocs > 0 ? `<span class="list-item-badge">${p.newDocs}</span>` : ''}
+                  <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, '${p.id}', ${isPinned}, ${isStarted})">⋯</button>
                 </div>
-              `;
-            }).join('');
+                <div class="list-item-details">
+                  <span class="status-pill ${statusClass}">${statusText}</span>
+                  <span class="detail-separator">·</span>
+                  <span class="detail-text">${formatPrinterAddress(p)}</span>
+                </div>
+                <div class="list-item-footer">
+                  <span class="detail-muted">Last: ${lastDocText}</span>
+                </div>
+              </div>
+            </div>
+          `;
         }
 
         async function selectPrinter(id) {
@@ -568,7 +534,7 @@
           `).join('');
         }
 
-        function showMenu(event, printerId, isPinned) {
+        function showMenu(event, printerId, isPinned, isStarted) {
             event.stopPropagation();
 
             const existingMenu = document.querySelector('.menu');
@@ -580,10 +546,34 @@
             menu.style.left = event.clientX + 'px';
             menu.style.top = event.clientY + 'px';
 
+            // Play icon for Start, Square icon for Stop
+            // Close menu explicitly since stopPropagation in start/stopPrinter prevents document click handler
+            const startStopItem = isStarted
+              ? `<div class="menu-item" onclick="document.querySelector('.menu')?.remove(); stopPrinter(event, '${printerId}')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                  Stop
+                </div>`
+              : `<div class="menu-item menu-item-accent" onclick="document.querySelector('.menu')?.remove(); startPrinter(event, '${printerId}')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  Start
+                </div>`;
+
             menu.innerHTML = `
-            <div class="menu-item" onclick="editPrinter('${printerId}')">Edit</div>
-            <div class="menu-item" onclick="togglePin('${printerId}')">${isPinned ? 'Unpin' : 'Pin'}</div>
-            <div class="menu-item danger" onclick="deletePrinter('${printerId}')">Delete</div>
+            ${startStopItem}
+            <div class="menu-divider"></div>
+            <div class="menu-item" onclick="editPrinter('${printerId}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Edit
+            </div>
+            <div class="menu-item" onclick="togglePin('${printerId}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>
+              ${isPinned ? 'Unpin' : 'Pin'}
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-item menu-item-danger" onclick="deletePrinter('${printerId}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              Delete
+            </div>
           `;
 
             document.body.appendChild(menu);
