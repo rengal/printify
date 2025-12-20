@@ -775,16 +775,16 @@
 
                 return `
                 <div class="document-item">
-                  <div class="document-header">
-                    <span class="document-meta-text">${dateTime} · ${relativeTime}</span>
-                    <button class="copy-icon-btn document-copy-btn" onclick="copyToClipboard(\`${doc.plainText.replace(/`/g, '\\`')}\`)" title="Copy document content">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                      </svg>
-                    </button>
-                  </div>
                   <div class="document-content">
+                    <div class="document-header">
+                      <span class="document-meta-text">${dateTime} · ${relativeTime}</span>
+                      <button class="copy-icon-btn document-copy-btn" onclick="copyToClipboard(\`${doc.plainText.replace(/\`/g, '\\\\`')}\`)" title="Copy document content">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
+                    </div>
                     ${doc.previewHtml}
                   </div>
                 </div>
@@ -1448,9 +1448,19 @@
 
         function toggleSidebar() {
             const container = document.querySelector('.container');
+            console.log('toggleSidebar called');
+            console.log('Container before toggle:'+ container.className);
+
             container.classList.toggle('sidebar-hidden');
 
             const isHidden = container.classList.contains('sidebar-hidden');
+            console.log('Container after toggle:', container.className);
+            console.log('Sidebar is hidden:', isHidden);
+
+            const toggleButton = document.getElementById('floatingSidebarToggle');
+            console.log('Toggle button:', toggleButton);
+            console.log('Toggle button display:', toggleButton ? window.getComputedStyle(toggleButton).display : 'button not found');
+
             localStorage.setItem('sidebarHidden', isHidden);
         }
 

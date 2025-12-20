@@ -78,15 +78,15 @@
         /* -------------- LAYOUT PRIMITIVES -------------- */
         .container {
             display: grid;
-            grid-template-columns: 280px 320px 1fr;
+            grid-template-columns: 280px 1fr;
             grid-template-rows: 1fr;
-            grid-template-areas: "sidebar properties documents";
+            grid-template-areas: "sidebar documents";
             height: 100dvh;
             transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
             .container.sidebar-hidden {
-                grid-template-columns: 0px 320px 1fr;
+                grid-template-columns: 0px 1fr;
             }
 
         .sidebar {
@@ -109,18 +109,24 @@
         }
 
         .properties-panel {
-            grid-area: properties;
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            width: 320px;
+            max-height: calc(100vh - 48px);
             background: var(--bg-elev);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
+            border: 1px solid var(--border);
+            border-radius: 12px;
             padding: 24px;
             overflow-y: auto;
+            z-index: 10;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
         }
 
         .documents-panel {
             grid-area: documents;
             padding: 24px;
+            padding-right: 380px;
             overflow-y: auto;
             position: relative;
         }
@@ -152,7 +158,6 @@
             width: 32px;
             height: 32px;
             padding: 0;
-            display: none;
             align-items: center;
             justify-content: center;
             background: transparent;
@@ -169,8 +174,14 @@
                 color: var(--accent);
             }
 
+        /* Show toggle when sidebar is hidden */
         .container.sidebar-hidden .floating-sidebar-toggle {
-            display: flex;
+            display: flex !important;
+        }
+
+        /* Hide toggle when sidebar is visible */
+        .container:not(.sidebar-hidden) .floating-sidebar-toggle {
+            display: none !important;
         }
 
         /* -------------- UTILITIES -------------- */
@@ -987,17 +998,20 @@
             margin-bottom: 24px;
         }
 
-        .document-header {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-            padding: 0 12px;
-        }
-
         .document-content {
             position: relative;
             display: inline-block;
+        }
+
+        .document-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 0;
+            padding: 8px 12px;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
         }
 
         .document-copy-btn {
