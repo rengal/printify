@@ -1,10 +1,6 @@
-using System.Net.Sockets;
-using System.Text;
-using System.Text.Json;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Printers.Delete;
 using Printify.Application.Features.Printers.Documents.Get;
@@ -19,6 +15,9 @@ using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Infrastructure;
 using Printify.Web.Mapping;
+using System.Net.Sockets;
+using System.Text;
+using System.Text.Json;
 
 namespace Printify.Web.Controllers;
 
@@ -30,6 +29,7 @@ public sealed class PrintersController : ControllerBase
     private readonly IPrinterDocumentStream documentStream;
     private readonly IPrinterStatusStream statusStream;
     private readonly IPrinterListenerOrchestrator listenerOrchestrator;
+    private readonly HttpContextExtensions httpExtensions;
     private readonly JsonSerializerOptions jsonOptions;
     private readonly ILogger<PrintersController> logger;
 
@@ -38,6 +38,7 @@ public sealed class PrintersController : ControllerBase
         IPrinterDocumentStream documentStream,
         IPrinterStatusStream statusStream,
         IPrinterListenerOrchestrator listenerOrchestrator,
+        HttpContextExtensions httpExtensions,
         IOptions<JsonOptions> jsonOptions,
         ILogger<PrintersController> logger)
     {
@@ -45,6 +46,7 @@ public sealed class PrintersController : ControllerBase
         this.documentStream = documentStream ?? throw new ArgumentNullException(nameof(documentStream));
         this.statusStream = statusStream ?? throw new ArgumentNullException(nameof(statusStream));
         this.listenerOrchestrator = listenerOrchestrator ?? throw new ArgumentNullException(nameof(listenerOrchestrator));
+        this.httpExtensions = httpExtensions;
         ArgumentNullException.ThrowIfNull(jsonOptions);
         this.jsonOptions = jsonOptions.Value.JsonSerializerOptions;
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -56,7 +58,8 @@ public sealed class PrintersController : ControllerBase
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var printer = await mediator.Send(request.ToCommand(HttpContext.CaptureRequestContext()), cancellationToken);
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        var printer = await mediator.Send(request.ToCommand(httpContext), cancellationToken);
         return Ok(printer.ToResponseDto(listenerOrchestrator.GetStatus(printer)));
     }
 
@@ -64,13 +67,13 @@ public sealed class PrintersController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<PrinterResponseDto>>> List(CancellationToken cancellationToken)
     {
-        var context = HttpContext.CaptureRequestContext();
-        if (context.WorkspaceId is null)
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        if (httpContext.WorkspaceId is null)
         {
             return Forbid();
         }
 
-        var printers = await mediator.Send(new ListPrintersQuery(context), cancellationToken);
+        var printers = await mediator.Send(new ListPrintersQuery(httpContext), cancellationToken);
         var responses = printers
             .Select(printer => printer.ToResponseDto(listenerOrchestrator.GetStatus(printer)))
             .ToList();
@@ -81,8 +84,8 @@ public sealed class PrintersController : ControllerBase
     [HttpGet("status/stream")]
     public async Task StreamStatus(CancellationToken cancellationToken)
     {
-        var context = HttpContext.CaptureRequestContext();
-        if (context.WorkspaceId is null)
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        if (httpContext.WorkspaceId is null)
         {
             Response.StatusCode = StatusCodes.Status403Forbidden;
             return;
@@ -94,7 +97,7 @@ public sealed class PrintersController : ControllerBase
 
         try
         {
-            await foreach (var statusEvent in statusStream.Subscribe(context.WorkspaceId.Value, cancellationToken))
+            await foreach (var statusEvent in statusStream.Subscribe(httpContext.WorkspaceId.Value, cancellationToken))
             {
                 await WriteSseAsync("status", statusEvent.ToResponseDto(), cancellationToken);
             }
@@ -109,8 +112,8 @@ public sealed class PrintersController : ControllerBase
     [HttpGet("{id:guid}/documents/stream")]
     public async Task StreamDocuments(Guid id, CancellationToken cancellationToken)
     {
-        var context = HttpContext.CaptureRequestContext();
-        var printer = await mediator.Send(new GetPrinterQuery(id, context), cancellationToken);
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        var printer = await mediator.Send(new GetPrinterQuery(id, httpContext), cancellationToken);
         if (printer is null)
         {
             Response.StatusCode = StatusCodes.Status404NotFound;
@@ -145,14 +148,14 @@ public sealed class PrintersController : ControllerBase
         [FromQuery] GetDocumentsRequestDto? request,
         CancellationToken cancellationToken = default)
     {
-        var context = HttpContext.CaptureRequestContext();
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         try
         {
             var effectiveLimit = request?.Limit ?? 20;
             var documents = await mediator.Send(
                 new ListPrinterDocumentsQuery(
                     id,
-                    context,
+                    httpContext,
                     request?.BeforeId,
                     effectiveLimit),
                 cancellationToken);
@@ -186,8 +189,8 @@ public sealed class PrintersController : ControllerBase
     [HttpGet("{printerId:guid}/documents/{documentId:guid}")]
     public async Task<ActionResult<Domain.Documents.Document>> GetDocument(Guid printerId, Guid documentId, CancellationToken cancellationToken)
     {
-        var context = HttpContext.CaptureRequestContext();
-        var document = await mediator.Send(new GetPrinterDocumentQuery(printerId, documentId, context), cancellationToken);
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        var document = await mediator.Send(new GetPrinterDocumentQuery(printerId, documentId, httpContext), cancellationToken);
         if (document is null)
         {
             return NotFound();
@@ -200,8 +203,8 @@ public sealed class PrintersController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<PrinterResponseDto>> Get(Guid id, CancellationToken cancellationToken)
     {
-        var context = HttpContext.CaptureRequestContext();
-        var printer = await mediator.Send(new GetPrinterQuery(id, context), cancellationToken);
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        var printer = await mediator.Send(new GetPrinterQuery(id, httpContext), cancellationToken);
 
         if (printer is null)
         {
@@ -217,10 +220,10 @@ public sealed class PrintersController : ControllerBase
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var context = HttpContext.CaptureRequestContext();
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         try
         {
-            var command = request.ToCommand(id, context);
+            var command = request.ToCommand(id, httpContext);
             var printer = await mediator.Send(command, cancellationToken);
             return Ok(printer.ToResponseDto(listenerOrchestrator.GetStatus(printer)));
         }
@@ -234,10 +237,10 @@ public sealed class PrintersController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        var context = HttpContext.CaptureRequestContext();
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         try
         {
-            await mediator.Send(new DeletePrinterCommand(context, id), cancellationToken);
+            await mediator.Send(new DeletePrinterCommand(httpContext, id), cancellationToken);
             return NoContent();
         }
         catch (InvalidOperationException)
@@ -252,10 +255,10 @@ public sealed class PrintersController : ControllerBase
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var context = HttpContext.CaptureRequestContext();
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         try
         {
-            var command = request.ToCommand(id, context);
+            var command = request.ToCommand(id, httpContext);
             var printer = await mediator.Send(command, cancellationToken);
             return Ok(printer.ToResponseDto(listenerOrchestrator.GetStatus(printer)));
         }
@@ -271,17 +274,17 @@ public sealed class PrintersController : ControllerBase
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var context = HttpContext.CaptureRequestContext();
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         try
         {
             logger.LogInformation(
                 "Received request to set printer {PrinterId} target state to {TargetStatus} for workspace {WorkspaceId}",
                 id,
                 request.TargetStatus,
-                context.WorkspaceId);
+                httpContext.WorkspaceId);
 
             var command = new SetPrinterTargetStateCommand(
-                context,
+                httpContext,
                 id,
                 request.TargetStatus.ToTargetState());
             var printer = await mediator.Send(command, cancellationToken);
@@ -293,7 +296,7 @@ public sealed class PrintersController : ControllerBase
                 ex,
                 "Socket error while starting printer listener for printer {PrinterId} in workspace {WorkspaceId}",
                 id,
-                context.WorkspaceId);
+                httpContext.WorkspaceId);
             return Problem(
                 statusCode: StatusCodes.Status409Conflict,
                 detail: $"Unable to start listener for this printer: {ex.Message}");
@@ -303,7 +306,7 @@ public sealed class PrintersController : ControllerBase
             logger.LogWarning(
                 "Printer {PrinterId} not found when attempting to set status for workspace {WorkspaceId}",
                 id,
-                context.WorkspaceId);
+                httpContext.WorkspaceId);
             return NotFound();
         }
         catch (ArgumentOutOfRangeException ex)
@@ -313,7 +316,7 @@ public sealed class PrintersController : ControllerBase
                 "Invalid target status {TargetStatus} for printer {PrinterId} in workspace {WorkspaceId}",
                 request.TargetStatus,
                 id,
-                context.WorkspaceId);
+                httpContext.WorkspaceId);
             return ValidationProblem(ex.Message);
         }
     }

@@ -35,6 +35,14 @@
             });
 
             if (!response.ok) {
+                // Handle 401/403 - authentication/authorization failures
+                if (response.status === 401 || response.status === 403) {
+                    console.error(`Auth failed (${response.status}) for ${path}, logging out`);
+                    // Only log out if we have a workspace token (avoid loops)
+                    if (workspaceToken) {
+                        logOut();
+                    }
+                }
                 const text = await response.text().catch(() => '');
                 throw new Error(text || `Request failed: ${response.status}`);
             }
@@ -238,30 +246,22 @@
         }
 
         function renderPrinterItem(p, isPinned) {
-            const isStarted = p.targetStatus === 'started';
             const isStopped = p.runtimeStatus === 'stopped';
 
-            // Line 2: Show new doc count OR "STOPPED" status
-            let line2Content = '';
+            // Single line: name + pin icon (if pinned) + STOPPED (if stopped)
+            let pinIcon = '';
+            if (isPinned) {
+                pinIcon = ' <svg class="pin-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>';
+            }
+
+            let statusBadge = '';
             if (isStopped) {
-                line2Content = '<span class="stopped-text">STOPPED</span>';
-            } else if (p.newDocs > 0) {
-                line2Content = `<span class="new-docs-count">${p.newDocs} new</span>`;
-            } else {
-                line2Content = '<span class="detail-muted">No new documents</span>';
+                statusBadge = ' <span class="stopped-badge">STOPPED</span>';
             }
 
             return `
             <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
-              <div class="list-item-content">
-                <div class="list-item-header">
-                  <span class="list-item-name">${escapeHtml(p.name)}</span>
-                  ${isPinned ? '<span class="pin-indicator" title="Pinned">★</span>' : ''}
-                </div>
-                <div class="list-item-line2">
-                  ${line2Content}
-                </div>
-              </div>
+              <span class="list-item-name">${escapeHtml(p.name)}${pinIcon}${statusBadge}</span>
             </div>
           `;
         }
@@ -697,10 +697,13 @@
                 <div class="operations-printer-name">${escapeHtml(printer.name)}</div>
                 <span class="${statusClass}">${statusText}</span>
                 <div class="operations-detail">
-                  <span>${protocolFormatted}</span>
-                </div>
-                <div class="operations-detail">
-                  <span>${printer.width} dots</span>
+                  <span>${printerAddress}</span>
+                  <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                  </button>
                 </div>
                 <div class="operations-detail">
                   <span>Last: ${lastDocText}</span>
@@ -1310,13 +1313,24 @@
                 localStorage.removeItem('workspaceName');
             }
 
-            // Fetch current workspace to confirm auth
-            await apiRequest('/api/auth/me');
+            // Fetch current workspace to confirm auth and get user info
+            try {
+                const userInfo = await apiRequest('/api/auth/me');
+                if (userInfo && userInfo.name) {
+                    workspaceName = userInfo.name;
+                    localStorage.setItem('workspaceName', workspaceName);
+                    updateUserDisplay();
+                }
             startStatusStream();
             await loadPrinters();
             if (selectedPrinterId) {
                 await ensureDocumentsLoaded(selectedPrinterId);
                 startDocumentStream(selectedPrinterId);
+            }
+            } catch (error) {
+                console.error('Auth error:', error);
+                // Auth failed, log out
+                logOut();
             }
         }
 
@@ -1436,9 +1450,9 @@
             console.log('toggleSidebar called');
             console.log('Container before toggle:'+ container.className);
 
-            container.classList.toggle('sidebar-hidden');
+            container.classList.toggle('sidebar-minimized');
 
-            const isHidden = container.classList.contains('sidebar-hidden');
+            const isHidden = container.classList.contains('sidebar-minimized');
             console.log('Container after toggle:', container.className);
             console.log('Sidebar is hidden:', isHidden);
 
@@ -1446,7 +1460,7 @@
             console.log('Toggle button:', toggleButton);
             console.log('Toggle button display:', toggleButton ? window.getComputedStyle(toggleButton).display : 'button not found');
 
-            localStorage.setItem('sidebarHidden', isHidden);
+            localStorage.setItem('sidebarMinimized', isHidden);
         }
         function toggleOperations() {
             const container = document.querySelector('.container');
@@ -1627,9 +1641,24 @@
             workspaceToken = savedToken;
             workspaceName = savedName;
             accessToken = savedAccessToken;
-            console.log('Workspace restored, starting status stream and loading printers');
-            startStatusStream();
-            loadPrinters();
+            console.log('Workspace restored, verifying auth and loading data');
+
+            // Verify auth and get user info
+            (async () => {
+                try {
+                    const userInfo = await apiRequest('/api/auth/me');
+                    if (userInfo && userInfo.name) {
+                        workspaceName = userInfo.name;
+                        localStorage.setItem('workspaceName', workspaceName);
+                        updateUserDisplay();
+                    }
+                    startStatusStream();
+                    loadPrinters();
+                } catch (error) {
+                    console.error('Auth verification failed on startup:', error);
+                    logOut();
+                }
+            })();
         } else {
             console.warn('Cannot restore workspace - missing tokens');
         }
@@ -1639,9 +1668,9 @@
         renderDocuments();
 
         // Restore sidebar state
-        const sidebarHidden = localStorage.getItem('sidebarHidden') === 'true';
-        if (sidebarHidden) {
-            document.querySelector('.container').classList.add('sidebar-hidden');
+        const sidebarMinimized = localStorage.getItem('sidebarMinimized') === 'true';
+        if (sidebarMinimized) {
+            document.querySelector('.container').classList.add('sidebar-minimized');
         }
     
         // Restore operations panel state

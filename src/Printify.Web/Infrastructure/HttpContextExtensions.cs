@@ -1,12 +1,12 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
+using Printify.Application.Interfaces;
 using Printify.Domain.Requests;
+using System.Security.Claims;
 
 namespace Printify.Web.Infrastructure;
 
-internal static class HttpContextExtensions
+public class HttpContextExtensions(IServiceProvider serviceProvider)
 {
-    internal static RequestContext CaptureRequestContext(this HttpContext httpContext)
+    public async ValueTask<RequestContext> CaptureRequestContext(HttpContext httpContext)
     {
         var user = httpContext.User;
         Guid? workspaceId = null;
@@ -38,6 +38,16 @@ internal static class HttpContextExtensions
         if (string.IsNullOrWhiteSpace(ipAddress))
         {
             ipAddress = "127.0.0.1";
+        }
+
+        // 3. Check that workspace exists
+        if (workspaceId != null)
+        {
+            using var scope = serviceProvider.CreateScope();
+            var workspaceRepository = scope.ServiceProvider.GetRequiredService<IWorkspaceRepository>();
+            var workspace = await workspaceRepository.GetByIdAsync(workspaceId.Value, CancellationToken.None);
+            if (workspace == null)
+                return new RequestContext(null, ipAddress);
         }
 
         return new RequestContext(workspaceId, ipAddress);

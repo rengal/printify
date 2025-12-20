@@ -15,7 +15,7 @@ namespace Printify.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator mediator, IJwtTokenGenerator jwt) : ControllerBase
+public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator mediator, IJwtTokenGenerator jwt, HttpContextExtensions httpExtensions) : ControllerBase
 {
     [AllowAnonymous]
     [HttpPost("login")]
@@ -23,7 +23,8 @@ public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator me
         [FromBody]LoginRequestDto request,
         CancellationToken ct)
     {
-        var command = request.ToCommand(HttpContext.CaptureRequestContext());
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        var command = request.ToCommand(httpContext);
         var workspace= await mediator.Send(command, ct);
 
         var token = jwt.GenerateToken(workspace.Id);
@@ -48,7 +49,8 @@ public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator me
     [HttpGet("me")]
     public async Task<ActionResult<WorkspaceDto>> GetCurrentWorkspace(CancellationToken ct)
     {
-        var command = new GetCurrentWorkspaceCommand(HttpContext.CaptureRequestContext());
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        var command = new GetCurrentWorkspaceCommand(httpContext);
         var workspace = await mediator.Send(command, ct);
 
         return Ok(workspace.ToDto());

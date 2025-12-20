@@ -15,6 +15,7 @@ using Printify.Infrastructure.Printing.EscPos;
 using Printify.Infrastructure.Printing.Factories;
 using Printify.Infrastructure.Repositories;
 using Printify.Infrastructure.Security;
+using Printify.Web.Infrastructure;
 
 namespace Printify.Web.Extensions;
 
@@ -40,6 +41,7 @@ public static class ServiceCollectionExtensions
         // Application services
         services.AddHttpContextAccessor();
         services.AddSingleton<IClockFactory, StopwatchClockFactory>();
+        services.AddSingleton<HttpContextExtensions>();
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<LoginCommand>());
         //builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(IdentityGuardBehavior<,>)); //todo debugnow
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));

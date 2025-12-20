@@ -9,7 +9,7 @@ namespace Printify.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class WorkspacesController(IMediator mediator) : ControllerBase
+public sealed class WorkspacesController(IMediator mediator, HttpContextExtensions httpExtensions) : ControllerBase
 {
     [HttpPost]
     public async Task<ActionResult<WorkspaceDto>> CreateWorkspace(
@@ -18,8 +18,8 @@ public sealed class WorkspacesController(IMediator mediator) : ControllerBase
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var context = HttpContext.CaptureRequestContext();
-        var command = request.ToCommand(context);
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        var command = request.ToCommand(httpContext);
 
         var workspace = await mediator.Send(command, ct).ConfigureAwait(false);
         var workspaceDto = workspace.ToResponseDto();

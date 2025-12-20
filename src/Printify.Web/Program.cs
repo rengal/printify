@@ -1,11 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Printify.Web.Middleware;
 using System.Text;
 using Printify.Infrastructure.Persistence;
 using Printify.Web.Extensions;
 using Microsoft.Extensions.FileProviders;
-using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
