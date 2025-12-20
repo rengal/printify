@@ -115,6 +115,9 @@ public sealed class TestServiceContext(ServiceProvider provider)
         public IPrinterDocumentStream DocumentStream =>
             Factory.Services.GetRequiredService<IPrinterDocumentStream>();
 
+        public IPrinterStatusStream StatusStream =>
+            Factory.Services.GetRequiredService<IPrinterStatusStream>();
+
         public IClockFactory ClockFactory => Factory.Services.GetRequiredService<IClockFactory>();
 
         public HttpClient CreateClient()

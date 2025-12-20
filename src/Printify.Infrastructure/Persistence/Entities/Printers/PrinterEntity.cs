@@ -38,9 +38,6 @@ public sealed class PrinterEntity : BaseEntity
     [Column("target_status")]
     public string TargetStatus { get; set; } = "Started";
 
-    [Column("runtime_status")]
-    public string RuntimeStatus { get; set; } = "Unknown";
-
     [Column("runtime_status_updated_at")]
     public DateTimeOffset? RuntimeStatusUpdatedAt { get; set; }
 

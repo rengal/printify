@@ -42,7 +42,6 @@ public sealed class CreatePrinterHandler(
             request.BufferDrainRate,
             request.BufferMaxCapacity,
             PrinterTargetState.Started,
-            PrinterRuntimeStatus.Unknown,
             null,
             null,
             false,

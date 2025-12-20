@@ -27,7 +27,7 @@ internal static class PrinterMapper
             PrinterListenerStatus.Listening => PrinterRuntimeStatus.Started,
             PrinterListenerStatus.Idle => PrinterRuntimeStatus.Stopped,
             PrinterListenerStatus.Failed => PrinterRuntimeStatus.Error,
-            _ => PrinterRuntimeStatus.Unknown
+            _ => throw new InvalidOperationException("unknown runtime status")
         };
 
         return new PrinterResponseDto(

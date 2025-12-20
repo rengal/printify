@@ -164,12 +164,11 @@ public sealed class PrinterListenerOrchestrator(
     {
         return status switch
         {
-            PrinterListenerStatus.Unknown => PrinterRuntimeStatus.Unknown,
             PrinterListenerStatus.Idle => PrinterRuntimeStatus.Stopped,
             PrinterListenerStatus.OpeningPort => PrinterRuntimeStatus.Starting,
             PrinterListenerStatus.Listening => PrinterRuntimeStatus.Started,
             PrinterListenerStatus.Failed => PrinterRuntimeStatus.Error,
-            _ => PrinterRuntimeStatus.Unknown
+            _ => throw new InvalidOperationException("Unknown listener status")
         };
     }
 }

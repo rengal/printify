@@ -5,7 +5,6 @@
 /// </summary>
 public enum PrinterRuntimeStatus
 {
-    Unknown = 0,
     Starting = 1,
     Started = 2,
     Stopped = 3,

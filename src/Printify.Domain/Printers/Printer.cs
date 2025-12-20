@@ -54,7 +54,6 @@ public sealed record Printer(
     decimal? BufferDrainRate,
     int? BufferMaxCapacity,
     PrinterTargetState TargetState,
-    PrinterRuntimeStatus RuntimeStatus,
     DateTimeOffset? RuntimeStatusUpdatedAt,
     string? RuntimeStatusError,
     bool IsPinned,
