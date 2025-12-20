@@ -118,14 +118,11 @@ public sealed class PrinterListenerOrchestrator(
         await UpdateRuntimeStatusAsync(printer, PrinterRuntimeStatus.Stopped, null, ct).ConfigureAwait(false);
     }
 
-    public ListenerStatusSnapshot? GetStatus(Printer printer)
+    public ListenerStatusSnapshot GetStatus(Printer printer)
     {
-        if (!listeners.TryGetValue(printer.Id, out var listener))
-        {
-            return new ListenerStatusSnapshot(PrinterListenerStatus.Idle);
-        }
-
-        return new ListenerStatusSnapshot(listener.Status);
+        return !listeners.TryGetValue(printer.Id, out var listener)
+            ? new ListenerStatusSnapshot(PrinterListenerStatus.Idle)
+            : new ListenerStatusSnapshot(listener.Status);
     }
 
     public IReadOnlyCollection<IPrinterChannel> GetActiveChannels(Guid printerId)

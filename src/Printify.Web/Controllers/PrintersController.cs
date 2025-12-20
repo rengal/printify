@@ -57,7 +57,7 @@ public sealed class PrintersController : ControllerBase
         ArgumentNullException.ThrowIfNull(request);
 
         var printer = await mediator.Send(request.ToCommand(HttpContext.CaptureRequestContext()), cancellationToken);
-        return Ok(printer.ToResponseDto());
+        return Ok(printer.ToResponseDto(listenerOrchestrator.GetStatus(printer)));
     }
 
     [Authorize]
@@ -257,7 +257,7 @@ public sealed class PrintersController : ControllerBase
         {
             var command = request.ToCommand(id, context);
             var printer = await mediator.Send(command, cancellationToken);
-            return Ok(printer.ToResponseDto());
+            return Ok(printer.ToResponseDto(listenerOrchestrator.GetStatus(printer)));
         }
         catch (InvalidOperationException)
         {

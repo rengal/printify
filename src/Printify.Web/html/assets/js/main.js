@@ -222,28 +222,28 @@
         }
 
         function renderPrinterItem(p, isPinned) {
-            const statusClass = runtimeStatusClass(p.runtimeStatus);
-            const statusText = formatRuntimeStatus(p.runtimeStatus);
             const isStarted = p.targetStatus === 'started';
-            
-            // Format last document info compactly
-            const lastDocText = p.lastDocumentAt ? formatDateTime(p.lastDocumentAt) : '—';
+            const isStopped = p.runtimeStatus === 'stopped';
+
+            // Line 2: Show new doc count OR "STOPPED" status
+            let line2Content = '';
+            if (isStopped) {
+                line2Content = '<span class="status-pill status-stopped">STOPPED</span>';
+            } else if (p.newDocs > 0) {
+                line2Content = `<span class="new-docs-count">${p.newDocs} new</span>`;
+            } else {
+                line2Content = '<span class="detail-muted">No new documents</span>';
+            }
 
             return `
             <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
               <div class="list-item-content">
                 <div class="list-item-header">
-                  <span class="list-item-name">${p.name}${isPinned ? ' <span class="pin-indicator" title="Pinned">★</span>' : ''}</span>
-                  ${p.newDocs > 0 ? `<span class="list-item-badge">${p.newDocs}</span>` : ''}
-                  <button class="btn btn-ghost btn-sm list-item-menu" onclick="event.stopPropagation(); showMenu(event, '${p.id}', ${isPinned}, ${isStarted})">⋯</button>
+                  <span class="list-item-name">${escapeHtml(p.name)}</span>
+                  ${isPinned ? '<span class="pin-indicator" title="Pinned">★</span>' : ''}
                 </div>
-                <div class="list-item-details">
-                  <span class="status-pill ${statusClass}">${statusText}</span>
-                  <span class="detail-separator">·</span>
-                  <span class="detail-text">${formatPrinterAddress(p)}</span>
-                </div>
-                <div class="list-item-footer">
-                  <span class="detail-muted">Last: ${lastDocText}</span>
+                <div class="list-item-line2">
+                  ${line2Content}
                 </div>
               </div>
             </div>

@@ -9,7 +9,7 @@ public interface IPrinterListenerOrchestrator
 {
     Task AddListenerAsync(Printer printer, CancellationToken ct);
     Task RemoveListenerAsync(Printer printer, CancellationToken ct);
-    ListenerStatusSnapshot? GetStatus(Printer printer);
+    ListenerStatusSnapshot GetStatus(Printer printer);
     IReadOnlyCollection<IPrinterChannel> GetActiveChannels(Guid printerId);
 }
 

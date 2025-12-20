@@ -18,10 +18,10 @@ internal static class PrinterMapper
         };
     }
 
-    internal static PrinterResponseDto ToResponseDto(this Printer printer, ListenerStatusSnapshot? runtime = null)
+    internal static PrinterResponseDto ToResponseDto(this Printer printer, ListenerStatusSnapshot runtime)
     {
         ArgumentNullException.ThrowIfNull(printer);
-        var runtimeStatus = runtime?.Status switch
+        var runtimeStatus = runtime.Status switch
         {
             PrinterListenerStatus.OpeningPort => PrinterRuntimeStatus.Starting,
             PrinterListenerStatus.Listening => PrinterRuntimeStatus.Started,
