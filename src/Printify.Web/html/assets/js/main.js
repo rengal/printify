@@ -206,16 +206,11 @@
         function renderSidebar() {
             const pinnedList = document.getElementById('pinnedList');
             const otherList = document.getElementById('otherList');
-            const pinnedSection = document.getElementById('pinnedSection');
-            const otherSection = document.getElementById('otherSection');
 
             const pinnedPrinters = printers.filter(p => p.pinned).sort((a, b) => a.pinOrder - b.pinOrder);
             const otherPrinters = printers.filter(p => !p.pinned).sort((a, b) => a.name.localeCompare(b.name));
 
             console.debug('renderSidebar', { total: printers.length, pinned: pinnedPrinters.length, other: otherPrinters.length });
-
-            pinnedSection.style.display = pinnedPrinters.length > 0 ? 'block' : 'none';
-            otherSection.style.display = otherPrinters.length > 0 ? 'block' : 'none';
 
             pinnedList.innerHTML = pinnedPrinters.map(p => renderPrinterItem(p, true)).join('');
             otherList.innerHTML = otherPrinters.map(p => renderPrinterItem(p, false)).join('');
@@ -228,7 +223,7 @@
             // Line 2: Show new doc count OR "STOPPED" status
             let line2Content = '';
             if (isStopped) {
-                line2Content = '<span class="status-pill status-stopped">STOPPED</span>';
+                line2Content = '<span class="stopped-text">STOPPED</span>';
             } else if (p.newDocs > 0) {
                 line2Content = `<span class="new-docs-count">${p.newDocs} new</span>`;
             } else {
@@ -255,7 +250,6 @@
             const printer = getPrinterById(id);
             if (printer) {
                 printer.newDocs = 0;
-                document.getElementById('topbarTitle').textContent = `${printer.name} · ${printer.protocol.toUpperCase()} · ${printer.width} dots`;
                 renderSidebar();
                 renderDocuments();
                 try {
@@ -510,9 +504,82 @@
             }
 
             const docs = documents[selectedPrinterId] || [];
+            const printer = getPrinterById(selectedPrinterId);
+
+            if (!printer) {
+                mainContent.innerHTML = `
+              <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
+                <h3>Printer not found</h3>
+              </div>
+            `;
+                return;
+            }
+
+            // Render printer header with operations and status
+            const isStarted = printer.targetStatus === 'started';
+            const statusClass = runtimeStatusClass(printer.runtimeStatus);
+            const statusText = formatRuntimeStatus(printer.runtimeStatus);
+            const lastDocText = printer.lastDocumentAt ? formatRelativeTime(printer.lastDocumentAt) : 'Never';
+            const printerAddress = formatPrinterAddress(printer);
+            const protocolFormatted = printer.protocol === 'escpos' ? 'ESC/POS' : printer.protocol.toUpperCase();
+
+            const printerHeader = `
+              <div class="printer-header">
+                <div class="printer-header-main">
+                  <div class="printer-header-info">
+                    <h2 class="printer-header-title">${escapeHtml(printer.name)}</h2>
+                    <div class="printer-header-details">
+                      <span class="${statusClass}">${statusText}</span>
+                      <span class="detail-separator">·</span>
+                      <span>Protocol: ${protocolFormatted}</span>
+                      <span class="detail-separator">·</span>
+                      <span>Address: ${printerAddress}</span>
+                      <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
+                      <span class="detail-separator">·</span>
+                      <span>Width: ${printer.width} dots</span>
+                      <span class="detail-separator">·</span>
+                      <span class="detail-muted">Last printed: ${lastDocText}</span>
+                    </div>
+                  </div>
+                  <div class="printer-header-actions">
+                    ${isStarted
+                      ? `<button class="btn btn-outline-danger btn-sm" onclick="stopPrinter(event, '${printer.id}')">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                          Stop
+                        </button>`
+                      : `<button class="btn btn-primary btn-sm" onclick="startPrinter(event, '${printer.id}')">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                          Start
+                        </button>`
+                    }
+                    <button class="btn btn-secondary btn-sm" onclick="clearDocuments('${printer.id}')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      Clear
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="editPrinter('${printer.id}')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      Edit
+                    </button>
+                    <button class="btn btn-ghost btn-sm" onclick="togglePin('${printer.id}')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>
+                      ${printer.pinned ? 'Unpin' : 'Pin'}
+                    </button>
+                    <button class="btn btn-ghost btn-sm" onclick="deletePrinter('${printer.id}')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
 
             if (docs.length === 0) {
-                mainContent.innerHTML = `
+                mainContent.innerHTML = printerHeader + `
               <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
                 <h3>No documents yet</h3>
                 <p>Documents will appear here when they are printed</p>
@@ -521,7 +588,7 @@
                 return;
             }
 
-            mainContent.innerHTML = docs.map(doc => `
+            const documentsHtml = docs.map(doc => `
             <div class="document-item">
               <div class="document-preview" style="width:${doc.width}px">
                 ${doc.previewHtml}
@@ -532,6 +599,8 @@
               </div>
             </div>
           `).join('');
+
+            mainContent.innerHTML = printerHeader + documentsHtml;
         }
 
         function showMenu(event, printerId, isPinned, isStarted) {
@@ -632,7 +701,8 @@
                     body: JSON.stringify({ targetStatus })
                 });
                 await loadPrinters(printerId);
-                showToast(targetStatus.toLowerCase() === 'started' ? 'Printer started' : 'Printer stopped');
+                const action = targetStatus.toLowerCase() === 'started' ? 'started' : 'stopped';
+                showToast(`${printer.name} ${action}`);
             } catch (err) {
                 console.error(err);
                 showToast(err.message || 'Failed to change status', true);
@@ -647,6 +717,14 @@
         function stopPrinter(event, printerId) {
             event?.stopPropagation();
             setPrinterStatus(printerId, 'Stopped');
+        }
+
+        function clearDocuments(printerId) {
+            // TODO: Add clear documents API endpoint
+            if (!confirm('Clear all documents for this printer?')) {
+                return;
+            }
+            showToast('Clear documents operation - API endpoint not implemented yet', 'warn');
         }
 
         function openNewPrinterDialog() {
@@ -1140,6 +1218,9 @@
         function updateThemeIcon(theme) {
             const darkIcon = document.getElementById('themeIconDark');
             const lightIcon = document.getElementById('themeIconLight');
+            // Theme icons may not exist if topbar was removed
+            if (!darkIcon || !lightIcon) return;
+
             if (theme === 'dark') {
                 darkIcon.style.display = 'block';
                 lightIcon.style.display = 'none';
@@ -1324,12 +1405,22 @@
         const savedToken = localStorage.getItem('workspaceToken');
         const savedName = localStorage.getItem('workspaceName');
         const savedAccessToken = localStorage.getItem('accessToken');
+
+        console.log('Restoring workspace from localStorage:', {
+            hasWorkspaceToken: !!savedToken,
+            hasAccessToken: !!savedAccessToken,
+            workspaceName: savedName
+        });
+
         if (savedToken && savedAccessToken) {
             workspaceToken = savedToken;
             workspaceName = savedName;
             accessToken = savedAccessToken;
+            console.log('Workspace restored, starting status stream and loading printers');
             startStatusStream();
             loadPrinters();
+        } else {
+            console.warn('Cannot restore workspace - missing tokens');
         }
 
         updateUserDisplay();

@@ -79,12 +79,10 @@
         .container {
             display: grid;
             grid-template-columns: 300px 1fr;
-            grid-template-rows: 48px 1fr;
-            grid-template-areas:
-                "sidebar topbar"
-                "sidebar main";
+            grid-template-rows: 1fr;
+            grid-template-areas: "sidebar main";
             height: 100dvh;
-            transition: grid-template-columns 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
             .container.sidebar-hidden {
@@ -101,7 +99,7 @@
             padding: 16px;
             overflow-y: auto;
             overflow-x: hidden;
-            transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1), padding 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .container.sidebar-hidden .sidebar {
@@ -110,20 +108,11 @@
             padding: 16px 0;
         }
 
-        .topbar {
-            grid-area: topbar;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 16px;
-            border-bottom: 1px solid var(--border);
-            background: var(--bg);
-        }
-
         .main {
             grid-area: main;
             padding: 24px;
             overflow-y: auto;
+            position: relative;
         }
 
         .main-inner {
@@ -132,6 +121,39 @@
             display: flex;
             flex-direction: column;
             gap: 16px;
+        }
+
+        /* Floating toggle button - shown when sidebar is hidden */
+        .container.sidebar-hidden .main-inner {
+            padding-top: 48px;
+        }
+
+        .floating-sidebar-toggle {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            border-radius: 6px;
+            z-index: 10;
+            transition: all 0.2s ease;
+        }
+
+            .floating-sidebar-toggle:hover {
+                background: rgba(255,255,255,0.08);
+                color: var(--accent);
+            }
+
+        .container.sidebar-hidden .floating-sidebar-toggle {
+            display: flex;
         }
 
         /* -------------- UTILITIES -------------- */
@@ -363,12 +385,13 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 8px;
+            margin-bottom: 16px;
         }
 
         .sidebar-title {
             font-weight: 600;
             font-size: 18px;
+            flex: 1;
         }
 
         .sidebar-footer {
@@ -472,11 +495,17 @@
         }
 
             .list-item:hover {
-                background: rgba(255,255,255,0.06);
+                background: rgba(255,255,255,0.08);
+                border: 1px solid rgba(255,255,255,0.1);
             }
 
             .list-item.active {
                 background: rgba(16,185,129,0.15);
+                border: 1px solid var(--accent);
+            }
+
+            .list-item.active:hover {
+                background: rgba(16,185,129,0.2);
                 border: 1px solid var(--accent);
             }
 
@@ -570,13 +599,24 @@
         }
 
         .list-item-line2 {
-            font-size: 12px;
-            color: var(--muted);
-            line-height: 1.3;
+            font-size: 13px;
+            line-height: 1.4;
             display: flex;
             align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .new-docs-count {
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .stopped-text {
+            color: var(--danger);
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
         }
 
         .list-item-dot {
@@ -611,8 +651,8 @@
         }
 
         .status-stopped {
-            color: var(--muted);
-            background: rgba(255, 255, 255, 0.04);
+            color: var(--danger);
+            background: transparent;
         }
 
         .status-error {
@@ -838,6 +878,70 @@
             margin-top: 16px;
         }
 
+        /* -------------- PRINTER HEADER -------------- */
+        .printer-header {
+            position: sticky;
+            top: 0;
+            background: var(--bg-elev);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            z-index: 5;
+        }
+
+        .printer-header-main {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .printer-header-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .printer-header-title {
+            margin: 0 0 8px 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .printer-header-details {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .copy-icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 2px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            margin-left: 4px;
+        }
+
+            .copy-icon-btn:hover {
+                background: rgba(255,255,255,0.08);
+                color: var(--accent);
+            }
+
+        .printer-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         /* -------------- DOCUMENTS -------------- */
         .document-item {
             background: var(--bg-elev);
@@ -884,6 +988,16 @@
             .toast.ok {
                 border-color: var(--ok);
                 background: color-mix(in srgb, var(--ok) 10%, var(--bg-elev));
+            }
+
+            .toast.warn {
+                border-color: var(--warn);
+                background: color-mix(in srgb, var(--warn) 10%, var(--bg-elev));
+            }
+
+            .toast.danger {
+                border-color: var(--danger);
+                background: color-mix(in srgb, var(--danger) 10%, var(--bg-elev));
             }
 
         @keyframes slideIn {
