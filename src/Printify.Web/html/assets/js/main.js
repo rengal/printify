@@ -614,11 +614,11 @@
         }
 
         function renderDocuments() {
-            const propertiesPanel = document.getElementById('propertiesPanel');
+            const operationsPanel = document.getElementById('operationsPanel');
             const documentsPanel = document.getElementById('documentsPanel');
 
             if (!workspaceToken) {
-                propertiesPanel.innerHTML = `
+                operationsPanel.innerHTML = `
               <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
                 <h3>No Workspace</h3>
                 <p>Create or access workspace</p>
@@ -656,7 +656,7 @@
             }
 
             if (!selectedPrinterId) {
-                propertiesPanel.innerHTML = `
+                operationsPanel.innerHTML = `
               <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
                 <h3>No Printer Selected</h3>
                 <p>Select a printer from the list</p>
@@ -675,7 +675,7 @@
             const printer = getPrinterById(selectedPrinterId);
 
             if (!printer) {
-                propertiesPanel.innerHTML = `
+                operationsPanel.innerHTML = `
               <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
                 <h3>Printer not found</h3>
               </div>
@@ -692,66 +692,51 @@
             const printerAddress = formatPrinterAddress(printer);
             const protocolFormatted = printer.protocol.toLowerCase() === 'escpos' ? 'ESC/POS' : printer.protocol.toUpperCase();
 
-            propertiesPanel.innerHTML = `
-              <div class="printer-header">
-                <div class="printer-header-main">
-                  <div class="printer-header-info">
-                    <div class="printer-header-title-row">
-                      <h2 class="printer-header-title">${escapeHtml(printer.name)}</h2>
-                      <span class="${statusClass}">${statusText}</span>
-                    </div>
-                    <div class="printer-header-details">
-                      <div class="printer-detail-line">
-                        <span>Protocol: ${protocolFormatted}</span>
-                        <span class="detail-separator">·</span>
-                        <span>Address: ${printerAddress}</span>
-                        <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                          </svg>
-                        </button>
-                      </div>
-                      <div class="printer-detail-line">
-                        <span>Width: ${printer.width} dots</span>
-                        <span class="detail-separator">·</span>
-                        <span>Last document: ${lastDocText}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="printer-header-actions">
-                    ${isStarted
-                      ? `<button class="btn btn-outline-danger btn-sm" onclick="stopPrinter(event, '${printer.id}')">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
-                          Stop
-                        </button>`
-                      : `<button class="btn btn-primary btn-sm" onclick="startPrinter(event, '${printer.id}')">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                          Start
-                        </button>`
-                    }
-                    <button class="btn btn-secondary btn-sm" onclick="clearDocuments('${printer.id}')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                      Clear
-                    </button>
-                    <button class="btn btn-${debugMode ? 'primary' : 'secondary'} btn-sm" onclick="toggleDebugMode()">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h.01M15 9h.01M9 15h6"/></svg>
-                      Debug
-                    </button>
-                    <button class="btn btn-secondary btn-sm" onclick="editPrinter('${printer.id}')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      Edit
-                    </button>
-                    <button class="btn btn-ghost btn-sm" onclick="togglePin('${printer.id}')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>
-                      ${printer.pinned ? 'Unpin' : 'Pin'}
-                    </button>
-                    <button class="btn btn-ghost btn-sm" onclick="deletePrinter('${printer.id}')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                      Delete
-                    </button>
-                  </div>
+            operationsPanel.innerHTML = `
+              <div class="operations-info">
+                <div class="operations-printer-name">${escapeHtml(printer.name)}</div>
+                <span class="${statusClass}">${statusText}</span>
+                <div class="operations-detail">
+                  <span>${protocolFormatted}</span>
                 </div>
+                <div class="operations-detail">
+                  <span>${printer.width} dots</span>
+                </div>
+                <div class="operations-detail">
+                  <span>Last: ${lastDocText}</span>
+                </div>
+              </div>
+              <div class="operations-actions">
+                ${isStarted
+                  ? `<button class="btn btn-outline-danger btn-sm" onclick="stopPrinter(event, '${printer.id}')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                      Stop
+                    </button>`
+                  : `<button class="btn btn-primary btn-sm" onclick="startPrinter(event, '${printer.id}')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      Start
+                    </button>`
+                }
+                <button class="btn btn-secondary btn-sm" onclick="clearDocuments('${printer.id}')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  Clear
+                </button>
+                <button class="btn btn-${debugMode ? 'primary' : 'secondary'} btn-sm" onclick="toggleDebugMode()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h.01M15 9h.01M9 15h6"/></svg>
+                  Debug
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="editPrinter('${printer.id}')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="togglePin('${printer.id}')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>
+                  ${printer.pinned ? 'Unpin' : 'Pin'}
+                </button>
+                <button class="btn btn-ghost btn-sm" onclick="deletePrinter('${printer.id}')">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  Delete
+                </button>
               </div>
             `;
 
@@ -1463,6 +1448,13 @@
 
             localStorage.setItem('sidebarHidden', isHidden);
         }
+        function toggleOperations() {
+            const container = document.querySelector('.container');
+            container.classList.toggle('operations-hidden');
+
+            const isHidden = container.classList.contains('operations-hidden');
+            localStorage.setItem('operationsHidden', isHidden);
+        }
 
         function getInitials(name) {
             if (!name) return '?';
@@ -1652,3 +1644,8 @@
             document.querySelector('.container').classList.add('sidebar-hidden');
         }
     
+        // Restore operations panel state
+        const operationsHidden = localStorage.getItem('operationsHidden') === 'true';
+        if (operationsHidden) {
+            document.querySelector('.container').classList.add('operations-hidden');
+        }

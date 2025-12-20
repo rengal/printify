@@ -78,23 +78,15 @@
         /* -------------- LAYOUT PRIMITIVES -------------- */
         .container {
             display: grid;
-            grid-template-columns: 280px 240px 1fr;
+            grid-template-columns: 280px 1fr;
             grid-template-rows: 1fr;
-            grid-template-areas: "sidebar operations documents";
+            grid-template-areas: "sidebar documents";
             height: 100dvh;
             transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
             .container.sidebar-hidden {
-                grid-template-columns: 0px 240px 1fr;
-            }
-
-            .container.operations-hidden {
-                grid-template-columns: 280px 0px 1fr;
-            }
-
-            .container.sidebar-hidden.operations-hidden {
-                grid-template-columns: 0px 0px 1fr;
+                grid-template-columns: 0px 1fr;
             }
 
         .sidebar {
@@ -116,28 +108,25 @@
             padding: 16px 0;
         }
 
-        .operations-panel {
-            grid-area: operations;
+        .properties-panel {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            width: 320px;
+            max-height: calc(100vh - 48px);
             background: var(--bg-elev);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
             overflow-y: auto;
-            overflow-x: hidden;
-            transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .container.operations-hidden .operations-panel {
-            opacity: 0;
-            pointer-events: none;
-            padding: 16px 0;
+            z-index: 10;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
         }
 
         .documents-panel {
             grid-area: documents;
             padding: 24px;
+            padding-right: 380px;
             overflow-y: auto;
             position: relative;
         }
@@ -1107,50 +1096,3 @@
             }
         }
     
-
-        /* -------------- OPERATIONS PANEL -------------- */
-        .operations-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-        }
-
-        .operations-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .operations-info {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .operations-printer-name {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .operations-detail {
-            font-size: 13px;
-            color: var(--muted);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .operations-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .operations-actions .btn {
-            width: 100%;
-            justify-content: flex-start;
-        }
