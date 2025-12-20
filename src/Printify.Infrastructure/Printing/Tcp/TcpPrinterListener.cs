@@ -82,6 +82,8 @@ public sealed class TcpPrinterListener(Printer printer, ILogger<TcpPrinterListen
                         var args = new PrinterChannelAcceptedEventArgs(printer.Id, channel);
                         await ChannelAccepted.Invoke(this, args).ConfigureAwait(false);
                     }
+
+                    await channel.RunReadLoopAsync(ct);
                 }
                 catch (OperationCanceledException)
                 {

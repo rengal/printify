@@ -901,19 +901,31 @@
             min-width: 0;
         }
 
+        .printer-header-title-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
         .printer-header-title {
-            margin: 0 0 8px 0;
+            margin: 0;
             font-size: 24px;
             font-weight: 600;
         }
 
         .printer-header-details {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 6px;
             font-size: 14px;
-            color: var(--muted);
+            color: var(--text);
+        }
+
+        .printer-detail-line {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .copy-icon-btn {
@@ -924,10 +936,10 @@
             border: none;
             color: var(--muted);
             cursor: pointer;
-            padding: 2px;
+            padding: 4px;
             border-radius: 4px;
             transition: all 0.2s ease;
-            margin-left: 4px;
+            vertical-align: middle;
         }
 
             .copy-icon-btn:hover {
@@ -937,6 +949,7 @@
 
         .printer-header-actions {
             display: flex;
+            flex-direction: row;
             align-items: center;
             gap: 8px;
             flex-wrap: wrap;
@@ -944,19 +957,30 @@
 
         /* -------------- DOCUMENTS -------------- */
         .document-item {
-            background: var(--bg-elev);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
+            margin-bottom: 24px;
+        }
+
+        .document-content {
+            position: relative;
+            display: inline-block;
+        }
+
+        .document-copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
         }
 
         .document-meta {
             display: flex;
             align-items: center;
-            gap: 12px;
+            margin-top: 8px;
+            padding: 0 12px;
+        }
+
+        .document-meta-text {
             color: var(--muted);
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .document-actions {

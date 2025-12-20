@@ -263,17 +263,22 @@
             }
         }
 
-        function renderEscPosDocument(elements, printerWidth) {
-            const state = {
+        function getDefaultState() {
+            return {
                 bold: false,
                 underline: false,
                 reverse: false,
                 justify: 'left',
                 lineSpacing: 0,
+                lineInterval: 4, // Vertical spacing between lines in pixels
+                fontNumber: 0, // 0 = Font A, 1 = Font B
                 scaleX: 1,
                 scaleY: 1
             };
+        }
 
+        function renderEscPosDocument(elements, printerWidth) {
+            const state = getDefaultState();
             const lines = [];
             const width = Math.max(printerWidth || 384, 200);
 
@@ -301,8 +306,14 @@
                         state.lineSpacing = 0;
                         break;
                     case 'setfont':
+                        // Font A (0) or Font B (1)
+                        state.fontNumber = Number(element.fontNumber) || 0;
                         state.scaleX = element.isDoubleWidth ? 2 : 1;
                         state.scaleY = element.isDoubleHeight ? 2 : 1;
+                        break;
+                    case 'resetprinter':
+                        // ESC @ - Reset printer to power-on state
+                        Object.assign(state, getDefaultState());
                         break;
                     default:
                         break;
@@ -323,30 +334,65 @@
             if (state.reverse) classes.push('reverse');
             classes.push(`justify-${state.justify || 'left'}`);
 
+            // Font A or Font B
+            if (state.fontNumber === 1) {
+                classes.push('font-b');
+            } else {
+                classes.push('font-a');
+            }
+
             const styles = [];
+
+            // Calculate base line height based on font
+            // Font A: 12×24 dots, Font B: 9×17 dots
+            const baseLineHeight = state.fontNumber === 1 ? 17 : 24;
+
+            // Calculate total bottom margin: lineInterval + scaling margin + lineSpacing
+            let bottomMargin = state.lineInterval || 0;
+
             if (state.scaleX !== 1 || state.scaleY !== 1) {
                 styles.push(`transform: scale(${state.scaleX}, ${state.scaleY})`);
                 styles.push('transform-origin: left top');
-                styles.push('display: inline-block');
+                // Add margin to account for scaled height to prevent overlap
+                const scaledLineHeight = baseLineHeight * state.scaleY;
+                const extraMargin = Math.max(0, scaledLineHeight - baseLineHeight);
+                bottomMargin += extraMargin;
             }
+
             if (state.lineSpacing > 0) {
-                styles.push(`margin-bottom: ${state.lineSpacing}px`);
+                bottomMargin += state.lineSpacing;
+            }
+
+            if (bottomMargin > 0) {
+                styles.push(`margin-bottom: ${bottomMargin}px`);
             }
 
             return `<div class="${classes.join(' ')}"${styles.length ? ` style="${styles.join(';')}"` : ''}>${escapeHtml(text)}</div>`;
+        }
+
+        function extractDocumentText(elements) {
+            const lines = [];
+            for (const element of elements || []) {
+                if ((element?.type || '').toLowerCase() === 'textline') {
+                    lines.push(element.text || '');
+                }
+            }
+            return lines.join('\n');
         }
 
         function mapDocumentDto(dto, printer) {
             const width = printer?.width || 384;
             const protocol = (dto.protocol || 'escpos').toLowerCase();
             const previewHtml = renderEscPosDocument(dto.elements || [], width);
+            const plainText = extractDocumentText(dto.elements || []);
             return {
                 id: dto.id,
                 printerId: dto.printerId,
                 timestamp: dto.timestamp ? new Date(dto.timestamp) : new Date(),
                 protocol,
                 width,
-                previewHtml
+                previewHtml,
+                plainText
             };
         }
 
@@ -521,29 +567,33 @@
             const statusText = formatRuntimeStatus(printer.runtimeStatus);
             const lastDocText = printer.lastDocumentAt ? formatRelativeTime(printer.lastDocumentAt) : 'Never';
             const printerAddress = formatPrinterAddress(printer);
-            const protocolFormatted = printer.protocol === 'escpos' ? 'ESC/POS' : printer.protocol.toUpperCase();
+            const protocolFormatted = printer.protocol.toLowerCase() === 'escpos' ? 'ESC/POS' : printer.protocol.toUpperCase();
 
             const printerHeader = `
               <div class="printer-header">
                 <div class="printer-header-main">
                   <div class="printer-header-info">
-                    <h2 class="printer-header-title">${escapeHtml(printer.name)}</h2>
-                    <div class="printer-header-details">
+                    <div class="printer-header-title-row">
+                      <h2 class="printer-header-title">${escapeHtml(printer.name)}</h2>
                       <span class="${statusClass}">${statusText}</span>
-                      <span class="detail-separator">·</span>
-                      <span>Protocol: ${protocolFormatted}</span>
-                      <span class="detail-separator">·</span>
-                      <span>Address: ${printerAddress}</span>
-                      <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                      </button>
-                      <span class="detail-separator">·</span>
-                      <span>Width: ${printer.width} dots</span>
-                      <span class="detail-separator">·</span>
-                      <span class="detail-muted">Last printed: ${lastDocText}</span>
+                    </div>
+                    <div class="printer-header-details">
+                      <div class="printer-detail-line">
+                        <span>Protocol: ${protocolFormatted}</span>
+                        <span class="detail-separator">·</span>
+                        <span>Address: ${printerAddress}</span>
+                        <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                          </svg>
+                        </button>
+                      </div>
+                      <div class="printer-detail-line">
+                        <span>Width: ${printer.width} dots</span>
+                        <span class="detail-separator">·</span>
+                        <span>Last document: ${lastDocText}</span>
+                      </div>
                     </div>
                   </div>
                   <div class="printer-header-actions">
@@ -588,17 +638,30 @@
                 return;
             }
 
-            const documentsHtml = docs.map(doc => `
-            <div class="document-item">
-              <div class="document-preview" style="width:${doc.width}px">
-                ${doc.previewHtml}
-              </div>
-              <div class="document-meta">
-                <span>${formatRelativeTime(doc.timestamp)}</span>
-                <span class="pill pill-ghost">${(doc.protocol || 'escpos').toUpperCase()}</span>
-              </div>
-            </div>
-          `).join('');
+            const documentsHtml = docs.map(doc => {
+                const dateTime = doc.timestamp.toLocaleString(undefined, {
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+                });
+                const relativeTime = formatRelativeTime(doc.timestamp);
+
+                return `
+                <div class="document-item">
+                  <div class="document-content">
+                    ${doc.previewHtml}
+                    <button class="copy-icon-btn document-copy-btn" onclick="copyToClipboard(\`${doc.plainText.replace(/`/g, '\\`')}\`)" title="Copy document content">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="document-meta">
+                    <span class="document-meta-text">${dateTime} · ${relativeTime}</span>
+                  </div>
+                </div>
+              `;
+            }).join('');
 
             mainContent.innerHTML = printerHeader + documentsHtml;
         }

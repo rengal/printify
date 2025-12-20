@@ -13,7 +13,7 @@ public sealed class TcpPrinterChannel : IPrinterChannel
     private readonly TcpClient client;
     private readonly NetworkStream stream;
     private readonly CancellationTokenSource readLoopCts;
-    private readonly Task readLoopTask;
+    private Task readLoopTask;
     private int closeNotified;
     private bool disposed;
 
@@ -34,10 +34,20 @@ public sealed class TcpPrinterChannel : IPrinterChannel
         ClientAddress = client.Client.RemoteEndPoint?.ToString() ?? string.Empty;
         stream = client.GetStream();
         readLoopCts = new CancellationTokenSource();
-        readLoopTask = Task.Run(() => RunReadLoopAsync(readLoopCts.Token), readLoopCts.Token);
+
     }
 
-    private async Task RunReadLoopAsync(CancellationToken ct)
+    public Task RunReadLoopAsync(CancellationToken ct)
+    {
+        if (readLoopTask != null)
+        {
+            throw new InvalidOperationException("The read loop is already running.");
+        }
+        readLoopTask = Task.Run(() => RunReadLoopAsyncInternal(readLoopCts.Token), readLoopCts.Token);
+        return Task.CompletedTask;
+    }
+
+    private async Task RunReadLoopAsyncInternal(CancellationToken ct)
     {
         var buffer = new byte[4096];
 
