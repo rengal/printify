@@ -488,7 +488,7 @@
         }
 
         function mapDocumentDto(dto, printer) {
-            const width = printer?.width || 384;
+            const width = dto.width || 384;
             const protocol = (dto.protocol || 'escpos').toLowerCase();
             const elements = dto.elements || [];
             const previewHtml = renderEscPosDocument(elements, width);

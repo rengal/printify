@@ -79,7 +79,7 @@
         /* -------------- LAYOUT PRIMITIVES -------------- */
         .container {
             display: grid;
-            grid-template-columns: 280px 240px 1fr;
+            grid-template-columns: 280px 280px 1fr;
             grid-template-rows: 1fr;
             grid-template-areas: "sidebar operations documents";
             height: 100dvh;
@@ -87,7 +87,7 @@
         }
 
             .container.sidebar-minimized {
-                grid-template-columns: 60px 240px 1fr;
+                grid-template-columns: 60px 280px 1fr;
             }
 
             .container.operations-hidden {
@@ -169,6 +169,10 @@
             padding: 24px;
             overflow-y: auto;
             position: relative;
+        }
+
+        #documentsPanel {
+            padding-left: 360px;
         }
 
         .main {
@@ -1077,11 +1081,13 @@
         /* -------------- DOCUMENTS -------------- */
         .document-item {
             margin-bottom: 24px;
+            text-align: left;
         }
 
         .document-content {
             position: relative;
             display: inline-block;
+            text-align: left;
         }
 
         .document-header {
