@@ -14,6 +14,7 @@
         let statusStreamController = null;
         let documentStreamController = null;
         let documentStreamPrinterId = null;
+        let debugMode = false;
 
         function authHeaders() {
             return accessToken
@@ -159,6 +160,26 @@
                 .replace(/'/g, '&#039;');
         }
 
+        function resolveMediaUrl(url) {
+            if (!url) {
+                return '';
+            }
+
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                return url;
+            }
+
+            if (!apiBase) {
+                return url;
+            }
+
+            if (apiBase.endsWith('/') && url.startsWith('/')) {
+                return `${apiBase.slice(0, -1)}${url}`;
+            }
+
+            return `${apiBase}${url}`;
+        }
+
         function formatRuntimeStatus(status) {
             if (!status) return 'unknown';
             const normalized = status.toLowerCase();
@@ -279,52 +300,136 @@
 
         function renderEscPosDocument(elements, printerWidth) {
             const state = getDefaultState();
-            const lines = [];
+            const rows = []; // Array of {lineHtml, debugComment}
             const width = Math.max(printerWidth || 384, 200);
 
             for (const element of elements || []) {
-                switch ((element?.type || '').toLowerCase()) {
+                const elementType = (element?.type || '').toLowerCase();
+                let debugComment = '';
+
+                switch (elementType) {
                     case 'textline':
-                        lines.push(renderTextLine(element.text || '', state));
+                        rows.push({
+                            lineHtml: renderTextLine(element.text || '', state),
+                            debugComment: debugMode ? 'TextLine' : ''
+                        });
+                        break;
+                    case 'rasterimage':
+                        rows.push({
+                            lineHtml: renderRasterImage(element, state),
+                            debugComment: debugMode ? `RasterImage ${element.width}x${element.height}` : ''
+                        });
                         break;
                     case 'setjustification':
                         state.justify = (element.justification || 'left').toLowerCase();
+                        debugComment = `SetJustification: ${element.justification}`;
                         break;
                     case 'setboldmode':
                         state.bold = !!element.isEnabled;
+                        debugComment = `SetBold: ${element.isEnabled}`;
                         break;
                     case 'setunderlinemode':
                         state.underline = !!element.isEnabled;
+                        debugComment = `SetUnderline: ${element.isEnabled}`;
                         break;
                     case 'setreversemode':
                         state.reverse = !!element.isEnabled;
+                        debugComment = `SetReverse: ${element.isEnabled}`;
                         break;
                     case 'setlinespacing':
                         state.lineSpacing = Number(element.spacing) || 0;
+                        debugComment = `SetLineSpacing: ${element.spacing}`;
                         break;
                     case 'resetlinespacing':
                         state.lineSpacing = 0;
+                        debugComment = 'ResetLineSpacing';
                         break;
                     case 'setfont':
                         // Font A (0) or Font B (1)
                         state.fontNumber = Number(element.fontNumber) || 0;
                         state.scaleX = element.isDoubleWidth ? 2 : 1;
                         state.scaleY = element.isDoubleHeight ? 2 : 1;
+                        debugComment = `SetFont: ${element.fontNumber}, DW:${element.isDoubleWidth}, DH:${element.isDoubleHeight}`;
                         break;
                     case 'resetprinter':
                         // ESC @ - Reset printer to power-on state
                         Object.assign(state, getDefaultState());
+                        debugComment = 'ResetPrinter';
                         break;
                     default:
+                        debugComment = elementType;
                         break;
+                }
+
+                // For non-visual commands, add a blank line with debug comment
+                if (debugMode && debugComment && elementType !== 'textline' && elementType !== 'rasterimage') {
+                    rows.push({
+                        lineHtml: '<div class="doc-line doc-blank-line"></div>',
+                        debugComment: debugComment
+                    });
                 }
             }
 
-            if (lines.length === 0) {
-                lines.push('<div class="doc-line muted">No printable text</div>');
+            if (rows.length === 0) {
+                rows.push({
+                    lineHtml: '<div class="doc-line muted">No printable text</div>',
+                    debugComment: ''
+                });
             }
 
-            return `<div class="document-paper" style="width:${width}px">${lines.join('')}</div>`;
+            if (debugMode) {
+                // Render with debug comments on the right
+                const rowsHtml = rows.map(row => `
+                    <div class="doc-row">
+                        <div class="doc-row-content">${row.lineHtml}</div>
+                        <div class="doc-row-debug">${row.debugComment ? escapeHtml(row.debugComment) : ''}</div>
+                    </div>
+                `).join('');
+                return `<div class="document-paper-debug" style="width:${width}px">${rowsHtml}</div>`;
+            } else {
+                // Normal rendering without debug
+                const linesHtml = rows.map(row => row.lineHtml).join('');
+                return `<div class="document-paper" style="width:${width}px">${linesHtml}</div>`;
+            }
+        }
+
+        function renderRasterImage(element, state) {
+            const mediaUrl = resolveMediaUrl(element?.media?.url || '');
+            if (!mediaUrl) {
+                return '<div class="doc-line muted">[Image unavailable]</div>';
+            }
+
+            const justify = (state.justify || 'left').toLowerCase();
+            const justifyContent = justify === 'right'
+                ? 'flex-end'
+                : justify === 'center'
+                    ? 'center'
+                    : 'flex-start';
+
+            const bottomMargin = Math.max(0, (state.lineInterval || 0) + (state.lineSpacing || 0));
+            const wrapperStyles = [`justify-content: ${justifyContent}`];
+            if (bottomMargin > 0) {
+                wrapperStyles.push(`margin-bottom: ${bottomMargin}px`);
+            }
+
+            const width = Number(element.width) || 0;
+            const height = Number(element.height) || 0;
+            const imageStyles = ['max-width: 100%', 'height: auto'];
+            if (width > 0) {
+                imageStyles.push(`width: ${width}px`);
+            }
+
+            if (height > 0) {
+                imageStyles.push(`height: ${height}px`);
+            }
+
+            const altText = width > 0 && height > 0
+                ? `Raster image ${width}x${height}`
+                : 'Raster image';
+
+            return `<div class="doc-image-row" style="${wrapperStyles.join(';')}">` +
+                `<img class="doc-image" src="${escapeHtml(mediaUrl)}" alt="${escapeHtml(altText)}" ` +
+                `style="${imageStyles.join(';')}" loading="lazy"></div>`;
         }
 
         function renderTextLine(text, state) {
@@ -367,7 +472,9 @@
                 styles.push(`margin-bottom: ${bottomMargin}px`);
             }
 
-            return `<div class="${classes.join(' ')}"${styles.length ? ` style="${styles.join(';')}"` : ''}>${escapeHtml(text)}</div>`;
+            const textContent = escapeHtml(text);
+
+            return `<div class="${classes.join(' ')}"${styles.length ? ` style="${styles.join(';')}"` : ''}>${textContent}</div>`;
         }
 
         function extractDocumentText(elements) {
@@ -383,14 +490,16 @@
         function mapDocumentDto(dto, printer) {
             const width = printer?.width || 384;
             const protocol = (dto.protocol || 'escpos').toLowerCase();
-            const previewHtml = renderEscPosDocument(dto.elements || [], width);
-            const plainText = extractDocumentText(dto.elements || []);
+            const elements = dto.elements || [];
+            const previewHtml = renderEscPosDocument(elements, width);
+            const plainText = extractDocumentText(elements);
             return {
                 id: dto.id,
                 printerId: dto.printerId,
                 timestamp: dto.timestamp ? new Date(dto.timestamp) : new Date(),
                 protocol,
                 width,
+                elements, // Store raw elements for re-rendering
                 previewHtml,
                 plainText
             };
@@ -505,10 +614,17 @@
         }
 
         function renderDocuments() {
-            const mainContent = document.getElementById('mainContent');
+            const propertiesPanel = document.getElementById('propertiesPanel');
+            const documentsPanel = document.getElementById('documentsPanel');
 
             if (!workspaceToken) {
-                mainContent.innerHTML = `
+                propertiesPanel.innerHTML = `
+              <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
+                <h3>No Workspace</h3>
+                <p>Create or access workspace</p>
+              </div>
+            `;
+                documentsPanel.innerHTML = `
               <div style="max-width: 600px; margin: 60px auto; text-align: center;">
                 <h1>Printer Management System</h1>
                 <p style="color: var(--muted); font-size: 18px; margin: 24px 0 40px; line-height: 1.6;">
@@ -540,10 +656,16 @@
             }
 
             if (!selectedPrinterId) {
-                mainContent.innerHTML = `
+                propertiesPanel.innerHTML = `
+              <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
+                <h3>No Printer Selected</h3>
+                <p>Select a printer from the list</p>
+              </div>
+            `;
+                documentsPanel.innerHTML = `
               <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
                 <h2>Welcome back${workspaceName ? ', ' + workspaceName : ''}!</h2>
-                <p>Select a printer from the sidebar to view documents</p>
+                <p>Select a printer to view documents</p>
               </div>
             `;
                 return;
@@ -553,15 +675,16 @@
             const printer = getPrinterById(selectedPrinterId);
 
             if (!printer) {
-                mainContent.innerHTML = `
+                propertiesPanel.innerHTML = `
               <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
                 <h3>Printer not found</h3>
               </div>
             `;
+                documentsPanel.innerHTML = '';
                 return;
             }
 
-            // Render printer header with operations and status
+            // Render printer info in properties panel
             const isStarted = printer.targetStatus === 'started';
             const statusClass = runtimeStatusClass(printer.runtimeStatus);
             const statusText = formatRuntimeStatus(printer.runtimeStatus);
@@ -569,7 +692,7 @@
             const printerAddress = formatPrinterAddress(printer);
             const protocolFormatted = printer.protocol.toLowerCase() === 'escpos' ? 'ESC/POS' : printer.protocol.toUpperCase();
 
-            const printerHeader = `
+            propertiesPanel.innerHTML = `
               <div class="printer-header">
                 <div class="printer-header-main">
                   <div class="printer-header-info">
@@ -611,6 +734,10 @@
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                       Clear
                     </button>
+                    <button class="btn btn-${debugMode ? 'primary' : 'secondary'} btn-sm" onclick="toggleDebugMode()">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h.01M15 9h.01M9 15h6"/></svg>
+                      Debug
+                    </button>
                     <button class="btn btn-secondary btn-sm" onclick="editPrinter('${printer.id}')">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                       Edit
@@ -628,8 +755,9 @@
               </div>
             `;
 
+            // Render documents in documents panel
             if (docs.length === 0) {
-                mainContent.innerHTML = printerHeader + `
+                documentsPanel.innerHTML = `
               <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
                 <h3>No documents yet</h3>
                 <p>Documents will appear here when they are printed</p>
@@ -647,8 +775,8 @@
 
                 return `
                 <div class="document-item">
-                  <div class="document-content">
-                    ${doc.previewHtml}
+                  <div class="document-header">
+                    <span class="document-meta-text">${dateTime} · ${relativeTime}</span>
                     <button class="copy-icon-btn document-copy-btn" onclick="copyToClipboard(\`${doc.plainText.replace(/`/g, '\\`')}\`)" title="Copy document content">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -656,14 +784,14 @@
                       </svg>
                     </button>
                   </div>
-                  <div class="document-meta">
-                    <span class="document-meta-text">${dateTime} · ${relativeTime}</span>
+                  <div class="document-content">
+                    ${doc.previewHtml}
                   </div>
                 </div>
               `;
             }).join('');
 
-            mainContent.innerHTML = printerHeader + documentsHtml;
+            documentsPanel.innerHTML = documentsHtml;
         }
 
         function showMenu(event, printerId, isPinned, isStarted) {
@@ -1269,6 +1397,24 @@
         }
 
         // Theme Functions
+        function toggleDebugMode() {
+            debugMode = !debugMode;
+
+            // Re-render all cached documents with new debug mode
+            for (const printerId in documents) {
+                const docs = documents[printerId];
+                const printer = getPrinterById(printerId);
+                if (printer && docs) {
+                    documents[printerId] = docs.map(doc => ({
+                        ...doc,
+                        previewHtml: renderEscPosDocument(doc.elements || [], doc.width)
+                    }));
+                }
+            }
+
+            renderDocuments();
+        }
+
         function toggleTheme() {
             const html = document.documentElement;
             const current = html.getAttribute('data-theme');

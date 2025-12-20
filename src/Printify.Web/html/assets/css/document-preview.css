@@ -52,3 +52,25 @@
 .doc-line.justify-center { text-align: center; }
 .doc-line.justify-right { text-align: right; }
 .doc-line.muted { color: var(--muted); }
+
+.doc-image-row {
+    display: flex;
+    width: 100%;
+}
+
+.doc-image {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    /* Receipt printers burn dark dots; invert to mimic on-screen rendering */
+    filter: invert(1);
+}
+
+.doc-debug-comment {
+    margin-left: 24px;
+    color: var(--accent);
+    font-size: 11px;
+    opacity: 0.8;
+    font-style: italic;
+}
