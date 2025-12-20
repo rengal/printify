@@ -458,6 +458,7 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 16px;
+            padding: 0;
         }
 
         .sidebar-title {
@@ -1190,6 +1191,7 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 16px;
+            padding: 0;
         }
 
         .operations-title {
@@ -1207,7 +1209,7 @@
         }
 
         .operations-printer-name {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             color: var(--text);
         }

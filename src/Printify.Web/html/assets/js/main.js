@@ -693,8 +693,16 @@
             const protocolFormatted = printer.protocol.toLowerCase() === 'escpos' ? 'ESC/POS' : printer.protocol.toUpperCase();
 
             operationsPanel.innerHTML = `
+              <div class="operations-header">
+                <span class="operations-printer-name">${escapeHtml(printer.name)}</span>
+                <button class="icon-btn" onclick="toggleOperations()" title="Close operations">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
               <div class="operations-info">
-                <div class="operations-printer-name">${escapeHtml(printer.name)}</div>
                 <span class="${statusClass}">${statusText}</span>
                 <div class="operations-detail">
                   <span>${printerAddress}</span>
