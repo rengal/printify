@@ -40,7 +40,7 @@
                     console.error(`Auth failed (${response.status}) for ${path}, logging out`);
                     // Only log out if we have a workspace token (avoid loops)
                     if (workspaceToken) {
-                        logOut();
+                        logOut(false); // Don't show success message on auth errors
                     }
                 }
                 const text = await response.text().catch(() => '');
@@ -1423,7 +1423,7 @@
             document.getElementById('modalContainer').appendChild(modal);
         }
 
-        async function logOut() {
+        async function logOut(showSuccessMessage = true) {
             try {
                 await apiRequest('/api/auth/logout', { method: 'POST' });
             } catch {
@@ -1445,7 +1445,9 @@
             updateUserDisplay();
             renderSidebar();
             renderDocuments();
-            showToast('Logged out successfully');
+            if (showSuccessMessage) {
+                showToast('Logged out successfully');
+            }
         }
 
         // Theme Functions
@@ -1757,8 +1759,9 @@
             document.querySelector('.container').classList.add('sidebar-minimized');
         }
     
-        // Restore operations panel state
-        const operationsHidden = localStorage.getItem('operationsHidden') === 'true';
-        if (operationsHidden) {
+        // Restore operations panel state (default: hidden)
+        const operationsHidden = localStorage.getItem('operationsHidden');
+        // If not set in localStorage, default to hidden
+        if (operationsHidden === null || operationsHidden === 'true') {
             document.querySelector('.container').classList.add('operations-hidden');
         }

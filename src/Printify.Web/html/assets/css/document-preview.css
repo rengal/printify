@@ -23,6 +23,12 @@
     box-sizing: border-box;
 }
 
+/* Dark theme: use accent color for border and background like "Get Started" area */
+:root:not([data-theme="light"]) .document-paper {
+    background: rgba(16,185,129,0.1);
+    border: 1px solid var(--accent);
+}
+
 .doc-line {
     font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
     color: #111;
@@ -31,6 +37,11 @@
     overflow-x: visible;
     width: fit-content;
     letter-spacing: 0;
+}
+
+/* Dark theme: use white text color */
+:root:not([data-theme="light"]) .doc-line {
+    color: #fff;
 }
 
 /* Font A: 12×24 dots (standard ESC/POS font) */
