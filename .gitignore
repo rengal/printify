@@ -70,6 +70,10 @@ App_Data/
 *.ldf
 printify.db
 
+# Local configuration
+appsettings.json
+appsettings.*.local.json
+
 # Azure publish
 *.publishsettings
 *.pubxml
