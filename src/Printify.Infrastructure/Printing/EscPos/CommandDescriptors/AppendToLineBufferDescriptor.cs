@@ -2,7 +2,7 @@ namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 using EscPos;
 
-public sealed class TextLineDescriptor : ICommandDescriptor
+public sealed class AppendToLineBufferDescriptor : ICommandDescriptor
 {
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { };
     public int MinLength => 1;
@@ -32,7 +32,7 @@ public sealed class TextLineDescriptor : ICommandDescriptor
         // Extract the text bytes and convert to string
         var textBytes = buffer.Slice(0, length);
         var text = state.Encoding.GetString(textBytes);
-        var element = new Domain.Documents.Elements.TextLine(text);
+        var element = new Domain.Documents.Elements.AppendToLineBuffer(text);
 
         // If we hit a terminator, this line is complete (Matched)
         // If we reached the end of buffer without a terminator, more text may follow (MatchedPending)

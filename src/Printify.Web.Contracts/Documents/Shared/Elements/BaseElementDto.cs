@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Printify.Web.Contracts.Documents.Shared.Elements;
 
 /// <summary>
@@ -11,9 +13,9 @@ public abstract record BaseElementDto
     public string CommandRaw { get; init; } = string.Empty;
 
     /// <summary>
-    /// Human-readable description of the command.
+    /// Human-readable description of the command (one entry per line).
     /// </summary>
-    public string? CommandDescription { get; init; }
+    public IReadOnlyList<string> CommandDescription { get; init; } = [];
 }
 
 /// <summary>

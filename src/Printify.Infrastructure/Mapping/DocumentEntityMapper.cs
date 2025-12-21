@@ -168,7 +168,8 @@ internal static class DocumentElementEntityMapper
             SetUnderlineModeElementPayload => DocumentElementTypeNames.SetUnderlineMode,
             StoreQrDataElementPayload => DocumentElementTypeNames.StoreQrData,
             StoredLogoElementPayload => DocumentElementTypeNames.StoredLogo,
-            TextLineElementPayload => DocumentElementTypeNames.TextLine,
+            AppendToLineBufferElementPayload => DocumentElementTypeNames.AppendToLineBuffer,
+            FlushLineBufferAndFeedElementPayload => DocumentElementTypeNames.FlushLineBufferAndFeed,
             RasterImageElementPayload => DocumentElementTypeNames.RasterImage,
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };

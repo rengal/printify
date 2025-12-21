@@ -28,7 +28,8 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(SetUnderlineModeElementPayload), DocumentElementTypeNames.SetUnderlineMode)]
 [JsonDerivedType(typeof(StoreQrDataElementPayload), DocumentElementTypeNames.StoreQrData)]
 [JsonDerivedType(typeof(StoredLogoElementPayload), DocumentElementTypeNames.StoredLogo)]
-[JsonDerivedType(typeof(TextLineElementPayload), DocumentElementTypeNames.TextLine)]
+[JsonDerivedType(typeof(AppendToLineBufferElementPayload), DocumentElementTypeNames.AppendToLineBuffer)]
+[JsonDerivedType(typeof(FlushLineBufferAndFeedElementPayload), DocumentElementTypeNames.FlushLineBufferAndFeed)]
 [JsonDerivedType(typeof(RasterImageElementPayload), DocumentElementTypeNames.RasterImage)]
 public abstract record DocumentElementPayload;
 
@@ -145,4 +146,6 @@ public sealed record StoreQrDataElementPayload(string Content) : DocumentElement
 
 public sealed record StoredLogoElementPayload(int LogoId) : DocumentElementPayload;
 
-public sealed record TextLineElementPayload(string Text) : DocumentElementPayload;
+public sealed record AppendToLineBufferElementPayload(string Text) : DocumentElementPayload;
+
+public sealed record FlushLineBufferAndFeedElementPayload : DocumentElementPayload;

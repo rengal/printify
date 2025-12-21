@@ -308,16 +308,24 @@
             const state = getDefaultState();
             const rows = []; // Array of {lineHtml, element}
             const width = Math.max(printerWidth || 384, 200);
+            let lineBuffer = '';
 
             for (const element of elements || []) {
                 const elementType = (element?.type || '').toLowerCase();
 
                 switch (elementType) {
-                    case 'textline':
+                    case 'appendtolinebuffer':
+                        lineBuffer += element.text || '';
+                        if (debugMode) {
+                            rows.push({ lineHtml: '', element: element });
+                        }
+                        break;
+                    case 'flushlinebufferandfeed':
                         rows.push({
-                            lineHtml: renderTextLine(element.text || '', state),
+                            lineHtml: renderTextLine(lineBuffer, state),
                             element: element
                         });
+                        lineBuffer = '';
                         break;
                     case 'rasterimage':
                         rows.push({
@@ -390,19 +398,38 @@
 
         function renderDebugTable(element) {
             const commandRaw = element.commandRaw || '';
-            const commandDescription = element.commandDescription || '';
+            const commandDescription = Array.isArray(element.commandDescription)
+                ? element.commandDescription.join('\n')
+                : (element.commandDescription || '');
 
             // Format hex command with spaces
             const hexFormatted = formatHexCommand(commandRaw);
+
+            // Truncate long text in descriptions
+            const descFormatted = truncateTextInDescription(commandDescription);
 
             return `
                 <table class="debug-table">
                     <tr>
                         <td class="debug-hex">${hexFormatted}</td>
-                        <td class="debug-desc">${escapeHtml(commandDescription) || '<span class="debug-missing">??</span>'}</td>
+                          <td class="debug-desc">${escapeHtml(descFormatted).replace(/\n/g, '<br>') || '<span class="debug-missing">??</span>'}</td>
                     </tr>
                 </table>
             `;
+        }
+
+        function truncateTextInDescription(desc) {
+            if (!desc) return '';
+
+            // Match text parameters like: Text="very long text here"
+            // Truncate text content to max 40 characters
+            return desc.replace(/Text="([^"]{40})[^"]*"/g, (match, captured) => {
+                const fullText = match.substring(6, match.length - 1); // Remove Text=" and "
+                if (fullText.length > 40) {
+                    return `Text="${captured}..."`;
+                }
+                return match;
+            });
         }
 
         function formatHexCommand(commandRaw) {
@@ -427,8 +454,8 @@
 
             const pairs = formatted.split(' ');
             for (let i = 0; i < pairs.length; i++) {
-                if (lines.length >= 4) {
-                    // Truncate after 4 lines
+                if (lines.length >= 8) {
+                    // Truncate after 8 lines
                     break;
                 }
 
@@ -443,7 +470,7 @@
                 }
             }
 
-            if (currentLine && lines.length < 4) {
+            if (currentLine && lines.length < 8) {
                 lines.push(currentLine);
             }
 
@@ -543,9 +570,14 @@
 
         function extractDocumentText(elements) {
             const lines = [];
+            let lineBuffer = '';
             for (const element of elements || []) {
-                if ((element?.type || '').toLowerCase() === 'textline') {
-                    lines.push(element.text || '');
+                const elementType = (element?.type || '').toLowerCase();
+                if (elementType === 'appendtolinebuffer') {
+                    lineBuffer += element.text || '';
+                } else if (elementType === 'flushlinebufferandfeed') {
+                    lines.push(lineBuffer);
+                    lineBuffer = '';
                 }
             }
             return lines.join('\n');

@@ -59,7 +59,8 @@ public static class DocumentElementMapper
             SetUnderlineMode underline => new SetUnderlineModeElementPayload(SerializeBool(underline.IsEnabled)),
             StoreQrData store => new StoreQrDataElementPayload(store.Content),
             StoredLogo logo => new StoredLogoElementPayload(logo.LogoId),
-            TextLine textLine => new TextLineElementPayload(textLine.Text),
+            AppendToLineBuffer append => new AppendToLineBufferElementPayload(append.Text),
+            FlushLineBufferAndFeed => new FlushLineBufferAndFeedElementPayload(),
             RasterImageUpload => throw new NotSupportedException("Raster image persistence is handled separately."),
             _ => throw new NotSupportedException($"Element type '{element.GetType().Name}' is not supported.")
         };
@@ -115,7 +116,8 @@ public static class DocumentElementMapper
             SetUnderlineModeElementPayload underline => new SetUnderlineMode(underline.IsEnabled ?? DefaultBoolean),
             StoreQrDataElementPayload store => new StoreQrData(store.Content ?? string.Empty),
             StoredLogoElementPayload logo => new StoredLogo(logo.LogoId),
-            TextLineElementPayload textLine => new TextLine(textLine.Text ?? string.Empty),
+            AppendToLineBufferElementPayload textLine => new AppendToLineBuffer(textLine.Text ?? string.Empty),
+            FlushLineBufferAndFeedElementPayload => new FlushLineBufferAndFeed(),
             RasterImageElementPayload raster => new RasterImage(
                 raster.Width,
                 raster.Height,

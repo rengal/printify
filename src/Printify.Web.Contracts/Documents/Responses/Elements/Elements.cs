@@ -32,7 +32,8 @@ namespace Printify.Web.Contracts.Documents.Responses.Elements;
 [JsonDerivedType(typeof(SetUnderlineModeDto), "setUnderlineMode")]
 [JsonDerivedType(typeof(StoreQrDataDto), "storeQrData")]
 [JsonDerivedType(typeof(StoredLogoDto), "storedLogo")]
-[JsonDerivedType(typeof(TextLineDto), "textLine")]
+[JsonDerivedType(typeof(AppendToLineBufferDto), "appendToLineBuffer")]
+[JsonDerivedType(typeof(FlushLineBufferAndFeedDto), "flushLineBufferAndFeed")]
 public abstract record ResponseElementDto : BaseElementDto;
 
 /// <summary>
@@ -141,7 +142,12 @@ public sealed record RasterImageDto(
 /// A printable line of text emitted by the printer protocol.
 /// </summary>
 /// <param name="Text">Raw text content (decoded as parsed; typically ASCII/CP437 in MVP).</param>
-public sealed record TextLineDto(string Text) : ResponsePrintingElementDto;
+public sealed record AppendToLineBufferDto(string Text) : ResponsePrintingElementDto;
+
+/// <summary>
+/// Flushes the line buffer and feeds one line.
+/// </summary>
+public sealed record FlushLineBufferAndFeedDto : ResponsePrintingElementDto;
 
 /// <summary>
 /// Prints a logo stored in printer memory by its identifier via ESC/POS stored logo commands (e.g., FS p).

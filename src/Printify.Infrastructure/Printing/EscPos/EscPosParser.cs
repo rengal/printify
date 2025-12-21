@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using Printify.Domain.Documents.Elements;
@@ -10,7 +11,7 @@ public sealed class EscPosParser
     private readonly ParserState state;
     private readonly Action<Element> onElement;
     private static readonly Encoding DefaultCodePage;
-    private const int CommandRawMaxBytes = 32;
+    private const int CommandRawMaxBytes = 64;
 
     static EscPosParser()
     {
@@ -116,13 +117,7 @@ public sealed class EscPosParser
             ? bytes[..CommandRawMaxBytes]
             : bytes;
 
-        var builder = new StringBuilder(capped.Length);
-        foreach (var value in capped)
-        {
-            return Convert.ToHexString(capped);
-        }
-
-        return builder.ToString();
+        return Convert.ToHexString(capped);
     }
 
     public void Feed(ReadOnlySpan<byte> buffer, CancellationToken ct)
@@ -135,7 +130,12 @@ public sealed class EscPosParser
 
     public void Feed(byte value, CancellationToken ct)
     {
+        Debug.WriteLine($"Feed hex={value:X} char={Encoding.GetEncoding("cp866").GetString(new[] { value })}"); //todo debugnow
+        //Console.WriteLine();
         state.Buffer.Add(value);
+
+        if (value == 0x0A)
+            Debug.WriteLine("LINE BREAK!!!"); //debugnow
 
         // Try to navigate deeper
         if (!state.CurrentNode.IsLeaf)

@@ -36,7 +36,8 @@ namespace Printify.Domain.Documents.Elements;
 [JsonDerivedType(typeof(SetUnderlineMode), "setUnderlineMode")]
 [JsonDerivedType(typeof(StoreQrData), "storeQrData")]
 [JsonDerivedType(typeof(StoredLogo), "storedLogo")]
-[JsonDerivedType(typeof(TextLine), "textLine")]
+[JsonDerivedType(typeof(AppendToLineBuffer), "appendToLineBuffer")]
+[JsonDerivedType(typeof(FlushLineBufferAndFeed), "flushLineBufferAndFeed")]
 public abstract record Element
 {
     /// <summary>
@@ -451,7 +452,12 @@ public sealed record StoredLogo(int LogoId) : PrintingElement;
 public sealed record StoreQrData(string Content) : NonPrintingElement;
 
 /// <summary>
-/// A printable line of text emitted by the printer protocol.
+/// Text bytes that are appended to the line buffer.
 /// </summary>
 /// <param name="Text">Raw text content (decoded as parsed; typically ASCII/CP437 in MVP).</param>
-public sealed record TextLine(string Text) : PrintingElement;
+public sealed record AppendToLineBuffer(string Text) : PrintingElement;
+
+/// <summary>
+/// Flushes the current line buffer and feeds one line.
+/// </summary>
+public sealed record FlushLineBufferAndFeed : PrintingElement;

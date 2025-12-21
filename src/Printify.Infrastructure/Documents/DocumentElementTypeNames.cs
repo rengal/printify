@@ -30,6 +30,7 @@ internal static class DocumentElementTypeNames
     public const string SetUnderlineMode = "setUnderlineMode";
     public const string StoreQrData = "storeQrData";
     public const string StoredLogo = "storedLogo";
-    public const string TextLine = "textLine";
+    public const string AppendToLineBuffer = "appendToLineBuffer";
+    public const string FlushLineBufferAndFeed = "flushLineBufferAndFeed";
     public const string RasterImage = "rasterImage";
 }

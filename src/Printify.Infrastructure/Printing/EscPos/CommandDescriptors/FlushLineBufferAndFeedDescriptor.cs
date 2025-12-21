@@ -2,10 +2,10 @@ using Printify.Domain.Documents.Elements;
 
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
-/// Command: Line Feed - output current line and start a new one.
+/// Command: Line Feed - print buffer and feed one line.
 /// ASCII: LF.
 /// HEX: 0A.
-public sealed class LineFeedDescriptor : ICommandDescriptor
+public sealed class FlushLineBufferAndFeedDescriptor : ICommandDescriptor
 {
     private readonly int fixedLength = 1;
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x0A };
@@ -14,8 +14,6 @@ public sealed class LineFeedDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        return MatchResult.Matched(fixedLength, state.Pending is not { element: TextLine }
-            ? new TextLine(string.Empty)
-            : null);
+        return MatchResult.Matched(fixedLength, new FlushLineBufferAndFeed());
     }
 }

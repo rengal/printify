@@ -19,7 +19,7 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
         new BarcodeSetModuleWidthDescriptor(),
         new BelDescriptor(),
         new GetPrinterStatusDescriptor(),
-        new LineFeedDescriptor(),
+        new FlushLineBufferAndFeedDescriptor(),
         new PageCutDescriptor(),
         new PartialCutOnePointDescriptor(),
         new PartialCutThreePointDescriptor(),
@@ -44,7 +44,7 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
 
     private static EscPosCommandTrieNode Build(IEnumerable<ICommandDescriptor> descriptors)
     {
-        var root = new MutableNode { Descriptor = new TextLineDescriptor() };
+        var root = new MutableNode { Descriptor = new AppendToLineBufferDescriptor() };
         foreach (var descriptor in descriptors)
         {
             AddDescriptor(root, descriptor);
