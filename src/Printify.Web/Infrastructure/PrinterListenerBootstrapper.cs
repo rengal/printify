@@ -5,11 +5,13 @@ using Printify.Domain.Printers;
 namespace Printify.Web.Infrastructure;
 
 internal sealed class PrinterListenerBootstrapper(
-    IPrinterRepository printerRepository,
+    IServiceScopeFactory scopeFactory,
     IPrinterListenerOrchestrator orchestrator) : IHostedService
 {
     public async Task StartAsync(CancellationToken ct)
     {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var printerRepository = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
         var printers = await printerRepository.ListAllAsync(ct);
 
         foreach (var printer in printers)
@@ -33,6 +35,8 @@ internal sealed class PrinterListenerBootstrapper(
 
     public async Task StopAsync(CancellationToken ct)
     {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var printerRepository = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
         var printers = await printerRepository.ListAllAsync(ct);
         foreach (var printer in printers)
         {

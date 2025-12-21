@@ -131,6 +131,7 @@ public sealed class EscPosParser
     public void Feed(byte value, CancellationToken ct)
     {
         Debug.WriteLine($"Feed hex={value:X} char={Encoding.GetEncoding("cp866").GetString(new[] { value })}"); //todo debugnow
+        Debug.WriteLine($"<>"); //todo debugnow
         //Console.WriteLine();
         state.Buffer.Add(value);
 
