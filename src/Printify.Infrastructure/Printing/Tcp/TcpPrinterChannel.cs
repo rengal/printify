@@ -76,8 +76,9 @@ public sealed class TcpPrinterChannel : IPrinterChannel
         {
             await NotifyClosedAsync(ChannelClosedReason.Cancelled).ConfigureAwait(false);
         }
-        catch
+        catch (Exception e)
         {
+            Console.WriteLine(e); //todo debugnow
             await NotifyClosedAsync(ChannelClosedReason.Faulted).ConfigureAwait(false);
         }
     }
