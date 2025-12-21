@@ -40,7 +40,7 @@
                     console.error(`Auth failed (${response.status}) for ${path}, logging out`);
                     // Only log out if we have a workspace token (avoid loops)
                     if (workspaceToken) {
-                        logOut(false); // Don't show success message on auth errors
+                        logOut();
                     }
                 }
                 const text = await response.text().catch(() => '');
@@ -1423,7 +1423,7 @@
             document.getElementById('modalContainer').appendChild(modal);
         }
 
-        async function logOut(showSuccessMessage = true) {
+        async function logOut() {
             try {
                 await apiRequest('/api/auth/logout', { method: 'POST' });
             } catch {
@@ -1445,9 +1445,6 @@
             updateUserDisplay();
             renderSidebar();
             renderDocuments();
-            if (showSuccessMessage) {
-                showToast('Logged out successfully');
-            }
         }
 
         // Theme Functions
