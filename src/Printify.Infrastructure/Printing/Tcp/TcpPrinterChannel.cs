@@ -13,7 +13,7 @@ public sealed class TcpPrinterChannel : IPrinterChannel
     private readonly TcpClient client;
     private readonly NetworkStream stream;
     private readonly CancellationTokenSource readLoopCts;
-    private Task readLoopTask;
+    private Task? readLoopTask;
     private int closeNotified;
     private bool disposed;
 
@@ -34,7 +34,6 @@ public sealed class TcpPrinterChannel : IPrinterChannel
         ClientAddress = client.Client.RemoteEndPoint?.ToString() ?? string.Empty;
         stream = client.GetStream();
         readLoopCts = new CancellationTokenSource();
-
     }
 
     public Task RunReadLoopAsync(CancellationToken ct)

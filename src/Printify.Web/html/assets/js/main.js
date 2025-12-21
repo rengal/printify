@@ -493,9 +493,9 @@
             return lines.join('\n');
         }
 
-        function mapDocumentDto(dto, printer) {
-            const width = Number(dto.widthInDots ?? printer?.widthInDots) || 384;
-            const height = dto.heightInDots ?? printer?.heightInDots ?? null;
+        function mapDocumentDto(dto) {
+            const width = Number(dto.widthInDots) || 384;
+            const height = dto.heightInDots ?? null;
             const protocol = (dto.protocol || 'escpos').toLowerCase();
             const elements = dto.elements || [];
             const previewHtml = renderEscPosDocument(elements, width);
@@ -522,8 +522,7 @@
             console.debug('Loading documents for printer', printerId);
             const response = await apiRequest(`/api/printers/${printerId}/documents?limit=50`);
             const items = response?.result?.items || [];
-            const printer = getPrinterById(printerId);
-            documents[printerId] = items.map(dto => mapDocumentDto(dto, printer));
+            documents[printerId] = items.map(dto => mapDocumentDto(dto));
         }
 
         async function startDocumentStream(printerId) {
@@ -604,8 +603,7 @@
             try {
                 const payload = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
                 console.debug('Document event received', payload);
-                const printer = getPrinterById(printerId);
-                const mapped = mapDocumentDto(payload, printer);
+                const mapped = mapDocumentDto(payload);
                 const list = documents[printerId] || [];
                 list.unshift(mapped);
                 documents[printerId] = list.slice(0, 200);

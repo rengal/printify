@@ -171,6 +171,13 @@
             position: relative;
         }
 
+        .theme-toggle-btn {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 100;
+        }
+
         #documentsPanel {
             padding-left: 360px;
         }
