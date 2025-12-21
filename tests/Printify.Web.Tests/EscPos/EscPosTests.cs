@@ -24,6 +24,8 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
     protected const byte Esc = 0x1B;
     protected const byte Gs = 0x1D;
     private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(1);
+    private const int DefaultPrinterWidthInDots = 512;
+    private static readonly int? DefaultPrinterHeightInDots = null;
 
     private enum CompletionMode
     {
@@ -40,7 +42,12 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         await AuthenticateAsync(environment, "escpos-idle-user");
 
         var printerId = Guid.NewGuid();
-        var channel = await CreatePrinterAsync(environment, printerId, "EscPos Idle Printer");
+        var channel = await CreatePrinterAsync(
+            environment,
+            printerId,
+            "EscPos Idle Printer",
+            DefaultPrinterWidthInDots,
+            DefaultPrinterHeightInDots);
 
         await using var streamEnumerator = environment.DocumentStream
             .Subscribe(printerId, CancellationToken.None)
@@ -67,7 +74,12 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
 
         Assert.True(nextEventTask.Result);
         var documentEvent = streamEnumerator.Current;
-        DocumentAssertions.Equal(expectedElements, Protocol.EscPos, documentEvent.Document);
+        DocumentAssertions.Equal(
+            expectedElements,
+            Protocol.EscPos,
+            documentEvent.Document,
+            DefaultPrinterWidthInDots,
+            DefaultPrinterHeightInDots);
     }
 
     protected async Task RunScenarioAsync(EscPosScenario scenario)
@@ -98,7 +110,12 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
 
         var printerId = Guid.NewGuid();
         var channel =
-            await CreatePrinterAsync(environment, printerId, $"EscPos Test Printer {userPrefix}-{completionMode}");
+            await CreatePrinterAsync(
+                environment,
+                printerId,
+                $"EscPos Test Printer {userPrefix}-{completionMode}",
+                DefaultPrinterWidthInDots,
+                DefaultPrinterHeightInDots);
 
         var streamEnumerator = environment.DocumentStream
             .Subscribe(printerId, CancellationToken.None)
@@ -121,8 +138,12 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
 
         var documentEvent = streamEnumerator.Current;
 
-        DocumentAssertions.Equal(scenario.ExpectedPersistedElements ?? scenario.ExpectedRequestElements,
-            Protocol.EscPos, documentEvent.Document);
+        DocumentAssertions.Equal(
+            scenario.ExpectedPersistedElements ?? scenario.ExpectedRequestElements,
+            Protocol.EscPos,
+            documentEvent.Document,
+            DefaultPrinterWidthInDots,
+            DefaultPrinterHeightInDots);
 
         // Request document via web call and verify
         var documentId = documentEvent.Document.Id;
@@ -141,7 +162,12 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
 
         Assert.NotNull(retrievedDocument);
 
-        DocumentAssertions.Equal(scenario.ExpectedPersistedElements ?? scenario.ExpectedRequestElements, Protocol.EscPos, retrievedDocument);
+        DocumentAssertions.Equal(
+            scenario.ExpectedPersistedElements ?? scenario.ExpectedRequestElements,
+            Protocol.EscPos,
+            retrievedDocument,
+            DefaultPrinterWidthInDots,
+            DefaultPrinterHeightInDots);
 
         // Verify RasterImage elements have accessible Media URLs
         foreach (var element in retrievedDocument.Elements)
@@ -190,7 +216,9 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
     private static async Task<TestPrinterChannel> CreatePrinterAsync(
         TestServiceContext.ControllerTestContext environment,
         Guid printerId,
-        string displayName)
+        string displayName,
+        int widthInDots,
+        int? heightInDots)
     {
         var client = environment.Client;
 
@@ -198,8 +226,8 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
             printerId,
             displayName,
             "EscPos",
-            512,
-            null,
+            widthInDots,
+            heightInDots,
             false,
             null,
             null);

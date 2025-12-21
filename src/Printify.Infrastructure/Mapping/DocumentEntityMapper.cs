@@ -27,6 +27,8 @@ internal static class DocumentEntityMapper
             Version = document.Version == 0 ? Document.CurrentVersion : document.Version,
             CreatedAt = document.CreatedAt,
             Protocol = DomainMapper.ToString(document.Protocol),
+            WidthInDots = document.WidthInDots,
+            HeightInDots = document.HeightInDots,
             ClientAddress = document.ClientAddress
         };
 
@@ -90,6 +92,8 @@ internal static class DocumentEntityMapper
             entity.Version == 0 ? Document.CurrentVersion : entity.Version,
             entity.CreatedAt,
             protocol,
+            entity.WidthInDots,
+            entity.HeightInDots,
             entity.ClientAddress,
             elements);
     }

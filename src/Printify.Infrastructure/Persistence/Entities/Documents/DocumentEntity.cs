@@ -30,6 +30,12 @@ public sealed class DocumentEntity
         set => CreatedAtUnixMs = value.ToUnixTimeMilliseconds();
     }
 
+    [Column("width_in_dots")]
+    public int WidthInDots { get; set; }
+
+    [Column("height_in_dots")]
+    public int? HeightInDots { get; set; }
+
     [Column("protocol")]
     public string Protocol { get; set; } = string.Empty;
 

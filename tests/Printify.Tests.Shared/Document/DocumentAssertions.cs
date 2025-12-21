@@ -120,18 +120,32 @@ public static class DocumentAssertions
         }
     }
 
-    public static void Equal(IReadOnlyList<Element> expectedElements, Protocol expectedProtocol, Domain.Documents.Document? actual)
+    public static void Equal(
+        IReadOnlyList<Element> expectedElements,
+        Protocol expectedProtocol,
+        Domain.Documents.Document? actual,
+        int expectedWidthInDots,
+        int? expectedHeightInDots)
     {
         Assert.NotNull(actual);
         Assert.Equal(expectedProtocol, actual.Protocol);
+        Assert.Equal(expectedWidthInDots, actual.WidthInDots);
+        Assert.Equal(expectedHeightInDots, actual.HeightInDots);
 
         Equal(expectedElements, actual.Elements.ToList());
     }
 
-    public static void Equal(IReadOnlyList<Element> expectedElements, Protocol expectedProtocol, DocumentDto? actual)
+    public static void Equal(
+        IReadOnlyList<Element> expectedElements,
+        Protocol expectedProtocol,
+        DocumentDto? actual,
+        int expectedWidthInDots,
+        int? expectedHeightInDots)
     {
         Assert.NotNull(actual);
         Assert.Equal(DomainMapper.ToString(expectedProtocol), actual.Protocol);
+        Assert.Equal(expectedWidthInDots, actual.WidthInDots);
+        Assert.Equal(expectedHeightInDots, actual.HeightInDots);
 
         Equal(expectedElements.Select(DocumentMapper.ToResponseElement).ToList(),
             actual.Elements.ToList());

@@ -28,6 +28,8 @@ public static class DocumentMapper
             document.PrinterId,
             document.CreatedAt,
             DomainMapper.ToString(document.Protocol),
+            document.WidthInDots,
+            document.HeightInDots,
             document.ClientAddress,
             responseElements.AsReadOnly());
     }

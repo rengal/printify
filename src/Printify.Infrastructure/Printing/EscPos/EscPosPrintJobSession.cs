@@ -89,6 +89,7 @@ public class EscPosPrintJobSession : PrintJobSession
 
 
         var snapshot = ElementBuffer.ToArray();
+        // Capture the printer dimensions so persisted documents reflect the exact rendering context.
         var document = new Document(
             Guid.NewGuid(),
             Job.Id,
@@ -96,6 +97,8 @@ public class EscPosPrintJobSession : PrintJobSession
             Document.CurrentVersion,
             DateTimeOffset.UtcNow,
             Printer.Protocol,
+            Printer.WidthInDots,
+            Printer.HeightInDots,
             Channel.ClientAddress,
             snapshot);
         SetDocument(document);

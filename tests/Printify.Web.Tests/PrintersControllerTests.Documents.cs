@@ -37,7 +37,14 @@ public sealed partial class PrintersControllerTests
             .Subscribe(printerId, CancellationToken.None)
             .GetAsyncEnumerator();
 
-        await SendDocumentAndVerifyAsync(client, documentStream, printerId, "test document 1", CancellationToken.None);
+        await SendDocumentAndVerifyAsync(
+            client,
+            documentStream,
+            printerId,
+            "test document 1",
+            createRequest.WidthInDots,
+            createRequest.HeightInDots,
+            CancellationToken.None);
 
         for (var i = 1; i <= iterations; i++)
         {
@@ -56,7 +63,14 @@ public sealed partial class PrintersControllerTests
             await WaitForPrinterRuntimeStatusAsync(client, printerId, PrinterRuntimeStatus.Started, CancellationToken.None);
 
             var text = $"test document {i + 1}";
-            await SendDocumentAndVerifyAsync(client, documentStream, printerId, text, CancellationToken.None);
+            await SendDocumentAndVerifyAsync(
+                client,
+                documentStream,
+                printerId,
+                text,
+                createRequest.WidthInDots,
+                createRequest.HeightInDots,
+                CancellationToken.None);
         }
     }
 
@@ -90,6 +104,8 @@ public sealed partial class PrintersControllerTests
         IAsyncEnumerator<DocumentStreamEvent> documentStream,
         Guid printerId,
         string text,
+        int expectedWidthInDots,
+        int? expectedHeightInDots,
         CancellationToken ct)
     {
         if (!TestPrinterListenerFactory.TryGetListener(printerId, out var listener))
@@ -111,6 +127,8 @@ public sealed partial class PrintersControllerTests
 
         var dto = await response.Content.ReadFromJsonAsync<DocumentDto>(cancellationToken: ct);
         Assert.NotNull(dto);
+        Assert.Equal(expectedWidthInDots, dto!.WidthInDots);
+        Assert.Equal(expectedHeightInDots, dto.HeightInDots);
         var textLine = dto!.Elements.OfType<TextLineDto>().FirstOrDefault();
         Assert.NotNull(textLine);
         Assert.Equal(text, textLine!.Text);

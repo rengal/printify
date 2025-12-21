@@ -488,7 +488,8 @@
         }
 
         function mapDocumentDto(dto, printer) {
-            const width = dto.width || 384;
+            const width = Number(dto.widthInDots ?? printer?.widthInDots) || 384;
+            const height = dto.heightInDots ?? printer?.heightInDots ?? null;
             const protocol = (dto.protocol || 'escpos').toLowerCase();
             const elements = dto.elements || [];
             const previewHtml = renderEscPosDocument(elements, width);
@@ -499,6 +500,8 @@
                 timestamp: dto.timestamp ? new Date(dto.timestamp) : new Date(),
                 protocol,
                 width,
+                widthInDots: width,
+                heightInDots: height,
                 elements, // Store raw elements for re-rendering
                 previewHtml,
                 plainText

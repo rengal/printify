@@ -10,6 +10,8 @@ namespace Printify.Web.Contracts.Documents.Responses;
 /// <param name="PrinterId">Identifier of the printer associated with the document.</param>
 /// <param name="Timestamp">Creation timestamp (UTC) when the document was finalized or captured.</param>
 /// <param name="Protocol">Protocol the bytes were parsed with.</param>
+/// <param name="WidthInDots">Printer width in dots at the time of capture.</param>
+/// <param name="HeightInDots">Optional printer height in dots at the time of capture.</param>
 /// <param name="ClientAddress">Address observed for the producer of the document.</param>
 /// <param name="Elements">Ordered list of document elements.</param>
 public sealed record DocumentDto(
@@ -18,5 +20,7 @@ public sealed record DocumentDto(
     Guid PrinterId,
     DateTimeOffset Timestamp,
     string Protocol,
+    int WidthInDots,
+    int? HeightInDots,
     string? ClientAddress,
     IReadOnlyList<ResponseElementDto> Elements);

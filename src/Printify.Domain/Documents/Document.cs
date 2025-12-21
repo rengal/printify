@@ -13,6 +13,8 @@ public sealed record Document(
     int Version,
     DateTimeOffset CreatedAt,
     Protocol Protocol,
+    int WidthInDots,
+    int? HeightInDots,
     string? ClientAddress,
     IReadOnlyCollection<Element> Elements)
 {
