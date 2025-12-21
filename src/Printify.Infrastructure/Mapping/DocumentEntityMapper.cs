@@ -39,17 +39,20 @@ internal static class DocumentEntityMapper
         {
             var dto = DocumentElementMapper.ToDto(element);
             var elementEntity = DocumentElementEntityMapper.ToEntity(document.Id, dto, index++);
+
+            // Only set MediaId to reference existing media, don't attach media entity
+            // This prevents EF from trying to insert duplicate media records
             if (element is RasterImage raster)
             {
-                elementEntity.Media = DocumentMediaEntityMapper.ToEntity(raster.Media);
+                elementEntity.MediaId = raster.Media.Id;
             }
             else if (element is PrintBarcode barcode)
             {
-                elementEntity.Media = DocumentMediaEntityMapper.ToEntity(barcode.Media);
+                elementEntity.MediaId = barcode.Media.Id;
             }
             else if (element is PrintQrCode qr)
             {
-                elementEntity.Media = DocumentMediaEntityMapper.ToEntity(qr.Media);
+                elementEntity.MediaId = qr.Media.Id;
             }
 
             elementEntities.Add(elementEntity);

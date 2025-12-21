@@ -107,6 +107,15 @@ public sealed class DocumentRepository : IDocumentRepository
         return entity is null ? null : DocumentMediaEntityMapper.ToDomain(entity);
     }
 
+    public async Task AddMediaAsync(Media media, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(media);
+
+        var entity = DocumentMediaEntityMapper.ToEntity(media);
+        await dbContext.DocumentMedia.AddAsync(entity, ct).ConfigureAwait(false);
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
     private static int NormalizeLimit(int limit)
     {
         if (limit <= 0)

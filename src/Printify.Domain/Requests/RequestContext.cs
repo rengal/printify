@@ -7,4 +7,5 @@ namespace Printify.Domain.Requests;
 /// <param name="IpAddress">Client IP address observed for the request.</param>
 public sealed record RequestContext(
     Guid? WorkspaceId,
+    bool AuthValid,
     string IpAddress);

@@ -10,6 +10,8 @@ public sealed class GetCurrentWorkspaceHandler(IWorkspaceRepository workspaceRep
 {
     public async Task<Workspace> Handle(GetCurrentWorkspaceCommand request, CancellationToken ct)
     {
+        if (!request.Context.AuthValid)
+            throw new AuthenticationFailedException("Authentication failed");
         var workspaceId = request.Context.WorkspaceId ?? throw new BadRequestException("WorkspaceId must not be empty");
         var workspace = await workspaceRepository.GetByIdAsync(workspaceId, ct) ??
                         throw new AuthenticationFailedException("Workspace not found");

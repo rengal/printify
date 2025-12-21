@@ -147,10 +147,18 @@ public sealed class PrintJobSessionsOrchestrator(
 
                 var savedMedia = await documentRepository
                                      .GetMediaByChecksumAsync(sha256Checksum, printer.OwnerWorkspaceId, ct)
-                                     .ConfigureAwait(false) ??
-                                 await mediaStorage.SaveAsync(imageUpload.Media, printer.OwnerWorkspaceId,
-                                         sha256Checksum, ct)
                                      .ConfigureAwait(false);
+
+                if (savedMedia == null)
+                {
+                    // Save file to disk
+                    savedMedia = await mediaStorage.SaveAsync(imageUpload.Media, printer.OwnerWorkspaceId,
+                            sha256Checksum, ct)
+                        .ConfigureAwait(false);
+
+                    // Save media entity to database
+                    await documentRepository.AddMediaAsync(savedMedia, ct).ConfigureAwait(false);
+                }
 
 
                 switch (sourceElement)

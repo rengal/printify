@@ -47,9 +47,9 @@ public class HttpContextExtensions(IServiceProvider serviceProvider)
             var workspaceRepository = scope.ServiceProvider.GetRequiredService<IWorkspaceRepository>();
             var workspace = await workspaceRepository.GetByIdAsync(workspaceId.Value, CancellationToken.None);
             if (workspace == null)
-                return new RequestContext(null, ipAddress);
+                return new RequestContext(null, false, ipAddress);
         }
 
-        return new RequestContext(workspaceId, ipAddress);
+        return new RequestContext(workspaceId, true, ipAddress);
     }
 }
