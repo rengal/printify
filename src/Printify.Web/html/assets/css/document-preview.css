@@ -78,10 +78,50 @@
     filter: invert(1);
 }
 
-.doc-debug-comment {
-    margin-left: 24px;
-    color: var(--accent);
+/* Debug table styles */
+.debug-table {
+    width: 100%;
+    margin-bottom: 4px;
+    border-collapse: collapse;
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
     font-size: 11px;
-    opacity: 0.8;
+    color: #666;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+:root:not([data-theme="light"]) .debug-table {
+    color: #999;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.debug-table td {
+    padding: 2px 4px;
+    vertical-align: top;
+}
+
+.debug-hex {
+    width: 30%;
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.debug-desc {
+    width: 70%;
+    padding-left: 12px;
+}
+
+.debug-missing {
+    color: #e53e3e;
+    font-weight: 600;
+}
+
+.debug-truncated {
+    color: #666;
+    font-size: 9px;
     font-style: italic;
+}
+
+:root:not([data-theme="light"]) .debug-truncated {
+    color: #999;
 }

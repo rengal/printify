@@ -306,97 +306,155 @@
 
         function renderEscPosDocument(elements, printerWidth) {
             const state = getDefaultState();
-            const rows = []; // Array of {lineHtml, debugComment}
+            const rows = []; // Array of {lineHtml, element}
             const width = Math.max(printerWidth || 384, 200);
 
             for (const element of elements || []) {
                 const elementType = (element?.type || '').toLowerCase();
-                let debugComment = '';
 
                 switch (elementType) {
                     case 'textline':
                         rows.push({
                             lineHtml: renderTextLine(element.text || '', state),
-                            debugComment: debugMode ? 'TextLine' : ''
+                            element: element
                         });
                         break;
                     case 'rasterimage':
                         rows.push({
                             lineHtml: renderRasterImage(element, state),
-                            debugComment: debugMode ? `RasterImage ${element.width}x${element.height}` : ''
+                            element: element
                         });
                         break;
                     case 'setjustification':
                         state.justify = (element.justification || 'left').toLowerCase();
-                        debugComment = `SetJustification: ${element.justification}`;
+                        rows.push({ lineHtml: '', element: element });
                         break;
                     case 'setboldmode':
                         state.bold = !!element.isEnabled;
-                        debugComment = `SetBold: ${element.isEnabled}`;
+                        rows.push({ lineHtml: '', element: element });
                         break;
                     case 'setunderlinemode':
                         state.underline = !!element.isEnabled;
-                        debugComment = `SetUnderline: ${element.isEnabled}`;
+                        rows.push({ lineHtml: '', element: element });
                         break;
                     case 'setreversemode':
                         state.reverse = !!element.isEnabled;
-                        debugComment = `SetReverse: ${element.isEnabled}`;
+                        rows.push({ lineHtml: '', element: element });
                         break;
                     case 'setlinespacing':
                         state.lineSpacing = Number(element.spacing) || 0;
-                        debugComment = `SetLineSpacing: ${element.spacing}`;
+                        rows.push({ lineHtml: '', element: element });
                         break;
                     case 'resetlinespacing':
                         state.lineSpacing = 0;
-                        debugComment = 'ResetLineSpacing';
+                        rows.push({ lineHtml: '', element: element });
                         break;
                     case 'setfont':
                         // Font A (0) or Font B (1)
                         state.fontNumber = Number(element.fontNumber) || 0;
                         state.scaleX = element.isDoubleWidth ? 2 : 1;
                         state.scaleY = element.isDoubleHeight ? 2 : 1;
-                        debugComment = `SetFont: ${element.fontNumber}, DW:${element.isDoubleWidth}, DH:${element.isDoubleHeight}`;
+                        rows.push({ lineHtml: '', element: element });
                         break;
                     case 'resetprinter':
                         // ESC @ - Reset printer to power-on state
                         Object.assign(state, getDefaultState());
-                        debugComment = 'ResetPrinter';
+                        rows.push({ lineHtml: '', element: element });
                         break;
                     default:
-                        debugComment = elementType;
+                        rows.push({ lineHtml: '', element: element });
                         break;
-                }
-
-                // For non-visual commands, add a blank line with debug comment
-                if (debugMode && debugComment && elementType !== 'textline' && elementType !== 'rasterimage') {
-                    rows.push({
-                        lineHtml: '<div class="doc-line doc-blank-line"></div>',
-                        debugComment: debugComment
-                    });
                 }
             }
 
             if (rows.length === 0) {
                 rows.push({
                     lineHtml: '<div class="doc-line muted">No printable text</div>',
-                    debugComment: ''
+                    element: null
                 });
             }
 
             if (debugMode) {
-                // Render with debug comments on the right
-                const rowsHtml = rows.map(row => `
-                    <div class="doc-row">
-                        <div class="doc-row-content">${row.lineHtml}</div>
-                        <div class="doc-row-debug">${row.debugComment ? escapeHtml(row.debugComment) : ''}</div>
-                    </div>
-                `).join('');
-                return `<div class="document-paper-debug" style="width:${width}px">${rowsHtml}</div>`;
+                // Render with debug table above each element
+                const rowsHtml = rows.map(row => {
+                    const debugTable = row.element ? renderDebugTable(row.element) : '';
+                    return debugTable + row.lineHtml;
+                }).join('');
+                return `<div class="document-paper" style="width:${width}px">${rowsHtml}</div>`;
             } else {
                 // Normal rendering without debug
                 const linesHtml = rows.map(row => row.lineHtml).join('');
                 return `<div class="document-paper" style="width:${width}px">${linesHtml}</div>`;
             }
+        }
+
+        function renderDebugTable(element) {
+            const commandRaw = element.commandRaw || '';
+            const commandDescription = element.commandDescription || '';
+
+            // Format hex command with spaces
+            const hexFormatted = formatHexCommand(commandRaw);
+
+            return `
+                <table class="debug-table">
+                    <tr>
+                        <td class="debug-hex">${hexFormatted}</td>
+                        <td class="debug-desc">${escapeHtml(commandDescription) || '<span class="debug-missing">??</span>'}</td>
+                    </tr>
+                </table>
+            `;
+        }
+
+        function formatHexCommand(commandRaw) {
+            if (!commandRaw || commandRaw.trim() === '') {
+                return '<span class="debug-missing">??</span>';
+            }
+
+            // Remove any existing spaces
+            const hex = commandRaw.replace(/\s+/g, '');
+
+            // Add space between each pair of hex characters
+            let formatted = '';
+            for (let i = 0; i < hex.length; i += 2) {
+                if (i > 0) formatted += ' ';
+                formatted += hex.substr(i, 2);
+            }
+
+            // Split into lines of max 16 hex chars (8 bytes = 8*2 + 7 spaces = 23 chars)
+            const maxCharsPerLine = 23; // "XX XX XX XX XX XX XX XX"
+            const lines = [];
+            let currentLine = '';
+
+            const pairs = formatted.split(' ');
+            for (let i = 0; i < pairs.length; i++) {
+                if (lines.length >= 4) {
+                    // Truncate after 4 lines
+                    break;
+                }
+
+                const pair = pairs[i];
+                const testLine = currentLine ? currentLine + ' ' + pair : pair;
+
+                if (testLine.length <= maxCharsPerLine) {
+                    currentLine = testLine;
+                } else {
+                    if (currentLine) lines.push(currentLine);
+                    currentLine = pair;
+                }
+            }
+
+            if (currentLine && lines.length < 4) {
+                lines.push(currentLine);
+            }
+
+            let result = lines.join('<br>');
+
+            // Add truncation indicator if we cut off content
+            if (pairs.length > lines.join(' ').split(' ').length) {
+                result += '<br><span class="debug-truncated">... (truncated)</span>';
+            }
+
+            return result;
         }
 
         function renderRasterImage(element, state) {

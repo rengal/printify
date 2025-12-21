@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Printify.Domain.Documents;
 using Printify.Domain.Mapping;
 using Printify.Domain.Media;
@@ -176,7 +173,7 @@ public static class DocumentMapper
             DomainElements.SetBoldMode bold => $"Set Bold Mode (enabled={bold.IsEnabled})",
             DomainElements.SetCodePage codePage => $"Set Code Page ({codePage.CodePage})",
             DomainElements.SetFont font =>
-                $"Set Font (n={font.FontNumber}, dw={font.IsDoubleWidth}, dh={font.IsDoubleHeight})",
+                $"Set Font (font={ToFontName(font.FontNumber)}, double width={font.IsDoubleWidth}, double height={font.IsDoubleHeight})",
             DomainElements.SetJustification justification =>
                 $"Set Justification ({DomainMapper.ToString(justification.Justification)})",
             DomainElements.SetLineSpacing spacing => $"Set Line Spacing (dots={spacing.Spacing})",
@@ -187,17 +184,26 @@ public static class DocumentMapper
             DomainElements.SetQrModuleSize moduleSize => $"Set QR Module Size (dots={moduleSize.ModuleSize})",
             DomainElements.SetReverseMode reverse => $"Set Reverse Mode (enabled={reverse.IsEnabled})",
             DomainElements.SetUnderlineMode underline => $"Set Underline Mode (enabled={underline.IsEnabled})",
-            DomainElements.StoreQrData => "Store QR Data",
-            DomainElements.PrintQrCodeUpload => "Print QR Code",
+            DomainElements.StoreQrData storeQrData => $"Store QR Data (content=\"{storeQrData.Content}\")",
             DomainElements.PrintQrCode => "Print QR Code",
-            DomainElements.PrintBarcodeUpload => "Print Barcode",
-            DomainElements.PrintBarcode => "Print Barcode",
+            DomainElements.PrintBarcode printBarcode => $"Print Barcode (data=\"{printBarcode.Data}\")",
             DomainElements.StoredLogo storedLogo => $"Stored Logo (id={storedLogo.LogoId})",
-            DomainElements.TextLine textLine => $"Text Line (len={textLine.Text.Length})",
+            DomainElements.TextLine textLine => $"Text Line(len={textLine.Text.Length}, Text=\"{textLine.Text}\")",
             DomainElements.RasterImage => "Raster Image",
             DomainElements.RasterImageUpload => "Raster Image Upload",
             DomainElements.Pagecut pagecut => BuildPagecutDescription(pagecut),
             _ => "Unknown Command"
+        };
+    }
+
+    private static string ToFontName(int fontNumber)
+    {
+        return fontNumber switch
+        {
+            0 => "A",
+            1 => "B",
+            2 => "C",
+            _ => "?"
         };
     }
 

@@ -10,7 +10,7 @@ public sealed class EscPosParser
     private readonly ParserState state;
     private readonly Action<Element> onElement;
     private static readonly Encoding DefaultCodePage;
-    private const int CommandRawMaxBytes = 16;
+    private const int CommandRawMaxBytes = 32;
 
     static EscPosParser()
     {
@@ -119,26 +119,6 @@ public sealed class EscPosParser
         var builder = new StringBuilder(capped.Length);
         foreach (var value in capped)
         {
-            if (value is >= 0x20 and <= 0x7E)
-            {
-                builder.Append((char)value);
-                continue;
-            }
-
-            switch (value)
-            {
-                case (byte)'\r':
-                    builder.Append("\\r");
-                    continue;
-                case (byte)'\n':
-                    builder.Append("\\n");
-                    continue;
-                case (byte)'\t':
-                    builder.Append("\\t");
-                    continue;
-            }
-
-            // Non-printable bytes are emitted as hex to avoid embedding control characters.
             return Convert.ToHexString(capped);
         }
 
