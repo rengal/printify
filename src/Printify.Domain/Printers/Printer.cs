@@ -27,9 +27,6 @@
 /// <param name="TargetState">
 /// Target lifecycle state set by the operator. Drives listener start/stop behavior.
 /// </param>
-/// <param name="RuntimeStatus">
-/// Last known runtime status of the listener (transient, may lag reality).
-/// </param>
 /// <param name="RuntimeStatusUpdatedAt">
 /// Timestamp when <paramref name="RuntimeStatus"/> was last updated.
 /// </param>

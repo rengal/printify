@@ -1192,6 +1192,7 @@
             justify-content: space-between;
             margin-bottom: 16px;
             padding: 0;
+            min-height: 32px;
         }
 
         .operations-title {
@@ -1212,6 +1213,7 @@
             font-size: 18px;
             font-weight: 600;
             color: var(--text);
+            line-height: 32px;
         }
 
         .operations-detail {
@@ -1246,7 +1248,7 @@
             width: 32px;
             height: 32px;
             padding: 0;
-            display: flex;
+            display: none;
             align-items: center;
             justify-content: center;
             background: transparent;
@@ -1257,6 +1259,10 @@
             z-index: 10;
             transition: all 0.2s ease;
         }
+
+            .container.operations-hidden .floating-operations-toggle {
+                display: flex;
+            }
 
             .floating-operations-toggle:hover {
                 background: rgba(255,255,255,0.08);
