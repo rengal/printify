@@ -37,7 +37,13 @@ namespace Printify.Domain.Documents.Elements;
 [JsonDerivedType(typeof(StoreQrData), "storeQrData")]
 [JsonDerivedType(typeof(StoredLogo), "storedLogo")]
 [JsonDerivedType(typeof(TextLine), "textLine")]
-public abstract record Element;
+public abstract record Element
+{
+    /// <summary>
+    /// Raw command bytes encoded for debugging or UI display.
+    /// </summary>
+    public string CommandRaw { get; init; } = string.Empty;
+}
 
 /// <summary>
 /// Base type for non-printing control or status events within a document stream.

@@ -1,12 +1,13 @@
+using System.Linq;
+using Xunit;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
 using Printify.Web.Contracts.Documents.Responses;
 using Printify.Web.Contracts.Documents.Responses.Elements;
+using Printify.Web.Contracts.Documents.Shared.Elements;
 using Printify.Web.Mapping;
-using Xunit;
 using PrinterError = Printify.Domain.Documents.Elements.PrinterError;
-using System.Linq;
 
 namespace Printify.Tests.Shared.Document;
 
@@ -52,7 +53,7 @@ public static class DocumentAssertions
                     Assert.Equal(expectedRasterImage.Media.Length, actualRasterImage.Media.Length);
                     break;
                 default:
-                    Assert.Equal(expected, actualElement);
+                    Assert.Equal(NormalizeResponse(expected, actualElement), actualElement);
                     break;
             }
         }
@@ -114,7 +115,7 @@ public static class DocumentAssertions
                     Assert.Equal(expectedRasterImage.Media.Length, actualRasterImage.Media.Length);
                     break;
                 default:
-                    Assert.Equal(expected, actualElement);
+                    Assert.Equal(NormalizeDomain(expected, actualElement), actualElement);
                     break;
             }
         }
@@ -149,6 +150,22 @@ public static class DocumentAssertions
 
         Equal(expectedElements.Select(DocumentMapper.ToResponseElement).ToList(),
             actual.Elements.ToList());
+    }
+
+    private static ResponseElementDto NormalizeResponse(ResponseElementDto expected, ResponseElementDto actual)
+    {
+        return expected is BaseElementDto expectedBase && actual is BaseElementDto actualBase
+            ? expected with
+            {
+                CommandRaw = actualBase.CommandRaw,
+                CommandDescription = actualBase.CommandDescription
+            }
+            : expected;
+    }
+
+    private static Element NormalizeDomain(Element expected, Element actual)
+    {
+        return expected with { CommandRaw = actual.CommandRaw };
     }
     /*
     public static void Equal(Domain.Documents.Document expected, DocumentDto actual)

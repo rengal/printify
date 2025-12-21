@@ -66,6 +66,9 @@ public sealed class DocumentElementEntity
     [Column("payload", TypeName = "TEXT")]
     public string Payload { get; set; } = string.Empty;
 
+    [Column("command_raw", TypeName = "TEXT")]
+    public string CommandRaw { get; set; } = string.Empty;
+
     [Column("media_id")]
     public Guid? MediaId { get; set; }
 

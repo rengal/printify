@@ -1,6 +1,6 @@
-using Printify.Domain.Documents.Elements;
 using System.Runtime.InteropServices;
 using System.Text;
+using Printify.Domain.Documents.Elements;
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
@@ -10,6 +10,7 @@ public sealed class EscPosParser
     private readonly ParserState state;
     private readonly Action<Element> onElement;
     private static readonly Encoding DefaultCodePage;
+    private const int CommandRawMaxBytes = 16;
 
     static EscPosParser()
     {
@@ -37,6 +38,10 @@ public sealed class EscPosParser
 
         if (element != null)
         {
+            // Cap raw bytes to keep payloads small and UI-friendly.
+            var rawBytes = CollectionsMarshal.AsSpan(state.Buffer).Slice(0, count);
+            element = element with { CommandRaw = BuildCommandRaw(rawBytes) };
+
             if (element is SetCodePage setCodePage)
             {
                 state.Encoding = GetEncodingFromCodePage(setCodePage.CodePage);
@@ -57,7 +62,9 @@ public sealed class EscPosParser
     {
         try
         {
-            return int.TryParse(codePage, out var codePageInt) ? Encoding.GetEncoding(codePageInt) : Encoding.GetEncoding(codePage);
+            return int.TryParse(codePage, out var codePageInt)
+                ? Encoding.GetEncoding(codePageInt)
+                : Encoding.GetEncoding(codePage);
         }
         catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
         {
@@ -70,7 +77,11 @@ public sealed class EscPosParser
         if (state.Buffer.Count <= 0)
             return;
 
-        var element = new PrinterError($"Unrecognized {state.Buffer.Count} bytes");
+        var element = new PrinterError($"Unrecognized {state.Buffer.Count} bytes")
+        {
+            // Preserve the raw payload that caused the parse error for diagnostics.
+            CommandRaw = BuildCommandRaw(CollectionsMarshal.AsSpan(state.Buffer))
+        };
         onElement.Invoke(element);
         state.Pending = null;
         state.Buffer.Clear();
@@ -92,6 +103,46 @@ public sealed class EscPosParser
         state.CurrentNode = nextNode;
         state.MinLength = null;
         state.ExactLength = null;
+    }
+
+    private static string BuildCommandRaw(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.IsEmpty)
+        {
+            return string.Empty;
+        }
+
+        var capped = bytes.Length > CommandRawMaxBytes
+            ? bytes[..CommandRawMaxBytes]
+            : bytes;
+
+        var builder = new StringBuilder(capped.Length);
+        foreach (var value in capped)
+        {
+            if (value is >= 0x20 and <= 0x7E)
+            {
+                builder.Append((char)value);
+                continue;
+            }
+
+            switch (value)
+            {
+                case (byte)'\r':
+                    builder.Append("\\r");
+                    continue;
+                case (byte)'\n':
+                    builder.Append("\\n");
+                    continue;
+                case (byte)'\t':
+                    builder.Append("\\t");
+                    continue;
+            }
+
+            // Non-printable bytes are emitted as hex to avoid embedding control characters.
+            return Convert.ToHexString(capped);
+        }
+
+        return builder.ToString();
     }
 
     public void Feed(ReadOnlySpan<byte> buffer, CancellationToken ct)

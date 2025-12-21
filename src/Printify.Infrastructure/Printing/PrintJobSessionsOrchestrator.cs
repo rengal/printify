@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -6,7 +7,6 @@ using Printify.Domain.Documents.Elements;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
 using Printify.Infrastructure.Cryptography;
-using System.Collections.Concurrent;
 
 namespace Printify.Infrastructure.Printing;
 
@@ -164,17 +164,31 @@ public sealed class PrintJobSessionsOrchestrator(
                 switch (sourceElement)
                 {
                     case RasterImageUpload:
-                        resultElements.Add(new RasterImage(imageUpload.Width, imageUpload.Height, savedMedia));
+                        // Preserve the original command bytes for downstream diagnostics.
+                        resultElements.Add(new RasterImage(imageUpload.Width, imageUpload.Height, savedMedia)
+                        {
+                            CommandRaw = sourceElement.CommandRaw
+                        });
                         break;
                     case PrintQrCodeUpload:
                         if (!string.IsNullOrEmpty(qrState.Payload))
+                        {
+                            // Preserve the original command bytes for downstream diagnostics.
                             resultElements.Add(new PrintQrCode(qrState.Payload, imageUpload.Width, imageUpload.Height,
-                                savedMedia));
+                                savedMedia)
+                            {
+                                CommandRaw = sourceElement.CommandRaw
+                            });
+                        }
                         break;
                     case PrintBarcodeUpload barcodeUpload:
+                        // Preserve the original command bytes for downstream diagnostics.
                         resultElements.Add(new PrintBarcode(barcodeUpload.Symbology, barcodeUpload.Data,
                             imageUpload.Width, imageUpload.Height,
-                            savedMedia));
+                            savedMedia)
+                        {
+                            CommandRaw = sourceElement.CommandRaw
+                        });
                         break;
                 }
 

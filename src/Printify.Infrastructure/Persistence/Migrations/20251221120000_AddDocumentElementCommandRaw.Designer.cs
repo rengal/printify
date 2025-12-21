@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Printify.Infrastructure.Persistence;
 
@@ -10,9 +11,11 @@ using Printify.Infrastructure.Persistence;
 namespace Printify.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(PrintifyDbContext))]
-    partial class PrintifyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251221120000_AddDocumentElementCommandRaw")]
+    partial class AddDocumentElementCommandRaw
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.10");
@@ -42,11 +45,11 @@ namespace Printify.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("payload");
 
-
                     b.Property<string>("CommandRaw")
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("command_raw");
+
                     b.Property<int>("Sequence")
                         .HasColumnType("INTEGER")
                         .HasColumnName("sequence");
@@ -365,4 +368,3 @@ namespace Printify.Infrastructure.Persistence.Migrations
         }
     }
 }
-

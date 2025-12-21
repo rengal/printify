@@ -1,17 +1,12 @@
-﻿using Printify.Domain.Mapping;
-
-namespace Printify.Infrastructure.Mapping;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Printify.Domain.Mapping;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
-using Printify.Domain.Media;
 using Printify.Infrastructure.Documents;
 using Printify.Infrastructure.Persistence.Entities.Documents;
+
+namespace Printify.Infrastructure.Mapping;
 
 internal static class DocumentEntityMapper
 {
@@ -38,7 +33,7 @@ internal static class DocumentEntityMapper
         foreach (var element in elements)
         {
             var dto = DocumentElementMapper.ToDto(element);
-            var elementEntity = DocumentElementEntityMapper.ToEntity(document.Id, dto, index++);
+            var elementEntity = DocumentElementEntityMapper.ToEntity(document.Id, dto, index++, element.CommandRaw);
 
             // Only set MediaId to reference existing media, don't attach media entity
             // This prevents EF from trying to insert duplicate media records
@@ -78,11 +73,13 @@ internal static class DocumentEntityMapper
                     return null;
                 }
 
-                Media? media = elementEntity.Media is null
+                Domain.Media.Media? media = elementEntity.Media is null
                     ? null
                     : DocumentMediaEntityMapper.ToDomain(elementEntity.Media);
 
-                return DocumentElementMapper.ToDomain(dto, media);
+                var element = DocumentElementMapper.ToDomain(dto, media);
+                // Legacy rows may not have command raw populated yet.
+                return element with { CommandRaw = elementEntity.CommandRaw ?? string.Empty };
             })
             .Where(element => element is not null)
             .Select(element => element!)
@@ -110,9 +107,14 @@ internal static class DocumentElementEntityMapper
         PropertyNameCaseInsensitive = true
     };
 
-    internal static DocumentElementEntity ToEntity(Guid documentId, DocumentElementPayload dto, int sequence)
+    internal static DocumentElementEntity ToEntity(
+        Guid documentId,
+        DocumentElementPayload dto,
+        int sequence,
+        string commandRaw)
     {
         ArgumentNullException.ThrowIfNull(dto);
+        ArgumentNullException.ThrowIfNull(commandRaw);
 
         return new DocumentElementEntity
         {
@@ -120,7 +122,8 @@ internal static class DocumentElementEntityMapper
             DocumentId = documentId,
             Sequence = sequence,
             ElementType = ResolveElementType(dto),
-            Payload = JsonSerializer.Serialize(dto, SerializerOptions)
+            Payload = JsonSerializer.Serialize(dto, SerializerOptions),
+            CommandRaw = commandRaw
         };
     }
 
@@ -174,7 +177,7 @@ internal static class DocumentElementEntityMapper
 
 internal static class DocumentMediaEntityMapper
 {
-    internal static DocumentMediaEntity ToEntity(Media media)
+    internal static DocumentMediaEntity ToEntity(Domain.Media.Media media)
     {
         ArgumentNullException.ThrowIfNull(media);
 
@@ -192,11 +195,11 @@ internal static class DocumentMediaEntityMapper
         };
     }
 
-    internal static Media ToDomain(DocumentMediaEntity entity)
+    internal static Domain.Media.Media ToDomain(DocumentMediaEntity entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
 
-        return new Media(
+        return new Domain.Media.Media(
             entity.Id,
             entity.OwnerWorkspaceId,
             entity.CreatedAt,
