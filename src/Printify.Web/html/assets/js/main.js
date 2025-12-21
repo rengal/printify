@@ -248,10 +248,10 @@
         function renderPrinterItem(p, isPinned) {
             const isStopped = p.runtimeStatus === 'stopped';
 
-            // Single line: name + pin icon (if pinned) + STOPPED (if stopped)
+            // Single line: pin icon (if pinned) + name + STOPPED (if stopped)
             let pinIcon = '';
             if (isPinned) {
-                pinIcon = ' <svg class="pin-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>';
+                pinIcon = '<svg class="pin-icon pin-icon-filled" width="12" height="12" viewBox="0 0 24 24" fill="#10b981" stroke="#10b981" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg> ';
             }
 
             let statusBadge = '';
@@ -261,7 +261,13 @@
 
             return `
             <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
-              <span class="list-item-name">${escapeHtml(p.name)}${pinIcon}${statusBadge}</span>
+              <span class="list-item-name">${pinIcon}${escapeHtml(p.name)}${statusBadge}</span>
+              <button class="list-item-gear" onclick="event.stopPropagation(); toggleOperationsForPrinter('${p.id}')" title="Toggle operations">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"></circle>
+                  <path d="M12 1v6m0 6v6"></path>
+                </svg>
+              </button>
             </div>
           `;
         }
@@ -688,12 +694,34 @@
             }
 
             // Render printer info in properties panel
-            const isStarted = printer.targetStatus === 'started';
+            // Use runtimeStatus to determine button state (not targetStatus)
+            // If printer is actually running (started/starting), show Stop button
+            // If printer is stopped/error, show Start button
+            const isRunning = printer.runtimeStatus === 'started' || printer.runtimeStatus === 'starting';
             const statusClass = runtimeStatusClass(printer.runtimeStatus);
             const statusText = formatRuntimeStatus(printer.runtimeStatus);
             const lastDocText = printer.lastDocumentAt ? formatRelativeTime(printer.lastDocumentAt) : 'Never';
             const printerAddress = formatPrinterAddress(printer);
             const protocolFormatted = printer.protocol.toLowerCase() === 'escpos' ? 'ESC/POS' : printer.protocol.toUpperCase();
+
+            // Debug logging
+            console.log('Printer status debug:', {
+                printerName: printer.name,
+                targetStatus: printer.targetStatus,
+                runtimeStatus: printer.runtimeStatus,
+                isRunning: isRunning,
+                buttonToShow: isRunning ? 'Stop' : 'Start',
+                displayedStatus: statusText
+            });
+
+            const hasLastDocument = !!printer.lastDocumentAt;
+            const lastDocDateTime = hasLastDocument
+                ? printer.lastDocumentAt.toLocaleString(undefined, {
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+                  })
+                : '';
+            const lastDocRelative = hasLastDocument ? lastDocText : '';
 
             operationsPanel.innerHTML = `
               <div class="operations-header">
@@ -706,22 +734,38 @@
                 </button>
               </div>
               <div class="operations-info">
-                <span class="${statusClass}">${statusText}</span>
-                <div class="operations-detail">
-                  <span>${printerAddress}</span>
-                  <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                  </button>
-                </div>
-                <div class="operations-detail">
-                  <span>Last: ${lastDocText}</span>
+                <div class="operations-table">
+                  <div class="operations-row">
+                    <div class="operations-cell operations-cell-label">
+                      <span class="${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="operations-cell operations-cell-value">
+                      <div>
+                        <span>${printerAddress}</span>
+                        <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="operations-row">
+                    <div class="operations-cell operations-cell-label">
+                      <div>Last</div>
+                      <div>document</div>
+                    </div>
+                    <div class="operations-cell operations-cell-value">
+                      ${hasLastDocument
+                        ? `<div>${lastDocDateTime}</div><div>${lastDocRelative}</div>`
+                        : `<div>-</div>`}
+                    </div>
+                  </div>
                 </div>
               </div>
               <div class="operations-actions">
-                ${isStarted
+                ${isRunning
                   ? `<button class="btn btn-outline-danger btn-sm" onclick="stopPrinter(event, '${printer.id}')">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
                       Stop
@@ -1479,6 +1523,37 @@
 
             const isHidden = container.classList.contains('operations-hidden');
             localStorage.setItem('operationsHidden', isHidden);
+        }
+
+        function openOperationsForPrinter(printerId) {
+            // First select the printer
+            selectPrinter(printerId);
+
+            // Then ensure operations panel is visible
+            const container = document.querySelector('.container');
+            if (container.classList.contains('operations-hidden')) {
+                container.classList.remove('operations-hidden');
+                localStorage.setItem('operationsHidden', false);
+            }
+        }
+
+        function toggleOperationsForPrinter(printerId) {
+            const container = document.querySelector('.container');
+            const isHidden = container.classList.contains('operations-hidden');
+
+            // If secondary sidebar is open and clicking the same printer's gear icon
+            if (!isHidden && selectedPrinterId === printerId) {
+                // Hide secondary sidebar
+                container.classList.add('operations-hidden');
+                localStorage.setItem('operationsHidden', true);
+            } else {
+                // Switch to selected printer and open secondary sidebar
+                selectPrinter(printerId);
+                if (isHidden) {
+                    container.classList.remove('operations-hidden');
+                    localStorage.setItem('operationsHidden', false);
+                }
+            }
         }
 
         function getInitials(name) {

@@ -151,7 +151,7 @@
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 0;
             padding: 16px;
             overflow-y: auto;
             overflow-x: hidden;
@@ -573,7 +573,7 @@
         }
 
             .list-item:hover {
-                background: rgba(255,255,255,0.08);
+                background: rgba(128,128,128,0.3);
             }
 
             .list-item.active {
@@ -618,6 +618,37 @@
             text-overflow: ellipsis;
             flex: 1;
             min-width: 0;
+        }
+
+        .list-item-gear {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            border-radius: 6px;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
+        }
+
+        .list-item:hover .list-item-gear {
+            opacity: 1;
+            pointer-events: auto;
+            display: flex;
+        }
+
+        .list-item-gear:hover {
+            background: var(--hover-bg);
+            color: var(--accent);
         }
 
         .pin-indicator {
@@ -696,9 +727,9 @@
 
         .pin-icon {
             display: inline-block;
-            vertical-align: middle;
-            margin-left: 6px;
-            opacity: 0.5;
+            vertical-align: top;
+            margin-left: 0;
+            opacity: 0.9;
         }
 
         .stopped-badge {
@@ -727,6 +758,7 @@
             letter-spacing: 0.3px;
             background: rgba(255, 255, 255, 0.06);
             flex-shrink: 0;
+            width: fit-content;
         }
 
         .status-started,
@@ -1204,9 +1236,11 @@
         .operations-info {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 6px;
             padding-bottom: 16px;
             border-bottom: 1px solid var(--border);
+            margin-bottom: 16px;
+            align-items: flex-start;
         }
 
         .operations-printer-name {
@@ -1216,23 +1250,77 @@
             line-height: 32px;
         }
 
-        .operations-detail {
+        .operations-table {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            column-gap: 12px;
+            row-gap: 10px;
+            width: 100%;
+        }
+
+        .operations-row {
+            display: contents;
+        }
+
+        .operations-cell {
             font-size: 13px;
-            color: var(--muted);
             display: flex;
-            align-items: center;
+            align-items: flex-start;
+        }
+
+        .operations-cell-label {
+            font-size: 14px;
+            color: var(--muted);
+            line-height: 1.3;
+            text-transform: uppercase;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            justify-content: flex-start;
+        }
+
+        .operations-cell-label > div,
+        .operations-cell-label > span {
+            line-height: 1.3;
+        }
+
+        .operations-cell-value {
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            font-size: 14px;
+            line-height: 1.3;
+            justify-content: flex-start;
+        }
+
+        .operations-cell-value > span,
+        .operations-cell-value > div {
+            display: flex;
+            align-items: baseline;
             gap: 6px;
+            line-height: 1.3;
+        }
+
+        .operations-cell-value .copy-icon-btn {
+            align-self: flex-start;
+            margin-top: -1px;
         }
 
         .operations-actions {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
         }
 
         .operations-actions .btn {
-            width: 100%;
-            justify-content: flex-start;
+            width: auto;
+            min-width: 80px;
+            justify-content: center;
         }
 
         /* Hide floating sidebar toggle since sidebar is always visible (just minimized) */
@@ -1240,31 +1328,3 @@
             display: none !important;
         }
 
-        /* Floating operations toggle - always visible in documents area */
-        .floating-operations-toggle {
-            position: absolute;
-            top: 24px;
-            left: 24px;
-            width: 32px;
-            height: 32px;
-            padding: 0;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
-            border: none;
-            color: var(--text);
-            cursor: pointer;
-            border-radius: 6px;
-            z-index: 10;
-            transition: all 0.2s ease;
-        }
-
-            .container.operations-hidden .floating-operations-toggle {
-                display: flex;
-            }
-
-            .floating-operations-toggle:hover {
-                background: rgba(255,255,255,0.08);
-                color: var(--accent);
-            }
