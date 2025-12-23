@@ -1,3 +1,4 @@
 - It might be worth moving BuildCommandDescription from src/Printify.Web/Mapping/DocumentMapper.cs into the ESC/POS command descriptors (see src/Printify.Infrastructure/Printing/EscPos/CommandDescriptors/ICommandDescriptor.cs) so command metadata lives with parsing.
 - Printers do not start automatically when the server starts.
 - When open printer, it doesn't subscribe to  documents stream
+- store relative path to media, not full local path

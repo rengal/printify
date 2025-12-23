@@ -3,10 +3,18 @@ using Printify.Domain.Documents.Elements;
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
+public enum ParserMode
+{
+    Text,
+    Command,
+    Error
+}
+
 public class ParserState
 {
     private EscPosCommandTrieNode RootNode { get; }
 
+    public ParserMode Mode { get; set; }
     public int? MinLength { get; set; }
     public int? ExactLength { get; set; }
     public List<byte> Buffer { get; } = new();
@@ -25,6 +33,7 @@ public class ParserState
 
     public void Reset()
     {
+        Mode = ParserMode.Command;
         MinLength = null;
         ExactLength = null;
         Buffer.Clear();

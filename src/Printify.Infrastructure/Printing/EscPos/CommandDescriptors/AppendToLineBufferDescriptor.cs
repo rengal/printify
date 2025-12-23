@@ -7,17 +7,17 @@ public sealed class AppendToLineBufferDescriptor : ICommandDescriptor
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { };
     public int MinLength => 1;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => null;
+    public bool PrefixAcceptsNext(byte value) => EscPosTextByteRules.IsTextByte(value);
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        // Count consecutive bytes until we hit a control character
+        // Count consecutive bytes until we hit a non-text byte.
         var length = 0;
         var endsWithTerminator = false;
 
         foreach (var value in buffer)
         {
-            // Check if byte is a control character
-            if (EscPosControlCharacters.TextTerminators.Contains(value))
+            if (!PrefixAcceptsNext(value))
             {
                 endsWithTerminator = true;
                 break;

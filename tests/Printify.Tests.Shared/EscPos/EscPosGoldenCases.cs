@@ -22,7 +22,8 @@ public static class EscPosGoldenCases
                         new SetFont(0, false, false),
                         new SetCodePage("866"),
                         new SetFont(0, false, false),
-                        new TextLine(Pad("font 0", 42)),
+                        new AppendToLineBuffer(Pad("font 0", 42)),
+                        new FlushLineBufferAndFeed(),
                         new Pagecut(PagecutMode.Partial, 0)
                     ],
                     expectedFinalizedElements: null), // the same as elements
@@ -33,11 +34,14 @@ public static class EscPosGoldenCases
                         new SetFont(0, false, false),
                         new SetCodePage("866"),
                         new SetFont(0, false, false),
-                        new TextLine(Pad("font 0", 42)),
+                        new AppendToLineBuffer(Pad("font 0", 42)),
+                        new FlushLineBufferAndFeed(),
                         new SetFont(1, true, true),
-                        new TextLine(Pad("font 1", 28)),
+                        new AppendToLineBuffer(Pad("font 1", 28)),
+                        new FlushLineBufferAndFeed(),
                         new SetFont(0, true, true),
-                        new TextLine(Pad("font 2", 21)),
+                        new AppendToLineBuffer(Pad("font 2", 21)),
+                        new FlushLineBufferAndFeed(),
                         new Pagecut(PagecutMode.Partial, 0)
                     ],
                     expectedFinalizedElements: null), // the same as elements
@@ -54,7 +58,7 @@ public static class EscPosGoldenCases
                         new SetBarcodeLabelPosition(BarcodeLabelPosition.Below),
                         new PrintBarcodeUpload(BarcodeSymbology.Ean13, "1234567890128"),
                         new SetJustification(TextJustification.Left),
-                        new TextLine(string.Empty),
+                        new FlushLineBufferAndFeed(),
                         new Pagecut(PagecutMode.Partial, 0)
                     ],
                     expectedFinalizedElements:
@@ -69,7 +73,7 @@ public static class EscPosGoldenCases
                         new SetBarcodeLabelPosition(BarcodeLabelPosition.Below),
                         new PrintBarcode(BarcodeSymbology.Ean13, "1234567890128", 0, 0, Media.CreateDefaultPng(1)),
                         new SetJustification(TextJustification.Left),
-                        new TextLine(string.Empty),
+                        new FlushLineBufferAndFeed(),
                         new Pagecut(PagecutMode.Partial, 0)
                     ]),
                 ["case04"] = (
@@ -84,7 +88,7 @@ public static class EscPosGoldenCases
                         new SetQrErrorCorrection(QrErrorCorrectionLevel.Low),
                         new StoreQrData("https://google.com"),
                         new PrintQrCodeUpload(),
-                        new TextLine(string.Empty),
+                        new FlushLineBufferAndFeed(),
                         new Pagecut(PagecutMode.Partial, 0)
                     ],
                     expectedFinalizedElements:
@@ -98,7 +102,7 @@ public static class EscPosGoldenCases
                         new SetQrErrorCorrection(QrErrorCorrectionLevel.Low),
                         new StoreQrData("https://google.com"),
                         new PrintQrCode("https://google.com", 0, 0, Media.CreateDefaultPng(2)),
-                        new TextLine(string.Empty),
+                        new FlushLineBufferAndFeed(),
                         new Pagecut(PagecutMode.Partial, 0)
                     ]), // the same as elements
                 ["case05"] = (

@@ -19,7 +19,7 @@ public interface IEscPosCommandTrieProvider
 /// Immutable trie node that stores ESC/POS command descriptor for a specific byte prefix.
 /// <para>
 /// The trie is built from the fixed-length prefixes of ESC/POS commands. Each path from root
-/// to a node with a non-null <see cref="Descriptor"/> represents one complete command prefix.
+/// to a node with a non-empty <see cref="Descriptors"/> collection represents one complete command prefix.
 /// </para>
 /// <para>
 /// Example trie structure for common ESC/POS commands:
@@ -49,7 +49,7 @@ public interface IEscPosCommandTrieProvider
 /// <see cref="ICommandDescriptor.TryParse"/> methods.
 /// </para>
 /// <para>
-/// Intermediate nodes (e.g., ESC, GS, DLE, GS (0x28)) have <see cref="Descriptor"/> = null
+/// Intermediate nodes (e.g., ESC, GS, DLE, GS (0x28)) have empty <see cref="Descriptors"/>
 /// because they represent incomplete prefixes, not valid commands on their own.
 /// Only nodes at the end of a valid command prefix path contain a descriptor.
 /// </para>
@@ -58,11 +58,11 @@ public sealed class EscPosCommandTrieNode
 {
     internal EscPosCommandTrieNode(
         IReadOnlyDictionary<byte, EscPosCommandTrieNode> children,
-        ICommandDescriptor? descriptor,
+        IReadOnlyList<ICommandDescriptor> descriptors,
         bool isLeaf)
     {
         Children = children;
-        Descriptor = descriptor;
+        Descriptors = descriptors;
         IsLeaf = isLeaf;
     }
 
@@ -73,9 +73,9 @@ public sealed class EscPosCommandTrieNode
     public IReadOnlyDictionary<byte, EscPosCommandTrieNode> Children { get; }
 
     /// <summary>
-    /// The command descriptor associated with this node, or null if none.
+    /// The command descriptors associated with this node.
     /// </summary>
-    public ICommandDescriptor? Descriptor { get; }
+    public IReadOnlyList<ICommandDescriptor> Descriptors { get; }
 
     /// <summary>
     /// Gets a value indicating whether this node or any of its descendants contains a command descriptor.

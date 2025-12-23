@@ -9,11 +9,10 @@ using Microsoft.Extensions.Options;
 using Printify.Application.Interfaces;
 using Printify.Domain.Config;
 using Printify.Infrastructure.Persistence;
-using System.Net;
-using System.Net.Sockets;
 using Printify.Domain.Services;
 using Printify.Application.Printing;
 using Printify.TestServices.Printing;
+using Printify.Web.Infrastructure;
 
 namespace Printify.TestServices;
 
@@ -54,6 +53,15 @@ public sealed class TestServiceContext(ServiceProvider provider)
                 services.RemoveAll<IClockFactory>();
                 services.RemoveAll<IPrinterListenerFactory>();
                 services.RemoveAll<ITestPortRegistry>();
+                // Avoid starting printer listeners in test environment.
+                var descriptors = services
+                    .Where(d => d.ImplementationType != null &&
+                                typeof(IPrinterListenerBootstrapper).IsAssignableFrom(d.ImplementationType))
+                    .ToList();
+
+                foreach (var descriptor in descriptors)
+                    services.Remove(descriptor);
+
 
                 services.AddSingleton(connection);
                 services.AddDbContext<PrintifyDbContext>((_, options) => options.UseSqlite(connection));

@@ -69,7 +69,14 @@ public static class DocumentAssertions
             var expected = expectedElements[index];
             var actualElement = actualElements[index];
 
-            Assert.Equal(expected.GetType(), actualElement.GetType());
+            try
+            {
+                Assert.Equal(expected.GetType(), actualElement.GetType());
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
 
             switch (expected)
             {

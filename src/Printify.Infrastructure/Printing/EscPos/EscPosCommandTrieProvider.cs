@@ -1,3 +1,4 @@
+using System.Linq;
 using Printify.Application.Interfaces;
 using Printify.Infrastructure.Media;
 using Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
@@ -44,7 +45,15 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
 
     private static EscPosCommandTrieNode Build(IEnumerable<ICommandDescriptor> descriptors)
     {
-        var root = new MutableNode { Descriptor = new AppendToLineBufferDescriptor() };
+        var root = new MutableNode();
+        var commandPrefixBytes = descriptors
+            .Where(descriptor => !descriptor.Prefix.IsEmpty)
+            .Select(descriptor => descriptor.Prefix.Span[0])
+            .Distinct()
+            .ToHashSet();
+
+        AddDescriptor(root, new ErrorDescriptor(commandPrefixBytes));
+        AddDescriptor(root, new AppendToLineBufferDescriptor());
         foreach (var descriptor in descriptors)
         {
             AddDescriptor(root, descriptor);
@@ -57,7 +66,8 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
         ArgumentNullException.ThrowIfNull(descriptor);
         if (descriptor.Prefix.IsEmpty)
         {
-            throw new InvalidOperationException("Descriptor prefix cannot be empty.");
+            root.Descriptors.Add(descriptor);
+            return;
         }
 
         var current = root;
@@ -74,14 +84,14 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
         }
 
         // Check if this node already has a descriptor
-        if (current.Descriptor is not null)
+        if (current.Descriptors.Count > 0)
         {
             throw new InvalidOperationException(
                 $"Two descriptors have the same prefix: " +
-                $"{current.Descriptor.GetType().Name} and {descriptor.GetType().Name}");
+                $"{current.Descriptors[0].GetType().Name} and {descriptor.GetType().Name}");
         }
 
-        current.Descriptor = descriptor;
+        current.Descriptors.Add(descriptor);
     }
 
     private static EscPosCommandTrieNode Freeze(MutableNode node)
@@ -95,12 +105,12 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
             frozenChildren[child.Key] = frozenChild;
         }
 
-        return new EscPosCommandTrieNode(frozenChildren, node.Descriptor, isLeaf);
+        return new EscPosCommandTrieNode(frozenChildren, node.Descriptors.ToArray(), isLeaf);
     }
 
     private sealed class MutableNode
     {
         public Dictionary<byte, MutableNode> Children { get; } = new();
-        public ICommandDescriptor? Descriptor { get; set; }
+        public List<ICommandDescriptor> Descriptors { get; } = new();
     }
 }

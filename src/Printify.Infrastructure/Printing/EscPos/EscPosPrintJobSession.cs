@@ -27,15 +27,15 @@ public class EscPosPrintJobSession : PrintJobSession
         IClockFactory clockFactory,
         PrintJob job,
         IPrinterChannel channel,
-        IEscPosCommandTrieProvider commandTrieProvider)
+        IEscPosCommandTrieProvider trieProvider)
         : base(clockFactory, job, channel)
     {
         ArgumentNullException.ThrowIfNull(clockFactory);
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(channel);
-        ArgumentNullException.ThrowIfNull(commandTrieProvider);
+        ArgumentNullException.ThrowIfNull(trieProvider);
         idleClock = clockFactory.Create();
-        parser = new EscPosParser(commandTrieProvider, OnElement);
+        parser = new EscPosParser(trieProvider, OnElement);
     }
 
     public override Task Feed(ReadOnlyMemory<byte> input, CancellationToken ct)

@@ -6,7 +6,7 @@ namespace Printify.Web.Infrastructure;
 
 internal sealed class PrinterListenerBootstrapper(
     IServiceScopeFactory scopeFactory,
-    IPrinterListenerOrchestrator orchestrator) : IHostedService
+    IPrinterListenerOrchestrator orchestrator) : IPrinterListenerBootstrapper
 {
     public async Task StartAsync(CancellationToken ct)
     {

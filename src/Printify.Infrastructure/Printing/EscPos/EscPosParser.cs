@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using Printify.Domain.Documents.Elements;
+using Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
@@ -29,34 +30,30 @@ public sealed class EscPosParser
     private void EmitPendingElement()
     {
         if (state.Pending != null)
-            Emit(state.Pending.Value.length, state.Pending.Value.element);
-    }
-
-    private void Emit(int count, Element? element)
-    {
-        if (count <= 0)
-            throw new ArgumentOutOfRangeException(nameof(count), "Count must be greater than zero.");
-
-        if (element != null)
         {
-            // Cap raw bytes to keep payloads small and UI-friendly.
-            var rawBytes = CollectionsMarshal.AsSpan(state.Buffer).Slice(0, count);
-            element = element with { CommandRaw = BuildCommandRaw(rawBytes) };
-
-            if (element is SetCodePage setCodePage)
+            // Pending element uses partial buffer - need to emit with specific length
+            var (length, element) = state.Pending.Value;
+            if (element != null)
             {
-                state.Encoding = GetEncodingFromCodePage(setCodePage.CodePage);
+                var rawBytes = CollectionsMarshal.AsSpan(state.Buffer).Slice(0, length);
+                element = element with { CommandRaw = BuildCommandRaw(rawBytes) };
+
+                if (element is SetCodePage setCodePage)
+                {
+                    state.Encoding = GetEncodingFromCodePage(setCodePage.CodePage);
+                }
+
+                onElement.Invoke(element);
             }
 
-            onElement.Invoke(element);
+            state.Pending = null;
+
+            // Remove emitted bytes from buffer
+            if (state.Buffer.Count >= length)
+                state.Buffer.RemoveRange(0, length);
+            else
+                state.Buffer.Clear();
         }
-
-        state.Pending = null;
-
-        if (state.Buffer.Count >= count)
-            state.Buffer.RemoveRange(0, count);
-        else
-            state.Buffer.Clear();
     }
 
     private static Encoding GetEncodingFromCodePage(string codePage)
@@ -71,21 +68,6 @@ public sealed class EscPosParser
         {
             return DefaultCodePage;
         }
-    }
-
-    private void CheckEmitAsError()
-    {
-        if (state.Buffer.Count <= 0)
-            return;
-
-        var element = new PrinterError($"Unrecognized {state.Buffer.Count} bytes")
-        {
-            // Preserve the raw payload that caused the parse error for diagnostics.
-            CommandRaw = BuildCommandRaw(CollectionsMarshal.AsSpan(state.Buffer))
-        };
-        onElement.Invoke(element);
-        state.Pending = null;
-        state.Buffer.Clear();
     }
 
     private bool TryNavigateChild(byte value)
@@ -104,6 +86,74 @@ public sealed class EscPosParser
         state.CurrentNode = nextNode;
         state.MinLength = null;
         state.ExactLength = null;
+    }
+
+    private ICommandDescriptor? ResolveDescriptor(byte value)
+    {
+        var descriptors = state.CurrentNode.Descriptors;
+        if (descriptors.Count == 0)
+        {
+            return null;
+        }
+
+        if (descriptors.Count == 1)
+        {
+            return descriptors[0];
+        }
+
+        foreach (var descriptor in descriptors)
+        {
+            if (descriptor.PrefixAcceptsNext(value))
+            {
+                return descriptor;
+            }
+        }
+
+        return descriptors[0];
+    }
+
+    private bool TryHandleRootFallback(byte value)
+    {
+        var descriptor = ResolveDescriptor(value);
+        if (descriptor is null)
+        {
+            return false;
+        }
+
+        if (descriptor is ErrorDescriptor)
+        {
+            EmitPendingElement();
+            EmitErrorFromDescriptor(descriptor);
+            Navigate(root);
+            return false;
+        }
+
+        return true;
+    }
+
+    private void EmitErrorFromDescriptor(ICommandDescriptor descriptor)
+    {
+        var result = descriptor.TryParse(CollectionsMarshal.AsSpan(state.Buffer), state);
+        if (result.Kind == MatchKind.Matched && result.BytesConsumed > 0)
+        {
+            // Error descriptor matched - emit the error element
+            if (result.Element != null)
+            {
+                var rawBytes = CollectionsMarshal.AsSpan(state.Buffer).Slice(0, result.BytesConsumed);
+                var element = result.Element with { CommandRaw = BuildCommandRaw(rawBytes) };
+                onElement.Invoke(element);
+
+                // Remove emitted bytes
+                if (state.Buffer.Count >= result.BytesConsumed)
+                    state.Buffer.RemoveRange(0, result.BytesConsumed);
+                else
+                    state.Buffer.Clear();
+            }
+        }
+        else
+        {
+            EmitError();
+        }
     }
 
     private static string BuildCommandRaw(ReadOnlySpan<byte> bytes)
@@ -130,33 +180,115 @@ public sealed class EscPosParser
 
     public void Feed(byte value, CancellationToken ct)
     {
-        Debug.WriteLine($"Feed hex={value:X} char={Encoding.GetEncoding("cp866").GetString(new[] { value })}"); //todo debugnow
-        Debug.WriteLine($"<>"); //todo debugnow
-        //Console.WriteLine();
+        // Process the byte - handlers are responsible for adding to buffer
+        // This allows buffer to semantically represent "bytes accumulated for current state"
+        bool stateChanged;
+        do
+        {
+            stateChanged = state.Mode switch
+            {
+                ParserMode.Text => ProcessInAppendTextMode(value),
+                ParserMode.Command => ProcessInParseCommandMode(value),
+                ParserMode.Error => ProcessInAppendErrorMode(value),
+                _ => false
+            };
+        } while (stateChanged);
+    }
+
+    /// <summary>
+    /// Changes parser state, automatically emitting accumulated buffer from current state.
+    /// </summary>
+    private void ChangeState(ParserMode newMode)
+    {
+        if (state.Mode == newMode)
+            return;
+
+        // Emit accumulated buffer based on CURRENT state before transitioning
+        if (state.Buffer.Count > 0)
+        {
+            switch (state.Mode)
+            {
+                case ParserMode.Text:
+                    EmitText();
+                    break;
+                case ParserMode.Command:
+                    // Command emits via EmitCommand when successfully parsed
+                    // If we're transitioning out, it means parsing failed - emit as error
+                    EmitError();
+                    break;
+                case ParserMode.Error:
+                    EmitError();
+                    break;
+            }
+        }
+
+        state.Mode = newMode;
+    }
+
+    /// <summary>
+    /// Processes a byte while in AppendText mode. Returns true if state changed and needs reprocessing.
+    /// </summary>
+    private bool ProcessInAppendTextMode(byte value)
+    {
+        // In AppendText mode, check if current byte could start a command
+        if (root.Children.ContainsKey(value))
+        {
+            // Switch to Command mode - ChangeState will emit accumulated text
+            ChangeState(ParserMode.Command);
+            Navigate(root);
+            return true; // State changed, need to reprocess in Command mode
+        }
+
+        // Check if this is a valid text byte
+        if (!EscPosTextByteRules.IsTextByte(value))
+        {
+            // Switch to Error mode - ChangeState will emit accumulated text
+            ChangeState(ParserMode.Error);
+            return true; // State changed, need to reprocess in Error mode
+        }
+
+        // Valid text byte - add to text buffer
+        state.Buffer.Add(value);
+        return false; // No state change
+    }
+
+    /// <summary>
+    /// Processes a byte while in ParseCommand mode using trie navigation. Returns true if state changed and needs reprocessing.
+    /// </summary>
+    private bool ProcessInParseCommandMode(byte value)
+    {
+        // Add byte to command buffer first
         state.Buffer.Add(value);
 
-        if (value == 0x0A)
-            Debug.WriteLine("LINE BREAK!!!"); //debugnow
-
-        // Try to navigate deeper
+        // Try to navigate deeper in the trie
         if (!state.CurrentNode.IsLeaf)
         {
             if (!TryNavigateChild(value))
             {
+                // Can't navigate further - check if we should emit error or fallback
                 if (state.CurrentNode != root)
                 {
-                    CheckEmitAsError();
-                    Navigate(root);
-                    return;
+                    // We were in the middle of a command but hit invalid byte
+                    ChangeState(ParserMode.Error);
+                    return true; // State changed to Error
+                }
+                else
+                {
+                    // At root - check for error descriptor or treat as text
+                    if (!TryHandleRootFallback(value))
+                    {
+                        ChangeState(ParserMode.Error);
+                        return true; // State changed to Error
+                    }
                 }
             }
         }
 
-        var descriptor = state.CurrentNode.Descriptor;
+        var descriptor = ResolveDescriptor(value);
 
         // Process current trie node
         if (descriptor == null)
-            return;
+            return false;
 
         state.MinLength ??= descriptor.MinLength;
 
@@ -171,22 +303,25 @@ public sealed class EscPosParser
         if (state.ExactLength.HasValue && state.Buffer.Count >= state.ExactLength.Value)
         {
             var result = descriptor.TryParse(CollectionsMarshal.AsSpan(state.Buffer), state);
-            
+
             if (result.Kind == MatchKind.Matched)
             {
                 if (result.BytesConsumed > 0)
                 {
                     EmitPendingElement();
-                    Emit(result.BytesConsumed, result.Element);
+                    EmitCommand(result.Element);
                 }
+
+                // Stay in Command mode, reset to root
+                Navigate(root);
+                return false; // No state change
             }
             else
             {
-                CheckEmitAsError();
+                // Parse failed - switch to error mode
+                ChangeState(ParserMode.Error);
+                return true; // State changed to Error
             }
-
-            Navigate(root);
-            return;
         }
 
         // If exact length is not known, but buffer length meets/exceeds MinLength, try to parse
@@ -197,24 +332,119 @@ public sealed class EscPosParser
             if (result.Kind == MatchKind.Matched)
             {
                 if (result.Element != null)
-                    Emit(result.BytesConsumed, result.Element);
+                    EmitCommand(result.Element);
+
                 Navigate(root);
+                return false; // Stay in Command mode
             }
             else if (result.Kind == MatchKind.MatchedPending)
             {
-                state.Pending = (result.BytesConsumed, result.Element!);
+                state.Pending = (state.Buffer.Count, result.Element!);
+                return false; // Stay in Command mode, waiting for more bytes
             }
             else if (result.Kind == MatchKind.NeedMore)
             {
-                // Continue accumulating
+                // Continue accumulating in Command mode
+                return false;
             }
             else if (result.Kind == MatchKind.NoMatch)
             {
                 EmitPendingElement();
-                CheckEmitAsError();
-                Navigate(root);
+                ChangeState(ParserMode.Error);
+                return true; // State changed to Error
             }
         }
+
+        return false; // No state change
+    }
+
+    /// <summary>
+    /// Processes a byte while in AppendError mode. Returns true if state changed and needs reprocessing.
+    /// </summary>
+    private bool ProcessInAppendErrorMode(byte value)
+    {
+        // Check if this byte might start a valid command sequence
+        if (root.Children.ContainsKey(value))
+        {
+            // Switch to Command mode - ChangeState will emit accumulated errors
+            ChangeState(ParserMode.Command);
+            Navigate(root);
+            return true; // State changed to Command
+        }
+
+        // Check if this is a valid text byte
+        if (EscPosTextByteRules.IsTextByte(value))
+        {
+            // Switch to Text mode - ChangeState will emit accumulated errors
+            ChangeState(ParserMode.Text);
+            return true; // State changed to Text
+        }
+
+        // Invalid byte (not command, not text) - continue accumulating error bytes
+        state.Buffer.Add(value);
+        return false; // No state change
+    }
+
+    /// <summary>
+    /// Emits accumulated text from buffer and clears it.
+    /// </summary>
+    private void EmitText()
+    {
+        if (state.Buffer.Count == 0)
+            return;
+
+        var textBytes = CollectionsMarshal.AsSpan(state.Buffer);
+        var text = state.Encoding.GetString(textBytes);
+
+        if (!string.IsNullOrEmpty(text))
+        {
+            var element = new AppendToLineBuffer(text)
+            {
+                CommandRaw = BuildCommandRaw(textBytes)
+            };
+            onElement.Invoke(element);
+        }
+
+        state.Buffer.Clear();
+    }
+
+    /// <summary>
+    /// Emits a parsed command from buffer and clears it.
+    /// </summary>
+    private void EmitCommand(Element? element)
+    {
+        if (element == null)
+        {
+            state.Buffer.Clear();
+            return;
+        }
+
+        var rawBytes = CollectionsMarshal.AsSpan(state.Buffer);
+        element = element with { CommandRaw = BuildCommandRaw(rawBytes) };
+
+        if (element is SetCodePage setCodePage)
+        {
+            state.Encoding = GetEncodingFromCodePage(setCodePage.CodePage);
+        }
+
+        onElement.Invoke(element);
+        state.Buffer.Clear();
+    }
+
+    /// <summary>
+    /// Emits error bytes from buffer and clears it.
+    /// </summary>
+    private void EmitError()
+    {
+        if (state.Buffer.Count == 0)
+            return;
+
+        var element = new PrinterError($"Unrecognized {state.Buffer.Count} bytes")
+        {
+            CommandRaw = BuildCommandRaw(CollectionsMarshal.AsSpan(state.Buffer))
+        };
+        onElement.Invoke(element);
+        state.Buffer.Clear();
     }
 
     /// <summary>
@@ -225,11 +455,24 @@ public sealed class EscPosParser
     {
         // Emit any pending element first
         EmitPendingElement();
-        
-        // If there's leftover data in the buffer, treat it as an error
-        CheckEmitAsError();
-        
+
+        // Flush remaining buffer based on current mode
+        if (state.Buffer.Count > 0)
+        {
+            switch (state.Mode)
+            {
+                case ParserMode.Text:
+                    EmitText();
+                    break;
+                case ParserMode.Command:
+                case ParserMode.Error:
+                    EmitError();
+                    break;
+            }
+        }
+
         // Reset to initial state
+        state.Mode = ParserMode.Command;
         Navigate(root);
     }
 }

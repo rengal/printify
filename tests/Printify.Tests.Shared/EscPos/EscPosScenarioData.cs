@@ -33,32 +33,48 @@ public static class EscPosScenarioData
 
     public static TheoryData<EscPosScenario> TextScenarios { get; } =
     [
-        new(Input: "A"u8.ToArray(), ExpectedRequestElements: [new TextLine("A")]),
-        new(Input: "ABC\n"u8.ToArray(), ExpectedRequestElements: [new TextLine("ABC")]),
-        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new TextLine("ABC")]),
-        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new TextLine("ABC")]),
+        new(Input: "A"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("A")]),
+        new(Input: "ABC\n"u8.ToArray(), ExpectedRequestElements: [
+            new AppendToLineBuffer("ABC"),
+            new FlushLineBufferAndFeed()]),
+        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC")]),
+        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC")]),
         new(
             Input: "ABC\nDEF\nG"u8.ToArray(),
-            ExpectedRequestElements: [new TextLine("ABC"), new TextLine("DEF"), new TextLine("G")]),
-        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new TextLine("ABC")]),
+            ExpectedRequestElements: [
+                new AppendToLineBuffer("ABC"),
+                new FlushLineBufferAndFeed(),
+                new AppendToLineBuffer("DEF"),
+                new FlushLineBufferAndFeed(),
+                new AppendToLineBuffer("G")]),
+        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC")]),
         new(
             Input: Encoding.ASCII.GetBytes(new string('A', 10_000)),
-            ExpectedRequestElements: [new TextLine(new string('A', 10_000))]),
+            ExpectedRequestElements: [new AppendToLineBuffer(new string('A', 10_000))]),
         new(
             Input: [.. "ABC"u8, 0x07],
-            ExpectedRequestElements: [new TextLine("ABC"), new Bell()]),
+            ExpectedRequestElements: [new AppendToLineBuffer("ABC"), new Bell()]),
         new(
             Input: [.. "ABC"u8, 0x07, .. "DEF"u8, 0x07],
-            ExpectedRequestElements: [new TextLine("ABC"), new Bell(), new TextLine("DEF"), new Bell()]),
+            ExpectedRequestElements: [new AppendToLineBuffer("ABC"), new Bell(), new AppendToLineBuffer("DEF"), new Bell()]),
         new(
             Input: [.. "ABC"u8, 0x07, .. "DEF\n"u8, 0x07],
-            ExpectedRequestElements: [new TextLine("ABC"), new Bell(), new TextLine("DEF"), new Bell()]),
+            ExpectedRequestElements: [
+                new AppendToLineBuffer("ABC"),
+                new Bell(),
+                new AppendToLineBuffer("DEF"),
+                new FlushLineBufferAndFeed(),
+                new Bell()]),
         new(
             Input: "\n"u8.ToArray(),
-            ExpectedRequestElements: [new TextLine("")]),
+            ExpectedRequestElements: [new FlushLineBufferAndFeed()]),
         new(
             Input: "\n\n\n"u8.ToArray(),
-            ExpectedRequestElements: [new TextLine(""),new TextLine(""),new TextLine("")])
+            ExpectedRequestElements: [
+                new FlushLineBufferAndFeed(),
+                new FlushLineBufferAndFeed(),
+                new FlushLineBufferAndFeed()
+            ])
     ];
 
     public static TheoryData<EscPosScenario> PagecutScenarios { get; } =
@@ -202,7 +218,8 @@ public static class EscPosScenarioData
                 input.Add(Lf);
 
                 var normalized = vector.Encoding.GetString(bytes);
-                expected.Add(new TextLine(normalized));
+                expected.Add(new AppendToLineBuffer(normalized));
+                expected.Add(new FlushLineBufferAndFeed());
             }
 
             AppendText(vector.Uppercase);

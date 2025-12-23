@@ -129,7 +129,7 @@ public sealed partial class PrintersControllerTests
         Assert.NotNull(dto);
         Assert.Equal(expectedWidthInDots, dto!.WidthInDots);
         Assert.Equal(expectedHeightInDots, dto.HeightInDots);
-        var textLine = dto!.Elements.OfType<TextLineDto>().FirstOrDefault();
+        var textLine = dto!.Elements.OfType<AppendToLineBufferDto>().FirstOrDefault();
         Assert.NotNull(textLine);
         Assert.Equal(text, textLine!.Text);
         return dto!;
