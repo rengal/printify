@@ -197,7 +197,8 @@ public static class DocumentMapper
         return dto with
         {
             CommandRaw = element.CommandRaw,
-            CommandDescription = BuildCommandDescription(element)
+            CommandDescription = BuildCommandDescription(element),
+            LengthInBytes = element.LengthInBytes
         };
     }
 

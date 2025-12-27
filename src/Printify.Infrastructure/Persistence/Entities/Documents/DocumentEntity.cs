@@ -69,6 +69,9 @@ public sealed class DocumentElementEntity
     [Column("command_raw", TypeName = "TEXT")]
     public string CommandRaw { get; set; } = string.Empty;
 
+    [Column("length_in_bytes")]
+    public int LengthInBytes { get; set; }
+
     [Column("media_id")]
     public Guid? MediaId { get; set; }
 

@@ -44,6 +44,11 @@ public abstract record Element
     /// Raw command bytes encoded for debugging or UI display.
     /// </summary>
     public string CommandRaw { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Length of the command in bytes.
+    /// </summary>
+    public int LengthInBytes { get; init; }
 }
 
 /// <summary>

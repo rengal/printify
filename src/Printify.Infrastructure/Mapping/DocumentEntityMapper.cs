@@ -33,7 +33,7 @@ internal static class DocumentEntityMapper
         foreach (var element in elements)
         {
             var dto = DocumentElementMapper.ToDto(element);
-            var elementEntity = DocumentElementEntityMapper.ToEntity(document.Id, dto, index++, element.CommandRaw);
+            var elementEntity = DocumentElementEntityMapper.ToEntity(document.Id, dto, index++, element.CommandRaw, element.LengthInBytes);
 
             // Only set MediaId to reference existing media, don't attach media entity
             // This prevents EF from trying to insert duplicate media records
@@ -78,8 +78,12 @@ internal static class DocumentEntityMapper
                     : DocumentMediaEntityMapper.ToDomain(elementEntity.Media);
 
                 var element = DocumentElementMapper.ToDomain(dto, media);
-                // Legacy rows may not have command raw populated yet.
-                return element with { CommandRaw = elementEntity.CommandRaw ?? string.Empty };
+                // Legacy rows may not have command raw or length populated yet.
+                return element with
+                {
+                    CommandRaw = elementEntity.CommandRaw ?? string.Empty,
+                    LengthInBytes = elementEntity.LengthInBytes
+                };
             })
             .Where(element => element is not null)
             .Select(element => element!)
@@ -111,7 +115,8 @@ internal static class DocumentElementEntityMapper
         Guid documentId,
         DocumentElementPayload dto,
         int sequence,
-        string commandRaw)
+        string commandRaw,
+        int lengthInBytes)
     {
         ArgumentNullException.ThrowIfNull(dto);
         ArgumentNullException.ThrowIfNull(commandRaw);
@@ -123,7 +128,8 @@ internal static class DocumentElementEntityMapper
             Sequence = sequence,
             ElementType = ResolveElementType(dto),
             Payload = JsonSerializer.Serialize(dto, SerializerOptions),
-            CommandRaw = commandRaw
+            CommandRaw = commandRaw,
+            LengthInBytes = lengthInBytes
         };
     }
 

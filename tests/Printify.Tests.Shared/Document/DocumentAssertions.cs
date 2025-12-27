@@ -1,4 +1,3 @@
-using System.Linq;
 using Xunit;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Mapping;
@@ -72,10 +71,12 @@ public static class DocumentAssertions
             try
             {
                 Assert.Equal(expected.GetType(), actualElement.GetType());
+                Assert.Equal(expected.LengthInBytes, actualElement.LengthInBytes);
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
+                throw;
             }
 
             switch (expected)
@@ -165,14 +166,19 @@ public static class DocumentAssertions
             ? expected with
             {
                 CommandRaw = actualBase.CommandRaw,
-                CommandDescription = actualBase.CommandDescription
+                CommandDescription = actualBase.CommandDescription,
+                LengthInBytes = actualBase.LengthInBytes
             }
             : expected;
     }
 
     private static Element NormalizeDomain(Element expected, Element actual)
     {
-        return expected with { CommandRaw = actual.CommandRaw };
+        return expected with
+        {
+            CommandRaw = actual.CommandRaw,
+            LengthInBytes = actual.LengthInBytes
+        };
     }
     /*
     public static void Equal(Domain.Documents.Document expected, DocumentDto actual)

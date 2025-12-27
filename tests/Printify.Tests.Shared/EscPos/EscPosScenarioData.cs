@@ -25,81 +25,120 @@ public static class EscPosScenarioData
     public static TheoryData<EscPosScenario> BellScenarios { get; } =
     [
         new(Input: [0x07],
-            ExpectedRequestElements: [new Bell()]),
+            ExpectedRequestElements: [new Bell() { LengthInBytes = 1 }]),
         new(
             Input: Enumerable.Repeat((byte)0x07, 10).ToArray(),
-            ExpectedRequestElements: Enumerable.Range(0, 10).Select(_ => new Bell()).ToArray())
+            ExpectedRequestElements: Enumerable.Range(0, 10).Select(_ => new Bell() { LengthInBytes = 1 }).ToArray())
     ];
 
     public static TheoryData<EscPosScenario> TextScenarios { get; } =
     [
-        new(Input: "A"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("A")]),
+        new(Input: "A"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("A") { LengthInBytes = 1 }]),
         new(Input: "ABC\n"u8.ToArray(), ExpectedRequestElements: [
-            new AppendToLineBuffer("ABC"),
-            new FlushLineBufferAndFeed()]),
-        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC")]),
-        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC")]),
+            new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
+            new FlushLineBufferAndFeed() { LengthInBytes = 1 }]),
+        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }]),
+        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }]),
         new(
             Input: "ABC\nDEF\nG"u8.ToArray(),
             ExpectedRequestElements: [
-                new AppendToLineBuffer("ABC"),
-                new FlushLineBufferAndFeed(),
-                new AppendToLineBuffer("DEF"),
-                new FlushLineBufferAndFeed(),
-                new AppendToLineBuffer("G")]),
-        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC")]),
+                new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
+                new FlushLineBufferAndFeed() { LengthInBytes = 1 },
+                new AppendToLineBuffer("DEF") { LengthInBytes = 3 },
+                new FlushLineBufferAndFeed() { LengthInBytes = 1 },
+                new AppendToLineBuffer("G") { LengthInBytes = 1 }]),
+        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }]),
         new(
             Input: Encoding.ASCII.GetBytes(new string('A', 10_000)),
-            ExpectedRequestElements: [new AppendToLineBuffer(new string('A', 10_000))]),
+            ExpectedRequestElements: [new AppendToLineBuffer(new string('A', 10_000)) { LengthInBytes = 10_000 }]),
         new(
             Input: [.. "ABC"u8, 0x07],
-            ExpectedRequestElements: [new AppendToLineBuffer("ABC"), new Bell()]),
+            ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }, new Bell() { LengthInBytes = 1 }]),
         new(
             Input: [.. "ABC"u8, 0x07, .. "DEF"u8, 0x07],
-            ExpectedRequestElements: [new AppendToLineBuffer("ABC"), new Bell(), new AppendToLineBuffer("DEF"), new Bell()]),
+            ExpectedRequestElements: [
+                new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
+                new Bell() { LengthInBytes = 1 },
+                new AppendToLineBuffer("DEF") { LengthInBytes = 3 },
+                new Bell() { LengthInBytes = 1 }]),
         new(
             Input: [.. "ABC"u8, 0x07, .. "DEF\n"u8, 0x07],
             ExpectedRequestElements: [
-                new AppendToLineBuffer("ABC"),
-                new Bell(),
-                new AppendToLineBuffer("DEF"),
-                new FlushLineBufferAndFeed(),
-                new Bell()]),
+                new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
+                new Bell() { LengthInBytes = 1 },
+                new AppendToLineBuffer("DEF") { LengthInBytes = 3 },
+                new FlushLineBufferAndFeed() { LengthInBytes = 1 },
+                new Bell() { LengthInBytes = 1 }]),
         new(
             Input: "\n"u8.ToArray(),
-            ExpectedRequestElements: [new FlushLineBufferAndFeed()]),
+            ExpectedRequestElements: [new FlushLineBufferAndFeed() { LengthInBytes = 1 }]),
         new(
             Input: "\n\n\n"u8.ToArray(),
             ExpectedRequestElements: [
-                new FlushLineBufferAndFeed(),
-                new FlushLineBufferAndFeed(),
-                new FlushLineBufferAndFeed()
+                new FlushLineBufferAndFeed() { LengthInBytes = 1 },
+                new FlushLineBufferAndFeed() { LengthInBytes = 1 },
+                new FlushLineBufferAndFeed() { LengthInBytes = 1 }
             ])
+    ];
+
+    public static TheoryData<EscPosScenario> ErrorScenarios { get; } =
+    [
+        // Single null byte produces one error
+        new(
+            Input: [0x00],
+            ExpectedRequestElements: [new PrinterError("") { LengthInBytes = 1 }]),
+        // Two consecutive null bytes produce one error (accumulated)
+        new(
+            Input: [0x00, 0x00],
+            ExpectedRequestElements: [new PrinterError("") { LengthInBytes = 2 }]),
+        // Multiple invalid bytes produce one error
+        new(
+            Input: [0x00, 0x01, 0x02],
+            ExpectedRequestElements: [new PrinterError("") { LengthInBytes = 3 }]),
+        // Invalid byte followed by text transitions correctly
+        new(
+            Input: [0x00, .. "ABC"u8],
+            ExpectedRequestElements: [
+                new PrinterError("") { LengthInBytes = 1 },
+                new AppendToLineBuffer("ABC") { LengthInBytes = 3 }]),
+        // Text followed by invalid byte followed by text
+        new(
+            Input: [.. "ABC"u8, 0x00, .. "DEF"u8],
+            ExpectedRequestElements: [
+                new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
+                new PrinterError("") { LengthInBytes = 1 },
+                new AppendToLineBuffer("DEF") { LengthInBytes = 3 }]),
+        // Invalid byte followed by command
+        new(
+            Input: [0x00, 0x07],
+            ExpectedRequestElements: [
+                new PrinterError("") { LengthInBytes = 1 },
+                new Bell() { LengthInBytes = 1 }])
     ];
 
     public static TheoryData<EscPosScenario> PagecutScenarios { get; } =
     [
-        new(Input: [Esc, (byte)'i'], ExpectedRequestElements: [new Pagecut(PagecutMode.PartialOnePoint)]),
-        new(Input: [Gs, 0x56, 0x00], ExpectedRequestElements: [new Pagecut(PagecutMode.Full)]),
-        new(Input: [Gs, 0x56, 0x30], ExpectedRequestElements: [new Pagecut(PagecutMode.Full)]),
-        new(Input: [Gs, 0x56, 0x01], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial)]),
-        new(Input: [Gs, 0x56, 0x31], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial)]),
-        new(Input: [Gs, 0x56, 0x41, 0x05], ExpectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05)]),
-        new(Input: [Gs, 0x56, 0x42, 0x20], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20)]),
-        new(Input: [Gs, 0x56, 0x61, 0x05], ExpectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05)]),
-        new(Input: [Gs, 0x56, 0x62, 0x20], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20)]),
-        new(Input: [Gs, 0x56, 0x67, 0x05], ExpectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05)]),
-        new(Input: [Gs, 0x56, 0x68, 0x20], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20)])
+        new(Input: [Esc, (byte)'i'], ExpectedRequestElements: [new Pagecut(PagecutMode.PartialOnePoint) { LengthInBytes = 2 }]),
+        new(Input: [Gs, 0x56, 0x00], ExpectedRequestElements: [new Pagecut(PagecutMode.Full) { LengthInBytes = 3 }]),
+        new(Input: [Gs, 0x56, 0x30], ExpectedRequestElements: [new Pagecut(PagecutMode.Full) { LengthInBytes = 3 }]),
+        new(Input: [Gs, 0x56, 0x01], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial) { LengthInBytes = 3 }]),
+        new(Input: [Gs, 0x56, 0x31], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial) { LengthInBytes = 3 }]),
+        new(Input: [Gs, 0x56, 0x41, 0x05], ExpectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05) { LengthInBytes = 4 }]),
+        new(Input: [Gs, 0x56, 0x42, 0x20], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20) { LengthInBytes = 4 }]),
+        new(Input: [Gs, 0x56, 0x61, 0x05], ExpectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05) { LengthInBytes = 4 }]),
+        new(Input: [Gs, 0x56, 0x62, 0x20], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20) { LengthInBytes = 4 }]),
+        new(Input: [Gs, 0x56, 0x67, 0x05], ExpectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05) { LengthInBytes = 4 }]),
+        new(Input: [Gs, 0x56, 0x68, 0x20], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20) { LengthInBytes = 4 }])
     ];
 
     public static TheoryData<EscPosScenario> PulseScenarios { get; } =
     [
         new(
             Input: [Esc, (byte)'p', 0x01, 0x05, 0x0A],
-            ExpectedRequestElements: [new Pulse(1, 0x05, 0x0A)]),
+            ExpectedRequestElements: [new Pulse(1, 0x05, 0x0A) { LengthInBytes = 5 }]),
         new(
             Input: [Esc, (byte)'p', 0x00, 0x7D, 0x7F],
-            ExpectedRequestElements: [new Pulse(0, 0x7D, 0x7F)]),
+            ExpectedRequestElements: [new Pulse(0, 0x7D, 0x7F) { LengthInBytes = 5 }]),
         new(
             Input:
             [
@@ -108,8 +147,8 @@ public static class EscPosScenarioData
             ],
             ExpectedRequestElements:
             [
-                new Pulse(0, 0x08, 0x16),
-                new Pulse(1, 0x02, 0x03)
+                new Pulse(0, 0x08, 0x16) { LengthInBytes = 5 },
+                new Pulse(1, 0x02, 0x03) { LengthInBytes = 5 }
             ])
     ];
 
@@ -129,13 +168,13 @@ public static class EscPosScenarioData
             [
                 // Note: PNG data, length, and checksum are not generated in this test scenario as they would require complex image encoding.
                 // The empty ReadOnlyMemory<byte> is used as a placeholder to verify command parsing structure.
-                new RasterImageUpload(8, 1, new MediaUpload("image/png", ReadOnlyMemory<byte>.Empty))
+                new RasterImageUpload(8, 1, new MediaUpload("image/png", ReadOnlyMemory<byte>.Empty)) { LengthInBytes = 9 }
             ],
             ExpectedPersistedElements:
             [
                 // Note: PNG data, length, and checksum are not generated in this test scenario as they would require complex image encoding.
                 // The empty ReadOnlyMemory<byte> is used as a placeholder to verify command parsing structure.
-                new RasterImage(8, 1, Media.CreateDefaultPng(90))
+                new RasterImage(8, 1, Media.CreateDefaultPng(90)) { LengthInBytes = 9 }
             ])
     ];
 
@@ -152,11 +191,11 @@ public static class EscPosScenarioData
             ],
             ExpectedRequestElements:
             [
-                new SetFont(0, false, false),
-                new SetFont(1, false, false),
-                new SetFont(0, true, false),
-                new SetFont(1, true, true),
-                new SetFont(2, false, false)
+                new SetFont(0, false, false) { LengthInBytes = 3 },
+                new SetFont(1, false, false) { LengthInBytes = 3 },
+                new SetFont(0, true, false) { LengthInBytes = 3 },
+                new SetFont(1, true, true) { LengthInBytes = 3 },
+                new SetFont(2, false, false) { LengthInBytes = 3 }
             ]),
         new(
             Input:
@@ -168,10 +207,10 @@ public static class EscPosScenarioData
             ],
             ExpectedRequestElements:
             [
-                new SetBoldMode(true),
-                new SetBoldMode(false),
-                new SetBoldMode(true),
-                new SetBoldMode(false)
+                new SetBoldMode(true) { LengthInBytes = 3 },
+                new SetBoldMode(false) { LengthInBytes = 3 },
+                new SetBoldMode(true) { LengthInBytes = 3 },
+                new SetBoldMode(false) { LengthInBytes = 3 }
             ]),
         new(
             Input:
@@ -185,12 +224,12 @@ public static class EscPosScenarioData
             ],
             ExpectedRequestElements:
             [
-                new SetUnderlineMode(true),
-                new SetUnderlineMode(true),
-                new SetUnderlineMode(false),
-                new SetReverseMode(true),
-                new SetReverseMode(false),
-                new SetReverseMode(true)
+                new SetUnderlineMode(true) { LengthInBytes = 3 },
+                new SetUnderlineMode(true) { LengthInBytes = 3 },
+                new SetUnderlineMode(false) { LengthInBytes = 3 },
+                new SetReverseMode(true) { LengthInBytes = 3 },
+                new SetReverseMode(false) { LengthInBytes = 3 },
+                new SetReverseMode(true) { LengthInBytes = 3 }
             ])
     ];
 
@@ -208,7 +247,7 @@ public static class EscPosScenarioData
             if (vector.Command.Length > 0)
             {
                 input.AddRange(vector.Command);
-                expected.Add(new SetCodePage(vector.CodePage));
+                expected.Add(new SetCodePage(vector.CodePage) { LengthInBytes = vector.Command.Length });
             }
 
             void AppendText(string text)
@@ -218,8 +257,8 @@ public static class EscPosScenarioData
                 input.Add(Lf);
 
                 var normalized = vector.Encoding.GetString(bytes);
-                expected.Add(new AppendToLineBuffer(normalized));
-                expected.Add(new FlushLineBufferAndFeed());
+                expected.Add(new AppendToLineBuffer(normalized) { LengthInBytes = bytes.Length });
+                expected.Add(new FlushLineBufferAndFeed() { LengthInBytes = 1 });
             }
 
             AppendText(vector.Uppercase);

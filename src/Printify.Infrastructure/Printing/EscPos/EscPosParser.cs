@@ -140,7 +140,11 @@ public sealed class EscPosParser
             if (result.Element != null)
             {
                 var rawBytes = CollectionsMarshal.AsSpan(state.Buffer).Slice(0, result.BytesConsumed);
-                var element = result.Element with { CommandRaw = BuildCommandRaw(rawBytes) };
+                var element = result.Element with
+                {
+                    CommandRaw = BuildCommandRaw(rawBytes),
+                    LengthInBytes = rawBytes.Length
+                };
                 onElement.Invoke(element);
 
                 // Remove emitted bytes
@@ -400,7 +404,8 @@ public sealed class EscPosParser
         {
             var element = new AppendToLineBuffer(text)
             {
-                CommandRaw = BuildCommandRaw(textBytes)
+                CommandRaw = BuildCommandRaw(textBytes),
+                LengthInBytes = textBytes.Length
             };
             onElement.Invoke(element);
         }
@@ -420,7 +425,11 @@ public sealed class EscPosParser
         }
 
         var rawBytes = CollectionsMarshal.AsSpan(state.Buffer);
-        element = element with { CommandRaw = BuildCommandRaw(rawBytes) };
+        element = element with
+        {
+            CommandRaw = BuildCommandRaw(rawBytes),
+            LengthInBytes = rawBytes.Length
+        };
 
         if (element is SetCodePage setCodePage)
         {
@@ -439,9 +448,11 @@ public sealed class EscPosParser
         if (state.Buffer.Count == 0)
             return;
 
+        var errorBytes = CollectionsMarshal.AsSpan(state.Buffer);
         var element = new PrinterError($"Unrecognized {state.Buffer.Count} bytes")
         {
-            CommandRaw = BuildCommandRaw(CollectionsMarshal.AsSpan(state.Buffer))
+            CommandRaw = BuildCommandRaw(errorBytes),
+            LengthInBytes = errorBytes.Length
         };
         onElement.Invoke(element);
         state.Buffer.Clear();

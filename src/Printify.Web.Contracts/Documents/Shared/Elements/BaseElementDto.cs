@@ -16,6 +16,11 @@ public abstract record BaseElementDto
     /// Human-readable description of the command (one entry per line).
     /// </summary>
     public IReadOnlyList<string> CommandDescription { get; init; } = [];
+
+    /// <summary>
+    /// Length of the command in bytes.
+    /// </summary>
+    public int LengthInBytes { get; init; }
 }
 
 /// <summary>
