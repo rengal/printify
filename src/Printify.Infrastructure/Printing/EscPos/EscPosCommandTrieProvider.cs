@@ -1,4 +1,3 @@
-using System.Linq;
 using Printify.Application.Interfaces;
 using Printify.Infrastructure.Media;
 using Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
@@ -105,12 +104,12 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
             frozenChildren[child.Key] = frozenChild;
         }
 
-        return new EscPosCommandTrieNode(frozenChildren, node.Descriptors.ToArray(), isLeaf);
+        return new EscPosCommandTrieNode(frozenChildren, node.Descriptor, isLeaf);
     }
 
     private sealed class MutableNode
     {
         public Dictionary<byte, MutableNode> Children { get; } = new();
-        public List<ICommandDescriptor> Descriptors { get; } = new();
+        public ICommandDescriptor? Descriptor { get; }
     }
 }

@@ -1,8 +1,9 @@
+using Printify.Domain.Documents.Elements;
+using Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
-using Printify.Domain.Documents.Elements;
-using Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
+using ZXing;
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
@@ -216,12 +217,14 @@ public sealed class EscPosParser
                     EmitText();
                     break;
                 case ParserMode.Command:
+                    if (newMode == ParserMode.Error)
+                        AppendError();
                     // Command emits via EmitCommand when successfully parsed
                     // If we're transitioning out, it means parsing failed - emit as error
-                    EmitError();
                     break;
                 case ParserMode.Error:
-                    EmitError();
+                    // Append any accumulated error, but don't emit yet
+                    AppendError();
                     break;
             }
         }
@@ -269,26 +272,17 @@ public sealed class EscPosParser
         {
             if (!TryNavigateChild(value))
             {
-                // Can't navigate further - check if we should emit error or fallback
-                if (state.CurrentNode != root)
-                {
-                    // We were in the middle of a command but hit invalid byte
-                    ChangeState(ParserMode.Error);
-                    return true; // State changed to Error
-                }
-                else
-                {
-                    // At root - check for error descriptor or treat as text
-                    if (!TryHandleRootFallback(value))
-                    {
-                        ChangeState(ParserMode.Error);
-                        return true; // State changed to Error
-                    }
-                }
+                // We were in the middle of a command but hit invalid byte
+                ChangeState(ParserMode.Error);
+                return true; // State changed to Error
             }
         }
 
-        var descriptor = ResolveDescriptor(value);
+        // Node is not leaf, we are in the middle of the command. Current processing is completed
+        if (!state.CurrentNode.IsLeaf)
+            return true;
+
+        var descriptor = state.CurrentNode.Descriptors
 
         // Process current trie node
         if (descriptor == null)
@@ -441,21 +435,31 @@ public sealed class EscPosParser
     }
 
     /// <summary>
-    /// Emits error bytes from buffer and clears it.
+    /// Only emit error buffer when emitting other element, otherwise keep accumulating
     /// </summary>
-    private void EmitError()
+    private void AppendError()
     {
         if (state.Buffer.Count == 0)
             return;
 
-        var errorBytes = CollectionsMarshal.AsSpan(state.Buffer);
-        var element = new PrinterError($"Unrecognized {state.Buffer.Count} bytes")
-        {
-            CommandRaw = BuildCommandRaw(errorBytes),
-            LengthInBytes = errorBytes.Length
-        };
-        onElement.Invoke(element);
+        state.PendingErrorBuffer.AddRange(state.Buffer);
         state.Buffer.Clear();
+    }
+
+    private void EmitErrorFinally()
+    {
+        if (state.PendingErrorBuffer.Count == 0)
+            return;
+
+        var rawBytes = CollectionsMarshal.AsSpan(state.PendingErrorBuffer);
+
+        var element = new PrinterError($"Unrecognized {rawBytes.Length} bytes")
+        {
+            CommandRaw = BuildCommandRaw(rawBytes),
+            LengthInBytes = rawBytes.Length
+        };
+        state.PendingErrorBuffer.Clear();
+        onElement.Invoke(element);
     }
 
     /// <summary>

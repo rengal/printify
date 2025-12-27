@@ -18,6 +18,7 @@ public class ParserState
     public int? MinLength { get; set; }
     public int? ExactLength { get; set; }
     public List<byte> Buffer { get; } = new();
+    public List<byte> PendingErrorBuffer { get; } = new();
 
     public (int length, Element element)? Pending { get; set; }
     public EscPosCommandTrieNode CurrentNode { get; set; }

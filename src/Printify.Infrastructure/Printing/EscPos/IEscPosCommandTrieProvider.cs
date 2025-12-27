@@ -19,7 +19,7 @@ public interface IEscPosCommandTrieProvider
 /// Immutable trie node that stores ESC/POS command descriptor for a specific byte prefix.
 /// <para>
 /// The trie is built from the fixed-length prefixes of ESC/POS commands. Each path from root
-/// to a node with a non-empty <see cref="Descriptors"/> collection represents one complete command prefix.
+/// to a node with a non-null <see cref="Descriptor"/> represents one complete command prefix.
 /// </para>
 /// <para>
 /// Example trie structure for common ESC/POS commands:
@@ -49,7 +49,7 @@ public interface IEscPosCommandTrieProvider
 /// <see cref="ICommandDescriptor.TryParse"/> methods.
 /// </para>
 /// <para>
-/// Intermediate nodes (e.g., ESC, GS, DLE, GS (0x28)) have empty <see cref="Descriptors"/>
+/// Intermediate nodes (e.g., ESC, GS, DLE, GS (0x28)) have null <see cref="Descriptor"/>
 /// because they represent incomplete prefixes, not valid commands on their own.
 /// Only nodes at the end of a valid command prefix path contain a descriptor.
 /// </para>
@@ -58,11 +58,11 @@ public sealed class EscPosCommandTrieNode
 {
     internal EscPosCommandTrieNode(
         IReadOnlyDictionary<byte, EscPosCommandTrieNode> children,
-        IReadOnlyList<ICommandDescriptor> descriptors,
+        ICommandDescriptor? descriptor,
         bool isLeaf)
     {
         Children = children;
-        Descriptors = descriptors;
+        Descriptor = descriptor;
         IsLeaf = isLeaf;
     }
 
@@ -73,9 +73,9 @@ public sealed class EscPosCommandTrieNode
     public IReadOnlyDictionary<byte, EscPosCommandTrieNode> Children { get; }
 
     /// <summary>
-    /// The command descriptors associated with this node.
+    /// The command descriptor associated with this node (only for leaf nodes)
     /// </summary>
-    public IReadOnlyList<ICommandDescriptor> Descriptors { get; }
+    public ICommandDescriptor? Descriptor { get; }
 
     /// <summary>
     /// Gets a value indicating whether this node or any of its descendants contains a command descriptor.

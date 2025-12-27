@@ -47,6 +47,11 @@ namespace Printify.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("command_raw");
+
+                    b.Property<int>("LengthInBytes")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("length_in_bytes");
+
                     b.Property<int>("Sequence")
                         .HasColumnType("INTEGER")
                         .HasColumnName("sequence");
