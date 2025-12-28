@@ -210,8 +210,8 @@ public sealed class EscPosParser
         if (result.Kind == MatchKind.Matched)
         {
             EmitCommand(result.Element);
-            // Stay in Command mode, reset to root
-            Navigate(root);
+            // Command completed, restore text state
+            ChangeState(ParserMode.Text);
             return true; // No state change
         }
 
@@ -230,8 +230,8 @@ public sealed class EscPosParser
         {
             // Switch to Command mode - ChangeState will emit accumulated errors
             ChangeState(ParserMode.Command);
-            Navigate(root);
-            return true; // State changed to Command
+            state.CommandState.Reset();
+            return false;
         }
 
         // Check if this is a valid text byte
@@ -239,12 +239,12 @@ public sealed class EscPosParser
         {
             // Switch to Text mode - ChangeState will emit accumulated errors
             ChangeState(ParserMode.Text);
-            return true; // State changed to Text
+            return false;
         }
 
         // Invalid byte (not command, not text) - continue accumulating error bytes
         state.Buffer.Add(value);
-        return false; // No state change
+        return true;
     }
 
     /// <summary>
