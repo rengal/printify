@@ -41,9 +41,7 @@ public sealed class QrCodeDescriptor : ICommandDescriptor
         var payload = payloadLength > 0 ? buffer.Slice(7, payloadLength) : ReadOnlySpan<byte>.Empty;
 
         if (cn != 0x31)
-        {
-            return MatchResult.NoMatch();
-        }
+            return MatchResult.Error(MatchKind.ErrorInvalid);
 
         Element? element = fn switch
         {
@@ -68,8 +66,8 @@ public sealed class QrCodeDescriptor : ICommandDescriptor
         };
 
         return element is not null
-            ? MatchResult.Matched(totalLength, element)
-            : MatchResult.NoMatch();
+            ? MatchResult.Matched(element)
+            : MatchResult.Error(MatchKind.ErrorInvalid);
     }
 
     private static bool TryGetQrModel(byte value, out QrModel model)

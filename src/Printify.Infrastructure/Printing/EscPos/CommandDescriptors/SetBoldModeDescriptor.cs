@@ -15,6 +15,6 @@ public sealed class SetBoldModeDescriptor : ICommandDescriptor
     {
         var mode = buffer[2] == 0x01;
         var element = new SetBoldMode(mode);
-        return MatchResult.Matched(MinLength, element);
+        return MatchResult.Matched(element);
     }
 }

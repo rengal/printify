@@ -10,35 +10,49 @@ public enum ParserMode
     Error
 }
 
-public class ParserState
+public class CommandState
 {
-    private EscPosCommandTrieNode RootNode { get; }
-
-    public ParserMode Mode { get; set; }
     public int? MinLength { get; set; }
     public int? ExactLength { get; set; }
-    public List<byte> Buffer { get; } = new();
-    public List<byte> PendingErrorBuffer { get; } = new();
-
     public (int length, Element element)? Pending { get; set; }
     public EscPosCommandTrieNode CurrentNode { get; set; }
+    private readonly EscPosCommandTrieNode root;
+
+    public CommandState(EscPosCommandTrieNode root)
+    {
+        this.root = root;
+        CurrentNode = root;
+        Reset();
+    }
+
+    public void Reset()
+    {
+        MinLength = null;
+        ExactLength = null;
+        Pending = null;
+        CurrentNode = root;
+    }
+}
+
+public class ParserState
+{
+    public CommandState CommandState { get; }
+    public ParserMode Mode { get; set; }
+    public List<byte> Buffer { get; } = new();
+    public List<byte> PendingErrorBuffer { get; } = new();
     public Encoding Encoding { get; set; }
 
     public ParserState(EscPosCommandTrieNode root)
     {
+        CommandState = new CommandState(root);
         Reset();
-        RootNode = root;
-        CurrentNode = RootNode;
         Encoding = Encoding.GetEncoding("437");
     }
 
     public void Reset()
     {
-        Mode = ParserMode.Command;
-        MinLength = null;
-        ExactLength = null;
+        Mode = ParserMode.Text;
+        CommandState.Reset();
         Buffer.Clear();
-        Pending = null;
-        CurrentNode = RootNode;
     }
 }

@@ -58,7 +58,7 @@ public sealed class RasterBitImagePrintDescriptor(IMediaService mediaService) : 
         var bytesConsumed = 8 + payloadLength;
         
         // Return matched result with the raster image element
-        return MatchResult.Matched(bytesConsumed, element);
+        return MatchResult.Matched(element);
     }
 }
 

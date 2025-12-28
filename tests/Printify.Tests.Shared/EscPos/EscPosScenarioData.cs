@@ -25,10 +25,10 @@ public static class EscPosScenarioData
     public static TheoryData<EscPosScenario> BellScenarios { get; } =
     [
         new(Input: [0x07],
-            ExpectedRequestElements: [new Bell() { LengthInBytes = 1 }]),
+            ExpectedRequestElements: [new Bell { LengthInBytes = 1 }]),
         new(
             Input: Enumerable.Repeat((byte)0x07, 10).ToArray(),
-            ExpectedRequestElements: Enumerable.Range(0, 10).Select(_ => new Bell() { LengthInBytes = 1 }).ToArray())
+            ExpectedRequestElements: Enumerable.Range(0, 10).Select(_ => new Bell { LengthInBytes = 1 }).ToArray())
     ];
 
     public static TheoryData<EscPosScenario> TextScenarios { get; } =
@@ -36,16 +36,16 @@ public static class EscPosScenarioData
         new(Input: "A"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("A") { LengthInBytes = 1 }]),
         new(Input: "ABC\n"u8.ToArray(), ExpectedRequestElements: [
             new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
-            new FlushLineBufferAndFeed() { LengthInBytes = 1 }]),
+            new FlushLineBufferAndFeed { LengthInBytes = 1 }]),
         new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }]),
         new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }]),
         new(
             Input: "ABC\nDEF\nG"u8.ToArray(),
             ExpectedRequestElements: [
                 new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
-                new FlushLineBufferAndFeed() { LengthInBytes = 1 },
+                new FlushLineBufferAndFeed { LengthInBytes = 1 },
                 new AppendToLineBuffer("DEF") { LengthInBytes = 3 },
-                new FlushLineBufferAndFeed() { LengthInBytes = 1 },
+                new FlushLineBufferAndFeed { LengthInBytes = 1 },
                 new AppendToLineBuffer("G") { LengthInBytes = 1 }]),
         new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }]),
         new(
@@ -53,31 +53,31 @@ public static class EscPosScenarioData
             ExpectedRequestElements: [new AppendToLineBuffer(new string('A', 10_000)) { LengthInBytes = 10_000 }]),
         new(
             Input: [.. "ABC"u8, 0x07],
-            ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }, new Bell() { LengthInBytes = 1 }]),
+            ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }, new Bell { LengthInBytes = 1 }]),
         new(
             Input: [.. "ABC"u8, 0x07, .. "DEF"u8, 0x07],
             ExpectedRequestElements: [
                 new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
-                new Bell() { LengthInBytes = 1 },
+                new Bell { LengthInBytes = 1 },
                 new AppendToLineBuffer("DEF") { LengthInBytes = 3 },
-                new Bell() { LengthInBytes = 1 }]),
+                new Bell { LengthInBytes = 1 }]),
         new(
             Input: [.. "ABC"u8, 0x07, .. "DEF\n"u8, 0x07],
             ExpectedRequestElements: [
                 new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
-                new Bell() { LengthInBytes = 1 },
+                new Bell { LengthInBytes = 1 },
                 new AppendToLineBuffer("DEF") { LengthInBytes = 3 },
-                new FlushLineBufferAndFeed() { LengthInBytes = 1 },
-                new Bell() { LengthInBytes = 1 }]),
+                new FlushLineBufferAndFeed { LengthInBytes = 1 },
+                new Bell { LengthInBytes = 1 }]),
         new(
             Input: "\n"u8.ToArray(),
-            ExpectedRequestElements: [new FlushLineBufferAndFeed() { LengthInBytes = 1 }]),
+            ExpectedRequestElements: [new FlushLineBufferAndFeed { LengthInBytes = 1 }]),
         new(
             Input: "\n\n\n"u8.ToArray(),
             ExpectedRequestElements: [
-                new FlushLineBufferAndFeed() { LengthInBytes = 1 },
-                new FlushLineBufferAndFeed() { LengthInBytes = 1 },
-                new FlushLineBufferAndFeed() { LengthInBytes = 1 }
+                new FlushLineBufferAndFeed { LengthInBytes = 1 },
+                new FlushLineBufferAndFeed { LengthInBytes = 1 },
+                new FlushLineBufferAndFeed { LengthInBytes = 1 }
             ])
     ];
 
@@ -113,7 +113,7 @@ public static class EscPosScenarioData
             Input: [0x00, 0x07],
             ExpectedRequestElements: [
                 new PrinterError("") { LengthInBytes = 1 },
-                new Bell() { LengthInBytes = 1 }])
+                new Bell { LengthInBytes = 1 }])
     ];
 
     public static TheoryData<EscPosScenario> PagecutScenarios { get; } =
@@ -258,7 +258,7 @@ public static class EscPosScenarioData
 
                 var normalized = vector.Encoding.GetString(bytes);
                 expected.Add(new AppendToLineBuffer(normalized) { LengthInBytes = bytes.Length });
-                expected.Add(new FlushLineBufferAndFeed() { LengthInBytes = 1 });
+                expected.Add(new FlushLineBufferAndFeed { LengthInBytes = 1 });
             }
 
             AppendText(vector.Uppercase);

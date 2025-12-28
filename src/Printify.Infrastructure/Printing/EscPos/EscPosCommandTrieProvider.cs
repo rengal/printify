@@ -45,29 +45,20 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
     private static EscPosCommandTrieNode Build(IEnumerable<ICommandDescriptor> descriptors)
     {
         var root = new MutableNode();
-        var commandPrefixBytes = descriptors
-            .Where(descriptor => !descriptor.Prefix.IsEmpty)
-            .Select(descriptor => descriptor.Prefix.Span[0])
-            .Distinct()
-            .ToHashSet();
 
-        AddDescriptor(root, new ErrorDescriptor(commandPrefixBytes));
-        AddDescriptor(root, new AppendToLineBufferDescriptor());
         foreach (var descriptor in descriptors)
         {
+            if (descriptor.Prefix.IsEmpty)
+                throw new InvalidOperationException("Prefix must not be empty");
             AddDescriptor(root, descriptor);
         }
+
         return Freeze(root);
     }
 
     private static void AddDescriptor(MutableNode root, ICommandDescriptor descriptor)
     {
         ArgumentNullException.ThrowIfNull(descriptor);
-        if (descriptor.Prefix.IsEmpty)
-        {
-            root.Descriptors.Add(descriptor);
-            return;
-        }
 
         var current = root;
 
@@ -82,21 +73,44 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
             current = next;
         }
 
-        // Check if this node already has a descriptor
-        if (current.Descriptors.Count > 0)
+        // Check for contradiction: node has children (not a leaf) but also has a descriptor
+        // OR node already has a descriptor
+        if (current.Descriptor != null)
         {
             throw new InvalidOperationException(
                 $"Two descriptors have the same prefix: " +
-                $"{current.Descriptors[0].GetType().Name} and {descriptor.GetType().Name}");
+                $"{current.Descriptor.GetType().Name} and {descriptor.GetType().Name}");
         }
 
-        current.Descriptors.Add(descriptor);
+        if (current.Children.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Descriptor {descriptor.GetType().Name} creates a contradiction: " +
+                $"node at prefix {Convert.ToHexString(descriptor.Prefix.Span)} has children but also needs a descriptor. " +
+                $"This means another descriptor has a longer prefix that extends this one.");
+        }
+
+        current.Descriptor = descriptor;
     }
 
     private static EscPosCommandTrieNode Freeze(MutableNode node)
     {
         var frozenChildren = new Dictionary<byte, EscPosCommandTrieNode>(node.Children.Count);
-        var isLeaf = !node.Children.Any();
+        var isLeaf = node.Children.Count == 0;
+
+        // Validate trie invariant: leaf nodes must have a descriptor, non-leaf nodes must not
+        if (isLeaf && node.Descriptor == null)
+        {
+            throw new InvalidOperationException(
+                "Internal error: leaf node without descriptor found during trie construction");
+        }
+
+        if (!isLeaf && node.Descriptor != null)
+        {
+            throw new InvalidOperationException(
+                $"Contradiction in trie: non-leaf node has descriptor {node.Descriptor.GetType().Name}. " +
+                $"This means another command extends this command's prefix.");
+        }
 
         foreach (var child in node.Children)
         {
@@ -110,6 +124,6 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
     private sealed class MutableNode
     {
         public Dictionary<byte, MutableNode> Children { get; } = new();
-        public ICommandDescriptor? Descriptor { get; }
+        public ICommandDescriptor? Descriptor { get; set; }
     }
 }

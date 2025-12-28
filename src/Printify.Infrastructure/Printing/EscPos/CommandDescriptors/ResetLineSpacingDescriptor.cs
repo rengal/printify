@@ -11,6 +11,6 @@ public sealed class ResetLineSpacingDescriptor : ICommandDescriptor
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        return MatchResult.Matched(FixedLength, new Domain.Documents.Elements.ResetLineSpacing());
+        return MatchResult.Matched(new Domain.Documents.Elements.ResetLineSpacing());
     }
 }

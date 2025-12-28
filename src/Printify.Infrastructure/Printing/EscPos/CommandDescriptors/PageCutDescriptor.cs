@@ -72,6 +72,6 @@ public sealed class PageCutDescriptor : ICommandDescriptor
         // Create Pagecut element with the determined mode and feed parameter
         var element = new Domain.Documents.Elements.Pagecut(cutMode, feedMotionUnits);
         
-        return MatchResult.Matched(bytesToConsume, element);
+        return MatchResult.Matched(element);
     }
 }

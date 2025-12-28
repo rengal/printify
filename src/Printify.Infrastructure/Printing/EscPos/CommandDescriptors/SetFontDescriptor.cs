@@ -20,6 +20,6 @@ public sealed class SetFontDescriptor : ICommandDescriptor
         var isDoubleWidth = (parameter & 0x20) != 0;
 
         var fontElement = new Domain.Documents.Elements.SetFont(fontNumber, isDoubleWidth, isDoubleHeight);
-        return MatchResult.Matched(FixedLength, fontElement);
+        return MatchResult.Matched(fontElement);
     }
 }

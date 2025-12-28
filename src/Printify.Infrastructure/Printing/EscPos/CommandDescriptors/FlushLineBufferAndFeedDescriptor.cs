@@ -14,6 +14,6 @@ public sealed class FlushLineBufferAndFeedDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        return MatchResult.Matched(fixedLength, new FlushLineBufferAndFeed());
+        return MatchResult.Matched(new FlushLineBufferAndFeed());
     }
 }

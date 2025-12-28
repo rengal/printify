@@ -49,8 +49,8 @@ public sealed class SetCodePageDescriptor : ICommandDescriptor
     {
         var codePageId = buffer[2];
         return EscCodePageMap.TryGetValue(codePageId, out var codePage)
-            ? MatchResult.Matched(FixedLength, new Domain.Documents.Elements.SetCodePage(codePage))
-            : MatchResult.MatchedWithWarning(FixedLength, new Domain.Documents.Elements.SetCodePage("437"),
+            ? MatchResult.Matched(new Domain.Documents.Elements.SetCodePage(codePage))
+            : MatchResult.MatchedWithWarning(new Domain.Documents.Elements.SetCodePage("437"),
                 $"Unrecognized code page ID: {codePageId}. Defaulting to code page 437.");
     }
 }

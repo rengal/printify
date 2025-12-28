@@ -16,6 +16,6 @@ public sealed class SetReverseModeDescriptor : ICommandDescriptor
     {
         var mode = buffer[2] == 0x01;
         var element = new SetReverseMode(mode);
-        return MatchResult.Matched(FixedLength, element);
+        return MatchResult.Matched(element);
     }
 }

@@ -14,21 +14,27 @@ public sealed class SetJustificationDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        var justification = ParseJustification(buffer[2]);
-        if (justification is null)
-            return MatchResult.NoMatch();
-
-        return MatchResult.Matched(FixedLength, new SetJustification(justification.Value));
+        return TryParseJustification(buffer[2], out var justification)
+            ? MatchResult.Matched(new SetJustification(justification))
+            : MatchResult.Error(MatchKind.ErrorInvalid);
     }
 
-    private TextJustification? ParseJustification(byte value)
+    private static bool TryParseJustification(byte value, out TextJustification result)
     {
-        return value switch
+        switch (value)
         {
-            0x00 => TextJustification.Left,
-            0x01 => TextJustification.Center,
-            0x02 => TextJustification.Right,
-            _ => null
-        };
+            case 0x00:
+                result = TextJustification.Left;
+                return true;
+            case 0x01:
+                result = TextJustification.Center;
+                return true;
+            case 0x02:
+                result = TextJustification.Right;
+                return true;
+            default:
+                result = default;
+                return false;
+        }
     }
 }

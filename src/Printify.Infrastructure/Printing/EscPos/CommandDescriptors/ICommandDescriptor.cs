@@ -4,8 +4,6 @@ public interface ICommandDescriptor
 {
     ReadOnlyMemory<byte> Prefix { get; }
 
-    bool PrefixAcceptsNext(byte value) => false;
-
     /// <summary>Minimum total length (prefix + parameters + payload) needed before TryMatch can succeed.</summary>
     int MinLength { get; }
 

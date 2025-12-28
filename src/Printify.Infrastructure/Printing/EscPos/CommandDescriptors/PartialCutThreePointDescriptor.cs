@@ -20,6 +20,6 @@ public sealed class PartialCutThreePointDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
         var element = new Pagecut(PagecutMode.PartialThreePoint);
-        return MatchResult.Matched(fixedLength, element);
+        return MatchResult.Matched(element);
     }
 }

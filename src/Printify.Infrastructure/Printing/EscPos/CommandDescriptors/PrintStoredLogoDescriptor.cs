@@ -17,6 +17,6 @@ public sealed class PrintStoredLogoDescriptor : ICommandDescriptor
         // logoId is the fourth byte (index 3)
         var logoId = buffer[3];
         var element = new Domain.Documents.Elements.StoredLogo(logoId);
-        return MatchResult.Matched(FixedLength, element);
+        return MatchResult.Matched(element);
     }
 }

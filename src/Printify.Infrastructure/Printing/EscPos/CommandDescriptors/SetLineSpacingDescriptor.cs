@@ -14,6 +14,6 @@ public sealed class SetLineSpacingDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
         var spacing = buffer[2];
-        return MatchResult.Matched(FixedLength, new Domain.Documents.Elements.SetLineSpacing(spacing));
+        return MatchResult.Matched(new Domain.Documents.Elements.SetLineSpacing(spacing));
     }
 }

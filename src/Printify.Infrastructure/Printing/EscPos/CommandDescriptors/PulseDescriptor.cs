@@ -23,6 +23,6 @@ public sealed class PulseDescriptor : ICommandDescriptor
         int offTimeMs = buffer[4];
 
         var element = new Pulse(pin, onTimeMs, offTimeMs);
-        return MatchResult.Matched(FixedLength, element);
+        return MatchResult.Matched(element);
     }
 }

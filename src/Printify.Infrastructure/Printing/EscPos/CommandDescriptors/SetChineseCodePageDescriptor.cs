@@ -15,6 +15,6 @@ public sealed class SetChineseCodePageDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        return MatchResult.Matched(FixedLength, new Domain.Documents.Elements.SetCodePage(Gb2312CodePage));
+        return MatchResult.Matched(new Domain.Documents.Elements.SetCodePage(Gb2312CodePage));
     }
 }

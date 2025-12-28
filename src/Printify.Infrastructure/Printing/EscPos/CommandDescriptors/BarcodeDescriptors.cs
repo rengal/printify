@@ -16,7 +16,7 @@ public sealed class BarcodeSetHeightDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
         var height = buffer[2];
-        return MatchResult.Matched(FixedLength, new SetBarcodeHeight(height));
+        return MatchResult.Matched(new SetBarcodeHeight(height));
     }
 }
 
@@ -33,7 +33,7 @@ public sealed class BarcodeSetModuleWidthDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
         var width = buffer[2];
-        return MatchResult.Matched(FixedLength, new SetBarcodeModuleWidth(width));
+        return MatchResult.Matched(new SetBarcodeModuleWidth(width));
     }
 }
 
@@ -51,9 +51,9 @@ public sealed class BarcodeSetLabelPositionDescriptor : ICommandDescriptor
     {
         var value = buffer[2];
         if (!TryGetLabelPosition(value, out var position))
-            return MatchResult.NoMatch();
+            return MatchResult.Error(MatchKind.ErrorInvalid);
 
-        return MatchResult.Matched(FixedLength, new SetBarcodeLabelPosition(position));
+        return MatchResult.Matched(new SetBarcodeLabelPosition(position));
     }
 
     private static bool TryGetLabelPosition(byte value, out BarcodeLabelPosition position)
@@ -88,11 +88,10 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
         var symbologyByte = buffer[2];
         if (!TryResolveBarcodeSymbology(symbologyByte, out var symbology))
         {
-            return MatchResult.NoMatch();
+            return MatchResult.Error(MatchKind.ErrorInvalid);
         }
 
         string content;
-        int consumed;
 
         // Function A: symbologyByte <= 0x06 uses null terminator
         // Function B: symbologyByte >= 0x41 uses length indicator
@@ -113,7 +112,6 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
 
             var payload = buffer.Slice(4, length).ToArray();
             content = Encoding.ASCII.GetString(payload);
-            consumed = 4 + length;
         }
         else
         {
@@ -127,10 +125,9 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
             var payloadLength = terminator - payloadStart;
             var payload = payloadLength > 0 ? buffer.Slice(payloadStart, payloadLength).ToArray() : [];
             content = Encoding.ASCII.GetString(payload);
-            consumed = terminator + 1;
         }
 
-        return MatchResult.Matched(consumed, new PrintBarcodeUpload(symbology, content));
+        return MatchResult.Matched(new PrintBarcodeUpload(symbology, content));
     }
 
     private static bool TryResolveBarcodeSymbology(byte value, out BarcodeSymbology symbology)

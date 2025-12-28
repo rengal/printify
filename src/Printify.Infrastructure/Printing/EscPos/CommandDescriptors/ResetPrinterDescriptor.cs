@@ -12,6 +12,6 @@ public sealed class ResetPrinterDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        return MatchResult.Matched(FixedLength, new Domain.Documents.Elements.ResetPrinter());
+        return MatchResult.Matched(new Domain.Documents.Elements.ResetPrinter());
     }
 }

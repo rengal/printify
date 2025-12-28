@@ -14,6 +14,6 @@ public sealed class SetUnderlineModeDescriptor : ICommandDescriptor
     {
         var enabled = buffer[2] != 0;
         var element = new Domain.Documents.Elements.SetUnderlineMode(enabled);
-        return MatchResult.Matched(MinLength, element);
+        return MatchResult.Matched(element);
     }
 }

@@ -33,17 +33,17 @@ public sealed class GetPrinterStatusDescriptor: ICommandDescriptor
         if (statusByte is >= 0x01 and <= 0x04)
         {
             var element = new GetPrinterStatus(statusByte);
-            return MatchResult.Matched(FixedLength, element);
+            return MatchResult.Matched(element);
         }
 
         if (statusByte is 0x07 or 0x08 or 0x12)
         {
             var additionalStatusByte = buffer[3];
             var element = new GetPrinterStatus(statusByte, additionalStatusByte);
-            return MatchResult.Matched(FixedLength, element);
+            return MatchResult.Matched(element);
         }
 
-        return MatchResult.NoMatch();
+        return MatchResult.Error(MatchKind.ErrorInvalid);
     }
 }
 
