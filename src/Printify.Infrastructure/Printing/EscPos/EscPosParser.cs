@@ -104,7 +104,7 @@ public sealed class EscPosParser
             return;
 
         // Emit accumulated buffer based on CURRENT state before transitioning
-        if (state.Buffer.Count > 0)
+        if (state.Buffer.Count > 0 || state.UnrecognizedBuffer.Count > 0)
         {
             switch (state.Mode)
             {
@@ -113,13 +113,12 @@ public sealed class EscPosParser
                     break;
                 case ParserMode.Command:
                     if (newMode == ParserMode.Error)
-                        AppendError();
+                        AppendToUnrecognizedBuffer();
                     // Command emits via EmitCommand when successfully parsed
                     // If we're transitioning out, it means parsing failed - emit as error
                     break;
                 case ParserMode.Error:
-                    // Append any accumulated error, but don't emit yet
-                    AppendError();
+                    EmitUnrecognizedBufferAsError();
                     break;
             }
         }
@@ -243,7 +242,7 @@ public sealed class EscPosParser
         }
 
         // Invalid byte (not command, not text) - continue accumulating error bytes
-        state.Buffer.Add(value);
+        state.UnrecognizedBuffer.Add(value);
         return true;
     }
 
@@ -301,28 +300,28 @@ public sealed class EscPosParser
     /// <summary>
     /// Only emit error buffer when emitting other element, otherwise keep accumulating
     /// </summary>
-    private void AppendError()
+    private void AppendToUnrecognizedBuffer()
     {
         if (state.Buffer.Count == 0)
             return;
 
-        state.PendingErrorBuffer.AddRange(state.Buffer);
+        state.UnrecognizedBuffer.AddRange(state.Buffer);
         state.Buffer.Clear();
     }
 
-    private void EmitErrorFinally()
+    private void EmitUnrecognizedBufferAsError()
     {
-        if (state.PendingErrorBuffer.Count == 0)
+        if (state.UnrecognizedBuffer.Count == 0)
             return;
 
-        var rawBytes = CollectionsMarshal.AsSpan(state.PendingErrorBuffer);
+        var rawBytes = CollectionsMarshal.AsSpan(state.UnrecognizedBuffer);
 
         var element = new PrinterError($"Unrecognized {rawBytes.Length} bytes")
         {
             CommandRaw = BuildCommandRaw(rawBytes),
             LengthInBytes = rawBytes.Length
         };
-        state.PendingErrorBuffer.Clear();
+        state.UnrecognizedBuffer.Clear();
         onElement.Invoke(element);
     }
 
@@ -334,7 +333,7 @@ public sealed class EscPosParser
     {
 
         // Flush remaining buffer based on current mode
-        if (state.Buffer.Count > 0)
+        if (state.Buffer.Count > 0 || state.UnrecognizedBuffer.Count > 0)
         {
             switch (state.Mode)
             {
@@ -346,7 +345,7 @@ public sealed class EscPosParser
                     if (state.Mode == ParserMode.Command)
                         ChangeState(ParserMode.Error);
 
-                    EmitErrorFinally();
+                    EmitUnrecognizedBufferAsError();
                     break;
             }
         }

@@ -41,7 +41,10 @@ public sealed class QrCodeDescriptor : ICommandDescriptor
         var payload = payloadLength > 0 ? buffer.Slice(7, payloadLength) : ReadOnlySpan<byte>.Empty;
 
         if (cn != 0x31)
-            return MatchResult.Error(MatchKind.ErrorInvalid);
+        {
+            var error = new PrinterError($"Invalid QR Code command code: 0x{cn:X2}. Expected 0x31");
+            return MatchResult.Matched(error);
+        }
 
         Element? element = fn switch
         {
@@ -65,9 +68,21 @@ public sealed class QrCodeDescriptor : ICommandDescriptor
             _ => null
         };
 
-        return element is not null
-            ? MatchResult.Matched(element)
-            : MatchResult.Error(MatchKind.ErrorInvalid);
+        if (element is not null)
+        {
+            return MatchResult.Matched(element);
+        }
+
+        var errorMsg = fn switch
+        {
+            0x41 when payload.Length == 0 => "QR Code function 0x41 (select model) requires payload",
+            0x41 => $"Invalid QR model value: 0x{payload[0]:X2}",
+            0x43 when payload.Length == 0 => "QR Code function 0x43 (set module size) requires payload",
+            0x45 when payload.Length == 0 => "QR Code function 0x45 (error correction) requires payload",
+            0x45 => $"Invalid QR error correction level: 0x{payload[0]:X2}",
+            _ => $"Unknown QR Code function: 0x{fn:X2}. Expected 0x41, 0x43, 0x45, 0x50, or 0x51"
+        };
+        return MatchResult.Matched(new PrinterError(errorMsg));
     }
 
     private static bool TryGetQrModel(byte value, out QrModel model)

@@ -43,7 +43,8 @@ public sealed class GetPrinterStatusDescriptor: ICommandDescriptor
             return MatchResult.Matched(element);
         }
 
-        return MatchResult.Error(MatchKind.ErrorInvalid);
+        var error = new PrinterError($"Invalid printer status byte: 0x{statusByte:X2}. Expected 0x01-0x04, 0x07, 0x08, or 0x12");
+        return MatchResult.Matched(error);
     }
 }
 

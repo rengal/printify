@@ -39,7 +39,7 @@ public class ParserState
     public CommandState CommandState { get; }
     public ParserMode Mode { get; set; }
     public List<byte> Buffer { get; } = new();
-    public List<byte> PendingErrorBuffer { get; } = new();
+    public List<byte> UnrecognizedBuffer { get; } = new();
     public Encoding Encoding { get; set; }
 
     public ParserState(EscPosCommandTrieNode root)

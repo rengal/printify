@@ -1,3 +1,5 @@
+using Printify.Domain.Documents.Elements;
+
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 /// Command: ESC t - select character code table.
@@ -48,9 +50,12 @@ public sealed class SetCodePageDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
         var codePageId = buffer[2];
-        return EscCodePageMap.TryGetValue(codePageId, out var codePage)
-            ? MatchResult.Matched(new Domain.Documents.Elements.SetCodePage(codePage))
-            : MatchResult.MatchedWithWarning(new Domain.Documents.Elements.SetCodePage("437"),
-                $"Unrecognized code page ID: {codePageId}. Defaulting to code page 437.");
+        if (EscCodePageMap.TryGetValue(codePageId, out var codePage))
+        {
+            return MatchResult.Matched(new Domain.Documents.Elements.SetCodePage(codePage));
+        }
+
+        var error = new PrinterError($"Unrecognized code page ID: 0x{codePageId:X2}");
+        return MatchResult.Matched(error);
     }
 }

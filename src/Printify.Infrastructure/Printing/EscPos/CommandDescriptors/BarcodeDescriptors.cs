@@ -51,7 +51,10 @@ public sealed class BarcodeSetLabelPositionDescriptor : ICommandDescriptor
     {
         var value = buffer[2];
         if (!TryGetLabelPosition(value, out var position))
-            return MatchResult.Error(MatchKind.ErrorInvalid);
+        {
+            var error = new PrinterError($"Invalid barcode label position: 0x{value:X2}. Expected 0x00-0x03");
+            return MatchResult.Matched(error);
+        }
 
         return MatchResult.Matched(new SetBarcodeLabelPosition(position));
     }
@@ -88,7 +91,8 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
         var symbologyByte = buffer[2];
         if (!TryResolveBarcodeSymbology(symbologyByte, out var symbology))
         {
-            return MatchResult.Error(MatchKind.ErrorInvalid);
+            var error = new PrinterError($"Invalid barcode symbology: 0x{symbologyByte:X2}");
+            return MatchResult.Matched(error);
         }
 
         string content;

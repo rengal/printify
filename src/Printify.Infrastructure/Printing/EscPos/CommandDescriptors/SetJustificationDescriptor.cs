@@ -14,9 +14,13 @@ public sealed class SetJustificationDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        return TryParseJustification(buffer[2], out var justification)
-            ? MatchResult.Matched(new SetJustification(justification))
-            : MatchResult.Error(MatchKind.ErrorInvalid);
+        if (TryParseJustification(buffer[2], out var justification))
+        {
+            return MatchResult.Matched(new SetJustification(justification));
+        }
+
+        var error = new PrinterError($"Invalid justification value: 0x{buffer[2]:X2}. Expected 0x00 (left), 0x01 (center), or 0x02 (right)");
+        return MatchResult.Matched(error);
     }
 
     private static bool TryParseJustification(byte value, out TextJustification result)
