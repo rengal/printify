@@ -18,100 +18,100 @@ public static class EscPosGoldenCases
                 ["case01"] = (
                     expectedRequestElement:
                     [
-                        new ResetPrinter(),
-                        new SetFont(0, false, false),
-                        new SetCodePage("866"),
-                        new SetFont(0, false, false),
-                        new AppendToLineBuffer(Pad("font 0", 42)),
-                        new FlushLineBufferAndFeed(),
-                        new Pagecut(PagecutMode.Partial, 0)
+                        new ResetPrinter { LengthInBytes = 2 },
+                        new SetFont(0, false, false) { LengthInBytes = 3 },
+                        new SetCodePage("866") { LengthInBytes = 3 },
+                        new SetFont(0, false, false) { LengthInBytes = 3 },
+                        new AppendToLineBuffer(Pad("font 0", 42)) { LengthInBytes = 42 },
+                        new FlushLineBufferAndFeed { LengthInBytes = 1 },
+                        new Pagecut(PagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
                     expectedFinalizedElements: null), // the same as elements
                 ["case02"] = (
                     expectedRequestElement:
                     [
-                        new ResetPrinter(),
-                        new SetFont(0, false, false),
-                        new SetCodePage("866"),
-                        new SetFont(0, false, false),
-                        new AppendToLineBuffer(Pad("font 0", 42)),
-                        new FlushLineBufferAndFeed(),
-                        new SetFont(1, true, true),
-                        new AppendToLineBuffer(Pad("font 1", 28)),
-                        new FlushLineBufferAndFeed(),
-                        new SetFont(0, true, true),
-                        new AppendToLineBuffer(Pad("font 2", 21)),
-                        new FlushLineBufferAndFeed(),
-                        new Pagecut(PagecutMode.Partial, 0)
+                        new ResetPrinter { LengthInBytes = 2 },
+                        new SetFont(0, false, false) { LengthInBytes = 3 },
+                        new SetCodePage("866") { LengthInBytes = 3 },
+                        new SetFont(0, false, false) { LengthInBytes = 3 },
+                        new AppendToLineBuffer(Pad("font 0", 42)) { LengthInBytes = 42 },
+                        new FlushLineBufferAndFeed { LengthInBytes = 1 },
+                        new SetFont(1, true, true) { LengthInBytes = 3 },
+                        new AppendToLineBuffer(Pad("font 1", 28)) { LengthInBytes = 28 },
+                        new FlushLineBufferAndFeed { LengthInBytes = 1 },
+                        new SetFont(0, true, true) { LengthInBytes = 3 },
+                        new AppendToLineBuffer(Pad("font 2", 21)) { LengthInBytes = 21 },
+                        new FlushLineBufferAndFeed { LengthInBytes = 1 },
+                        new Pagecut(PagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
                     expectedFinalizedElements: null), // the same as elements
                 ["case03"] = (
                     expectedRequestElement:
                     [
-                        new ResetPrinter(),
-                        new SetFont(0, false, false),
-                        new SetCodePage("866"),
-                        new SetFont(0, false, false),
-                        new SetJustification(TextJustification.Right),
-                        new SetBarcodeHeight(101),
-                        new SetBarcodeModuleWidth(3),
-                        new SetBarcodeLabelPosition(BarcodeLabelPosition.Below),
-                        new PrintBarcodeUpload(BarcodeSymbology.Ean13, "1234567890128"),
-                        new SetJustification(TextJustification.Left),
-                        new FlushLineBufferAndFeed(),
-                        new Pagecut(PagecutMode.Partial, 0)
+                        new ResetPrinter { LengthInBytes = 2 },
+                        new SetFont(0, false, false) { LengthInBytes = 3 },
+                        new SetCodePage("866") { LengthInBytes = 3 },
+                        new SetFont(0, false, false) { LengthInBytes = 3 },
+                        new SetJustification(TextJustification.Right) { LengthInBytes = 3 },
+                        new SetBarcodeHeight(101) { LengthInBytes = 3 },
+                        new SetBarcodeModuleWidth(3) { LengthInBytes = 3 },
+                        new SetBarcodeLabelPosition(BarcodeLabelPosition.Below) { LengthInBytes = 3 },
+                        new PrintBarcodeUpload(BarcodeSymbology.Ean13, "1234567890128") { LengthInBytes = 17 },
+                        new SetJustification(TextJustification.Left) { LengthInBytes = 3 },
+                        new FlushLineBufferAndFeed { LengthInBytes = 1 },
+                        new Pagecut(PagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
                     expectedFinalizedElements:
                     [
-                        new ResetPrinter(),
-                        new SetFont(0, false, false),
-                        new SetCodePage("866"),
-                        new SetFont(0, false, false),
-                        new SetJustification(TextJustification.Right),
-                        new SetBarcodeHeight(101),
-                        new SetBarcodeModuleWidth(3),
-                        new SetBarcodeLabelPosition(BarcodeLabelPosition.Below),
-                        new PrintBarcode(BarcodeSymbology.Ean13, "1234567890128", 0, 0, Media.CreateDefaultPng(1)),
-                        new SetJustification(TextJustification.Left),
-                        new FlushLineBufferAndFeed(),
-                        new Pagecut(PagecutMode.Partial, 0)
+                        new ResetPrinter { LengthInBytes = 2 },
+                        new SetFont(0, false, false) { LengthInBytes = 3 },
+                        new SetCodePage("866") { LengthInBytes = 3 },
+                        new SetFont(0, false, false) { LengthInBytes = 3 },
+                        new SetJustification(TextJustification.Right) { LengthInBytes = 3 },
+                        new SetBarcodeHeight(101) { LengthInBytes = 3 },
+                        new SetBarcodeModuleWidth(3) { LengthInBytes = 3 },
+                        new SetBarcodeLabelPosition(BarcodeLabelPosition.Below) { LengthInBytes = 3 },
+                        new PrintBarcode(BarcodeSymbology.Ean13, "1234567890128", 0, 0, Media.CreateDefaultPng(1)) { LengthInBytes = 17 },
+                        new SetJustification(TextJustification.Left) { LengthInBytes = 3 },
+                        new FlushLineBufferAndFeed { LengthInBytes = 1 },
+                        new Pagecut(PagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ]),
                 ["case04"] = (
                     expectedRequestElement:
                     [
-                        new ResetPrinter(),
-                        new SetFont(0, false, false),
-                        new SetCodePage("866"),
-                        new SetJustification(TextJustification.Left),
-                        new SetQrModel(QrModel.Model2),
-                        new SetQrModuleSize(7),
-                        new SetQrErrorCorrection(QrErrorCorrectionLevel.Low),
-                        new StoreQrData("https://google.com"),
-                        new PrintQrCodeUpload(),
-                        new FlushLineBufferAndFeed(),
-                        new Pagecut(PagecutMode.Partial, 0)
+                        new ResetPrinter { LengthInBytes = 2 },
+                        new SetFont(0, false, false) { LengthInBytes = 3 },
+                        new SetCodePage("866") { LengthInBytes = 3 },
+                        new SetJustification(TextJustification.Left) { LengthInBytes = 3 },
+                        new SetQrModel(QrModel.Model2) { LengthInBytes = 9 },
+                        new SetQrModuleSize(7) { LengthInBytes = 8 },
+                        new SetQrErrorCorrection(QrErrorCorrectionLevel.Low) { LengthInBytes = 8 },
+                        new StoreQrData("https://google.com") { LengthInBytes = 26 },
+                        new PrintQrCodeUpload { LengthInBytes = 8 },
+                        new FlushLineBufferAndFeed { LengthInBytes = 1 },
+                        new Pagecut(PagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
                     expectedFinalizedElements:
                     [
-                        new ResetPrinter(),
-                        new SetFont(0, false, false),
-                        new SetCodePage("866"),
-                        new SetJustification(TextJustification.Left),
-                        new SetQrModel(QrModel.Model2),
-                        new SetQrModuleSize(7),
-                        new SetQrErrorCorrection(QrErrorCorrectionLevel.Low),
-                        new StoreQrData("https://google.com"),
-                        new PrintQrCode("https://google.com", 0, 0, Media.CreateDefaultPng(2)),
-                        new FlushLineBufferAndFeed(),
-                        new Pagecut(PagecutMode.Partial, 0)
+                        new ResetPrinter { LengthInBytes = 2 },
+                        new SetFont(0, false, false) { LengthInBytes = 3 },
+                        new SetCodePage("866") { LengthInBytes = 3 },
+                        new SetJustification(TextJustification.Left) { LengthInBytes = 3 },
+                        new SetQrModel(QrModel.Model2) { LengthInBytes = 9 },
+                        new SetQrModuleSize(7) { LengthInBytes = 8 },
+                        new SetQrErrorCorrection(QrErrorCorrectionLevel.Low) { LengthInBytes = 8 },
+                        new StoreQrData("https://google.com") { LengthInBytes = 26 },
+                        new PrintQrCode("https://google.com", 0, 0, Media.CreateDefaultPng(2)) { LengthInBytes = 8 },
+                        new FlushLineBufferAndFeed { LengthInBytes = 1 },
+                        new Pagecut(PagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ]), // the same as elements
                 ["case05"] = (
                     expectedRequestElement:
                         [
-                            new ResetPrinter(),
-                            new SetFont(0, false, false),
-                            new StoredLogo(0),
-                            new Pagecut(PagecutMode.Partial, 0)
+                            new ResetPrinter { LengthInBytes = 2 },
+                            new SetFont(0, false, false) { LengthInBytes = 3 },
+                            new StoredLogo(0) { LengthInBytes = 4 },
+                            new Pagecut(PagecutMode.Partial, 0) { LengthInBytes = 4 }
                         ],
                         expectedFinalizedElements: null), // the same as elements
             };

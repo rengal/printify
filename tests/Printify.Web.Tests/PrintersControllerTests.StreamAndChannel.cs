@@ -17,7 +17,7 @@ public sealed partial class PrintersControllerTests
         await AuthHelper.CreateWorkspaceAndLogin(environment);
 
         // Step 1: Subscribe to status stream before creating printers to capture starting/started events.
-        var startStatusTask = ListenForStatusEventsAsync(client, expectedCount: n * 2, timeout: TimeSpan.FromSeconds(15), breakOnDistinct: false);
+        var startStatusTask = ListenForStatusEventsAsync(client, expectedCount: n * 2, timeout: TimeSpan.FromSeconds(2), breakOnDistinct: false);
 
         // Step 2: Create printers (server auto-starts listeners)
         var printerIds = new List<Guid>(n);
@@ -53,7 +53,7 @@ public sealed partial class PrintersControllerTests
         }
 
         // Step 5: Stop all printers and wait for stopped events
-        var stopStatusTask = ListenForStatusEventsAsync(client, expectedCount: n, timeout: TimeSpan.FromSeconds(10), breakOnDistinct: true);
+        var stopStatusTask = ListenForStatusEventsAsync(client, expectedCount: n, timeout: TimeSpan.FromSeconds(2), breakOnDistinct: true);
         foreach (var printerId in printerIds)
         {
             var stopResponse = await client.PostAsJsonAsync($"/api/printers/{printerId}/status", new SetPrinterStatusRequestDto { TargetStatus = "Stopped" });

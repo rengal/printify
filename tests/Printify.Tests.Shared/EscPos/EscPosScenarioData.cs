@@ -233,6 +233,16 @@ public static class EscPosScenarioData
             ])
     ];
 
+    public static TheoryData<EscPosScenario> LineSpacingScenarios { get; } =
+    [
+        new(
+            Input: [Esc, 0x33, 0x40],
+            ExpectedRequestElements: [new SetLineSpacing(0x40) { LengthInBytes = 3 }]),
+        new(
+            Input: [Esc, 0x32],
+            ExpectedRequestElements: [new ResetLineSpacing() { LengthInBytes = 2 }])
+    ];
+
     public static TheoryData<EscPosScenario> CodePageScenarios { get; }
 
     private static TheoryData<EscPosScenario> BuildCodePageScenarios(IReadOnlyList<CodePageVector> codePages)

@@ -70,7 +70,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(stepMs));
         await nextEventTask.WaitAsync(TimeSpan.FromMilliseconds(500));
 
-        var expectedElements = new List<Element> { new Bell() };
+        var expectedElements = new List<Element> { new Bell {LengthInBytes = 1} };
 
         Assert.True(nextEventTask.Result);
         var documentEvent = streamEnumerator.Current;

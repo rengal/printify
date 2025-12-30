@@ -167,7 +167,8 @@ public sealed class PrintJobSessionsOrchestrator(
                         // Preserve the original command bytes for downstream diagnostics.
                         resultElements.Add(new RasterImage(imageUpload.Width, imageUpload.Height, savedMedia)
                         {
-                            CommandRaw = sourceElement.CommandRaw
+                            CommandRaw = sourceElement.CommandRaw,
+                            LengthInBytes = sourceElement.LengthInBytes
                         });
                         break;
                     case PrintQrCodeUpload:
@@ -177,7 +178,8 @@ public sealed class PrintJobSessionsOrchestrator(
                             resultElements.Add(new PrintQrCode(qrState.Payload, imageUpload.Width, imageUpload.Height,
                                 savedMedia)
                             {
-                                CommandRaw = sourceElement.CommandRaw
+                                CommandRaw = sourceElement.CommandRaw,
+                                LengthInBytes = sourceElement.LengthInBytes
                             });
                         }
                         break;
@@ -187,7 +189,8 @@ public sealed class PrintJobSessionsOrchestrator(
                             imageUpload.Width, imageUpload.Height,
                             savedMedia)
                         {
-                            CommandRaw = sourceElement.CommandRaw
+                            CommandRaw = sourceElement.CommandRaw,
+                            LengthInBytes = sourceElement.LengthInBytes
                         });
                         break;
                 }
