@@ -72,7 +72,7 @@ printify.db
 
 # Local configuration
 appsettings.json
-appsettings.*.local.json
+**/*.local.json
 
 # Azure publish
 *.publishsettings
