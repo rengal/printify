@@ -385,6 +385,60 @@ public sealed class WorkspaceSummaryTests(WebApplicationFactory<Program> factory
         Assert.All(summaries, s => Assert.Equal(firstTimestamp, s.LastDocumentAt!.Value));
     }
 
+    [Fact]
+    public async Task GetSummary_WithHighLoad_AggregatesCorrectly()
+    {
+        // Arrange
+        const int printerCount = 10;
+        const int documentsPerPrinter = 100;
+
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var client = environment.Client;
+        await AuthHelper.CreateWorkspaceAndLogin(environment);
+
+        var printerIds = new List<Guid>();
+        for (int i = 0; i < printerCount; i++)
+        {
+            var printerId = Guid.NewGuid();
+            printerIds.Add(printerId);
+            await client.PostAsJsonAsync("/api/printers",
+                new CreatePrinterRequestDto(printerId, $"Printer {i}", "EscPos", 384, null, false, null, null));
+        }
+
+        // Act
+        var tasks = new List<Task>();
+        foreach (var printerId in printerIds)
+        {
+            tasks.Add(ProcessPrinterAsync(environment, printerId, documentsPerPrinter));
+        }
+
+        await Task.WhenAll(tasks);
+
+        var response = await client.GetAsync("/api/workspaces/summary");
+        response.EnsureSuccessStatusCode();
+        var summary = await response.Content.ReadFromJsonAsync<WorkspaceSummaryDto>();
+
+        // Assert
+        Assert.NotNull(summary);
+        Assert.Equal(printerCount, summary.TotalPrinters);
+        Assert.Equal(printerCount * documentsPerPrinter, summary.TotalDocuments);
+        Assert.Equal(printerCount * documentsPerPrinter, summary.DocumentsLast24h);
+        Assert.NotNull(summary.LastDocumentAt);
+
+        async Task ProcessPrinterAsync(TestServiceContext.ControllerTestContext env, Guid pid, int count)
+        {
+            await using var documentStream = env.DocumentStream
+                .Subscribe(pid, CancellationToken.None)
+                .GetAsyncEnumerator();
+
+            for (int i = 0; i < count; i++)
+            {
+                await SendDocumentAsync(pid, $"Receipt {i}");
+                await documentStream.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10));
+            }
+        }
+    }
+
     // Helper method to send document via printer listener
     private static async Task SendDocumentAsync(Guid printerId, string text)
     {

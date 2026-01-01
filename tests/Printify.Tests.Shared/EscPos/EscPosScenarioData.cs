@@ -176,7 +176,7 @@ public static class EscPosScenarioData
             ],
             ExpectedPersistedElements:
             [
-                new RasterImage(8, 2, Media.CreateDefaultPng(90)) { LengthInBytes = 10 }
+                new RasterImage(8, 2, Media.CreateDefaultPng(112)) { LengthInBytes = 10 }
             ]),
 
         // GS v 0: All bits set (8x2, all colored pixels)
@@ -199,7 +199,7 @@ public static class EscPosScenarioData
             ],
             ExpectedPersistedElements:
             [
-                new RasterImage(8, 2, Media.CreateDefaultPng(90)) { LengthInBytes = 10 }
+                new RasterImage(8, 2, Media.CreateDefaultPng(97)) { LengthInBytes = 10 }
             ]),
 
         // GS v 0: All bits unset (8x2, all transparent pixels)
@@ -222,7 +222,7 @@ public static class EscPosScenarioData
             ],
             ExpectedPersistedElements:
             [
-                new RasterImage(8, 2, Media.CreateDefaultPng(90)) { LengthInBytes = 10 }
+                new RasterImage(8, 2, Media.CreateDefaultPng(97)) { LengthInBytes = 10 }
             ]),
 
         // GS v 0: Checkerboard pattern (8x2)
@@ -245,7 +245,7 @@ public static class EscPosScenarioData
             ],
             ExpectedPersistedElements:
             [
-                new RasterImage(8, 2, Media.CreateDefaultPng(90)) { LengthInBytes = 10 }
+                new RasterImage(8, 2, Media.CreateDefaultPng(101)) { LengthInBytes = 10 }
             ])
     ];
 
