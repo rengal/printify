@@ -62,10 +62,11 @@ public sealed class FileSystemMediaStorage : IMediaStorage
         var mediaId = Guid.NewGuid();
         var blobId = mediaId.ToString("N");
         var extension = DetermineFileExtension(upload.ContentType);
-        var fileName = GetDataPath(blobId, extension);
-        Directory.CreateDirectory(Path.GetDirectoryName(fileName)!);
+        var relativePath = GetRelativePath(blobId, extension);
+        var fullPath = Path.Combine(rootPath, relativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
 
-        await using (var file = new FileStream(fileName, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920,
+        await using (var file = new FileStream(fullPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920,
                          useAsync: true))
         {
             if (!upload.Content.IsEmpty)
@@ -84,7 +85,7 @@ public sealed class FileSystemMediaStorage : IMediaStorage
             upload.ContentType,
             upload.Content.Length,
             sha256Checksum,
-            fileName,
+            relativePath,
             url);
     }
 
@@ -99,12 +100,13 @@ public sealed class FileSystemMediaStorage : IMediaStorage
             return null;
         }
 
-        if (!File.Exists(media.FileName))
+        var fullPath = GetFullPath(media.FileName);
+        if (!File.Exists(fullPath))
         {
             return null;
         }
 
-        Stream stream = new FileStream(media.FileName, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+        Stream stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
         return stream;
     }
 
@@ -119,13 +121,18 @@ public sealed class FileSystemMediaStorage : IMediaStorage
             return;
         }
 
-        TryDelete(media.FileName);
+        TryDelete(GetFullPath(media.FileName));
     }
 
-    private string GetDataPath(string blobId, string extension)
+    private string GetRelativePath(string blobId, string extension)
     {
         var shards = GetShardPath(blobId);
-        return Path.Combine(rootPath, shards.folder1, shards.folder2, blobId + "." + extension);
+        return Path.Combine(shards.folder1, shards.folder2, blobId + "." + extension);
+    }
+
+    private string GetFullPath(string path)
+    {
+        return Path.IsPathRooted(path) ? path : Path.Combine(rootPath, path);
     }
 
     private static string ToBlobId(Guid mediaId)
