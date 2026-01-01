@@ -18,6 +18,44 @@
         let documentStreamPrinterId = null;
         let debugMode = false;
 
+        // Icon cache
+        const iconCache = {};
+
+        async function loadIcon(name) {
+            if (iconCache[name]) {
+                return iconCache[name];
+            }
+            try {
+                const response = await fetch(`assets/icons/${name}.svg`);
+                const svgText = await response.text();
+                iconCache[name] = svgText;
+                return svgText;
+            } catch (err) {
+                console.error(`Failed to load icon ${name}:`, err);
+                return '';
+            }
+        }
+
+        function getIcon(name, options = {}) {
+            const svg = iconCache[name] || '';
+            if (!svg) return '';
+
+            let result = svg;
+            if (options.width) {
+                result = result.replace(/width="[^"]*"/, `width="${options.width}"`);
+            }
+            if (options.height) {
+                result = result.replace(/height="[^"]*"/, `height="${options.height}"`);
+            }
+            if (options.stroke) {
+                result = result.replace(/stroke="[^"]*"/g, `stroke="${options.stroke}"`);
+            }
+            if (options.class) {
+                result = result.replace(/<svg/, `<svg class="${options.class}"`);
+            }
+            return result;
+        }
+
         function authHeaders() {
             return accessToken
                 ? { 'Authorization': `Bearer ${accessToken}` }
@@ -268,7 +306,12 @@
 
             let statusIcon = '';
             if (isStopped) {
-                statusIcon = '<svg class="stopped-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+                statusIcon = getIcon('alert-triangle', {
+                    width: '18',
+                    height: '18',
+                    stroke: '#ef4444',
+                    class: 'stopped-icon'
+                });
             }
 
             return `
@@ -1002,23 +1045,92 @@
             }
         }
 
+        async function showConfirmDialog(title, message, confirmText, onConfirm, isDanger = false) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            const iconColor = isDanger ? '#ef4444' : '#3b82f6';
+
+            // Load icon from cache (or fetch if not cached)
+            const iconName = isDanger ? 'alert-triangle' : 'alert-circle';
+            await loadIcon(iconName);
+
+            const icon = getIcon(iconName, {
+                width: '28',
+                height: '28',
+                stroke: iconColor
+            }).replace('<svg', '<svg style="flex-shrink: 0;"');
+
+            modal.innerHTML = `
+            <div class="modal" style="max-width: 420px;">
+              <div class="modal-header" style="display: flex; align-items: center; gap: 12px;">
+                ${icon}
+                <span>${title}</span>
+              </div>
+              <div class="modal-body">
+                <p style="color: var(--text); margin: 0; font-size: 15px; line-height: 1.6;">${message}</p>
+                <div class="form-actions">
+                  <button class="btn btn-secondary" onclick="closeConfirmDialog()">Cancel</button>
+                  <button class="btn ${isDanger ? 'btn-danger' : 'btn-primary'}" onclick="confirmDialogAction()">${confirmText}</button>
+                </div>
+              </div>
+            </div>
+          `;
+
+            window.closeConfirmDialog = () => {
+                modal.remove();
+                delete window.closeConfirmDialog;
+                delete window.confirmDialogAction;
+            };
+
+            window.confirmDialogAction = () => {
+                modal.remove();
+                delete window.closeConfirmDialog;
+                delete window.confirmDialogAction;
+                onConfirm();
+            };
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    window.closeConfirmDialog();
+                }
+            });
+
+            document.body.appendChild(modal);
+        }
+
         async function deletePrinter(printerId) {
-            if (!confirm('Delete this printer?')) {
-                return;
+            const printer = printers.find(p => p.id === printerId);
+            if (!printer) return;
+
+            const docCount = (documents[printerId] || []).length;
+            let message = `Are you sure you want to delete "<strong>${escapeHtml(printer.name)}</strong>"?`;
+
+            if (docCount > 0) {
+                message += `<br><br>This will also delete <strong>${docCount}</strong> document${docCount !== 1 ? 's' : ''}.`;
             }
 
-            try {
-                await apiRequest(`/api/printers/${printerId}`, { method: 'DELETE' });
-                if (selectedPrinterId === printerId) {
-                    selectedPrinterId = null;
-                }
-                await loadPrinters();
-                renderDocuments();
-                showToast('Printer deleted');
-            } catch (err) {
-                console.error(err);
-                showToast(err.message || 'Failed to delete printer', true);
-            }
+            message += '<br><br>This action cannot be undone.';
+
+            await showConfirmDialog(
+                escapeHtml('Delete Printer'),
+                message,
+                escapeHtml('Delete Printer'),
+                async () => {
+                    try {
+                        await apiRequest(`/api/printers/${printerId}`, { method: 'DELETE' });
+                        if (selectedPrinterId === printerId) {
+                            selectedPrinterId = null;
+                        }
+                        await loadPrinters();
+                        renderDocuments();
+                        showToast('Printer deleted');
+                    } catch (err) {
+                        console.error(err);
+                        showToast(err.message || 'Failed to delete printer', true);
+                    }
+                },
+                true
+            );
         }
 
         async function setPrinterStatus(printerId, targetStatus) {
@@ -1050,26 +1162,44 @@
         }
 
         async function clearDocuments(printerId) {
-            if (!confirm('Clear all documents for this printer?')) {
-                return;
+            const printer = printers.find(p => p.id === printerId);
+            if (!printer) return;
+
+            const docCount = (documents[printerId] || []).length;
+            let message;
+
+            if (docCount === 0) {
+                message = `Clear document history for "<strong>${escapeHtml(printer.name)}</strong>"?`;
+            } else if (docCount === 1) {
+                message = `Clear <strong>1</strong> document from "<strong>${escapeHtml(printer.name)}</strong>"?<br><br>This cannot be undone.`;
+            } else {
+                message = `Clear all <strong>${docCount}</strong> documents from "<strong>${escapeHtml(printer.name)}</strong>"?<br><br>This cannot be undone.`;
             }
 
-            try {
-                // Delete server-side documents so the printer history is cleared.
-                await apiRequest(`/api/printers/${printerId}/documents`, { method: 'DELETE' });
-                // Reset cached documents to match the server state.
-                documents[printerId] = [];
+            await showConfirmDialog(
+                escapeHtml('Clear Documents'),
+                message,
+                escapeHtml('Clear Documents'),
+                async () => {
+                    try {
+                        // Delete server-side documents so the printer history is cleared.
+                        await apiRequest(`/api/printers/${printerId}/documents`, { method: 'DELETE' });
+                        // Reset cached documents to match the server state.
+                        documents[printerId] = [];
 
-                if (selectedPrinterId === printerId) {
-                    renderDocuments();
-                }
+                        if (selectedPrinterId === printerId) {
+                            renderDocuments();
+                        }
 
-                showToast('Documents cleared');
-            }
-            catch (err) {
-                console.error(err);
-                showToast(err.message || 'Failed to clear documents', true);
-            }
+                        showToast('Documents cleared');
+                    }
+                    catch (err) {
+                        console.error(err);
+                        showToast(err.message || 'Failed to clear documents', true);
+                    }
+                },
+                true
+            );
         }
 
         function openNewPrinterDialog() {
@@ -1870,6 +2000,9 @@
         updateUserDisplay();
         renderSidebar();
         renderDocuments();
+
+        // Preload icons
+        loadIcon('alert-triangle');
 
         // Restore sidebar state
         const sidebarMinimized = localStorage.getItem('sidebarMinimized') === 'true';

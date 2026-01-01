@@ -439,6 +439,126 @@ public sealed class WorkspaceSummaryTests(WebApplicationFactory<Program> factory
         }
     }
 
+    [Fact]
+    public async Task GetSummary_ConcurrentDocuments_StatsAccurateAfterEach()
+    {
+        // Arrange: Create 2 printers that will send documents concurrently
+        // Reduced from 3 to avoid database contention issues in SQLite
+        const int printerCount = 2;
+        const int documentsPerPrinter = 30;
+
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var client = environment.Client;
+        await AuthHelper.CreateWorkspaceAndLogin(environment);
+
+        var printerIds = new List<Guid>();
+        for (int i = 0; i < printerCount; i++)
+        {
+            var printerId = Guid.NewGuid();
+            printerIds.Add(printerId);
+            await client.PostAsJsonAsync("/api/printers",
+                new CreatePrinterRequestDto(printerId, $"Concurrent Printer {i}", "EscPos", 384, null, false, null, null));
+        }
+
+        // Act: Send documents concurrently and verify stats after EACH document
+        var tasks = new List<Task>();
+        var statsLock = new SemaphoreSlim(1, 1);
+        var totalDocsReceived = 0;
+        var errors = new List<string>();
+
+        foreach (var printerId in printerIds)
+        {
+            tasks.Add(ProcessPrinterWithStatsCheckAsync(environment, client, printerId, documentsPerPrinter));
+        }
+
+        await Task.WhenAll(tasks);
+
+        // Final verification
+        var finalResponse = await client.GetAsync("/api/workspaces/summary");
+        finalResponse.EnsureSuccessStatusCode();
+        var finalSummary = await finalResponse.Content.ReadFromJsonAsync<WorkspaceSummaryDto>();
+
+        Assert.NotNull(finalSummary);
+        Assert.Equal(printerCount, finalSummary.TotalPrinters);
+        Assert.Equal(printerCount * documentsPerPrinter, finalSummary.TotalDocuments);
+        Assert.Equal(printerCount * documentsPerPrinter, finalSummary.DocumentsLast24h);
+        Assert.Empty(errors); // No stats errors during concurrent processing
+
+        async Task ProcessPrinterWithStatsCheckAsync(
+            TestServiceContext.ControllerTestContext env,
+            HttpClient httpClient,
+            Guid pid,
+            int count)
+        {
+            await using var documentStream = env.DocumentStream
+                .Subscribe(pid, CancellationToken.None)
+                .GetAsyncEnumerator();
+
+            for (int i = 0; i < count; i++)
+            {
+                // Send document
+                await SendDocumentAsync(pid, $"Doc {i}");
+                await documentStream.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10));
+
+                // Increment total and check stats (with lock to serialize stat checks)
+                await statsLock.WaitAsync();
+                try
+                {
+                    totalDocsReceived++;
+
+                    // Small delay to let DB writes complete
+                    await Task.Delay(10);
+
+                    // Verify stats reflect at least the documents we know were sent
+                    var response = await httpClient.GetAsync("/api/workspaces/summary");
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        errors.Add($"HTTP {response.StatusCode} at {totalDocsReceived} documents: {errorContent}");
+                        return;
+                    }
+
+                    var summary = await response.Content.ReadFromJsonAsync<WorkspaceSummaryDto>();
+
+                    if (summary is null)
+                    {
+                        errors.Add($"Null summary after {totalDocsReceived} documents");
+                        return;
+                    }
+
+                    // Stats should be >= totalDocsReceived (may be higher due to concurrent threads)
+                    if (summary.TotalDocuments < totalDocsReceived)
+                    {
+                        errors.Add($"Expected at least {totalDocsReceived} documents, got {summary.TotalDocuments}");
+                    }
+
+                    if (summary.DocumentsLast24h < totalDocsReceived)
+                    {
+                        errors.Add($"Expected at least {totalDocsReceived} docs in last 24h, got {summary.DocumentsLast24h}");
+                    }
+
+                    if (summary.TotalPrinters != printerCount)
+                    {
+                        errors.Add($"Expected {printerCount} printers, got {summary.TotalPrinters}");
+                    }
+
+                    // Sample check every 10 documents to avoid too much logging
+                    if (totalDocsReceived % 10 == 0)
+                    {
+                        Assert.NotNull(summary.LastDocumentAt);
+                        Assert.True((DateTimeOffset.UtcNow - summary.LastDocumentAt!.Value).TotalSeconds < 30,
+                            $"LastDocumentAt too old at {totalDocsReceived} documents");
+                    }
+                }
+                finally
+                {
+                    statsLock.Release();
+                }
+            }
+        }
+    }
+
     // Helper method to send document via printer listener
     private static async Task SendDocumentAsync(Guid printerId, string text)
     {
