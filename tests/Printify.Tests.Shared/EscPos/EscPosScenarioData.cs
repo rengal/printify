@@ -1,10 +1,10 @@
 using System.Text;
+using Printify.Domain.Media;
+using Printify.Infrastructure.Media;
+using Printify.Domain.Documents.Elements;
+using Xunit;
 
 namespace Printify.Tests.Shared.EscPos;
-
-using Domain.Documents.Elements;
-using Domain.Media;
-using Xunit;
 
 /// <summary>
 /// Provides reusable ESC/POS parser scenarios for unit and integration tests.
@@ -154,29 +154,111 @@ public static class EscPosScenarioData
 
     public static TheoryData<EscPosScenario> RasterImageScenarios { get; } =
     [
-        // GS v 0: Print raster bit image
-        // Format: GS v 0 m xL xH yL yH [data]
+        // GS v 0: Print raster bit image - 8x2 partially set (with pixel verification)
+        // Row 0: 11100000 (3 colored, 5 transparent)
+        // Row 1: 00011000 (2 colored at positions 3-4)
         new(
             Input:
             [
                 Gs, (byte)'v', 0x30, 0x00, // GS v 0 m: Print raster, m=0 (normal mode)
                 0x01, 0x00, // xL xH: width in bytes (1 byte = 8 dots)
-                0x01, 0x00, // yL yH: height in dots (1 dot)
-                0xFF // Bitmap data: 8 black pixels (11111111)
+                0x02, 0x00, // yL yH: height in dots (2 rows)
+                0b11100000, // Row 0: XXX_____ (X=colored/set, _=transparent/unset)
+                0b00011000  // Row 1: ___XX___ (X=colored/set, _=transparent/unset)
             ],
             ExpectedRequestElements:
             [
-                // Note: PNG data, length, and checksum are not generated in this test scenario as they would require complex image encoding.
-                // The empty ReadOnlyMemory<byte> is used as a placeholder to verify command parsing structure.
-                new RasterImageUpload(8, 1, new MediaUpload("image/png", ReadOnlyMemory<byte>.Empty)) { LengthInBytes = 9 }
+                new RasterImageUpload(
+                    Width: 8,
+                    Height: 2,
+                    Media: CreateExpectedRasterMedia(8, 2, [0b11100000, 0b00011000]))
+                { LengthInBytes = 10 }
             ],
             ExpectedPersistedElements:
             [
-                // Note: PNG data, length, and checksum are not generated in this test scenario as they would require complex image encoding.
-                // The empty ReadOnlyMemory<byte> is used as a placeholder to verify command parsing structure.
-                new RasterImage(8, 1, Media.CreateDefaultPng(90)) { LengthInBytes = 9 }
+                new RasterImage(8, 2, Media.CreateDefaultPng(90)) { LengthInBytes = 10 }
+            ]),
+
+        // GS v 0: All bits set (8x2, all colored pixels)
+        new(
+            Input:
+            [
+                Gs, (byte)'v', 0x30, 0x00,
+                0x01, 0x00, // width: 1 byte = 8 pixels
+                0x02, 0x00, // height: 2 rows
+                0xFF,       // Row 0: all colored
+                0xFF        // Row 1: all colored
+            ],
+            ExpectedRequestElements:
+            [
+                new RasterImageUpload(
+                    Width: 8,
+                    Height: 2,
+                    Media: CreateExpectedRasterMedia(8, 2, [0xFF, 0xFF]))
+                { LengthInBytes = 10 }
+            ],
+            ExpectedPersistedElements:
+            [
+                new RasterImage(8, 2, Media.CreateDefaultPng(90)) { LengthInBytes = 10 }
+            ]),
+
+        // GS v 0: All bits unset (8x2, all transparent pixels)
+        new(
+            Input:
+            [
+                Gs, (byte)'v', 0x30, 0x00,
+                0x01, 0x00, // width: 1 byte = 8 pixels
+                0x02, 0x00, // height: 2 rows
+                0x00,       // Row 0: all transparent
+                0x00        // Row 1: all transparent
+            ],
+            ExpectedRequestElements:
+            [
+                new RasterImageUpload(
+                    Width: 8,
+                    Height: 2,
+                    Media: CreateExpectedRasterMedia(8, 2, [0x00, 0x00]))
+                { LengthInBytes = 10 }
+            ],
+            ExpectedPersistedElements:
+            [
+                new RasterImage(8, 2, Media.CreateDefaultPng(90)) { LengthInBytes = 10 }
+            ]),
+
+        // GS v 0: Checkerboard pattern (8x2)
+        new(
+            Input:
+            [
+                Gs, (byte)'v', 0x30, 0x00,
+                0x01, 0x00, // width: 1 byte = 8 pixels
+                0x02, 0x00, // height: 2 rows
+                0b10101010, // Row 0: X_X_X_X_
+                0b01010101  // Row 1: _X_X_X_X
+            ],
+            ExpectedRequestElements:
+            [
+                new RasterImageUpload(
+                    Width: 8,
+                    Height: 2,
+                    Media: CreateExpectedRasterMedia(8, 2, [0b10101010, 0b01010101]))
+                { LengthInBytes = 10 }
+            ],
+            ExpectedPersistedElements:
+            [
+                new RasterImage(8, 2, Media.CreateDefaultPng(90)) { LengthInBytes = 10 }
             ])
     ];
+
+    /// <summary>
+    /// Creates expected raster image media by converting MonochromeBitmap to PNG.
+    /// This generates the exact expected output for pixel verification.
+    /// </summary>
+    private static MediaUpload CreateExpectedRasterMedia(int width, int height, byte[] bitmapData)
+    {
+        var bitmap = new MonochromeBitmap(width, height, bitmapData);
+        var mediaService = new MediaService();
+        return mediaService.ConvertToMediaUpload(bitmap);
+    }
 
     public static TheoryData<EscPosScenario> FontStyleScenarios { get; } =
     [

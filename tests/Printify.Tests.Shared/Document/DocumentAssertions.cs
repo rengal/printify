@@ -6,6 +6,9 @@ using Printify.Web.Contracts.Documents.Responses;
 using Printify.Web.Contracts.Documents.Responses.Elements;
 using Printify.Web.Contracts.Documents.Shared.Elements;
 using Printify.Web.Mapping;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.PixelFormats;
 using PrinterError = Printify.Domain.Documents.Elements.PrinterError;
 
 namespace Printify.Tests.Shared.Document;
@@ -112,6 +115,16 @@ public static class DocumentAssertions
                     Assert.Equal(expectedRasterImageUpload.Height, actualRasterImageUpload.Height);
                     Assert.Equal(expectedRasterImageUpload.Media.ContentType, actualRasterImageUpload.Media.ContentType);
                     Assert.True(actualRasterImageUpload.Media.Content.Length > 0);
+
+                    // If expected media has content, verify pixels match
+                    if (expectedRasterImageUpload.Media.Content.Length > 0)
+                    {
+                        AssertImagePixelsMatch(
+                            expectedRasterImageUpload.Media.Content.ToArray(),
+                            actualRasterImageUpload.Media.Content.ToArray(),
+                            expectedRasterImageUpload.Width,
+                            expectedRasterImageUpload.Height);
+                    }
                     break;
                 case RasterImage expectedRasterImage:
                     var actualRasterImage = Assert.IsType<RasterImage>(actualElement);
@@ -179,6 +192,50 @@ public static class DocumentAssertions
             CommandRaw = actual.CommandRaw,
             LengthInBytes = actual.LengthInBytes
         };
+    }
+
+    /// <summary>
+    /// Verifies that two images have matching pixels at the binary level:
+    /// - Colored pixels (alpha > 0) must match between expected and actual
+    /// - Transparent pixels (alpha == 0) must match between expected and actual
+    /// Format-agnostic: works with any image format ImageSharp supports.
+    /// </summary>
+    private static void AssertImagePixelsMatch(
+        byte[] expectedImageData,
+        byte[] actualImageData,
+        int expectedWidth,
+        int expectedHeight)
+    {
+        using var expectedImage = Image.Load<Rgba32>(expectedImageData);
+        using var actualImage = Image.Load<Rgba32>(actualImageData);
+
+        Assert.Equal(expectedWidth, expectedImage.Width);
+        Assert.Equal(expectedHeight, expectedImage.Height);
+        Assert.Equal(expectedWidth, actualImage.Width);
+        Assert.Equal(expectedHeight, actualImage.Height);
+
+        // Verify pixels match at binary level (colored vs transparent)
+        for (int y = 0; y < expectedHeight; y++)
+        {
+            var expectedRow = expectedImage.DangerousGetPixelRowMemory(y).Span;
+            var actualRow = actualImage.DangerousGetPixelRowMemory(y).Span;
+
+            for (int x = 0; x < expectedWidth; x++)
+            {
+                var expectedPixel = expectedRow[x];
+                var actualPixel = actualRow[x];
+
+                // Binary check: both transparent OR both colored
+                var expectedIsTransparent = expectedPixel.A == 0;
+                var actualIsTransparent = actualPixel.A == 0;
+
+                Assert.True(
+                    expectedIsTransparent == actualIsTransparent,
+                    $"Pixel at ({x},{y}) mismatch: expected {(expectedIsTransparent ? "transparent" : "colored")}, " +
+                    $"got {(actualIsTransparent ? "transparent" : "colored")} " +
+                    $"(expected A={expectedPixel.A}, actual A={actualPixel.A})");
+            }
+        }
     }
     /*
     public static void Equal(Domain.Documents.Document expected, DocumentDto actual)

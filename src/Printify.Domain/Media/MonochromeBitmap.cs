@@ -3,6 +3,10 @@ namespace Printify.Domain.Media;
 /// <summary>
 /// Represents a memory-efficient monochrome (1-bit per pixel) bitmap.
 /// Uses packed bits for minimal memory footprint - 1 byte stores 8 pixels.
+///
+/// Bit Semantics:
+/// - Set bit (1): Dot is marked/printed (black dot on thermal paper)
+/// - Unset bit (0): Dot is not marked (transparent, no printing occurs)
 /// </summary>
 public sealed class MonochromeBitmap
 {
@@ -20,6 +24,7 @@ public sealed class MonochromeBitmap
     /// Gets the raw packed bit data.
     /// Each byte contains 8 pixels (MSB = leftmost pixel).
     /// Row data is byte-aligned (padded if Width is not divisible by 8).
+    /// Set bits (1) represent marked dots, unset bits (0) represent unmarked (transparent) dots.
     /// </summary>
     public byte[] Data { get; }
 

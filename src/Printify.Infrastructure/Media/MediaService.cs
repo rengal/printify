@@ -3,8 +3,6 @@ using Printify.Domain.Documents.Elements;
 using Printify.Domain.Media;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -26,38 +24,34 @@ public sealed class MediaService : IMediaService
         ArgumentNullException.ThrowIfNull(bitmap);
         ArgumentNullException.ThrowIfNull(format);
 
-        // Convert packed bits to ImageSharp image
-        using var image = new Image<L8>(bitmap.Width, bitmap.Height);
+        // Convert packed bits to ImageSharp RGBA image with transparency
+        using var image = new Image<Rgba32>(bitmap.Width, bitmap.Height);
 
         for (int y = 0; y < bitmap.Height; y++)
         {
             var rowOffset = y * bitmap.Stride;
-            Span<L8> row = image.DangerousGetPixelRowMemory(y).Span;
-            
+            Span<Rgba32> row = image.DangerousGetPixelRowMemory(y).Span;
+
             for (int x = 0; x < bitmap.Width; x++)
             {
                 var byteIndex = rowOffset + (x / 8);
                 var bitIndex = 7 - (x % 8); // MSB = leftmost pixel
                 var isSet = (bitmap.Data[byteIndex] & (1 << bitIndex)) != 0;
 
-                // White (255) for set bits, black (0) for unset bits
-                row[x] = new L8(isSet ? (byte)255 : (byte)0);
+                // Set bit (1) = black dot (printed), unset bit (0) = transparent (not printed)
+                row[x] = isSet
+                    ? new Rgba32(0, 0, 0, 255)      // Black opaque
+                    : new Rgba32(255, 255, 255, 0); // Transparent
             }
         }
 
-        // Encode to specified format
+        // Encode to PNG format (transparency requires PNG)
         using var ms = new MemoryStream();
-        IImageEncoder encoder = format.ToLowerInvariant() switch
-        {
-            "image/jpeg" or "image/jpg" => new JpegEncoder { Quality = 90 },
-            "image/png" or _ => new PngEncoder()
-        };
-
-        image.Save(ms, encoder);
+        image.Save(ms, new PngEncoder());
         var content = ms.ToArray();
 
         return new MediaUpload(
-            ContentType: format,
+            ContentType: "image/png",
             Content: content
         );
     }
@@ -85,6 +79,7 @@ public sealed class MediaService : IMediaService
         };
 
         using var image = writer.Write(upload.Data);
+        ConvertWhiteToTransparent(image);
         var aligned = AlignToPrinter(image, printerWidth, options.Justification);
         var uploadMedia = EncodeImage(aligned);
 
@@ -116,6 +111,7 @@ public sealed class MediaService : IMediaService
         };
 
         using var image = writer.Write(data);
+        ConvertWhiteToTransparent(image);
         var aligned = AlignToPrinter(image, printerWidth, options.Justification);
         var uploadMedia = EncodeImage(aligned);
 
@@ -144,14 +140,36 @@ public sealed class MediaService : IMediaService
             _ => 0
         };
 
-        var canvas = new Image<Rgba32>(printerWidth, source.Height, Color.White);
-            
+        var canvas = new Image<Rgba32>(printerWidth, source.Height, Color.Transparent);
+
         canvas.Mutate(ctx =>
         {
             ctx.DrawImage(source, new Point(offset, 0), 1f);
         });
 
         return canvas;
+    }
+
+    /// <summary>
+    /// Converts white or near-white pixels to transparent.
+    /// Used to convert ZXing-generated images (black bars/modules on white background)
+    /// to images with transparent background for thermal printing.
+    /// </summary>
+    private static void ConvertWhiteToTransparent(Image<Rgba32> image)
+    {
+        for (int y = 0; y < image.Height; y++)
+        {
+            var row = image.DangerousGetPixelRowMemory(y).Span;
+            for (int x = 0; x < image.Width; x++)
+            {
+                var pixel = row[x];
+                // Check if pixel is white or near-white (threshold: 200 for R, G, B)
+                if (pixel.R > 200 && pixel.G > 200 && pixel.B > 200)
+                {
+                    row[x] = new Rgba32(255, 255, 255, 0); // Transparent
+                }
+            }
+        }
     }
 
     private static BarcodeFormat MapSymbology(BarcodeSymbology symbology)
