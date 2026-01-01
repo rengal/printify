@@ -83,6 +83,49 @@ public sealed class DocumentRepository : IDocumentRepository
             .LongCountAsync(ct);
     }
 
+    public Task<long> CountByWorkspaceIdAsync(Guid workspaceId, CancellationToken ct)
+    {
+        return dbContext.Documents
+            .AsNoTracking()
+            .Where(document => dbContext.Printers
+                .Where(printer => printer.OwnerWorkspaceId == workspaceId)
+                .Select(printer => printer.Id)
+                .Contains(document.PrinterId))
+            .LongCountAsync(ct);
+    }
+
+    public Task<long> CountByWorkspaceIdSinceAsync(Guid workspaceId, DateTimeOffset since, CancellationToken ct)
+    {
+        var sinceUnixMs = since.ToUnixTimeMilliseconds();
+
+        return dbContext.Documents
+            .AsNoTracking()
+            .Where(document => dbContext.Printers
+                .Where(printer => printer.OwnerWorkspaceId == workspaceId)
+                .Select(printer => printer.Id)
+                .Contains(document.PrinterId))
+            .Where(document => document.CreatedAtUnixMs >= sinceUnixMs)
+            .LongCountAsync(ct);
+    }
+
+    public async Task<DateTimeOffset?> GetLastDocumentTimestampByWorkspaceIdAsync(Guid workspaceId, CancellationToken ct)
+    {
+        var lastDocumentUnixMs = await dbContext.Documents
+            .AsNoTracking()
+            .Where(document => dbContext.Printers
+                .Where(printer => printer.OwnerWorkspaceId == workspaceId)
+                .Select(printer => printer.Id)
+                .Contains(document.PrinterId))
+            .OrderByDescending(document => document.CreatedAtUnixMs)
+            .Select(document => (long?)document.CreatedAtUnixMs)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+        return lastDocumentUnixMs.HasValue
+            ? DateTimeOffset.FromUnixTimeMilliseconds(lastDocumentUnixMs.Value)
+            : null;
+    }
+
     public async ValueTask<Media?> GetMediaByIdAsync(Guid id, CancellationToken ct)
     {
         var entity = await dbContext.DocumentMedia

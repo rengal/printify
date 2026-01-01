@@ -1,5 +1,7 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Printify.Application.Features.Workspaces.GetWorkspaceSummary;
 using Printify.Web.Contracts.Workspaces.Requests;
 using Printify.Web.Contracts.Workspaces.Responses;
 using Printify.Web.Infrastructure;
@@ -25,5 +27,18 @@ public sealed class WorkspacesController(IMediator mediator, HttpContextExtensio
         var workspaceDto = workspace.ToResponseDto();
 
         return Ok(workspaceDto);
+    }
+
+    [Authorize]
+    [HttpGet("summary")]
+    public async Task<ActionResult<WorkspaceSummaryDto>> GetSummary(CancellationToken ct)
+    {
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        var query = new GetWorkspaceSummaryQuery(httpContext);
+
+        var summary = await mediator.Send(query, ct).ConfigureAwait(false);
+        var summaryDto = summary.ToDto();
+
+        return Ok(summaryDto);
     }
 }

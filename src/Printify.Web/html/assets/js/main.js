@@ -7,6 +7,7 @@
         let workspaceName = null;
         let workspaceCreatedAt = null;
         let accessToken = null;
+        let workspaceSummary = null;
 
         // Data
         let printers = [];
@@ -88,6 +89,16 @@
 
         function getPrinterById(id) {
             return printers.find(p => p.id === id) || null;
+        }
+
+        async function loadWorkspaceSummary() {
+            try {
+                workspaceSummary = await apiRequest('/api/workspaces/summary');
+                console.debug('loadWorkspaceSummary fetched', workspaceSummary);
+            } catch (err) {
+                console.error('Failed to load workspace summary:', err);
+                workspaceSummary = null;
+            }
         }
 
         async function loadPrinters(selectId = null) {
@@ -763,7 +774,7 @@
             `;
                 documentsPanel.innerHTML = `
               <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
-                <h2>${getWelcomeMessage(workspaceName, printers, documents, workspaceCreatedAt)}</h2>
+                <h2>${getWelcomeMessage(workspaceName, workspaceSummary)}</h2>
                 <p>Select a printer to view documents</p>
               </div>
             `;
@@ -1466,6 +1477,7 @@
                     updateUserDisplay();
                 }
             startStatusStream();
+            await loadWorkspaceSummary();
             await loadPrinters();
             if (selectedPrinterId) {
                 await ensureDocumentsLoaded(selectedPrinterId);
@@ -1829,6 +1841,7 @@
                         updateUserDisplay();
                     }
                     startStatusStream();
+                    loadWorkspaceSummary();
                     loadPrinters();
                 } catch (error) {
                     console.error('Auth verification failed on startup:', error);

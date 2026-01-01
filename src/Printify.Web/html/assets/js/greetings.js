@@ -1,6 +1,6 @@
 // Greeting message generator with contextual awareness
 
-function getWelcomeMessage(name, printers, documents, workspaceCreatedAt) {
+function getWelcomeMessage(name, summary) {
     const nameStr = name ? `, ${name}` : '';
     const hour = new Date().getHours();
     const now = new Date();
@@ -8,8 +8,8 @@ function getWelcomeMessage(name, printers, documents, workspaceCreatedAt) {
     // 25% chance for contextual greeting
     const useContextual = Math.random() < 0.25;
 
-    if (useContextual && workspaceCreatedAt) {
-        const contextualGreeting = getContextualGreeting(nameStr, printers, documents, workspaceCreatedAt, now);
+    if (useContextual && summary) {
+        const contextualGreeting = getContextualGreeting(nameStr, summary, now);
         if (contextualGreeting) {
             return contextualGreeting;
         }
@@ -19,31 +19,22 @@ function getWelcomeMessage(name, printers, documents, workspaceCreatedAt) {
     return getGeneralGreeting(nameStr, hour);
 }
 
-function getContextualGreeting(nameStr, printers, documents, workspaceCreatedAt, now) {
+function getContextualGreeting(nameStr, summary, now) {
+    const workspaceCreatedAt = summary.createdAt ? new Date(summary.createdAt) : null;
+    if (!workspaceCreatedAt) {
+        return null;
+    }
+
     const workspaceAge = now - workspaceCreatedAt;
     const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
     const oneMonthMs = 30 * 24 * 60 * 60 * 1000;
-    const oneDayMs = 24 * 60 * 60 * 1000;
     const threeMinutesMs = 3 * 60 * 1000;
 
-    // Flatten all documents from all printers
-    const allDocs = Object.values(documents).flat();
+    const docsLast24h = summary.documentsLast24h || 0;
+    const lastDocumentAt = summary.lastDocumentAt ? new Date(summary.lastDocumentAt) : null;
 
-    // Count documents in last 24 hours
-    const last24hDocs = allDocs.filter(doc => {
-        return doc.timestamp && (now - doc.timestamp) < oneDayMs;
-    });
-    const docsLast24h = last24hDocs.length;
-
-    // Find most recent document
-    const mostRecentDoc = allDocs.length > 0
-        ? allDocs.reduce((latest, doc) =>
-            (doc.timestamp > latest.timestamp) ? doc : latest
-          )
-        : null;
-
-    const daysSinceLastDoc = mostRecentDoc
-        ? (now - mostRecentDoc.timestamp) / (24 * 60 * 60 * 1000)
+    const daysSinceLastDoc = lastDocumentAt
+        ? (now - lastDocumentAt) / (24 * 60 * 60 * 1000)
         : Infinity;
 
     // 1. Workspace created less than 3 minutes ago

@@ -13,6 +13,9 @@ public interface IDocumentRepository
         CancellationToken ct);
     Task AddAsync(Document document, CancellationToken ct);
     Task<long> CountByPrinterIdAsync(Guid printerId, CancellationToken ct);
+    Task<long> CountByWorkspaceIdAsync(Guid workspaceId, CancellationToken ct);
+    Task<long> CountByWorkspaceIdSinceAsync(Guid workspaceId, DateTimeOffset since, CancellationToken ct);
+    Task<DateTimeOffset?> GetLastDocumentTimestampByWorkspaceIdAsync(Guid workspaceId, CancellationToken ct);
     ValueTask<Media?> GetMediaByIdAsync(Guid id, CancellationToken ct);
     ValueTask<Media?> GetMediaByChecksumAsync(string sha256Checksum, Guid? ownerWorkspaceId, CancellationToken ct);
     Task AddMediaAsync(Media media, CancellationToken ct);
