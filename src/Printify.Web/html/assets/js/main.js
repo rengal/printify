@@ -5,6 +5,7 @@
         const apiBase = '';
         let workspaceToken = null;
         let workspaceName = null;
+        let workspaceCreatedAt = null;
         let accessToken = null;
 
         // Data
@@ -762,7 +763,7 @@
             `;
                 documentsPanel.innerHTML = `
               <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
-                <h2>Welcome back${workspaceName ? ', ' + workspaceName : ''}!</h2>
+                <h2>${getWelcomeMessage(workspaceName, printers, documents, workspaceCreatedAt)}</h2>
                 <p>Select a printer to view documents</p>
               </div>
             `;
@@ -1443,6 +1444,7 @@
             workspaceToken = token;
             const workspace = loginResponse.workspace;
             workspaceName = workspace?.ownerName || null;
+            workspaceCreatedAt = workspace?.createdAt ? new Date(workspace.createdAt) : new Date();
 
             localStorage.setItem('accessToken', accessToken);
             if (workspaceName) {
@@ -1450,6 +1452,9 @@
             }
             else {
                 localStorage.removeItem('workspaceName');
+            }
+            if (workspaceCreatedAt) {
+                localStorage.setItem('workspaceCreatedAt', workspaceCreatedAt.toISOString());
             }
 
             // Fetch current workspace to confirm auth and get user info
@@ -1799,6 +1804,7 @@
         const savedToken = localStorage.getItem('workspaceToken');
         const savedName = localStorage.getItem('workspaceName');
         const savedAccessToken = localStorage.getItem('accessToken');
+        const savedCreatedAt = localStorage.getItem('workspaceCreatedAt');
 
         console.log('Restoring workspace from localStorage:', {
             hasWorkspaceToken: !!savedToken,
@@ -1809,6 +1815,7 @@
         if (savedToken && savedAccessToken) {
             workspaceToken = savedToken;
             workspaceName = savedName;
+            workspaceCreatedAt = savedCreatedAt ? new Date(savedCreatedAt) : null;
             accessToken = savedAccessToken;
             console.log('Workspace restored, verifying auth and loading data');
 

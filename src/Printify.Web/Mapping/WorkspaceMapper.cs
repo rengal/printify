@@ -14,6 +14,6 @@ internal static class WorkspaceMapper
     internal static WorkspaceDto ToDto(this Workspace workspace)
     {
         ArgumentNullException.ThrowIfNull(workspace);
-        return new WorkspaceDto(workspace.Id, workspace.OwnerName);
+        return new WorkspaceDto(workspace.Id, workspace.OwnerName, workspace.CreatedAt);
     }
 }
