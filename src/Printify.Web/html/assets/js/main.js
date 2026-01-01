@@ -1049,12 +1049,27 @@
             setPrinterStatus(printerId, 'Stopped');
         }
 
-        function clearDocuments(printerId) {
-            // TODO: Add clear documents API endpoint
+        async function clearDocuments(printerId) {
             if (!confirm('Clear all documents for this printer?')) {
                 return;
             }
-            showToast('Clear documents operation - API endpoint not implemented yet', 'warn');
+
+            try {
+                // Delete server-side documents so the printer history is cleared.
+                await apiRequest(`/api/printers/${printerId}/documents`, { method: 'DELETE' });
+                // Reset cached documents to match the server state.
+                documents[printerId] = [];
+
+                if (selectedPrinterId === printerId) {
+                    renderDocumentsPanel(printerId);
+                }
+
+                showToast('Documents cleared');
+            }
+            catch (err) {
+                console.error(err);
+                showToast(err.message || 'Failed to clear documents', true);
+            }
         }
 
         function openNewPrinterDialog() {
@@ -1079,13 +1094,13 @@
                     <div class="field">
                       <label class="label required">Protocol</label>
                       <select class="input" id="printerProtocol">
-                        <option value="escpos">ESC/POS</option>
+                        <option value="escpos">ESC/POS emulation</option>
                       </select>
                     </div>
 
                   <div class="field">
                     <label class="label">Width (dots)</label>
-                    <input class="input" id="printerWidth" type="number" value="576" />
+                    <input class="input" id="printerWidth" type="number" value="512" />
                     <div class="field-hint">Paper width in dots</div>
                   </div>
                 </div>
@@ -1146,7 +1161,7 @@
                     <div class="field">
                       <label class="label required">Protocol</label>
                       <select class="input" id="printerProtocol">
-                      <option value="escpos" ${printer.protocol.toLowerCase() === 'escpos' ? 'selected' : ''}>ESC/POS</option>
+                      <option value="escpos" ${printer.protocol.toLowerCase() === 'escpos' ? 'selected' : ''}>ESC/POS emulation</option>
                       </select>
                     </div>
 
@@ -1191,7 +1206,7 @@
         async function createPrinter() {
             const name = document.getElementById('printerName').value.trim();
             const protocol = document.getElementById('printerProtocol').value;
-            const width = parseInt(document.getElementById('printerWidth').value) || 576;
+            const width = parseInt(document.getElementById('printerWidth').value) || 512;
             const emulateBuffer = document.getElementById('emulateBuffer').checked;
             const bufferSize = parseInt(document.getElementById('bufferSize').value) || 4096;
             const drainRate = parseInt(document.getElementById('drainRate').value) || 4096;
@@ -1245,7 +1260,7 @@
 
             const name = document.getElementById('printerName').value.trim();
             const protocol = document.getElementById('printerProtocol').value;
-            const width = parseInt(document.getElementById('printerWidth').value) || 576;
+            const width = parseInt(document.getElementById('printerWidth').value) || 512;
             const emulateBuffer = document.getElementById('emulateBuffer').checked;
             const bufferSize = parseInt(document.getElementById('bufferSize').value) || 4096;
             const drainRate = parseInt(document.getElementById('drainRate').value) || 4096;

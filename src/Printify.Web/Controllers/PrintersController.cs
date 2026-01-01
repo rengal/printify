@@ -1,8 +1,12 @@
+using System.Net.Sockets;
+using System.Text;
+using System.Text.Json;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Printers.Delete;
+using Printify.Application.Features.Printers.Documents.Clear;
 using Printify.Application.Features.Printers.Documents.Get;
 using Printify.Application.Features.Printers.Documents.List;
 using Printify.Application.Features.Printers.Get;
@@ -15,9 +19,6 @@ using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Infrastructure;
 using Printify.Web.Mapping;
-using System.Net.Sockets;
-using System.Text;
-using System.Text.Json;
 
 namespace Printify.Web.Controllers;
 
@@ -176,6 +177,16 @@ public sealed class PrintersController : ControllerBase
         {
             return NotFound();
         }
+    }
+
+    // TODO: add tests for ClearPrinterDocuments endpoint.
+    [Authorize]
+    [HttpDelete("{id:guid}/documents")]
+    public async Task<IActionResult> ClearDocuments(Guid id, CancellationToken cancellationToken)
+    {
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        await mediator.Send(new ClearPrinterDocumentsCommand(httpContext, id), cancellationToken);
+        return NoContent();
     }
 
     [Authorize]

@@ -75,6 +75,15 @@ public sealed class DocumentRepository : IDocumentRepository
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task<int> ClearByPrinterIdAsync(Guid printerId, CancellationToken ct)
+    {
+        // Use a server-side delete to avoid loading the document graph into memory.
+        return await dbContext.Documents
+            .Where(document => document.PrinterId == printerId)
+            .ExecuteDeleteAsync(ct)
+            .ConfigureAwait(false);
+    }
+
     public Task<long> CountByPrinterIdAsync(Guid printerId, CancellationToken ct)
     {
         return dbContext.Documents

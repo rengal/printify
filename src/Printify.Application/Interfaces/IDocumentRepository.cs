@@ -12,6 +12,7 @@ public interface IDocumentRepository
         int limit,
         CancellationToken ct);
     Task AddAsync(Document document, CancellationToken ct);
+    Task<int> ClearByPrinterIdAsync(Guid printerId, CancellationToken ct);
     Task<long> CountByPrinterIdAsync(Guid printerId, CancellationToken ct);
     Task<long> CountByWorkspaceIdAsync(Guid workspaceId, CancellationToken ct);
     Task<long> CountByWorkspaceIdSinceAsync(Guid workspaceId, DateTimeOffset since, CancellationToken ct);
