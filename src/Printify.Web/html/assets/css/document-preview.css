@@ -73,8 +73,10 @@
     display: block;
     max-width: 100%;
     height: auto;
-    image-rendering: pixelated;
-    /* Receipt printers burn dark dots; invert to mimic on-screen rendering */
+}
+
+/* Dark theme: invert black to white, preserve transparency */
+:root:not([data-theme="light"]) .doc-image {
     filter: invert(1);
 }
 
