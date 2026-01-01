@@ -4,6 +4,7 @@ todo
 - add hint when hovering over icons (stopped warning, toggle operatinops)
 - use "esc/pos emulation" phrasing in ui, not "esc/pos". Same with epl zpl tspl
 - add clear endpoint to clear documents and UI implementation
+- make promts to clear/delete stylyzed, not standard msgbox
 
 completed
 - Printers do not start automatically when the server starts.

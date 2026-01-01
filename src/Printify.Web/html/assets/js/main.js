@@ -1061,7 +1061,7 @@
                 documents[printerId] = [];
 
                 if (selectedPrinterId === printerId) {
-                    renderDocumentsPanel(printerId);
+                    renderDocuments();
                 }
 
                 showToast('Documents cleared');
