@@ -179,7 +179,9 @@
         }
 
         #documentsPanel {
-            padding-left: 360px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .main {
@@ -625,6 +627,12 @@
             text-overflow: ellipsis;
             flex: 1;
             min-width: 0;
+            padding-right: 36px;
+        }
+
+        /* Reserve additional space for status icon when present */
+        .list-item.has-status-icon .list-item-name {
+            padding-right: 52px;
         }
 
         .list-item-gear {
@@ -745,6 +753,15 @@
             font-size: 12px;
             text-transform: uppercase;
             margin-left: 8px;
+        }
+
+        .stopped-icon {
+            position: absolute;
+            right: 44px;
+            top: 50%;
+            transform: translateY(-50%);
+            flex-shrink: 0;
+            z-index: 1;
         }
 
         .list-item-dot {
@@ -1229,7 +1246,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 16px;
+            margin-bottom: 8px;
             padding: 0;
             min-height: 32px;
         }
@@ -1272,7 +1289,7 @@
         .operations-cell {
             font-size: 13px;
             display: flex;
-            align-items: flex-start;
+            align-items: center;
         }
 
         .operations-cell-label {
@@ -1285,7 +1302,7 @@
             display: flex;
             flex-direction: column;
             gap: 0;
-            justify-content: flex-start;
+            justify-content: center;
         }
 
         .operations-cell-label > div,
@@ -1300,20 +1317,30 @@
             gap: 0;
             font-size: 14px;
             line-height: 1.3;
-            justify-content: flex-start;
+            justify-content: center;
         }
 
         .operations-cell-value > span,
         .operations-cell-value > div {
             display: flex;
-            align-items: baseline;
+            align-items: center;
             gap: 6px;
             line-height: 1.3;
         }
 
-        .operations-cell-value .copy-icon-btn {
-            align-self: flex-start;
-            margin-top: -1px;
+        .operations-last-doc {
+            margin-top: 0;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .operations-last-doc-label {
+            color: var(--muted);
+            margin-bottom: 2px;
+        }
+
+        .operations-last-doc-value {
+            color: var(--text);
         }
 
         .operations-actions {

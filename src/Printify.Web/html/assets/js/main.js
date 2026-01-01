@@ -248,24 +248,25 @@
         function renderPrinterItem(p, isPinned) {
             const isStopped = p.runtimeStatus === 'stopped';
 
-            // Single line: pin icon (if pinned) + name + STOPPED (if stopped)
+            // Pin icon (if pinned) + name + red alert icon (if stopped)
             let pinIcon = '';
             if (isPinned) {
                 pinIcon = '<svg class="pin-icon pin-icon-filled" width="12" height="12" viewBox="0 0 24 24" fill="#10b981" stroke="#10b981" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg> ';
             }
 
-            let statusBadge = '';
+            let statusIcon = '';
             if (isStopped) {
-                statusBadge = ' <span class="stopped-badge">STOPPED</span>';
+                statusIcon = '<svg class="stopped-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
             }
 
             return `
-            <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''}" onclick="selectPrinter('${p.id}')">
-              <span class="list-item-name">${pinIcon}${escapeHtml(p.name)}${statusBadge}</span>
+            <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''} ${isStopped ? 'has-status-icon' : ''}" onclick="selectPrinter('${p.id}')">
+              <span class="list-item-name">${pinIcon}${escapeHtml(p.name)}</span>${statusIcon}
               <button class="list-item-gear" onclick="event.stopPropagation(); toggleOperationsForPrinter('${p.id}')" title="Toggle operations">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="3"></circle>
-                  <path d="M12 1v6m0 6v6"></path>
+                  <circle cx="12" cy="12" r="1"></circle>
+                  <circle cx="12" cy="5" r="1"></circle>
+                  <circle cx="12" cy="19" r="1"></circle>
                 </svg>
               </button>
             </div>
@@ -839,17 +840,12 @@
                       </div>
                     </div>
                   </div>
-                  <div class="operations-row">
-                    <div class="operations-cell operations-cell-label">
-                      <div>Last</div>
-                      <div>document</div>
-                    </div>
-                    <div class="operations-cell operations-cell-value">
-                      ${hasLastDocument
-                        ? `<div>${lastDocDateTime}</div><div>${lastDocRelative}</div>`
-                        : `<div>-</div>`}
-                    </div>
-                  </div>
+                </div>
+                <div class="operations-last-doc">
+                  <div class="operations-last-doc-label">Last document:</div>
+                  <div class="operations-last-doc-value">${hasLastDocument
+                    ? `${lastDocDateTime} (${lastDocRelative})`
+                    : `-`}</div>
                 </div>
               </div>
               <div class="operations-actions">
