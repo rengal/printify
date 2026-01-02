@@ -202,7 +202,7 @@ public static class DocumentMapper
         };
     }
 
-    private static IReadOnlyList<string> BuildCommandDescription(DomainElements.Element element)
+    internal static IReadOnlyList<string> BuildCommandDescription(DomainElements.Element element)
     {
         // Keep command descriptions short and stable for UI/debug consumers.
         return element switch

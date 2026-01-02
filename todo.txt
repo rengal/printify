@@ -2,6 +2,13 @@ todo
 - It might be worth moving BuildCommandDescription from src/Printify.Web/Mapping/DocumentMapper.cs into the ESC/POS command descriptors (see src/Printify.Infrastructure/Printing/EscPos/CommandDescriptors/ICommandDescriptor.cs) so command metadata lives with parsing.
 - add hint when hovering over icons (stopped warning, toggle operatinops)
 
+document view refactor
+- Define view-oriented DTOs in Printify.Web.Contracts (base debug fields, element types incl. type=none).
+- Implement server conversion to view DTOs and add new documents view endpoint.
+- Add server-side tests for conversion + endpoint (auth, 404, empty, happy path).
+- Update client to use view endpoint and render via absolute positioning with fallback.
+- Run relevant tests and fix issues; update docs if needed.
+
 completed
 - Printers do not start automatically when the server starts.
 - When open printer, it doesn't subscribe to  documents stream
