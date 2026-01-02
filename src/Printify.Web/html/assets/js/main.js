@@ -500,10 +500,10 @@
             const commandDescription = Array.isArray(element.commandDescription)
                 ? element.commandDescription.join('\n')
                 : (element.commandDescription || '');
-            const stateName = element.stateName || '';
+            const debugType = element.debugType || '';
 
-            // Check if this is an error state
-            const isError = stateName === 'error' || stateName === 'printerError';
+            // Check if this is an error debug type
+            const isError = debugType === 'error' || debugType === 'printerError';
             const errorClass = isError ? ' debug-error' : '';
 
             // Format hex command with spaces

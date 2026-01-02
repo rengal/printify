@@ -91,17 +91,17 @@ public sealed record ViewImageElement(
     : ViewElement;
 
 /// <summary>
-/// Non-visual element that only mutates state.
+/// Non-visual debug element for commands, errors, and other debug information.
 /// </summary>
-/// <param name="StateName">Name of the state change.</param>
-/// <param name="Parameters">Key/value parameters for the state change.</param>
-public sealed record ViewStateElement(
-    string StateName,
+/// <param name="DebugType">Type of debug information (e.g., command name, "error", "printerError").</param>
+/// <param name="Parameters">Key/value parameters for the debug entry.</param>
+public sealed record ViewDebugElement(
+    string DebugType,
     IReadOnlyDictionary<string, string> Parameters)
     : ViewElement
 {
-    public ViewStateElement(string stateName)
-        : this(stateName, new Dictionary<string, string>())
+    public ViewDebugElement(string debugType)
+        : this(debugType, new Dictionary<string, string>())
     {
     }
 }

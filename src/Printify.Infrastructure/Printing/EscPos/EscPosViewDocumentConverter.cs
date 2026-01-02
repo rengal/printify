@@ -136,7 +136,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                     AddDebugElement(elements, resetPrinter, "resetPrinter", new Dictionary<string, string>());
                     break;
                 default:
-                    AddDebugElement(elements, element, GetStateName(element), BuildStateParameters(element));
+                    AddDebugElement(elements, element, GetDebugType(element), BuildStateParameters(element));
                     break;
             }
         }
@@ -335,7 +335,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         var message =
             $"Image exceeds printer bounds (left={left}, top={top}, right={right}, bottom={bottom}, " +
             $"printerWidth={document.WidthInDots}, printerHeight={document.HeightInDots?.ToString() ?? "unlimited"}).";
-        elements.Add(new ViewStateElement("error", new Dictionary<string, string>())
+        elements.Add(new ViewDebugElement("error", new Dictionary<string, string>())
         {
             CommandRaw = string.Empty,
             CommandDescription = new[] { message },
@@ -347,10 +347,10 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
     private static void AddDebugElement(
         List<ViewElement> elements,
         Element element,
-        string stateName,
+        string debugType,
         IReadOnlyDictionary<string, string> parameters)
     {
-        elements.Add(new ViewStateElement(stateName, parameters)
+        elements.Add(new ViewDebugElement(debugType, parameters)
         {
             CommandRaw = element.CommandRaw,
             CommandDescription = CommandDescriptionBuilder.Build(element),
@@ -359,7 +359,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         });
     }
 
-    private static string GetStateName(Element element)
+    private static string GetDebugType(Element element)
     {
         return element switch
         {

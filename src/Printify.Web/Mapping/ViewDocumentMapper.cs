@@ -60,11 +60,11 @@ internal static class ViewDocumentMapper
                     image.Width,
                     image.Height),
                 image),
-            ViewStateElement state => WithCommandMetadata(
-                new ViewElements.ViewStateElementDto(
-                    state.StateName,
-                    state.Parameters),
-                state),
+            ViewDebugElement debug => WithCommandMetadata(
+                new ViewElements.ViewDebugElementDto(
+                    debug.DebugType,
+                    debug.Parameters),
+                debug),
             _ => throw new NotSupportedException(
                 $"View element type '{element.GetType().FullName}' is not supported in responses.")
         };

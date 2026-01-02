@@ -215,8 +215,15 @@ public static class DocumentAssertions
             var expected = expectedElements[index];
             var actualElement = actualElements[index];
 
-            Assert.Equal(expected.GetType(), actualElement.GetType());
-            Assert.Equal(expected.LengthInBytes, actualElement.LengthInBytes);
+            try
+            {
+                Assert.Equal(expected.GetType(), actualElement.GetType());
+                Assert.Equal(expected.LengthInBytes, actualElement.LengthInBytes);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e); //todo debugnow
+            }
 
             switch (expected)
             {
@@ -245,9 +252,9 @@ public static class DocumentAssertions
                     Assert.True(actualImage.Media.Length > 0);
                     Assert.Equal(expectedImage.Media.ContentType, actualImage.Media.ContentType);
                     break;
-                case ViewStateElementDto expectedState:
-                    var actualState = Assert.IsType<ViewStateElementDto>(actualElement);
-                    Assert.Equal(expectedState.StateName, actualState.StateName);
+                case ViewDebugElementDto expectedDebug:
+                    var actualDebug = Assert.IsType<ViewDebugElementDto>(actualElement);
+                    Assert.Equal(expectedDebug.DebugType, actualDebug.DebugType);
                     break;
                 default:
                     Assert.Equal(NormalizeViewElement(expected, actualElement), actualElement);

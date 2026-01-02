@@ -19,7 +19,7 @@ public static class ViewFontNames
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(ViewTextElementDto), "text")]
 [JsonDerivedType(typeof(ViewImageElementDto), "image")]
-[JsonDerivedType(typeof(ViewStateElementDto), "debug")]
+[JsonDerivedType(typeof(ViewDebugElementDto), "debug")]
 public abstract record ViewElementDto : BaseElementDto
 {
     /// <summary>
@@ -85,30 +85,30 @@ public sealed record ViewImageElementDto(
     : ViewElementDto;
 
 /// <summary>
-/// Non-visual element that only mutates state; emitted as "type":"debug".
+/// Non-visual debug element for commands, errors, and other debug information; emitted as "type":"debug".
 /// </summary>
-public sealed record ViewStateElementDto : ViewElementDto
+public sealed record ViewDebugElementDto : ViewElementDto
 {
     /// <summary>
-    /// Name of the state change.
+    /// Type of debug information (e.g., command name, "error", "printerError").
     /// </summary>
-    public string StateName { get; init; }
+    public string DebugType { get; init; }
 
     /// <summary>
-    /// Key/value parameters for the state change.
+    /// Key/value parameters for the debug entry.
     /// </summary>
     [JsonIgnore]
     public IReadOnlyDictionary<string, string>? Parameters { get; init; }
 
     [JsonConstructor]
-    public ViewStateElementDto(string stateName)
+    public ViewDebugElementDto(string debugType)
     {
-        StateName = stateName;
+        DebugType = debugType;
     }
 
-    public ViewStateElementDto(string stateName, IReadOnlyDictionary<string, string> parameters)
+    public ViewDebugElementDto(string debugType, IReadOnlyDictionary<string, string> parameters)
     {
-        StateName = stateName;
+        DebugType = debugType;
         Parameters = parameters;
     }
 }

@@ -32,7 +32,7 @@ public static class EscPosScenarioData
             expectedRequestElements: [new Bell { LengthInBytes = 1 }],
             expectedViewElements:
             [
-                new ViewStateElementDto("bell")
+                new ViewDebugElementDto("bell")
                 {
                     LengthInBytes = 1
                 }
@@ -41,7 +41,7 @@ public static class EscPosScenarioData
             input: Enumerable.Repeat((byte)0x07, 10).ToArray(),
             expectedRequestElements: Enumerable.Range(0, 10).Select(_ => new Bell { LengthInBytes = 1 }).ToArray(),
             expectedViewElements: Enumerable.Range(0, 10)
-                .Select(_ => new ViewStateElementDto("bell")
+                .Select(_ => new ViewDebugElementDto("bell")
                 {
                     LengthInBytes = 1
                 })
@@ -735,8 +735,8 @@ public static class EscPosScenarioData
                 expected.Add(new FlushLineBufferAndFeed { LengthInBytes = 1 });
 
                 expectedView.Add(ViewAppend(normalized, lengthInBytes: bytes.Length));
-                expectedView.Add(ViewText(normalized, x: 0, y: currentY, lengthInBytes: bytes.Length));
                 expectedView.Add(ViewFlush(lengthInBytes: 1));
+                expectedView.Add(ViewText(normalized, x: 0, y: currentY, lengthInBytes: bytes.Length));
                 // ESC/POS advances by font height plus the configured line spacing for each feed.
                 currentY += DefaultFontHeight + DefaultLineSpacing;
             }
@@ -825,7 +825,7 @@ public static class EscPosScenarioData
     private const int DefaultFontHeight = 24;
     private const int DefaultLineSpacing = 4;
 
-    private static ViewStateElementDto ViewAppend(string text, int lengthInBytes)
+    private static ViewDebugElementDto ViewAppend(string text, int lengthInBytes)
     {
         return ViewState(
             "appendToLineBuffer",
@@ -875,18 +875,18 @@ public static class EscPosScenarioData
         };
     }
 
-    private static ViewStateElementDto ViewState(
+    private static ViewDebugElementDto ViewState(
         string name,
         int lengthInBytes,
         IReadOnlyDictionary<string, string>? parameters = null)
     {
-        return new ViewStateElementDto(name, parameters ?? new Dictionary<string, string>())
+        return new ViewDebugElementDto(name, parameters ?? new Dictionary<string, string>())
         {
             LengthInBytes = lengthInBytes
         };
     }
 
-    private static ViewStateElementDto ViewFlush(int lengthInBytes)
+    private static ViewDebugElementDto ViewFlush(int lengthInBytes)
     {
         return ViewState("flushLineBufferAndFeed", lengthInBytes);
     }
