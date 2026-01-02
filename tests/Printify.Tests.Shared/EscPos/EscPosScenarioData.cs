@@ -1,7 +1,6 @@
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Documents.View;
 using Printify.Domain.Media;
 using Printify.Infrastructure.Media;
 using Printify.Web.Contracts.Documents.Responses.View.Elements;
@@ -55,8 +54,7 @@ public static class EscPosScenarioData
             expectedRequestElements: [new AppendToLineBuffer("A") { LengthInBytes = 1 }],
             expectedViewElements:
             [
-                ViewAppend("A", lengthInBytes: 1),
-                ViewText("A", x: 0, y: 0, lengthInBytes: 1)
+                ViewAppend("A", lengthInBytes: 1)
             ]),
         new(
             input: "ABC\n"u8.ToArray(),
@@ -68,8 +66,8 @@ public static class EscPosScenarioData
             expectedViewElements:
             [
                 ViewAppend("ABC", lengthInBytes: 3),
-                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
-                ViewFlush(lengthInBytes: 1)
+                ViewFlush(lengthInBytes: 1),
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
             ]),
         new(
             input: "ABC"u8.ToArray(),
@@ -100,13 +98,13 @@ public static class EscPosScenarioData
             expectedViewElements:
             [
                 ViewAppend("ABC", lengthInBytes: 3),
+                ViewFlush(lengthInBytes: 1),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
-                ViewFlush(lengthInBytes: 1),
                 ViewAppend("DEF", lengthInBytes: 3),
-                ViewText("DEF", x: 0, y: 28, lengthInBytes: 3),
                 ViewFlush(lengthInBytes: 1),
+                ViewText("DEF", x: 0, y: DefaultLineHeight, lengthInBytes: 3),
                 ViewAppend("G", lengthInBytes: 1),
-                ViewText("G", x: 0, y: 56, lengthInBytes: 1)
+                ViewText("G", x: 0, y: DefaultLineHeight * 2, lengthInBytes: 1)
             ]),
         new(
             input: "ABC"u8.ToArray(),
@@ -133,7 +131,7 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewState("bell", lengthInBytes: 1),
+                ViewDebug("bell", lengthInBytes: 1),
                 ViewAppend("ABC", lengthInBytes: 3),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
             ]),
@@ -148,8 +146,8 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewState("bell", lengthInBytes: 1),
-                ViewState("bell", lengthInBytes: 1),
+                ViewDebug("bell", lengthInBytes: 1),
+                ViewDebug("bell", lengthInBytes: 1),
                 ViewAppend("ABC", lengthInBytes: 3),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
                 ViewAppend("DEF", lengthInBytes: 3),
@@ -167,13 +165,13 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewState("bell", lengthInBytes: 1),
+                ViewDebug("bell", lengthInBytes: 1),
                 ViewAppend("ABC", lengthInBytes: 3),
-                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
                 ViewAppend("DEF", lengthInBytes: 3),
-                ViewText("DEF", x: 36, y: 0, lengthInBytes: 3),
                 ViewFlush(lengthInBytes: 1),
-                ViewState("bell", lengthInBytes: 1)
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
+                ViewText("DEF", x: 36, y: 0, lengthInBytes: 3),
+                ViewDebug("bell", lengthInBytes: 1)
             ]),
         new(
             input: "\n"u8.ToArray(),
@@ -206,7 +204,7 @@ public static class EscPosScenarioData
             expectedRequestElements: [new PrinterError("") { LengthInBytes = 1 }],
             expectedViewElements:
             [
-                ViewState("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                ViewDebug("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
                 {
                     ["Message"] = string.Empty
                 })
@@ -217,7 +215,7 @@ public static class EscPosScenarioData
             expectedRequestElements: [new PrinterError("") { LengthInBytes = 2 }],
             expectedViewElements:
             [
-                ViewState("printerError", lengthInBytes: 2, parameters: new Dictionary<string, string>
+                ViewDebug("printerError", lengthInBytes: 2, parameters: new Dictionary<string, string>
                 {
                     ["Message"] = string.Empty
                 })
@@ -228,7 +226,7 @@ public static class EscPosScenarioData
             expectedRequestElements: [new PrinterError("") { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewState("printerError", lengthInBytes: 3, parameters: new Dictionary<string, string>
+                ViewDebug("printerError", lengthInBytes: 3, parameters: new Dictionary<string, string>
                 {
                     ["Message"] = string.Empty
                 })
@@ -241,7 +239,7 @@ public static class EscPosScenarioData
                 new AppendToLineBuffer("ABC") { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewState("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                ViewDebug("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
                 {
                     ["Message"] = string.Empty
                 }),
@@ -257,7 +255,7 @@ public static class EscPosScenarioData
                 new AppendToLineBuffer("DEF") { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewState("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                ViewDebug("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
                 {
                     ["Message"] = string.Empty
                 }),
@@ -274,11 +272,11 @@ public static class EscPosScenarioData
                 new Bell { LengthInBytes = 1 }],
             expectedViewElements:
             [
-                ViewState("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                ViewDebug("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
                 {
                     ["Message"] = string.Empty
                 }),
-                ViewState("bell", lengthInBytes: 1)
+                ViewDebug("bell", lengthInBytes: 1)
             ])
     ];
 
@@ -289,77 +287,77 @@ public static class EscPosScenarioData
             expectedRequestElements: [new Pagecut(PagecutMode.PartialOnePoint) { LengthInBytes = 2 }],
             expectedViewElements:
             [
-                ViewState("pagecut", lengthInBytes: 2, parameters: PagecutParameters(PagecutMode.PartialOnePoint, null))
+                ViewDebug("pagecut", lengthInBytes: 2, parameters: PagecutParameters(PagecutMode.PartialOnePoint, null))
             ]),
         new(
             input: [Gs, 0x56, 0x00],
             expectedRequestElements: [new Pagecut(PagecutMode.Full) { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewState("pagecut", lengthInBytes: 3, parameters: PagecutParameters(PagecutMode.Full, null))
+                ViewDebug("pagecut", lengthInBytes: 3, parameters: PagecutParameters(PagecutMode.Full, null))
             ]),
         new(
             input: [Gs, 0x56, 0x30],
             expectedRequestElements: [new Pagecut(PagecutMode.Full) { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewState("pagecut", lengthInBytes: 3, parameters: PagecutParameters(PagecutMode.Full, null))
+                ViewDebug("pagecut", lengthInBytes: 3, parameters: PagecutParameters(PagecutMode.Full, null))
             ]),
         new(
             input: [Gs, 0x56, 0x01],
             expectedRequestElements: [new Pagecut(PagecutMode.Partial) { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewState("pagecut", lengthInBytes: 3, parameters: PagecutParameters(PagecutMode.Partial, null))
+                ViewDebug("pagecut", lengthInBytes: 3, parameters: PagecutParameters(PagecutMode.Partial, null))
             ]),
         new(
             input: [Gs, 0x56, 0x31],
             expectedRequestElements: [new Pagecut(PagecutMode.Partial) { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewState("pagecut", lengthInBytes: 3, parameters: PagecutParameters(PagecutMode.Partial, null))
+                ViewDebug("pagecut", lengthInBytes: 3, parameters: PagecutParameters(PagecutMode.Partial, null))
             ]),
         new(
             input: [Gs, 0x56, 0x41, 0x05],
             expectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
             expectedViewElements:
             [
-                ViewState("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Full, 0x05))
+                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Full, 0x05))
             ]),
         new(
             input: [Gs, 0x56, 0x42, 0x20],
             expectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
             expectedViewElements:
             [
-                ViewState("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Partial, 0x20))
+                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Partial, 0x20))
             ]),
         new(
             input: [Gs, 0x56, 0x61, 0x05],
             expectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
             expectedViewElements:
             [
-                ViewState("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Full, 0x05))
+                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Full, 0x05))
             ]),
         new(
             input: [Gs, 0x56, 0x62, 0x20],
             expectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
             expectedViewElements:
             [
-                ViewState("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Partial, 0x20))
+                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Partial, 0x20))
             ]),
         new(
             input: [Gs, 0x56, 0x67, 0x05],
             expectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
             expectedViewElements:
             [
-                ViewState("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Full, 0x05))
+                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Full, 0x05))
             ]),
         new(
             input: [Gs, 0x56, 0x68, 0x20],
             expectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
             expectedViewElements:
             [
-                ViewState("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Partial, 0x20))
+                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Partial, 0x20))
             ])
     ];
 
@@ -370,7 +368,7 @@ public static class EscPosScenarioData
             expectedRequestElements: [new Pulse(1, 0x05, 0x0A) { LengthInBytes = 5 }],
             expectedViewElements:
             [
-                ViewState("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
+                ViewDebug("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
                 {
                     ["Pin"] = "1",
                     ["OnTimeMs"] = "5",
@@ -382,7 +380,7 @@ public static class EscPosScenarioData
             expectedRequestElements: [new Pulse(0, 0x7D, 0x7F) { LengthInBytes = 5 }],
             expectedViewElements:
             [
-                ViewState("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
+                ViewDebug("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
                 {
                     ["Pin"] = "0",
                     ["OnTimeMs"] = "125",
@@ -402,13 +400,13 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewState("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
+                ViewDebug("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
                 {
                     ["Pin"] = "0",
                     ["OnTimeMs"] = "8",
                     ["OffTimeMs"] = "22"
                 }),
-                ViewState("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
+                ViewDebug("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
                 {
                     ["Pin"] = "1",
                     ["OnTimeMs"] = "2",
@@ -445,7 +443,7 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewState("rasterImage", lengthInBytes: 10),
+                ViewDebug("rasterImage", lengthInBytes: 10),
                 ViewImage(8, 2, Media.CreateDefaultPng(112), lengthInBytes: 10)
             ]),
 
@@ -473,7 +471,7 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewState("rasterImage", lengthInBytes: 10),
+                ViewDebug("rasterImage", lengthInBytes: 10),
                 ViewImage(8, 2, Media.CreateDefaultPng(97), lengthInBytes: 10)
             ]),
 
@@ -501,7 +499,7 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewState("rasterImage", lengthInBytes: 10),
+                ViewDebug("rasterImage", lengthInBytes: 10),
                 ViewImage(8, 2, Media.CreateDefaultPng(97), lengthInBytes: 10)
             ]),
 
@@ -529,7 +527,7 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewState("rasterImage", lengthInBytes: 10),
+                ViewDebug("rasterImage", lengthInBytes: 10),
                 ViewImage(8, 2, Media.CreateDefaultPng(101), lengthInBytes: 10)
             ]),
         CreateOversizeRasterScenario()
@@ -573,8 +571,8 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewState("rasterImage", lengthInBytes: lengthInBytes),
-                ViewState("error", lengthInBytes: 0),
+                ViewDebug("rasterImage", lengthInBytes: lengthInBytes),
+                ViewDebug("error", lengthInBytes: 0),
                 ViewImage(widthInDots, heightInDots, media, lengthInBytes)
             ]);
     }
@@ -600,11 +598,11 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewState("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, false, false)),
-                ViewState("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, false, false)),
-                ViewState("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, true, false)),
-                ViewState("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, true, true)),
-                ViewState("setFont", lengthInBytes: 3, parameters: SetFontParameters(2, false, false))
+                ViewDebug("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, false, false)),
+                ViewDebug("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, false, false)),
+                ViewDebug("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, true, false)),
+                ViewDebug("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, true, true)),
+                ViewDebug("setFont", lengthInBytes: 3, parameters: SetFontParameters(2, false, false))
             ]),
         new(
             input:
@@ -623,10 +621,10 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewState("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
-                ViewState("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
-                ViewState("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
-                ViewState("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(false))
+                ViewDebug("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                ViewDebug("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
+                ViewDebug("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                ViewDebug("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(false))
             ]),
         new(
             input:
@@ -649,12 +647,12 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewState("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
-                ViewState("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
-                ViewState("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
-                ViewState("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
-                ViewState("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
-                ViewState("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true))
+                ViewDebug("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                ViewDebug("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                ViewDebug("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
+                ViewDebug("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                ViewDebug("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
+                ViewDebug("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true))
             ])
     ];
 
@@ -665,14 +663,14 @@ public static class EscPosScenarioData
             expectedRequestElements: [new SetLineSpacing(0x40) { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewState("setLineSpacing", lengthInBytes: 3, parameters: LineSpacingParameters(0x40))
+                ViewDebug("setLineSpacing", lengthInBytes: 3, parameters: LineSpacingParameters(0x40))
             ]),
         new(
             input: [Esc, 0x32],
             expectedRequestElements: [new ResetLineSpacing() { LengthInBytes = 2 }],
             expectedViewElements:
             [
-                ViewState("resetLineSpacing", lengthInBytes: 2)
+                ViewDebug("resetLineSpacing", lengthInBytes: 2)
             ])
     ];
 
@@ -718,7 +716,7 @@ public static class EscPosScenarioData
             {
                 input.AddRange(vector.Command);
                 expected.Add(new SetCodePage(vector.CodePage) { LengthInBytes = vector.Command.Length });
-                expectedView.Add(ViewState(
+                expectedView.Add(ViewDebug(
                     "setCodePage",
                     lengthInBytes: vector.Command.Length,
                     parameters: CodePageParameters(vector.CodePage)));
@@ -821,13 +819,14 @@ public static class EscPosScenarioData
         Encoding Encoding);
 
     // Default ESC/POS font A metrics and spacing, aligned with the converter defaults.
-    private const int DefaultFontWidth = 12;
-    private const int DefaultFontHeight = 24;
-    private const int DefaultLineSpacing = 4;
+    private const int DefaultFontWidth = EscPosViewConstants.FontAWidth;
+    private const int DefaultFontHeight = EscPosViewConstants.FontAHeight;
+    private const int DefaultLineSpacing = EscPosViewConstants.DefaultLineSpacing;
+    private const int DefaultLineHeight = DefaultFontHeight + DefaultLineSpacing;
 
     private static ViewDebugElementDto ViewAppend(string text, int lengthInBytes)
     {
-        return ViewState(
+        return ViewDebug(
             "appendToLineBuffer",
             lengthInBytes,
             new Dictionary<string, string>
@@ -850,7 +849,7 @@ public static class EscPosScenarioData
             y,
             text.Length * DefaultFontWidth * charScaleX,
             DefaultFontHeight * charScaleY,
-            ViewFontNames.EscPosA,
+            Web.Contracts.Documents.Responses.View.Elements.ViewFontNames.EscPosA,
             0,
             false,
             false,
@@ -875,7 +874,7 @@ public static class EscPosScenarioData
         };
     }
 
-    private static ViewDebugElementDto ViewState(
+    private static ViewDebugElementDto ViewDebug(
         string name,
         int lengthInBytes,
         IReadOnlyDictionary<string, string>? parameters = null)
@@ -888,7 +887,7 @@ public static class EscPosScenarioData
 
     private static ViewDebugElementDto ViewFlush(int lengthInBytes)
     {
-        return ViewState("flushLineBufferAndFeed", lengthInBytes);
+        return ViewDebug("flushLineBufferAndFeed", lengthInBytes);
     }
 
     private static IReadOnlyDictionary<string, string> PagecutParameters(PagecutMode mode, int? feedUnits)

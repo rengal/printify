@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using Printify.Domain.Documents.View;
 using Printify.Domain.Mapping;
 using Printify.Web.Contracts.Documents.Responses.View;

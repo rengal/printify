@@ -39,6 +39,7 @@ public static class EscPosGoldenCases
                         new ViewDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new ViewDebugElementDto("appendToLineBuffer", AppendTextParameters(Pad("font 0", 42)))
                         { LengthInBytes = 42 },
+                        new ViewDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewTextElementDto(
                             Pad("font 0", 42),
                             0,
@@ -50,7 +51,6 @@ public static class EscPosGoldenCases
                             false,
                             false,
                             false) { LengthInBytes = 42 },
-                        new ViewDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewDebugElementDto("pagecut", PagecutParameters(PagecutMode.Partial, 0)) { LengthInBytes = 4 }
                     ]),
                 ["case02"] = (
@@ -79,6 +79,7 @@ public static class EscPosGoldenCases
                         new ViewDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new ViewDebugElementDto("appendToLineBuffer", AppendTextParameters(Pad("font 0", 42)))
                         { LengthInBytes = 42 },
+                        new ViewDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewTextElementDto(
                             Pad("font 0", 42),
                             0,
@@ -90,10 +91,10 @@ public static class EscPosGoldenCases
                             false,
                             false,
                             false) { LengthInBytes = 42 },
-                        new ViewDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewDebugElementDto("setFont", SetFontParameters(1, true, true)) { LengthInBytes = 3 },
                         new ViewDebugElementDto("appendToLineBuffer", AppendTextParameters(Pad("font 1", 28)))
                         { LengthInBytes = 28 },
+                        new ViewDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewTextElementDto(
                             Pad("font 1", 28),
                             0,
@@ -106,10 +107,10 @@ public static class EscPosGoldenCases
                             false,
                             false)
                         { CharScaleX = 2, CharScaleY = 2, LengthInBytes = 28 },
-                        new ViewDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewDebugElementDto("setFont", SetFontParameters(0, true, true)) { LengthInBytes = 3 },
                         new ViewDebugElementDto("appendToLineBuffer", AppendTextParameters(Pad("font 2", 21)))
                         { LengthInBytes = 21 },
+                        new ViewDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewTextElementDto(
                             Pad("font 2", 21),
                             0,
@@ -122,7 +123,6 @@ public static class EscPosGoldenCases
                             false,
                             false)
                         { CharScaleX = 2, CharScaleY = 2, LengthInBytes = 21 },
-                        new ViewDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewDebugElementDto("pagecut", PagecutParameters(PagecutMode.Partial, 0)) { LengthInBytes = 4 }
                     ]),
                 ["case03"] = (

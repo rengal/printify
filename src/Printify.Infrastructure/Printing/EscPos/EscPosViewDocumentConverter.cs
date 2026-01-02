@@ -11,11 +11,6 @@ namespace Printify.Infrastructure.Printing.EscPos;
 
 public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
 {
-    private const int DefaultLineSpacing = 2;
-    private const int FontAWidth = 12;
-    private const int FontAHeight = 24;
-    private const int FontBWidth = 9;
-    private const int FontBHeight = 17;
 
     public ViewDocument ToViewDocument(Document document)
     {
@@ -117,7 +112,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                     });
                     break;
                 case ResetLineSpacing resetLineSpacing:
-                    state.LineSpacing = DefaultLineSpacing;
+                    state.LineSpacing = EscPosViewConstants.DefaultLineSpacing;
                     AddDebugElement(elements, resetLineSpacing, "resetLineSpacing", new Dictionary<string, string>());
                     break;
                 case SetFont font:
@@ -478,12 +473,12 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
 
     private static int GetFontWidth(int fontNumber)
     {
-        return fontNumber == 1 ? FontBWidth : FontAWidth;
+        return fontNumber == 1 ? EscPosViewConstants.FontBWidth : EscPosViewConstants.FontAWidth;
     }
 
     private static int GetFontHeight(int fontNumber)
     {
-        return fontNumber == 1 ? FontBHeight : FontAHeight;
+        return fontNumber == 1 ? EscPosViewConstants.FontBHeight : EscPosViewConstants.FontAHeight;
     }
 
     private static string? GetFontLabel(int fontNumber)
@@ -520,7 +515,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
     private sealed class RenderState
     {
         public TextJustification Justification { get; set; } = TextJustification.Left;
-        public int LineSpacing { get; set; } = DefaultLineSpacing;
+        public int LineSpacing { get; set; } = EscPosViewConstants.DefaultLineSpacing;
         public int FontNumber { get; set; }
         public int ScaleX { get; set; } = 1;
         public int ScaleY { get; set; } = 1;

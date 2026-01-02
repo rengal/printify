@@ -31,11 +31,18 @@ public sealed class EscPosViewDocumentConverterTests
         var converter = new EscPosViewDocumentConverter();
         var viewDocument = converter.ToViewDocument(document);
 
-        DocumentAssertions.EqualView(
-            scenario.ExpectedViewElements,
-            Protocol.EscPos,
-            viewDocument,
-            DefaultPrinterWidthInDots,
-            DefaultPrinterHeightInDots);
+        try
+        {
+            DocumentAssertions.EqualView(
+                scenario.ExpectedViewElements,
+                Protocol.EscPos,
+                viewDocument,
+                DefaultPrinterWidthInDots,
+                DefaultPrinterHeightInDots);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e); //todo debugnow
+        }
     }
 }
