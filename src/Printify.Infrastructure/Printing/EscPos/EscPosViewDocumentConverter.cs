@@ -11,7 +11,7 @@ namespace Printify.Infrastructure.Printing.EscPos;
 
 public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
 {
-    private const int DefaultLineSpacing = 4;
+    private const int DefaultLineSpacing = 2;
     private const int FontAWidth = 12;
     private const int FontAHeight = 24;
     private const int FontBWidth = 9;

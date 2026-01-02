@@ -351,7 +351,7 @@
             const width = Math.max(documentWidth || 384, 200);
 
             if (!elements || elements.length === 0) {
-                return `<div class="document-paper" style="width:${width}px">
+                return `<div class="document-paper">
                     <div class="document-content" style="width:${width}px; height: auto;">
                         <div style="color: var(--muted); padding: 20px; text-align: center;">No printable content</div>
                     </div>
@@ -390,7 +390,7 @@
 
             const contentId = `doc-content-${docId}`;
 
-            return `<div class="document-paper" style="width:${width}px">
+            return `<div class="document-paper">
                 <div class="document-content" id="${contentId}" style="width:${width}px; height:${height}px;" data-debug="${debugMode}">
                     ${elementsHtml}
                 </div>
