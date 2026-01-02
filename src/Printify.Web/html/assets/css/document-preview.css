@@ -64,6 +64,8 @@
 
 /* Debug table styles */
 .debug-table {
+    position: absolute;
+    left: 0;
     width: 100%;
     margin-bottom: 4px;
     border-collapse: collapse;
@@ -114,4 +116,15 @@
 
 :root:not([data-theme="light"]) .debug-truncated {
     color: #999;
+}
+
+/* Error debug table styling */
+.debug-table.debug-error td {
+    color: #e53e3e;
+    background: rgba(229, 62, 62, 0.05);
+}
+
+:root:not([data-theme="light"]) .debug-table.debug-error td {
+    color: #fc8181;
+    background: rgba(229, 62, 62, 0.1);
 }

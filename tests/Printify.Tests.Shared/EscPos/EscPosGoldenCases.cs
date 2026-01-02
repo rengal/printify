@@ -37,7 +37,8 @@ public static class EscPosGoldenCases
                         new ViewStateElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new ViewStateElementDto("setCodePage", CodePageParameters("866")) { LengthInBytes = 3 },
                         new ViewStateElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
-                        new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
+                        new ViewStateElementDto("appendToLineBuffer", AppendTextParameters(Pad("font 0", 42)))
+                        { LengthInBytes = 42 },
                         new ViewTextElementDto(
                             Pad("font 0", 42),
                             0,
@@ -49,6 +50,7 @@ public static class EscPosGoldenCases
                             false,
                             false,
                             false) { LengthInBytes = 42 },
+                        new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewStateElementDto("pagecut", PagecutParameters(PagecutMode.Partial, 0)) { LengthInBytes = 4 }
                     ]),
                 ["case02"] = (
@@ -75,7 +77,8 @@ public static class EscPosGoldenCases
                         new ViewStateElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new ViewStateElementDto("setCodePage", CodePageParameters("866")) { LengthInBytes = 3 },
                         new ViewStateElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
-                        new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
+                        new ViewStateElementDto("appendToLineBuffer", AppendTextParameters(Pad("font 0", 42)))
+                        { LengthInBytes = 42 },
                         new ViewTextElementDto(
                             Pad("font 0", 42),
                             0,
@@ -87,8 +90,10 @@ public static class EscPosGoldenCases
                             false,
                             false,
                             false) { LengthInBytes = 42 },
-                        new ViewStateElementDto("setFont", SetFontParameters(1, true, true)) { LengthInBytes = 3 },
                         new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
+                        new ViewStateElementDto("setFont", SetFontParameters(1, true, true)) { LengthInBytes = 3 },
+                        new ViewStateElementDto("appendToLineBuffer", AppendTextParameters(Pad("font 1", 28)))
+                        { LengthInBytes = 28 },
                         new ViewTextElementDto(
                             Pad("font 1", 28),
                             0,
@@ -101,8 +106,10 @@ public static class EscPosGoldenCases
                             false,
                             false)
                         { CharScaleX = 2, CharScaleY = 2, LengthInBytes = 28 },
-                        new ViewStateElementDto("setFont", SetFontParameters(0, true, true)) { LengthInBytes = 3 },
                         new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
+                        new ViewStateElementDto("setFont", SetFontParameters(0, true, true)) { LengthInBytes = 3 },
+                        new ViewStateElementDto("appendToLineBuffer", AppendTextParameters(Pad("font 2", 21)))
+                        { LengthInBytes = 21 },
                         new ViewTextElementDto(
                             Pad("font 2", 21),
                             0,
@@ -115,6 +122,7 @@ public static class EscPosGoldenCases
                             false,
                             false)
                         { CharScaleX = 2, CharScaleY = 2, LengthInBytes = 21 },
+                        new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewStateElementDto("pagecut", PagecutParameters(PagecutMode.Partial, 0)) { LengthInBytes = 4 }
                     ]),
                 ["case03"] = (
@@ -162,6 +170,7 @@ public static class EscPosGoldenCases
                         new ViewStateElementDto(
                             "setBarcodeLabelPosition",
                             BarcodeLabelParameters(BarcodeLabelPosition.Below)) { LengthInBytes = 3 },
+                        new ViewStateElementDto("printBarcode") { LengthInBytes = 17 },
                         new ViewImageElementDto(
                             ToViewMediaDto(Media.CreateDefaultPng(1)),
                             0,
@@ -219,6 +228,7 @@ public static class EscPosGoldenCases
                         new ViewStateElementDto(
                             "storeQrData",
                             StoreQrDataParameters("https://google.com")) { LengthInBytes = 26 },
+                        new ViewStateElementDto("printQrCode") { LengthInBytes = 8 },
                         new ViewImageElementDto(
                             ToViewMediaDto(Media.CreateDefaultPng(2)),
                             0,
@@ -409,6 +419,14 @@ public static class EscPosGoldenCases
         {
             ["Mode"] = mode.ToString(),
             ["FeedMotionUnits"] = feedUnits?.ToString() ?? string.Empty
+        };
+    }
+
+    private static IReadOnlyDictionary<string, string> AppendTextParameters(string text)
+    {
+        return new Dictionary<string, string>
+        {
+            ["Text"] = text
         };
     }
 

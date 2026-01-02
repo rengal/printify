@@ -36,6 +36,10 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
             switch (element)
             {
                 case AppendToLineBuffer textLine:
+                    AddDebugElement(elements, textLine, "appendToLineBuffer", new Dictionary<string, string>
+                    {
+                        ["Text"] = textLine.Text ?? string.Empty
+                    });
                     AppendTextSegment(textLine, state, lineBuffer);
                     break;
                 case FlushLineBufferAndFeed flushLine:
@@ -43,88 +47,84 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                     break;
                 case RasterImage raster:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
+                    AddDebugElement(elements, raster, "rasterImage", new Dictionary<string, string>());
                     ValidateImageBounds(document, state.CurrentY, raster.Width, raster.Height, elements);
                     AddImageElement(raster, state, elements);
                     break;
-                case RasterImageUpload rasterUpload:
-                    FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
-                    AddStateElement(elements, rasterUpload, "rasterImageUpload", new Dictionary<string, string>
-                    {
-                        ["WidthInDots"] = rasterUpload.Width.ToString(),
-                        ["HeightInDots"] = rasterUpload.Height.ToString(),
-                        ["ContentType"] = rasterUpload.Media.ContentType
-                    });
-                    break;
+                case RasterImageUpload:
+                    throw new InvalidOperationException("Upload requests must not be emitted");
                 case PrintBarcode barcode:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
+                    AddDebugElement(elements, barcode, "printBarcode", new Dictionary<string, string>());
                     ValidateImageBounds(document, state.CurrentY, barcode.Width, barcode.Height, elements);
                     AddImageElement(barcode, state, elements);
                     break;
                 case PrintQrCode qrCode:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
+                    AddDebugElement(elements, qrCode, "printQrCode", new Dictionary<string, string>());
                     ValidateImageBounds(document, state.CurrentY, qrCode.Width, qrCode.Height, elements);
                     AddImageElement(qrCode, state, elements);
                     break;
                 case PrintBarcodeUpload barcodeUpload:
-                    AddStateElement(elements, barcodeUpload, "printBarcode", new Dictionary<string, string>
+                    AddDebugElement(elements, barcodeUpload, "printBarcode", new Dictionary<string, string>
                     {
                         ["Symbology"] = DomainMapper.ToString(barcodeUpload.Symbology),
                         ["Data"] = barcodeUpload.Data
                     });
                     break;
                 case PrintQrCodeUpload qrCodeUpload:
-                    AddStateElement(elements, qrCodeUpload, "printQrCode", new Dictionary<string, string>());
+                    AddDebugElement(elements, qrCodeUpload, "printQrCode", new Dictionary<string, string>());
                     break;
                 case StoredLogo storedLogo:
-                    AddStateElement(elements, storedLogo, "storedLogo", new Dictionary<string, string>
+                    AddDebugElement(elements, storedLogo, "storedLogo", new Dictionary<string, string>
                     {
                         ["LogoId"] = storedLogo.LogoId.ToString()
                     });
                     break;
                 case SetJustification justification:
                     state.Justification = justification.Justification;
-                    AddStateElement(elements, justification, "setJustification", new Dictionary<string, string>
+                    AddDebugElement(elements, justification, "setJustification", new Dictionary<string, string>
                     {
                         ["Justification"] = DomainMapper.ToString(justification.Justification)
                     });
                     break;
                 case SetBoldMode bold:
                     state.IsBold = bold.IsEnabled;
-                    AddStateElement(elements, bold, "setBoldMode", new Dictionary<string, string>
+                    AddDebugElement(elements, bold, "setBoldMode", new Dictionary<string, string>
                     {
                         ["IsEnabled"] = bold.IsEnabled.ToString()
                     });
                     break;
                 case SetUnderlineMode underline:
                     state.IsUnderline = underline.IsEnabled;
-                    AddStateElement(elements, underline, "setUnderlineMode", new Dictionary<string, string>
+                    AddDebugElement(elements, underline, "setUnderlineMode", new Dictionary<string, string>
                     {
                         ["IsEnabled"] = underline.IsEnabled.ToString()
                     });
                     break;
                 case SetReverseMode reverse:
                     state.IsReverse = reverse.IsEnabled;
-                    AddStateElement(elements, reverse, "setReverseMode", new Dictionary<string, string>
+                    AddDebugElement(elements, reverse, "setReverseMode", new Dictionary<string, string>
                     {
                         ["IsEnabled"] = reverse.IsEnabled.ToString()
                     });
                     break;
                 case SetLineSpacing spacing:
                     state.LineSpacing = spacing.Spacing;
-                    AddStateElement(elements, spacing, "setLineSpacing", new Dictionary<string, string>
+                    AddDebugElement(elements, spacing, "setLineSpacing", new Dictionary<string, string>
                     {
                         ["Spacing"] = spacing.Spacing.ToString()
                     });
                     break;
                 case ResetLineSpacing resetLineSpacing:
                     state.LineSpacing = DefaultLineSpacing;
-                    AddStateElement(elements, resetLineSpacing, "resetLineSpacing", new Dictionary<string, string>());
+                    AddDebugElement(elements, resetLineSpacing, "resetLineSpacing", new Dictionary<string, string>());
                     break;
                 case SetFont font:
                     state.FontNumber = font.FontNumber;
                     state.ScaleX = font.IsDoubleWidth ? 2 : 1;
                     state.ScaleY = font.IsDoubleHeight ? 2 : 1;
-                    AddStateElement(elements, font, "setFont", new Dictionary<string, string>
+                    AddDebugElement(elements, font, "setFont", new Dictionary<string, string>
                     {
                         ["FontNumber"] = font.FontNumber.ToString(),
                         ["IsDoubleWidth"] = font.IsDoubleWidth.ToString(),
@@ -133,10 +133,10 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                     break;
                 case ResetPrinter resetPrinter:
                     state = RenderState.CreateDefault();
-                    AddStateElement(elements, resetPrinter, "resetPrinter", new Dictionary<string, string>());
+                    AddDebugElement(elements, resetPrinter, "resetPrinter", new Dictionary<string, string>());
                     break;
                 default:
-                    AddStateElement(elements, element, GetStateName(element), BuildStateParameters(element));
+                    AddDebugElement(elements, element, GetStateName(element), BuildStateParameters(element));
                     break;
             }
         }
@@ -199,7 +199,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         {
             if (includeFlushState && flushElement is not null)
             {
-                AddStateElement(elements, flushElement, "flushLineBufferAndFeed", new Dictionary<string, string>());
+                AddDebugElement(elements, flushElement, "flushLineBufferAndFeed", new Dictionary<string, string>());
             }
             return;
         }
@@ -208,7 +208,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
 
         if (includeFlushState && flushElement is not null)
         {
-            AddStateElement(elements, flushElement, "flushLineBufferAndFeed", new Dictionary<string, string>());
+            AddDebugElement(elements, flushElement, "flushLineBufferAndFeed", new Dictionary<string, string>());
         }
 
         foreach (var segment in lineBuffer.Segments)
@@ -335,18 +335,16 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         var message =
             $"Image exceeds printer bounds (left={left}, top={top}, right={right}, bottom={bottom}, " +
             $"printerWidth={document.WidthInDots}, printerHeight={document.HeightInDots?.ToString() ?? "unlimited"}).";
-        elements.Add(new ViewStateElement("error", new Dictionary<string, string>
-        {
-            ["Message"] = message
-        })
+        elements.Add(new ViewStateElement("error", new Dictionary<string, string>())
         {
             CommandRaw = string.Empty,
+            CommandDescription = new[] { message },
             LengthInBytes = 0,
             ZIndex = 0
         });
     }
 
-    private static void AddStateElement(
+    private static void AddDebugElement(
         List<ViewElement> elements,
         Element element,
         string stateName,

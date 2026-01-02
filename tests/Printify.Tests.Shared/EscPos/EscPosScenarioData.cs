@@ -55,6 +55,7 @@ public static class EscPosScenarioData
             expectedRequestElements: [new AppendToLineBuffer("A") { LengthInBytes = 1 }],
             expectedViewElements:
             [
+                ViewAppend("A", lengthInBytes: 1),
                 ViewText("A", x: 0, y: 0, lengthInBytes: 1)
             ]),
         new(
@@ -66,7 +67,16 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewFlush(lengthInBytes: 1),
+                ViewAppend("ABC", lengthInBytes: 3),
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
+                ViewFlush(lengthInBytes: 1)
+            ]),
+        new(
+            input: "ABC"u8.ToArray(),
+            expectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }],
+            expectedViewElements:
+            [
+                ViewAppend("ABC", lengthInBytes: 3),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
             ]),
         new(
@@ -74,13 +84,7 @@ public static class EscPosScenarioData
             expectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
-            ]),
-        new(
-            input: "ABC"u8.ToArray(),
-            expectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }],
-            expectedViewElements:
-            [
+                ViewAppend("ABC", lengthInBytes: 3),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
             ]),
         new(
@@ -95,10 +99,13 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewFlush(lengthInBytes: 1),
+                ViewAppend("ABC", lengthInBytes: 3),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
                 ViewFlush(lengthInBytes: 1),
+                ViewAppend("DEF", lengthInBytes: 3),
                 ViewText("DEF", x: 0, y: 28, lengthInBytes: 3),
+                ViewFlush(lengthInBytes: 1),
+                ViewAppend("G", lengthInBytes: 1),
                 ViewText("G", x: 0, y: 56, lengthInBytes: 1)
             ]),
         new(
@@ -106,6 +113,7 @@ public static class EscPosScenarioData
             expectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }],
             expectedViewElements:
             [
+                ViewAppend("ABC", lengthInBytes: 3),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
             ]),
         new(
@@ -113,6 +121,7 @@ public static class EscPosScenarioData
             expectedRequestElements: [new AppendToLineBuffer(new string('A', 10_000)) { LengthInBytes = 10_000 }],
             expectedViewElements:
             [
+                ViewAppend(new string('A', 10_000), lengthInBytes: 10_000),
                 ViewText(new string('A', 10_000), x: 0, y: 0, lengthInBytes: 10_000)
             ]),
         new(
@@ -125,6 +134,7 @@ public static class EscPosScenarioData
             expectedViewElements:
             [
                 ViewState("bell", lengthInBytes: 1),
+                ViewAppend("ABC", lengthInBytes: 3),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
             ]),
         new(
@@ -140,7 +150,9 @@ public static class EscPosScenarioData
             [
                 ViewState("bell", lengthInBytes: 1),
                 ViewState("bell", lengthInBytes: 1),
+                ViewAppend("ABC", lengthInBytes: 3),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
+                ViewAppend("DEF", lengthInBytes: 3),
                 ViewText("DEF", x: 36, y: 0, lengthInBytes: 3)
             ]),
         new(
@@ -156,9 +168,11 @@ public static class EscPosScenarioData
             expectedViewElements:
             [
                 ViewState("bell", lengthInBytes: 1),
-                ViewFlush(lengthInBytes: 1),
+                ViewAppend("ABC", lengthInBytes: 3),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
+                ViewAppend("DEF", lengthInBytes: 3),
                 ViewText("DEF", x: 36, y: 0, lengthInBytes: 3),
+                ViewFlush(lengthInBytes: 1),
                 ViewState("bell", lengthInBytes: 1)
             ]),
         new(
@@ -231,6 +245,7 @@ public static class EscPosScenarioData
                 {
                     ["Message"] = string.Empty
                 }),
+                ViewAppend("ABC", lengthInBytes: 3),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
             ]),
         // Text followed by invalid byte followed by text
@@ -246,7 +261,9 @@ public static class EscPosScenarioData
                 {
                     ["Message"] = string.Empty
                 }),
+                ViewAppend("ABC", lengthInBytes: 3),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
+                ViewAppend("DEF", lengthInBytes: 3),
                 ViewText("DEF", x: 36, y: 0, lengthInBytes: 3)
             ]),
         // Invalid byte followed by command
@@ -428,6 +445,7 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
+                ViewState("rasterImage", lengthInBytes: 10),
                 ViewImage(8, 2, Media.CreateDefaultPng(112), lengthInBytes: 10)
             ]),
 
@@ -455,6 +473,7 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
+                ViewState("rasterImage", lengthInBytes: 10),
                 ViewImage(8, 2, Media.CreateDefaultPng(97), lengthInBytes: 10)
             ]),
 
@@ -482,6 +501,7 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
+                ViewState("rasterImage", lengthInBytes: 10),
                 ViewImage(8, 2, Media.CreateDefaultPng(97), lengthInBytes: 10)
             ]),
 
@@ -509,6 +529,7 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
+                ViewState("rasterImage", lengthInBytes: 10),
                 ViewImage(8, 2, Media.CreateDefaultPng(101), lengthInBytes: 10)
             ]),
         CreateOversizeRasterScenario()
@@ -552,6 +573,7 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
+                ViewState("rasterImage", lengthInBytes: lengthInBytes),
                 ViewState("error", lengthInBytes: 0),
                 ViewImage(widthInDots, heightInDots, media, lengthInBytes)
             ]);
@@ -712,8 +734,9 @@ public static class EscPosScenarioData
                 expected.Add(new AppendToLineBuffer(normalized) { LengthInBytes = bytes.Length });
                 expected.Add(new FlushLineBufferAndFeed { LengthInBytes = 1 });
 
-                expectedView.Add(ViewFlush(lengthInBytes: 1));
+                expectedView.Add(ViewAppend(normalized, lengthInBytes: bytes.Length));
                 expectedView.Add(ViewText(normalized, x: 0, y: currentY, lengthInBytes: bytes.Length));
+                expectedView.Add(ViewFlush(lengthInBytes: 1));
                 // ESC/POS advances by font height plus the configured line spacing for each feed.
                 currentY += DefaultFontHeight + DefaultLineSpacing;
             }
@@ -801,6 +824,17 @@ public static class EscPosScenarioData
     private const int DefaultFontWidth = 12;
     private const int DefaultFontHeight = 24;
     private const int DefaultLineSpacing = 4;
+
+    private static ViewStateElementDto ViewAppend(string text, int lengthInBytes)
+    {
+        return ViewState(
+            "appendToLineBuffer",
+            lengthInBytes,
+            new Dictionary<string, string>
+            {
+                ["Text"] = text
+            });
+    }
 
     private static ViewTextElementDto ViewText(
         string text,

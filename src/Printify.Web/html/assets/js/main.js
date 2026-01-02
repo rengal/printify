@@ -374,17 +374,19 @@
                 height = maxBottom || 100; // Minimum 100px
             }
 
-            // Sort elements by Y, then X for proper copy-paste order
-            const sortedElements = [...elements].sort((a, b) => {
-                const yDiff = (a.y || 0) - (b.y || 0);
-                if (yDiff !== 0) return yDiff;
-                return (a.x || 0) - (b.x || 0);
-            });
-
-            // Render elements with unique IDs for debug mode adjustment
+            // Render elements in original order (don't sort - backend order is correct)
+            console.log(`\n=== Rendering document ${docId} with ${elements.length} elements ===`);
             let elementIndex = 0;
-            const elementsHtml = sortedElements.map(element => {
+            const elementsHtml = elements.map(element => {
                 const id = `el-${docId}-${elementIndex++}`;
+                const desc = Array.isArray(element.commandDescription)
+                    ? element.commandDescription.join(' ')
+                    : (element.commandDescription || '');
+                const visualText = element.text ? ` text="${element.text.substring(0, 30)}"` : '';
+                const coords = element.type === 'text' || element.type === 'image'
+                    ? ` @(${element.x},${element.y})`
+                    : '';
+                console.log(`Render[${elementIndex-1}] type=${element.type}${coords}${visualText} | ${desc.substring(0, 50)}`);
                 return renderViewElement(element, id);
             }).join('');
 
@@ -406,9 +408,10 @@
                     return renderViewTextElement(element, id);
                 case 'image':
                     return renderViewImageElement(element, id);
+                case 'debug':
                 case 'none':
-                    // State element - only render debug if enabled
-                    return debugMode ? `<div id="${id}" data-element-type="none">${renderDebugTable(element)}</div>` : '';
+                    // Debug-only element - only render debug table if debug mode enabled
+                    return debugMode ? `<div id="${id}" data-element-type="debug" data-original-y="0">${renderDebugTable(element)}</div>` : '';
                 default:
                     return '';
             }
@@ -462,10 +465,9 @@
                 styles.push('border-radius: 3px');
             }
 
-            const debugTable = debugMode ? renderDebugTable(element) : '';
             const textContent = escapeHtml(text);
 
-            return `<div id="${id}" data-element-type="text" data-original-y="${y}">${debugTable}<div class="view-text ${fontClass}" style="${styles.join('; ')};">${textContent}</div></div>`;
+            return `<div id="${id}" data-element-type="text" data-original-y="${y}"><div class="view-text ${fontClass}" style="${styles.join('; ')};">${textContent}</div></div>`;
         }
 
         // Render image element with absolute positioning
@@ -488,10 +490,9 @@
             styles.push(`height: ${height}px`);
             styles.push(`z-index: ${zIndex}`);
 
-            const debugTable = debugMode ? renderDebugTable(element) : '';
             const altText = `Image ${width}x${height}`;
 
-            return `<div id="${id}" data-element-type="image" data-original-y="${y}">${debugTable}<img class="view-image" src="${escapeHtml(mediaUrl)}" alt="${escapeHtml(altText)}" style="${styles.join('; ')};" loading="lazy"></div>`;
+            return `<div id="${id}" data-element-type="image" data-original-y="${y}"><img class="view-image" src="${escapeHtml(mediaUrl)}" alt="${escapeHtml(altText)}" style="${styles.join('; ')};" loading="lazy"></div>`;
         }
 
         function renderDebugTable(element) {
@@ -499,6 +500,11 @@
             const commandDescription = Array.isArray(element.commandDescription)
                 ? element.commandDescription.join('\n')
                 : (element.commandDescription || '');
+            const stateName = element.stateName || '';
+
+            // Check if this is an error state
+            const isError = stateName === 'error' || stateName === 'printerError';
+            const errorClass = isError ? ' debug-error' : '';
 
             // Format hex command with spaces
             const hexFormatted = formatHexCommand(commandRaw);
@@ -507,7 +513,7 @@
             const descFormatted = truncateTextInDescription(commandDescription);
 
             return `
-                <table class="debug-table">
+                <table class="debug-table${errorClass}">
                     <tr>
                         <td class="debug-hex">${hexFormatted}</td>
                           <td class="debug-desc">${escapeHtml(descFormatted).replace(/\n/g, '<br>') || '<span class="debug-missing">??</span>'}</td>
@@ -532,7 +538,7 @@
 
         function formatHexCommand(commandRaw) {
             if (!commandRaw || commandRaw.trim() === '') {
-                return '<span class="debug-missing">??</span>';
+                return ''; // Leave blank if commandRaw is empty
             }
 
             // Remove any existing spaces
@@ -597,33 +603,46 @@
             const container = document.getElementById(contentId);
             if (!container) return;
 
-            // Get all element wrappers sorted by original Y position
-            const elements = Array.from(container.querySelectorAll('[data-original-y]'))
-                .sort((a, b) => {
-                    const yA = parseInt(a.getAttribute('data-original-y')) || 0;
-                    const yB = parseInt(b.getAttribute('data-original-y')) || 0;
-                    return yA - yB;
-                });
+            // Get all element wrappers in DOM order (backend provides correct order)
+            const elements = Array.from(container.querySelectorAll('[data-original-y]'));
 
-            let yOffset = 0;
+            let currentY = 0; // Track current vertical position in the adjusted document
 
-            elements.forEach(wrapper => {
-                // Find debug table and actual element
-                const debugTable = wrapper.querySelector('.debug-table');
-                const actualElement = wrapper.querySelector('.view-text, .view-image');
+            elements.forEach((wrapper, index) => {
+                const elementType = wrapper.getAttribute('data-element-type') || 'unknown';
 
-                if (debugTable && actualElement) {
-                    const debugHeight = debugTable.offsetHeight;
+                if (elementType === 'debug') {
+                    // Debug-only element (type=debug or type=none from backend)
+                    const debugTable = wrapper.querySelector('.debug-table');
+                    if (debugTable) {
+                        debugTable.style.top = `${currentY}px`;
+                        const debugHeight = debugTable.offsetHeight || 20;
+                        const debugDesc = debugTable.querySelector('.debug-desc')?.textContent?.trim() || '';
 
-                    // Update actual element's top position
-                    const originalY = parseInt(wrapper.getAttribute('data-original-y')) || 0;
-                    const newY = originalY + yOffset + debugHeight;
-                    actualElement.style.top = `${newY}px`;
+                        console.log(`[${index}] debug | Y=${currentY}px H=${debugHeight}px | ${debugDesc.substring(0, 50)}`);
 
-                    // Accumulate offset for next elements
-                    yOffset += debugHeight;
+                        currentY += debugHeight;
+                    }
+                } else if (elementType === 'text' || elementType === 'image') {
+                    // Visual element (text or image)
+                    const visualElement = wrapper.querySelector('.view-text, .view-image');
+                    if (visualElement) {
+                        const elementHeight = parseInt(visualElement.style.height) || 0;
+                        const elementText = visualElement.textContent?.trim() || visualElement.alt || '';
+                        visualElement.style.top = `${currentY}px`;
+
+                        console.log(`[${index}] ${elementType} | Y=${currentY}px H=${elementHeight}px | ${elementText.substring(0, 50)}`);
+
+                        currentY += elementHeight;
+                    }
                 }
             });
+
+            // Adjust container height to include all debug info
+            const originalHeight = parseInt(container.style.height) || 0;
+            if (currentY > originalHeight) {
+                container.style.height = `${currentY}px`;
+            }
         }
 
         // Map ViewDocumentDto to internal document object
@@ -905,7 +924,7 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                   Clear
                 </button>
-                <button class="btn btn-${debugMode ? 'primary' : 'secondary'} btn-sm" onclick="toggleDebugMode()">
+                <button class="btn btn-secondary btn-sm ${debugMode ? 'active' : ''}" onclick="toggleDebugMode()">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h.01M15 9h.01M9 15h6"/></svg>
                   Debug
                 </button>
@@ -968,6 +987,7 @@
                 requestAnimationFrame(() => {
                     docs.forEach(doc => {
                         const contentId = `doc-content-${doc.id}`;
+                        console.log(`\n=== Adjusting debug positions for document ${doc.id} ===`);
                         adjustDebugYPositions(contentId);
                     });
                 });
@@ -1709,7 +1729,7 @@
                 if (printer && docs) {
                     documents[printerId] = docs.map(doc => ({
                         ...doc,
-                        previewHtml: renderEscPosDocument(doc.elements || [], doc.width)
+                        previewHtml: renderViewDocument(doc.elements || [], doc.widthInDots, doc.heightInDots, doc.id)
                     }));
                 }
             }

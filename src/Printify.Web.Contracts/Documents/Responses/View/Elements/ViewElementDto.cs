@@ -19,7 +19,7 @@ public static class ViewFontNames
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(ViewTextElementDto), "text")]
 [JsonDerivedType(typeof(ViewImageElementDto), "image")]
-[JsonDerivedType(typeof(ViewStateElementDto), "none")]
+[JsonDerivedType(typeof(ViewStateElementDto), "debug")]
 public abstract record ViewElementDto : BaseElementDto
 {
     /// <summary>
@@ -85,7 +85,7 @@ public sealed record ViewImageElementDto(
     : ViewElementDto;
 
 /// <summary>
-/// Non-visual element that only mutates state; emitted as "type":"none".
+/// Non-visual element that only mutates state; emitted as "type":"debug".
 /// </summary>
 public sealed record ViewStateElementDto : ViewElementDto
 {

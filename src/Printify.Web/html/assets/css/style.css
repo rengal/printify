@@ -332,6 +332,16 @@
             border-color: var(--border);
         }
 
+            .btn-secondary.active {
+                background: var(--accent);
+                border-color: var(--accent);
+                color: white;
+            }
+
+            .btn-secondary.active:focus {
+                outline: 2px solid var(--accent);
+            }
+
         .btn-ghost {
             background: transparent;
             border-color: transparent;
