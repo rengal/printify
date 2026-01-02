@@ -778,28 +778,26 @@
               </div>
             `;
                 documentsPanel.innerHTML = `
-              <div style="max-width: 600px; margin: 60px auto; text-align: center;">
-                <h1>Printer Management System</h1>
-                <p style="color: var(--muted); font-size: 18px; margin: 24px 0 40px; line-height: 1.6;">
+              <div style="max-width: 600px; margin: 30px auto; text-align: center;">
+                <h1 style="margin-bottom: 12px;">Printer Management System</h1>
+                <p style="color: var(--muted); font-size: 16px; margin: 0 0 24px; line-height: 1.5;">
                   Manage receipt and label printers with real-time document streaming
                 </p>
 
-                <div style="text-align: left; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 32px; margin-bottom: 32px;">
-                  <h3 style="margin-top: 0;">Features</h3>
-                  <ul style="color: var(--muted); line-height: 1.8; padding-left: 24px;">
-                    <li>Configure multiple printers with ESC/POS, ZPL, and other protocols</li>
+                <div style="text-align: left; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                  <h3 style="margin-top: 0; margin-bottom: 12px;">Features</h3>
+                  <ul style="color: var(--muted); line-height: 1.6; padding-left: 24px; margin: 0;">
+                    <li>Configure multiple printers with ESC/POS and ZPL protocols</li>
                     <li>Monitor print jobs in real-time with document preview</li>
                     <li>Replay and download previously printed documents</li>
-                    <li>Pin frequently used printers for quick access</li>
-                    <li>Emulate buffer capacity for testing and optimization</li>
                     <li>Share printers across devices with your workspace token</li>
                   </ul>
                 </div>
 
-                <div style="background: rgba(16,185,129,0.1); border: 1px solid var(--accent); border-radius: 12px; padding: 24px; margin-bottom: 32px;">
-                  <h3 style="margin-top: 0; color: var(--accent);">Get Started</h3>
+                <div style="background: rgba(16,185,129,0.1); border: 1px solid var(--accent); border-radius: 12px; padding: 20px;">
+                  <h3 style="margin-top: 0; margin-bottom: 8px; color: var(--accent);">Get Started</h3>
                   <p style="color: var(--muted); margin-bottom: 16px;">
-                    Create a new workspace or access an existing one with your token
+                    Create a new workspace or access an existing one
                   </p>
                   <button class="btn btn-primary" onclick="showWorkspaceDialog()">Create or Access Workspace</button>
                 </div>
@@ -1690,6 +1688,11 @@
             localStorage.removeItem('workspaceName');
             localStorage.removeItem('accessToken');
 
+            // Hide operations panel when logging out
+            const container = document.querySelector('.container');
+            container.classList.add('operations-hidden');
+            localStorage.setItem('operationsHidden', true);
+
             updateUserDisplay();
             renderSidebar();
             renderDocuments();
@@ -1783,6 +1786,11 @@
         }
 
         function toggleOperationsForPrinter(printerId) {
+            // Don't show operations panel if not logged in
+            if (!workspaceToken || !accessToken) {
+                return;
+            }
+
             const container = document.querySelector('.container');
             const isHidden = container.classList.contains('operations-hidden');
 
@@ -1842,16 +1850,30 @@
             menu.style.position = 'fixed';
             menu.style.left = event.currentTarget.getBoundingClientRect().left + 'px';
             menu.style.bottom = (window.innerHeight - event.currentTarget.getBoundingClientRect().top) + 'px';
+            menu.style.minWidth = '200px';
 
             if (workspaceToken) {
                 menu.innerHTML = `
+              <div style="padding: 10px 14px 6px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Application</div>
+              <div class="menu-item" onclick="showAbout()">About</div>
+              <div class="menu-item" onclick="showTermsOfUse()">Terms of Use</div>
+              <div class="menu-item" onclick="showPrivacyPolicy()">Privacy Policy</div>
+              <div class="menu-item" onclick="showContacts()">Contacts</div>
+              <div style="border-top: 1px solid var(--border); margin: 8px 0;"></div>
+              <div style="padding: 10px 14px 6px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Workspace</div>
               <div class="menu-item" onclick="showWorkspaceDialog('create')">New Workspace</div>
               <div class="menu-item" onclick="showWorkspaceDialog('join')">Switch Workspace</div>
-              <div style="border-top: 1px solid var(--border); margin: 4px 0;"></div>
               <div class="menu-item" onclick="logOut()">End Workspace</div>
             `;
             } else {
                 menu.innerHTML = `
+              <div style="padding: 10px 14px 6px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Application</div>
+              <div class="menu-item" onclick="showAbout()">About</div>
+              <div class="menu-item" onclick="showTermsOfUse()">Terms of Use</div>
+              <div class="menu-item" onclick="showPrivacyPolicy()">Privacy Policy</div>
+              <div class="menu-item" onclick="showContacts()">Contacts</div>
+              <div style="border-top: 1px solid var(--border); margin: 8px 0;"></div>
+              <div style="padding: 10px 14px 6px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Workspace</div>
               <div class="menu-item" onclick="showWorkspaceDialog('create')">Create Workspace</div>
               <div class="menu-item" onclick="showWorkspaceDialog('join')">Access Workspace</div>
             `;
@@ -1865,6 +1887,22 @@
                     document.removeEventListener('click', closeMenu);
                 });
             }, 0);
+        }
+
+        function showAbout() {
+            showToast('About - Coming soon');
+        }
+
+        function showTermsOfUse() {
+            showToast('Terms of Use - Coming soon');
+        }
+
+        function showPrivacyPolicy() {
+            showToast('Privacy Policy - Coming soon');
+        }
+
+        function showContacts() {
+            showToast('Contacts - Coming soon');
         }
 
         async function startStatusStream() {
@@ -2009,10 +2047,14 @@
         if (sidebarMinimized) {
             document.querySelector('.container').classList.add('sidebar-minimized');
         }
-    
-        // Restore operations panel state (default: hidden)
-        const operationsHidden = localStorage.getItem('operationsHidden');
-        // If not set in localStorage, default to hidden
-        if (operationsHidden === null || operationsHidden === 'true') {
+
+        // Restore operations panel state
+        // Always hide if not logged in, otherwise restore from localStorage (default: hidden)
+        if (!workspaceToken || !accessToken) {
             document.querySelector('.container').classList.add('operations-hidden');
+        } else {
+            const operationsHidden = localStorage.getItem('operationsHidden');
+            if (operationsHidden === null || operationsHidden === 'true') {
+                document.querySelector('.container').classList.add('operations-hidden');
+            }
         }
