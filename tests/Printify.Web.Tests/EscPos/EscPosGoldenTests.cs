@@ -9,7 +9,11 @@ public class EscPosGoldenTests(WebApplicationFactory<Program> factory) : EscPosT
     public async Task EscPos_Golden_Cases_ProduceExpectedDocuments(string caseId, byte[] payload)
     {
         Assert.True(EscPosGoldenCases.Expectations.TryGetValue(caseId, out var value));
-        var scenario = new EscPosScenario(payload, value.expectedRequestElement, value.expectedPersistedElements);
+        var scenario = new EscPosScenario(
+            payload,
+            value.expectedRequestElement,
+            value.expectedPersistedElements,
+            value.expectedViewElements);
         await RunScenarioAsync(scenario);
     }
 }

@@ -7,7 +7,11 @@ public partial class EscPosParserTests
     public void Parser_Golden_Cases_ProduceExpectedElements(string caseId, byte[] payload)
     {
         Assert.True(EscPosGoldenCases.Expectations.TryGetValue(caseId, out var value));
-        var scenario = new EscPosScenario(payload, value.expectedRequestElement, value.expectedPersistedElements);
+        var scenario = new EscPosScenario(
+            payload,
+            value.expectedRequestElement,
+            value.expectedPersistedElements,
+            value.expectedViewElements);
         AssertScenarioAcrossAllStrategies(scenario);
     }
 }

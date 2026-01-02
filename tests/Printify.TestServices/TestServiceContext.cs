@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc.Testing;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +34,8 @@ public sealed class TestServiceContext(ServiceProvider provider)
 
         var configuredFactory = factory.WithWebHostBuilder(builder =>
         {
+            // Avoid static file providers and file watchers during tests.
+            builder.UseEnvironment("Test");
             builder.ConfigureTestServices(services =>
             {
                 services.AddLogging(logging =>

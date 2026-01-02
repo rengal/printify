@@ -21,7 +21,7 @@ builder.Logging.SetMinimumLevel(LogLevel.Information);
 var app = builder.Build();
 
 var htmlRoot = Path.Combine(builder.Environment.ContentRootPath, "html");
-if (Directory.Exists(htmlRoot))
+if (!builder.Environment.IsEnvironment("Test") && Directory.Exists(htmlRoot))
 {
     var defaultFiles = new DefaultFilesOptions
     {
