@@ -498,7 +498,7 @@ public sealed class WorkspaceSummaryTests(WebApplicationFactory<Program> factory
             {
                 // Send document
                 await SendDocumentAsync(pid, $"Doc {i}");
-                await documentStream.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(10));
+                await documentStream.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(2));
 
                 // Increment total and check stats (with lock to serialize stat checks)
                 await statsLock.WaitAsync();

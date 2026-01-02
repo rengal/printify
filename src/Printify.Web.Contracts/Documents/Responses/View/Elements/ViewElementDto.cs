@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using Printify.Web.Contracts.Documents.Shared.Elements;
 
@@ -72,12 +73,30 @@ public sealed record ViewImageElementDto(
 /// <summary>
 /// Non-visual element that only mutates state; emitted as "type":"none".
 /// </summary>
-/// <param name="StateName">Name of the state change.</param>
-/// <param name="Parameters">Key/value parameters for the state change.</param>
-public sealed record ViewStateElementDto(
-    string StateName,
-    IReadOnlyDictionary<string, string> Parameters)
-    : ViewElementDto;
+public sealed record ViewStateElementDto : ViewElementDto
+{
+    /// <summary>
+    /// Name of the state change.
+    /// </summary>
+    public string StateName { get; init; }
+
+    /// <summary>
+    /// Key/value parameters for the state change.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> Parameters { get; init; }
+
+    [JsonConstructor]
+    public ViewStateElementDto(string stateName, IReadOnlyDictionary<string, string> parameters)
+    {
+        StateName = stateName;
+        Parameters = parameters;
+    }
+
+    public ViewStateElementDto(string stateName)
+        : this(stateName, new Dictionary<string, string>())
+    {
+    }
+}
 
 /// <summary>
 /// Descriptor for media stored in external storage for view rendering.

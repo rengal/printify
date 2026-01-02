@@ -2,8 +2,11 @@ using Xunit;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
+using Printify.Domain.Documents.View;
 using Printify.Web.Contracts.Documents.Responses;
 using Printify.Web.Contracts.Documents.Responses.Elements;
+using Printify.Web.Contracts.Documents.Responses.View;
+using Printify.Web.Contracts.Documents.Responses.View.Elements;
 using Printify.Web.Contracts.Documents.Shared.Elements;
 using Printify.Web.Mapping;
 using SixLabors.ImageSharp;
@@ -173,6 +176,85 @@ public static class DocumentAssertions
             actual.Elements.ToList());
     }
 
+    public static void EqualView(
+        IReadOnlyList<ViewElementDto> expectedElements,
+        Protocol expectedProtocol,
+        ViewDocumentDto? actual,
+        int expectedWidthInDots,
+        int? expectedHeightInDots)
+    {
+        Assert.NotNull(actual);
+        Assert.Equal(DomainMapper.ToString(expectedProtocol), actual.Protocol);
+        Assert.Equal(expectedWidthInDots, actual.WidthInDots);
+        Assert.Equal(expectedHeightInDots, actual.HeightInDots);
+
+        EqualViewElements(expectedElements, actual.Elements.ToList());
+    }
+
+    public static void EqualView(
+        IReadOnlyList<ViewElementDto> expectedElements,
+        Protocol expectedProtocol,
+        ViewDocument? actual,
+        int expectedWidthInDots,
+        int? expectedHeightInDots)
+    {
+        Assert.NotNull(actual);
+        var dto = ViewDocumentMapper.ToViewResponseDto(actual);
+        EqualView(expectedElements, expectedProtocol, dto, expectedWidthInDots, expectedHeightInDots);
+    }
+
+    public static void EqualViewElements(
+        IReadOnlyList<ViewElementDto> expectedElements,
+        IReadOnlyList<ViewElementDto> actualElements)
+    {
+        Assert.NotNull(expectedElements);
+        Assert.Equal(expectedElements.Count, actualElements.Count);
+
+        for (var index = 0; index < expectedElements.Count; index++)
+        {
+            var expected = expectedElements[index];
+            var actualElement = actualElements[index];
+
+            Assert.Equal(expected.GetType(), actualElement.GetType());
+            Assert.Equal(expected.LengthInBytes, actualElement.LengthInBytes);
+
+            switch (expected)
+            {
+                case ViewTextElementDto expectedText:
+                    var actualText = Assert.IsType<ViewTextElementDto>(actualElement);
+                    Assert.Equal(expectedText.Text, actualText.Text);
+                    Assert.Equal(expectedText.X, actualText.X);
+                    Assert.Equal(expectedText.Y, actualText.Y);
+                    Assert.Equal(expectedText.Width, actualText.Width);
+                    Assert.Equal(expectedText.Height, actualText.Height);
+                    Assert.Equal(expectedText.Font, actualText.Font);
+                    Assert.Equal(expectedText.CharSpacing, actualText.CharSpacing);
+                    Assert.Equal(expectedText.IsBold, actualText.IsBold);
+                    Assert.Equal(expectedText.IsUnderline, actualText.IsUnderline);
+                    Assert.Equal(expectedText.IsReverse, actualText.IsReverse);
+                    break;
+                case ViewImageElementDto expectedImage:
+                    var actualImage = Assert.IsType<ViewImageElementDto>(actualElement);
+                    Assert.Equal(expectedImage.X, actualImage.X);
+                    Assert.Equal(expectedImage.Y, actualImage.Y);
+                    Assert.Equal(expectedImage.Width, actualImage.Width);
+                    Assert.Equal(expectedImage.Height, actualImage.Height);
+                    Assert.NotNull(actualImage.Media);
+                    Assert.True(actualImage.Media.Length > 0);
+                    Assert.Equal(expectedImage.Media.ContentType, actualImage.Media.ContentType);
+                    break;
+                case ViewStateElementDto expectedState:
+                    var actualState = Assert.IsType<ViewStateElementDto>(actualElement);
+                    Assert.Equal(expectedState.StateName, actualState.StateName);
+                    Assert.Equal(expectedState.Parameters, actualState.Parameters);
+                    break;
+                default:
+                    Assert.Equal(NormalizeViewElement(expected, actualElement), actualElement);
+                    break;
+            }
+        }
+    }
+
     private static ResponseElementDto NormalizeResponse(ResponseElementDto expected, ResponseElementDto actual)
     {
         return expected is BaseElementDto expectedBase && actual is BaseElementDto actualBase
@@ -183,6 +265,16 @@ public static class DocumentAssertions
                 LengthInBytes = actualBase.LengthInBytes
             }
             : expected;
+    }
+
+    private static ViewElementDto NormalizeViewElement(ViewElementDto expected, ViewElementDto actual)
+    {
+        return expected with
+        {
+            CommandRaw = actual.CommandRaw,
+            CommandDescription = actual.CommandDescription,
+            ZIndex = actual.ZIndex
+        };
     }
 
     private static Element NormalizeDomain(Element expected, Element actual)

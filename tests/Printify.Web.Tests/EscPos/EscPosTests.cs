@@ -12,6 +12,7 @@ using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Contracts.Auth.Responses;
 using Printify.Web.Contracts.Documents.Responses;
 using Printify.Web.Contracts.Documents.Responses.Elements;
+using Printify.Web.Contracts.Documents.Responses.View;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Workspaces.Requests;
 using Printify.Web.Contracts.Workspaces.Responses;
@@ -210,6 +211,23 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
                 }
             }
         }
+
+        var ct = CancellationToken.None;
+        var viewResponse = await environment.Client.GetAsync($"/api/printers/{printerId}/documents/view?limit=10");
+        viewResponse.EnsureSuccessStatusCode();
+        var viewDocumentList = await viewResponse.Content.ReadFromJsonAsync<ViewDocumentListResponseDto>(cancellationToken: ct);
+        Assert.NotNull(viewDocumentList);
+        var viewDocuments = viewDocumentList.Result.Items;
+        var viewDocument = viewDocuments.FirstOrDefault(doc => doc.Id == documentId)
+            ?? viewDocuments.FirstOrDefault();
+        Assert.NotNull(viewDocument);
+
+        DocumentAssertions.EqualView(
+            scenario.ExpectedViewElements,
+            Protocol.EscPos,
+            viewDocument,
+            DefaultPrinterWidthInDots,
+            DefaultPrinterHeightInDots);
 
     }
 

@@ -1,7 +1,10 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using Printify.Domain.Documents.Elements;
 using Printify.Domain.Media;
 using Printify.Infrastructure.Media;
-using Printify.Domain.Documents.Elements;
+using Printify.Web.Contracts.Documents.Responses.View.Elements;
 using Xunit;
 
 namespace Printify.Tests.Shared.EscPos;
@@ -20,64 +23,164 @@ public static class EscPosScenarioData
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var codePageVectors = BuildCodePageVectors();
         CodePageScenarios = BuildCodePageScenarios(codePageVectors);
+        AllScenarios = BuildAllScenarios();
     }
 
     public static TheoryData<EscPosScenario> BellScenarios { get; } =
     [
-        new(Input: [0x07],
-            ExpectedRequestElements: [new Bell { LengthInBytes = 1 }]),
+        new(input: [0x07],
+            expectedRequestElements: [new Bell { LengthInBytes = 1 }],
+            expectedViewElements:
+            [
+                new ViewStateElementDto("bell")
+                {
+                    LengthInBytes = 1
+                }
+            ]),
         new(
-            Input: Enumerable.Repeat((byte)0x07, 10).ToArray(),
-            ExpectedRequestElements: Enumerable.Range(0, 10).Select(_ => new Bell { LengthInBytes = 1 }).ToArray())
+            input: Enumerable.Repeat((byte)0x07, 10).ToArray(),
+            expectedRequestElements: Enumerable.Range(0, 10).Select(_ => new Bell { LengthInBytes = 1 }).ToArray(),
+            expectedViewElements: Enumerable.Range(0, 10)
+                .Select(_ => new ViewStateElementDto("bell")
+                {
+                    LengthInBytes = 1
+                })
+                .ToArray())
     ];
 
     public static TheoryData<EscPosScenario> TextScenarios { get; } =
     [
-        new(Input: "A"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("A") { LengthInBytes = 1 }]),
-        new(Input: "ABC\n"u8.ToArray(), ExpectedRequestElements: [
-            new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
-            new FlushLineBufferAndFeed { LengthInBytes = 1 }]),
-        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }]),
-        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }]),
         new(
-            Input: "ABC\nDEF\nG"u8.ToArray(),
-            ExpectedRequestElements: [
+            input: "A"u8.ToArray(),
+            expectedRequestElements: [new AppendToLineBuffer("A") { LengthInBytes = 1 }],
+            expectedViewElements:
+            [
+                ViewText("A", x: 0, y: 0, lengthInBytes: 1)
+            ]),
+        new(
+            input: "ABC\n"u8.ToArray(),
+            expectedRequestElements:
+            [
+                new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
+                new FlushLineBufferAndFeed { LengthInBytes = 1 }
+            ],
+            expectedViewElements:
+            [
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
+                ViewFlush(lengthInBytes: 1)
+            ]),
+        new(
+            input: "ABC"u8.ToArray(),
+            expectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }],
+            expectedViewElements:
+            [
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
+            ]),
+        new(
+            input: "ABC"u8.ToArray(),
+            expectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }],
+            expectedViewElements:
+            [
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
+            ]),
+        new(
+            input: "ABC\nDEF\nG"u8.ToArray(),
+            expectedRequestElements:
+            [
                 new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
                 new FlushLineBufferAndFeed { LengthInBytes = 1 },
                 new AppendToLineBuffer("DEF") { LengthInBytes = 3 },
                 new FlushLineBufferAndFeed { LengthInBytes = 1 },
-                new AppendToLineBuffer("G") { LengthInBytes = 1 }]),
-        new(Input: "ABC"u8.ToArray(), ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }]),
+                new AppendToLineBuffer("G") { LengthInBytes = 1 }
+            ],
+            expectedViewElements:
+            [
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
+                ViewFlush(lengthInBytes: 1),
+                ViewText("DEF", x: 0, y: 28, lengthInBytes: 3),
+                ViewFlush(lengthInBytes: 1),
+                ViewText("G", x: 0, y: 56, lengthInBytes: 1)
+            ]),
         new(
-            Input: Encoding.ASCII.GetBytes(new string('A', 10_000)),
-            ExpectedRequestElements: [new AppendToLineBuffer(new string('A', 10_000)) { LengthInBytes = 10_000 }]),
+            input: "ABC"u8.ToArray(),
+            expectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }],
+            expectedViewElements:
+            [
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
+            ]),
         new(
-            Input: [.. "ABC"u8, 0x07],
-            ExpectedRequestElements: [new AppendToLineBuffer("ABC") { LengthInBytes = 3 }, new Bell { LengthInBytes = 1 }]),
+            input: Encoding.ASCII.GetBytes(new string('A', 10_000)),
+            expectedRequestElements: [new AppendToLineBuffer(new string('A', 10_000)) { LengthInBytes = 10_000 }],
+            expectedViewElements:
+            [
+                ViewText(new string('A', 10_000), x: 0, y: 0, lengthInBytes: 10_000)
+            ]),
         new(
-            Input: [.. "ABC"u8, 0x07, .. "DEF"u8, 0x07],
-            ExpectedRequestElements: [
+            input: [.. "ABC"u8, 0x07],
+            expectedRequestElements:
+            [
+                new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
+                new Bell { LengthInBytes = 1 }
+            ],
+            expectedViewElements:
+            [
+                ViewState("bell", lengthInBytes: 1),
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
+            ]),
+        new(
+            input: [.. "ABC"u8, 0x07, .. "DEF"u8, 0x07],
+            expectedRequestElements:
+            [
                 new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
                 new Bell { LengthInBytes = 1 },
                 new AppendToLineBuffer("DEF") { LengthInBytes = 3 },
-                new Bell { LengthInBytes = 1 }]),
+                new Bell { LengthInBytes = 1 }
+            ],
+            expectedViewElements:
+            [
+                ViewState("bell", lengthInBytes: 1),
+                ViewState("bell", lengthInBytes: 1),
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
+                ViewText("DEF", x: 36, y: 0, lengthInBytes: 3)
+            ]),
         new(
-            Input: [.. "ABC"u8, 0x07, .. "DEF\n"u8, 0x07],
-            ExpectedRequestElements: [
+            input: [.. "ABC"u8, 0x07, .. "DEF\n"u8, 0x07],
+            expectedRequestElements:
+            [
                 new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
                 new Bell { LengthInBytes = 1 },
                 new AppendToLineBuffer("DEF") { LengthInBytes = 3 },
                 new FlushLineBufferAndFeed { LengthInBytes = 1 },
-                new Bell { LengthInBytes = 1 }]),
+                new Bell { LengthInBytes = 1 }
+            ],
+            expectedViewElements:
+            [
+                ViewState("bell", lengthInBytes: 1),
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
+                ViewText("DEF", x: 36, y: 0, lengthInBytes: 3),
+                ViewFlush(lengthInBytes: 1),
+                ViewState("bell", lengthInBytes: 1)
+            ]),
         new(
-            Input: "\n"u8.ToArray(),
-            ExpectedRequestElements: [new FlushLineBufferAndFeed { LengthInBytes = 1 }]),
+            input: "\n"u8.ToArray(),
+            expectedRequestElements: [new FlushLineBufferAndFeed { LengthInBytes = 1 }],
+            expectedViewElements:
+            [
+                ViewFlush(lengthInBytes: 1)
+            ]),
         new(
-            Input: "\n\n\n"u8.ToArray(),
-            ExpectedRequestElements: [
+            input: "\n\n\n"u8.ToArray(),
+            expectedRequestElements:
+            [
                 new FlushLineBufferAndFeed { LengthInBytes = 1 },
                 new FlushLineBufferAndFeed { LengthInBytes = 1 },
                 new FlushLineBufferAndFeed { LengthInBytes = 1 }
+            ],
+            expectedViewElements:
+            [
+                ViewFlush(lengthInBytes: 1),
+                ViewFlush(lengthInBytes: 1),
+                ViewFlush(lengthInBytes: 1)
             ])
     ];
 
@@ -85,70 +188,215 @@ public static class EscPosScenarioData
     [
         // Single null byte produces one error
         new(
-            Input: [0x00],
-            ExpectedRequestElements: [new PrinterError("") { LengthInBytes = 1 }]),
+            input: [0x00],
+            expectedRequestElements: [new PrinterError("") { LengthInBytes = 1 }],
+            expectedViewElements:
+            [
+                ViewState("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                {
+                    ["Message"] = string.Empty
+                })
+            ]),
         // Two consecutive null bytes produce one error (accumulated)
         new(
-            Input: [0x00, 0x00],
-            ExpectedRequestElements: [new PrinterError("") { LengthInBytes = 2 }]),
+            input: [0x00, 0x00],
+            expectedRequestElements: [new PrinterError("") { LengthInBytes = 2 }],
+            expectedViewElements:
+            [
+                ViewState("printerError", lengthInBytes: 2, parameters: new Dictionary<string, string>
+                {
+                    ["Message"] = string.Empty
+                })
+            ]),
         // Multiple invalid bytes produce one error
         new(
-            Input: [0x00, 0x01, 0x02],
-            ExpectedRequestElements: [new PrinterError("") { LengthInBytes = 3 }]),
+            input: [0x00, 0x01, 0x02],
+            expectedRequestElements: [new PrinterError("") { LengthInBytes = 3 }],
+            expectedViewElements:
+            [
+                ViewState("printerError", lengthInBytes: 3, parameters: new Dictionary<string, string>
+                {
+                    ["Message"] = string.Empty
+                })
+            ]),
         // Invalid byte followed by text transitions correctly
         new(
-            Input: [0x00, .. "ABC"u8],
-            ExpectedRequestElements: [
+            input: [0x00, .. "ABC"u8],
+            expectedRequestElements: [
                 new PrinterError("") { LengthInBytes = 1 },
-                new AppendToLineBuffer("ABC") { LengthInBytes = 3 }]),
+                new AppendToLineBuffer("ABC") { LengthInBytes = 3 }],
+            expectedViewElements:
+            [
+                ViewState("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                {
+                    ["Message"] = string.Empty
+                }),
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
+            ]),
         // Text followed by invalid byte followed by text
         new(
-            Input: [.. "ABC"u8, 0x00, .. "DEF"u8],
-            ExpectedRequestElements: [
+            input: [.. "ABC"u8, 0x00, .. "DEF"u8],
+            expectedRequestElements: [
                 new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
                 new PrinterError("") { LengthInBytes = 1 },
-                new AppendToLineBuffer("DEF") { LengthInBytes = 3 }]),
+                new AppendToLineBuffer("DEF") { LengthInBytes = 3 }],
+            expectedViewElements:
+            [
+                ViewState("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                {
+                    ["Message"] = string.Empty
+                }),
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
+                ViewText("DEF", x: 36, y: 0, lengthInBytes: 3)
+            ]),
         // Invalid byte followed by command
         new(
-            Input: [0x00, 0x07],
-            ExpectedRequestElements: [
+            input: [0x00, 0x07],
+            expectedRequestElements: [
                 new PrinterError("") { LengthInBytes = 1 },
-                new Bell { LengthInBytes = 1 }])
+                new Bell { LengthInBytes = 1 }],
+            expectedViewElements:
+            [
+                ViewState("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                {
+                    ["Message"] = string.Empty
+                }),
+                ViewState("bell", lengthInBytes: 1)
+            ])
     ];
 
     public static TheoryData<EscPosScenario> PagecutScenarios { get; } =
     [
-        new(Input: [Esc, (byte)'i'], ExpectedRequestElements: [new Pagecut(PagecutMode.PartialOnePoint) { LengthInBytes = 2 }]),
-        new(Input: [Gs, 0x56, 0x00], ExpectedRequestElements: [new Pagecut(PagecutMode.Full) { LengthInBytes = 3 }]),
-        new(Input: [Gs, 0x56, 0x30], ExpectedRequestElements: [new Pagecut(PagecutMode.Full) { LengthInBytes = 3 }]),
-        new(Input: [Gs, 0x56, 0x01], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial) { LengthInBytes = 3 }]),
-        new(Input: [Gs, 0x56, 0x31], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial) { LengthInBytes = 3 }]),
-        new(Input: [Gs, 0x56, 0x41, 0x05], ExpectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05) { LengthInBytes = 4 }]),
-        new(Input: [Gs, 0x56, 0x42, 0x20], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20) { LengthInBytes = 4 }]),
-        new(Input: [Gs, 0x56, 0x61, 0x05], ExpectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05) { LengthInBytes = 4 }]),
-        new(Input: [Gs, 0x56, 0x62, 0x20], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20) { LengthInBytes = 4 }]),
-        new(Input: [Gs, 0x56, 0x67, 0x05], ExpectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05) { LengthInBytes = 4 }]),
-        new(Input: [Gs, 0x56, 0x68, 0x20], ExpectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20) { LengthInBytes = 4 }])
+        new(
+            input: [Esc, (byte)'i'],
+            expectedRequestElements: [new Pagecut(PagecutMode.PartialOnePoint) { LengthInBytes = 2 }],
+            expectedViewElements:
+            [
+                ViewState("pagecut", lengthInBytes: 2, parameters: PagecutParameters(PagecutMode.PartialOnePoint, null))
+            ]),
+        new(
+            input: [Gs, 0x56, 0x00],
+            expectedRequestElements: [new Pagecut(PagecutMode.Full) { LengthInBytes = 3 }],
+            expectedViewElements:
+            [
+                ViewState("pagecut", lengthInBytes: 3, parameters: PagecutParameters(PagecutMode.Full, null))
+            ]),
+        new(
+            input: [Gs, 0x56, 0x30],
+            expectedRequestElements: [new Pagecut(PagecutMode.Full) { LengthInBytes = 3 }],
+            expectedViewElements:
+            [
+                ViewState("pagecut", lengthInBytes: 3, parameters: PagecutParameters(PagecutMode.Full, null))
+            ]),
+        new(
+            input: [Gs, 0x56, 0x01],
+            expectedRequestElements: [new Pagecut(PagecutMode.Partial) { LengthInBytes = 3 }],
+            expectedViewElements:
+            [
+                ViewState("pagecut", lengthInBytes: 3, parameters: PagecutParameters(PagecutMode.Partial, null))
+            ]),
+        new(
+            input: [Gs, 0x56, 0x31],
+            expectedRequestElements: [new Pagecut(PagecutMode.Partial) { LengthInBytes = 3 }],
+            expectedViewElements:
+            [
+                ViewState("pagecut", lengthInBytes: 3, parameters: PagecutParameters(PagecutMode.Partial, null))
+            ]),
+        new(
+            input: [Gs, 0x56, 0x41, 0x05],
+            expectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
+            expectedViewElements:
+            [
+                ViewState("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Full, 0x05))
+            ]),
+        new(
+            input: [Gs, 0x56, 0x42, 0x20],
+            expectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
+            expectedViewElements:
+            [
+                ViewState("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Partial, 0x20))
+            ]),
+        new(
+            input: [Gs, 0x56, 0x61, 0x05],
+            expectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
+            expectedViewElements:
+            [
+                ViewState("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Full, 0x05))
+            ]),
+        new(
+            input: [Gs, 0x56, 0x62, 0x20],
+            expectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
+            expectedViewElements:
+            [
+                ViewState("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Partial, 0x20))
+            ]),
+        new(
+            input: [Gs, 0x56, 0x67, 0x05],
+            expectedRequestElements: [new Pagecut(PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
+            expectedViewElements:
+            [
+                ViewState("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Full, 0x05))
+            ]),
+        new(
+            input: [Gs, 0x56, 0x68, 0x20],
+            expectedRequestElements: [new Pagecut(PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
+            expectedViewElements:
+            [
+                ViewState("pagecut", lengthInBytes: 4, parameters: PagecutParameters(PagecutMode.Partial, 0x20))
+            ])
     ];
 
     public static TheoryData<EscPosScenario> PulseScenarios { get; } =
     [
         new(
-            Input: [Esc, (byte)'p', 0x01, 0x05, 0x0A],
-            ExpectedRequestElements: [new Pulse(1, 0x05, 0x0A) { LengthInBytes = 5 }]),
+            input: [Esc, (byte)'p', 0x01, 0x05, 0x0A],
+            expectedRequestElements: [new Pulse(1, 0x05, 0x0A) { LengthInBytes = 5 }],
+            expectedViewElements:
+            [
+                ViewState("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
+                {
+                    ["Pin"] = "1",
+                    ["OnTimeMs"] = "5",
+                    ["OffTimeMs"] = "10"
+                })
+            ]),
         new(
-            Input: [Esc, (byte)'p', 0x00, 0x7D, 0x7F],
-            ExpectedRequestElements: [new Pulse(0, 0x7D, 0x7F) { LengthInBytes = 5 }]),
+            input: [Esc, (byte)'p', 0x00, 0x7D, 0x7F],
+            expectedRequestElements: [new Pulse(0, 0x7D, 0x7F) { LengthInBytes = 5 }],
+            expectedViewElements:
+            [
+                ViewState("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
+                {
+                    ["Pin"] = "0",
+                    ["OnTimeMs"] = "125",
+                    ["OffTimeMs"] = "127"
+                })
+            ]),
         new(
-            Input:
+            input:
             [
                 Esc, (byte)'p', 0x00, 0x08, 0x16,
                 Esc, (byte)'p', 0x01, 0x02, 0x03
             ],
-            ExpectedRequestElements:
+            expectedRequestElements:
             [
                 new Pulse(0, 0x08, 0x16) { LengthInBytes = 5 },
                 new Pulse(1, 0x02, 0x03) { LengthInBytes = 5 }
+            ],
+            expectedViewElements:
+            [
+                ViewState("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
+                {
+                    ["Pin"] = "0",
+                    ["OnTimeMs"] = "8",
+                    ["OffTimeMs"] = "22"
+                }),
+                ViewState("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
+                {
+                    ["Pin"] = "1",
+                    ["OnTimeMs"] = "2",
+                    ["OffTimeMs"] = "3"
+                })
             ])
     ];
 
@@ -158,7 +406,7 @@ public static class EscPosScenarioData
         // Row 0: 11100000 (3 colored, 5 transparent)
         // Row 1: 00011000 (2 colored at positions 3-4)
         new(
-            Input:
+            input:
             [
                 Gs, (byte)'v', 0x30, 0x00, // GS v 0 m: Print raster, m=0 (normal mode)
                 0x01, 0x00, // xL xH: width in bytes (1 byte = 8 dots)
@@ -166,7 +414,7 @@ public static class EscPosScenarioData
                 0b11100000, // Row 0: XXX_____ (X=colored/set, _=transparent/unset)
                 0b00011000  // Row 1: ___XX___ (X=colored/set, _=transparent/unset)
             ],
-            ExpectedRequestElements:
+            expectedRequestElements:
             [
                 new RasterImageUpload(
                     Width: 8,
@@ -174,14 +422,18 @@ public static class EscPosScenarioData
                     Media: CreateExpectedRasterMedia(8, 2, [0b11100000, 0b00011000]))
                 { LengthInBytes = 10 }
             ],
-            ExpectedPersistedElements:
+            expectedPersistedElements:
             [
                 new RasterImage(8, 2, Media.CreateDefaultPng(112)) { LengthInBytes = 10 }
+            ],
+            expectedViewElements:
+            [
+                ViewImage(8, 2, Media.CreateDefaultPng(112), lengthInBytes: 10)
             ]),
 
         // GS v 0: All bits set (8x2, all colored pixels)
         new(
-            Input:
+            input:
             [
                 Gs, (byte)'v', 0x30, 0x00,
                 0x01, 0x00, // width: 1 byte = 8 pixels
@@ -189,7 +441,7 @@ public static class EscPosScenarioData
                 0xFF,       // Row 0: all colored
                 0xFF        // Row 1: all colored
             ],
-            ExpectedRequestElements:
+            expectedRequestElements:
             [
                 new RasterImageUpload(
                     Width: 8,
@@ -197,14 +449,18 @@ public static class EscPosScenarioData
                     Media: CreateExpectedRasterMedia(8, 2, [0xFF, 0xFF]))
                 { LengthInBytes = 10 }
             ],
-            ExpectedPersistedElements:
+            expectedPersistedElements:
             [
                 new RasterImage(8, 2, Media.CreateDefaultPng(97)) { LengthInBytes = 10 }
+            ],
+            expectedViewElements:
+            [
+                ViewImage(8, 2, Media.CreateDefaultPng(97), lengthInBytes: 10)
             ]),
 
         // GS v 0: All bits unset (8x2, all transparent pixels)
         new(
-            Input:
+            input:
             [
                 Gs, (byte)'v', 0x30, 0x00,
                 0x01, 0x00, // width: 1 byte = 8 pixels
@@ -212,7 +468,7 @@ public static class EscPosScenarioData
                 0x00,       // Row 0: all transparent
                 0x00        // Row 1: all transparent
             ],
-            ExpectedRequestElements:
+            expectedRequestElements:
             [
                 new RasterImageUpload(
                     Width: 8,
@@ -220,14 +476,18 @@ public static class EscPosScenarioData
                     Media: CreateExpectedRasterMedia(8, 2, [0x00, 0x00]))
                 { LengthInBytes = 10 }
             ],
-            ExpectedPersistedElements:
+            expectedPersistedElements:
             [
                 new RasterImage(8, 2, Media.CreateDefaultPng(97)) { LengthInBytes = 10 }
+            ],
+            expectedViewElements:
+            [
+                ViewImage(8, 2, Media.CreateDefaultPng(97), lengthInBytes: 10)
             ]),
 
         // GS v 0: Checkerboard pattern (8x2)
         new(
-            Input:
+            input:
             [
                 Gs, (byte)'v', 0x30, 0x00,
                 0x01, 0x00, // width: 1 byte = 8 pixels
@@ -235,7 +495,7 @@ public static class EscPosScenarioData
                 0b10101010, // Row 0: X_X_X_X_
                 0b01010101  // Row 1: _X_X_X_X
             ],
-            ExpectedRequestElements:
+            expectedRequestElements:
             [
                 new RasterImageUpload(
                     Width: 8,
@@ -243,9 +503,13 @@ public static class EscPosScenarioData
                     Media: CreateExpectedRasterMedia(8, 2, [0b10101010, 0b01010101]))
                 { LengthInBytes = 10 }
             ],
-            ExpectedPersistedElements:
+            expectedPersistedElements:
             [
                 new RasterImage(8, 2, Media.CreateDefaultPng(101)) { LengthInBytes = 10 }
+            ],
+            expectedViewElements:
+            [
+                ViewImage(8, 2, Media.CreateDefaultPng(101), lengthInBytes: 10)
             ])
     ];
 
@@ -263,7 +527,7 @@ public static class EscPosScenarioData
     public static TheoryData<EscPosScenario> FontStyleScenarios { get; } =
     [
         new(
-            Input:
+            input:
             [
                 Esc, 0x21, 0x00,
                 Esc, 0x21, 0x01,
@@ -271,31 +535,46 @@ public static class EscPosScenarioData
                 Esc, 0x21, 0x31,
                 Esc, 0x21, 0x02
             ],
-            ExpectedRequestElements:
+            expectedRequestElements:
             [
                 new SetFont(0, false, false) { LengthInBytes = 3 },
                 new SetFont(1, false, false) { LengthInBytes = 3 },
                 new SetFont(0, true, false) { LengthInBytes = 3 },
                 new SetFont(1, true, true) { LengthInBytes = 3 },
                 new SetFont(2, false, false) { LengthInBytes = 3 }
+            ],
+            expectedViewElements:
+            [
+                ViewState("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, false, false)),
+                ViewState("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, false, false)),
+                ViewState("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, true, false)),
+                ViewState("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, true, true)),
+                ViewState("setFont", lengthInBytes: 3, parameters: SetFontParameters(2, false, false))
             ]),
         new(
-            Input:
+            input:
             [
                 Esc, (byte)'E', 0x01,
                 Esc, (byte)'E', 0x00,
                 Esc, (byte)'E', 0x01,
                 Esc, (byte)'E', 0x00
             ],
-            ExpectedRequestElements:
+            expectedRequestElements:
             [
                 new SetBoldMode(true) { LengthInBytes = 3 },
                 new SetBoldMode(false) { LengthInBytes = 3 },
                 new SetBoldMode(true) { LengthInBytes = 3 },
                 new SetBoldMode(false) { LengthInBytes = 3 }
+            ],
+            expectedViewElements:
+            [
+                ViewState("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                ViewState("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
+                ViewState("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                ViewState("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(false))
             ]),
         new(
-            Input:
+            input:
             [
                 Esc, 0x2D, 0x01,
                 Esc, 0x2D, 0x02,
@@ -304,7 +583,7 @@ public static class EscPosScenarioData
                 Gs, 0x42, 0x00,
                 Gs, 0x42, 0x01
             ],
-            ExpectedRequestElements:
+            expectedRequestElements:
             [
                 new SetUnderlineMode(true) { LengthInBytes = 3 },
                 new SetUnderlineMode(true) { LengthInBytes = 3 },
@@ -312,20 +591,62 @@ public static class EscPosScenarioData
                 new SetReverseMode(true) { LengthInBytes = 3 },
                 new SetReverseMode(false) { LengthInBytes = 3 },
                 new SetReverseMode(true) { LengthInBytes = 3 }
+            ],
+            expectedViewElements:
+            [
+                ViewState("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                ViewState("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                ViewState("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
+                ViewState("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                ViewState("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
+                ViewState("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true))
             ])
     ];
 
     public static TheoryData<EscPosScenario> LineSpacingScenarios { get; } =
     [
         new(
-            Input: [Esc, 0x33, 0x40],
-            ExpectedRequestElements: [new SetLineSpacing(0x40) { LengthInBytes = 3 }]),
+            input: [Esc, 0x33, 0x40],
+            expectedRequestElements: [new SetLineSpacing(0x40) { LengthInBytes = 3 }],
+            expectedViewElements:
+            [
+                ViewState("setLineSpacing", lengthInBytes: 3, parameters: LineSpacingParameters(0x40))
+            ]),
         new(
-            Input: [Esc, 0x32],
-            ExpectedRequestElements: [new ResetLineSpacing() { LengthInBytes = 2 }])
+            input: [Esc, 0x32],
+            expectedRequestElements: [new ResetLineSpacing() { LengthInBytes = 2 }],
+            expectedViewElements:
+            [
+                ViewState("resetLineSpacing", lengthInBytes: 2)
+            ])
     ];
 
     public static TheoryData<EscPosScenario> CodePageScenarios { get; }
+
+    public static TheoryData<EscPosScenario> AllScenarios { get; }
+
+    private static TheoryData<EscPosScenario> BuildAllScenarios()
+    {
+        var data = new TheoryData<EscPosScenario>();
+        AddRange(data, BellScenarios);
+        AddRange(data, TextScenarios);
+        AddRange(data, ErrorScenarios);
+        AddRange(data, PagecutScenarios);
+        AddRange(data, PulseScenarios);
+        AddRange(data, RasterImageScenarios);
+        AddRange(data, FontStyleScenarios);
+        AddRange(data, LineSpacingScenarios);
+        AddRange(data, CodePageScenarios);
+        return data;
+    }
+
+    private static void AddRange(TheoryData<EscPosScenario> target, TheoryData<EscPosScenario> source)
+    {
+        foreach (var scenario in source)
+        {
+            target.Add(scenario);
+        }
+    }
 
     private static TheoryData<EscPosScenario> BuildCodePageScenarios(IReadOnlyList<CodePageVector> codePages)
     {
@@ -335,11 +656,17 @@ public static class EscPosScenarioData
         {
             var input = new List<byte>();
             var expected = new List<Element>();
+            var expectedView = new List<ViewElementDto>();
+            var currentY = 0;
 
             if (vector.Command.Length > 0)
             {
                 input.AddRange(vector.Command);
                 expected.Add(new SetCodePage(vector.CodePage) { LengthInBytes = vector.Command.Length });
+                expectedView.Add(ViewState(
+                    "setCodePage",
+                    lengthInBytes: vector.Command.Length,
+                    parameters: CodePageParameters(vector.CodePage)));
             }
 
             void AppendText(string text)
@@ -351,12 +678,17 @@ public static class EscPosScenarioData
                 var normalized = vector.Encoding.GetString(bytes);
                 expected.Add(new AppendToLineBuffer(normalized) { LengthInBytes = bytes.Length });
                 expected.Add(new FlushLineBufferAndFeed { LengthInBytes = 1 });
+
+                expectedView.Add(ViewText(normalized, x: 0, y: currentY, lengthInBytes: bytes.Length));
+                expectedView.Add(ViewFlush(lengthInBytes: 1));
+                // ESC/POS advances by font height plus the configured line spacing for each feed.
+                currentY += DefaultFontHeight + DefaultLineSpacing;
             }
 
             AppendText(vector.Uppercase);
             AppendText(vector.Lowercase);
 
-            scenarios.Add(new EscPosScenario(input.ToArray(), expected));
+            scenarios.Add(new EscPosScenario(input.ToArray(), expected, expectedViewElements: expectedView));
         }
 
         return scenarios;
@@ -431,6 +763,104 @@ public static class EscPosScenarioData
         string Uppercase,
         string Lowercase,
         Encoding Encoding);
+
+    // Default ESC/POS font A metrics and spacing, aligned with the converter defaults.
+    private const int DefaultFontWidth = 12;
+    private const int DefaultFontHeight = 24;
+    private const int DefaultLineSpacing = 4;
+
+    private static ViewTextElementDto ViewText(string text, int x, int y, int lengthInBytes)
+    {
+        return new ViewTextElementDto(
+            text,
+            x,
+            y,
+            text.Length * DefaultFontWidth,
+            DefaultFontHeight,
+            ViewFontNames.EscPosA,
+            0,
+            false,
+            false,
+            false)
+        {
+            LengthInBytes = lengthInBytes
+        };
+    }
+
+    private static ViewImageElementDto ViewImage(int width, int height, Media media, int lengthInBytes)
+    {
+        return new ViewImageElementDto(
+            new ViewMediaDto(media.ContentType, media.Length, media.Sha256Checksum, media.Url),
+            0,
+            0,
+            width,
+            height)
+        {
+            LengthInBytes = lengthInBytes
+        };
+    }
+
+    private static ViewStateElementDto ViewState(
+        string name,
+        int lengthInBytes,
+        IReadOnlyDictionary<string, string>? parameters = null)
+    {
+        return new ViewStateElementDto(name, parameters ?? new Dictionary<string, string>())
+        {
+            LengthInBytes = lengthInBytes
+        };
+    }
+
+    private static ViewStateElementDto ViewFlush(int lengthInBytes)
+    {
+        return ViewState("flushLineBufferAndFeed", lengthInBytes);
+    }
+
+    private static IReadOnlyDictionary<string, string> PagecutParameters(PagecutMode mode, int? feedUnits)
+    {
+        return new Dictionary<string, string>
+        {
+            ["Mode"] = mode.ToString(),
+            ["FeedMotionUnits"] = feedUnits?.ToString() ?? string.Empty
+        };
+    }
+
+    private static IReadOnlyDictionary<string, string> SetFontParameters(
+        int fontNumber,
+        bool isDoubleWidth,
+        bool isDoubleHeight)
+    {
+        return new Dictionary<string, string>
+        {
+            ["FontNumber"] = fontNumber.ToString(),
+            ["IsDoubleWidth"] = isDoubleWidth.ToString(),
+            ["IsDoubleHeight"] = isDoubleHeight.ToString()
+        };
+    }
+
+    private static IReadOnlyDictionary<string, string> ToggleParameters(bool isEnabled)
+    {
+        return new Dictionary<string, string>
+        {
+            ["IsEnabled"] = isEnabled.ToString()
+        };
+    }
+
+    private static IReadOnlyDictionary<string, string> LineSpacingParameters(int spacing)
+    {
+        return new Dictionary<string, string>
+        {
+            ["Spacing"] = spacing.ToString()
+        };
+    }
+
+    private static IReadOnlyDictionary<string, string> CodePageParameters(string codePage)
+    {
+        return new Dictionary<string, string>
+        {
+            ["CodePage"] = codePage
+        };
+    }
 
     private const string LatinUpper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private const string LatinLower = "abcdefghijklmnopqrstuvwxyz";

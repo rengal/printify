@@ -87,7 +87,13 @@ public sealed record ViewImageElement(
 public sealed record ViewStateElement(
     string StateName,
     IReadOnlyDictionary<string, string> Parameters)
-    : ViewElement;
+    : ViewElement
+{
+    public ViewStateElement(string stateName)
+        : this(stateName, new Dictionary<string, string>())
+    {
+    }
+}
 
 /// <summary>
 /// Descriptor for media stored in external storage for view rendering.
