@@ -43,7 +43,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                     break;
                 case RasterImage raster:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
-                    ValidateImageBounds(document, state.CurrentY, raster.Width, raster.Height, elements, raster.LengthInBytes);
+                    ValidateImageBounds(document, state.CurrentY, raster.Width, raster.Height, elements);
                     AddImageElement(raster, state, elements);
                     break;
                 case RasterImageUpload rasterUpload:
@@ -57,12 +57,12 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                     break;
                 case PrintBarcode barcode:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
-                    ValidateImageBounds(document, state.CurrentY, barcode.Width, barcode.Height, elements, barcode.LengthInBytes);
+                    ValidateImageBounds(document, state.CurrentY, barcode.Width, barcode.Height, elements);
                     AddImageElement(barcode, state, elements);
                     break;
                 case PrintQrCode qrCode:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
-                    ValidateImageBounds(document, state.CurrentY, qrCode.Width, qrCode.Height, elements, qrCode.LengthInBytes);
+                    ValidateImageBounds(document, state.CurrentY, qrCode.Width, qrCode.Height, elements);
                     AddImageElement(qrCode, state, elements);
                     break;
                 case PrintBarcodeUpload barcodeUpload:
@@ -317,8 +317,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         int currentY,
         int imageWidth,
         int imageHeight,
-        List<ViewElement> elements,
-        int lengthInBytes)
+        List<ViewElement> elements)
     {
         var left = 0;
         var top = currentY;
@@ -341,7 +340,8 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
             ["Message"] = message
         })
         {
-            LengthInBytes = lengthInBytes,
+            CommandRaw = string.Empty,
+            LengthInBytes = 0,
             ZIndex = 0
         });
     }

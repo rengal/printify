@@ -510,7 +510,8 @@ public static class EscPosScenarioData
             expectedViewElements:
             [
                 ViewImage(8, 2, Media.CreateDefaultPng(101), lengthInBytes: 10)
-            ])
+            ]),
+        CreateOversizeRasterScenario()
     ];
 
     /// <summary>
@@ -522,6 +523,38 @@ public static class EscPosScenarioData
         var bitmap = new MonochromeBitmap(width, height, bitmapData);
         var mediaService = new MediaService();
         return mediaService.ConvertToMediaUpload(bitmap);
+    }
+
+    private static EscPosScenario CreateOversizeRasterScenario()
+    {
+        const int widthInDots = 576;
+        const int heightInDots = 1;
+        const int lengthInBytes = 80;
+        var bitmap = new byte[72];
+        var upload = CreateExpectedRasterMedia(widthInDots, heightInDots, bitmap);
+        var media = Media.CreateDefaultPng(upload.Content.Length);
+
+        return new EscPosScenario(
+            input:
+            [
+                Gs, (byte)'v', 0x30, 0x00,
+                0x48, 0x00, // width: 72 bytes = 576 dots
+                0x01, 0x00, // height: 1 row
+                .. bitmap
+            ],
+            expectedRequestElements:
+            [
+                new RasterImageUpload(widthInDots, heightInDots, upload) { LengthInBytes = lengthInBytes }
+            ],
+            expectedPersistedElements:
+            [
+                new RasterImage(widthInDots, heightInDots, media) { LengthInBytes = lengthInBytes }
+            ],
+            expectedViewElements:
+            [
+                ViewState("error", lengthInBytes: 0),
+                ViewImage(widthInDots, heightInDots, media, lengthInBytes)
+            ]);
     }
 
     public static TheoryData<EscPosScenario> FontStyleScenarios { get; } =
