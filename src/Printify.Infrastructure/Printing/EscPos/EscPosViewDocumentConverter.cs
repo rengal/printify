@@ -43,6 +43,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                     break;
                 case RasterImage raster:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
+                    ValidateImageBounds(document, state.CurrentY, raster.Width, raster.Height, elements, raster.LengthInBytes);
                     AddImageElement(raster, state, elements);
                     break;
                 case RasterImageUpload rasterUpload:
@@ -56,10 +57,12 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                     break;
                 case PrintBarcode barcode:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
+                    ValidateImageBounds(document, state.CurrentY, barcode.Width, barcode.Height, elements, barcode.LengthInBytes);
                     AddImageElement(barcode, state, elements);
                     break;
                 case PrintQrCode qrCode:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
+                    ValidateImageBounds(document, state.CurrentY, qrCode.Width, qrCode.Height, elements, qrCode.LengthInBytes);
                     AddImageElement(qrCode, state, elements);
                     break;
                 case PrintBarcodeUpload barcodeUpload:
@@ -173,6 +176,8 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
             fontHeight,
             GetFontLabel(state.FontNumber),
             charSpacing,
+            state.ScaleX,
+            state.ScaleY,
             state.IsBold,
             state.IsUnderline,
             state.IsReverse,
@@ -200,6 +205,12 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         }
 
         var baseX = CalculateJustifiedX(document.WidthInDots, lineBuffer.LineWidth, state.Justification);
+
+        if (includeFlushState && flushElement is not null)
+        {
+            AddStateElement(elements, flushElement, "flushLineBufferAndFeed", new Dictionary<string, string>());
+        }
+
         foreach (var segment in lineBuffer.Segments)
         {
             var element = new ViewTextElement(
@@ -217,15 +228,12 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                 CommandRaw = segment.CommandRaw,
                 CommandDescription = segment.CommandDescription,
                 LengthInBytes = segment.LengthInBytes,
+                CharScaleX = segment.ScaleX,
+                CharScaleY = segment.ScaleY,
                 ZIndex = segment.ZIndex
             };
 
             elements.Add(element);
-        }
-
-        if (includeFlushState && flushElement is not null)
-        {
-            AddStateElement(elements, flushElement, "flushLineBufferAndFeed", new Dictionary<string, string>());
         }
 
         state.CurrentY += lineBuffer.LineHeight + state.LineSpacing;
@@ -302,6 +310,40 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         });
 
         state.CurrentY += qrCode.Height + state.LineSpacing;
+    }
+
+    private static void ValidateImageBounds(
+        Document document,
+        int currentY,
+        int imageWidth,
+        int imageHeight,
+        List<ViewElement> elements,
+        int lengthInBytes)
+    {
+        var left = 0;
+        var top = currentY;
+        var right = left + imageWidth;
+        var bottom = top + imageHeight;
+        var exceedsWidth = right > document.WidthInDots;
+        var exceedsHeight = document.HeightInDots.HasValue && bottom > document.HeightInDots.Value;
+
+        if (!exceedsWidth && !exceedsHeight)
+        {
+            return;
+        }
+
+        // Emit a diagnostic state element before the image when it exceeds printer bounds.
+        var message =
+            $"Image exceeds printer bounds (left={left}, top={top}, right={right}, bottom={bottom}, " +
+            $"printerWidth={document.WidthInDots}, printerHeight={document.HeightInDots?.ToString() ?? "unlimited"}).";
+        elements.Add(new ViewStateElement("error", new Dictionary<string, string>
+        {
+            ["Message"] = message
+        })
+        {
+            LengthInBytes = lengthInBytes,
+            ZIndex = 0
+        });
     }
 
     private static void AddStateElement(
@@ -515,6 +557,8 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         int Height,
         string? Font,
         int CharSpacing,
+        int ScaleX,
+        int ScaleY,
         bool IsBold,
         bool IsUnderline,
         bool IsReverse,

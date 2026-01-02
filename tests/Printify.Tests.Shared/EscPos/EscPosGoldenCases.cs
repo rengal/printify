@@ -37,6 +37,7 @@ public static class EscPosGoldenCases
                         new ViewStateElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new ViewStateElementDto("setCodePage", CodePageParameters("866")) { LengthInBytes = 3 },
                         new ViewStateElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
+                        new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewTextElementDto(
                             Pad("font 0", 42),
                             0,
@@ -48,7 +49,6 @@ public static class EscPosGoldenCases
                             false,
                             false,
                             false) { LengthInBytes = 42 },
-                        new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewStateElementDto("pagecut", PagecutParameters(PagecutMode.Partial, 0)) { LengthInBytes = 4 }
                     ]),
                 ["case02"] = (
@@ -75,6 +75,7 @@ public static class EscPosGoldenCases
                         new ViewStateElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new ViewStateElementDto("setCodePage", CodePageParameters("866")) { LengthInBytes = 3 },
                         new ViewStateElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
+                        new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewTextElementDto(
                             Pad("font 0", 42),
                             0,
@@ -86,8 +87,8 @@ public static class EscPosGoldenCases
                             false,
                             false,
                             false) { LengthInBytes = 42 },
-                        new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewStateElementDto("setFont", SetFontParameters(1, true, true)) { LengthInBytes = 3 },
+                        new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewTextElementDto(
                             Pad("font 1", 28),
                             0,
@@ -98,9 +99,10 @@ public static class EscPosGoldenCases
                             0,
                             false,
                             false,
-                            false) { LengthInBytes = 28 },
-                        new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
+                            false)
+                        { CharScaleX = 2, CharScaleY = 2, LengthInBytes = 28 },
                         new ViewStateElementDto("setFont", SetFontParameters(0, true, true)) { LengthInBytes = 3 },
+                        new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewTextElementDto(
                             Pad("font 2", 21),
                             0,
@@ -111,8 +113,8 @@ public static class EscPosGoldenCases
                             0,
                             false,
                             false,
-                            false) { LengthInBytes = 21 },
-                        new ViewStateElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
+                            false)
+                        { CharScaleX = 2, CharScaleY = 2, LengthInBytes = 21 },
                         new ViewStateElementDto("pagecut", PagecutParameters(PagecutMode.Partial, 0)) { LengthInBytes = 4 }
                     ]),
                 ["case03"] = (
@@ -409,4 +411,5 @@ public static class EscPosGoldenCases
             ["FeedMotionUnits"] = feedUnits?.ToString() ?? string.Empty
         };
     }
+
 }

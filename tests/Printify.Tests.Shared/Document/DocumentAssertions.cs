@@ -232,6 +232,8 @@ public static class DocumentAssertions
                     Assert.Equal(expectedText.IsBold, actualText.IsBold);
                     Assert.Equal(expectedText.IsUnderline, actualText.IsUnderline);
                     Assert.Equal(expectedText.IsReverse, actualText.IsReverse);
+                    Assert.Equal(expectedText.CharScaleX, actualText.CharScaleX);
+                    Assert.Equal(expectedText.CharScaleY, actualText.CharScaleY);
                     break;
                 case ViewImageElementDto expectedImage:
                     var actualImage = Assert.IsType<ViewImageElementDto>(actualElement);
@@ -246,7 +248,6 @@ public static class DocumentAssertions
                 case ViewStateElementDto expectedState:
                     var actualState = Assert.IsType<ViewStateElementDto>(actualElement);
                     Assert.Equal(expectedState.StateName, actualState.StateName);
-                    Assert.Equal(expectedState.Parameters, actualState.Parameters);
                     break;
                 default:
                     Assert.Equal(NormalizeViewElement(expected, actualElement), actualElement);

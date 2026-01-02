@@ -25,6 +25,7 @@ public abstract record ViewElementDto : BaseElementDto
     /// <summary>
     /// Explicit stacking order within the page; higher values render on top.
     /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public int ZIndex { get; init; }
 }
 
@@ -52,7 +53,20 @@ public sealed record ViewTextElementDto(
     bool? IsBold,
     bool? IsUnderline,
     bool? IsReverse)
-    : ViewElementDto;
+    : ViewElementDto
+{
+    /// <summary>
+    /// Glyph scaling multiplier on the X axis (does not affect character spacing).
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? CharScaleX { get; init; }
+
+    /// <summary>
+    /// Glyph scaling multiplier on the Y axis (does not affect character spacing).
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? CharScaleY { get; init; }
+}
 
 /// <summary>
 /// References media to render as an image at an absolute position in printer dots.
@@ -83,18 +97,19 @@ public sealed record ViewStateElementDto : ViewElementDto
     /// <summary>
     /// Key/value parameters for the state change.
     /// </summary>
-    public IReadOnlyDictionary<string, string> Parameters { get; init; }
+    [JsonIgnore]
+    public IReadOnlyDictionary<string, string>? Parameters { get; init; }
 
     [JsonConstructor]
+    public ViewStateElementDto(string stateName)
+    {
+        StateName = stateName;
+    }
+
     public ViewStateElementDto(string stateName, IReadOnlyDictionary<string, string> parameters)
     {
         StateName = stateName;
         Parameters = parameters;
-    }
-
-    public ViewStateElementDto(string stateName)
-        : this(stateName, new Dictionary<string, string>())
-    {
     }
 }
 

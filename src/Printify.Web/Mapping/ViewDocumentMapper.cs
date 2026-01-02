@@ -46,7 +46,11 @@ internal static class ViewDocumentMapper
                     text.CharSpacing,
                     text.IsBold,
                     text.IsUnderline,
-                    text.IsReverse),
+                    text.IsReverse)
+                {
+                    CharScaleX = text.CharScaleX == 1 ? null : text.CharScaleX,
+                    CharScaleY = text.CharScaleY == 1 ? null : text.CharScaleY
+                },
                 text),
             ViewImageElement image => WithCommandMetadata(
                 new ViewElements.ViewImageElementDto(
@@ -88,4 +92,5 @@ internal static class ViewDocumentMapper
             ZIndex = element.ZIndex
         };
     }
+
 }

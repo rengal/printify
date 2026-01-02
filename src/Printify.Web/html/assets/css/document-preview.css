@@ -13,6 +13,7 @@
     max-width: 100%;
 }
 
+/* Document paper outer container with padding */
 .document-paper {
     background: white;
     border: 1px solid var(--border);
@@ -23,60 +24,39 @@
     box-sizing: border-box;
 }
 
-/* Dark theme: use accent color for border and background like "Get Started" area */
+/* Dark theme: use accent color for border and background */
 :root:not([data-theme="light"]) .document-paper {
     background: rgba(16,185,129,0.1);
     border: 1px solid var(--accent);
 }
 
-.doc-line {
-    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+/* Document content container - positioned elements go here */
+.document-content {
+    position: relative;
+    margin: 0 auto;
+}
+
+/* View element - text */
+.view-text {
+    position: absolute;
+    white-space: nowrap;
+    overflow: hidden;
     color: #111;
-    white-space: pre;
-    display: block;
-    overflow-x: visible;
-    width: fit-content;
-    letter-spacing: 0;
 }
 
 /* Dark theme: use white text color */
-:root:not([data-theme="light"]) .doc-line {
+:root:not([data-theme="light"]) .view-text {
     color: #fff;
 }
 
-/* Font A: 12×24 dots (standard ESC/POS font) */
-.doc-line.font-a {
-    font-size: 21px;
-    line-height: 1;
-}
-
-/* Font B: 9×17 dots (smaller ESC/POS font) */
-.doc-line.font-b {
-    font-size: 16px;
-    line-height: 1;
-}
-
-.doc-line.bold { font-weight: 700; }
-.doc-line.underline { text-decoration: underline; }
-.doc-line.reverse { background: #000; color: #fff; padding: 2px 4px; border-radius: 3px; }
-.doc-line.justify-left { text-align: left; }
-.doc-line.justify-center { text-align: center; }
-.doc-line.justify-right { text-align: right; }
-.doc-line.muted { color: var(--muted); }
-
-.doc-image-row {
-    display: flex;
-    width: 100%;
-}
-
-.doc-image {
+/* View element - image */
+.view-image {
+    position: absolute;
     display: block;
-    max-width: 100%;
-    height: auto;
 }
 
 /* Dark theme: invert black to white, preserve transparency */
-:root:not([data-theme="light"]) .doc-image {
+:root:not([data-theme="light"]) .view-image {
     filter: invert(1);
 }
 

@@ -66,8 +66,8 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
-                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
-                ViewFlush(lengthInBytes: 1)
+                ViewFlush(lengthInBytes: 1),
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
             ]),
         new(
             input: "ABC"u8.ToArray(),
@@ -95,10 +95,10 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
+                ViewFlush(lengthInBytes: 1),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
                 ViewFlush(lengthInBytes: 1),
                 ViewText("DEF", x: 0, y: 28, lengthInBytes: 3),
-                ViewFlush(lengthInBytes: 1),
                 ViewText("G", x: 0, y: 56, lengthInBytes: 1)
             ]),
         new(
@@ -156,9 +156,9 @@ public static class EscPosScenarioData
             expectedViewElements:
             [
                 ViewState("bell", lengthInBytes: 1),
+                ViewFlush(lengthInBytes: 1),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
                 ViewText("DEF", x: 36, y: 0, lengthInBytes: 3),
-                ViewFlush(lengthInBytes: 1),
                 ViewState("bell", lengthInBytes: 1)
             ]),
         new(
@@ -679,8 +679,8 @@ public static class EscPosScenarioData
                 expected.Add(new AppendToLineBuffer(normalized) { LengthInBytes = bytes.Length });
                 expected.Add(new FlushLineBufferAndFeed { LengthInBytes = 1 });
 
-                expectedView.Add(ViewText(normalized, x: 0, y: currentY, lengthInBytes: bytes.Length));
                 expectedView.Add(ViewFlush(lengthInBytes: 1));
+                expectedView.Add(ViewText(normalized, x: 0, y: currentY, lengthInBytes: bytes.Length));
                 // ESC/POS advances by font height plus the configured line spacing for each feed.
                 currentY += DefaultFontHeight + DefaultLineSpacing;
             }
@@ -769,20 +769,28 @@ public static class EscPosScenarioData
     private const int DefaultFontHeight = 24;
     private const int DefaultLineSpacing = 4;
 
-    private static ViewTextElementDto ViewText(string text, int x, int y, int lengthInBytes)
+    private static ViewTextElementDto ViewText(
+        string text,
+        int x,
+        int y,
+        int lengthInBytes,
+        int charScaleX = 1,
+        int charScaleY = 1)
     {
         return new ViewTextElementDto(
             text,
             x,
             y,
-            text.Length * DefaultFontWidth,
-            DefaultFontHeight,
+            text.Length * DefaultFontWidth * charScaleX,
+            DefaultFontHeight * charScaleY,
             ViewFontNames.EscPosA,
             0,
             false,
             false,
             false)
         {
+            CharScaleX = charScaleX == 1 ? null : charScaleX,
+            CharScaleY = charScaleY == 1 ? null : charScaleY,
             LengthInBytes = lengthInBytes
         };
     }

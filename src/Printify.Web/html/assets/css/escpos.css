@@ -1,0 +1,45 @@
+/* ESC/POS Font Definitions */
+
+/* Font A: 12×24 dots (standard ESC/POS font) */
+.escpos-font-a {
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 21px;
+    line-height: 1;
+    letter-spacing: 0;
+}
+
+/* Font B: 9×17 dots (smaller ESC/POS font) */
+.escpos-font-b {
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 16px;
+    line-height: 1;
+    letter-spacing: 0;
+}
+
+/* Text styling modifiers (applied inline as needed) */
+/* These are kept as reference classes but will be applied via inline styles */
+.escpos-bold {
+    font-weight: 700;
+}
+
+.escpos-underline {
+    text-decoration: underline;
+}
+
+.escpos-reverse {
+    background: #000;
+    color: #fff;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+/* Dark theme support for reverse text */
+:root[data-theme="light"] .escpos-reverse {
+    background: #000;
+    color: #fff;
+}
+
+:root:not([data-theme="light"]) .escpos-reverse {
+    background: #fff;
+    color: #000;
+}

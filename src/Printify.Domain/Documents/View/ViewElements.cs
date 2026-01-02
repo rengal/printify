@@ -61,7 +61,18 @@ public sealed record ViewTextElement(
     bool? IsBold,
     bool? IsUnderline,
     bool? IsReverse)
-    : ViewElement;
+    : ViewElement
+{
+    /// <summary>
+    /// Glyph scaling multiplier on the X axis (does not affect character spacing).
+    /// </summary>
+    public int CharScaleX { get; init; } = 1;
+
+    /// <summary>
+    /// Glyph scaling multiplier on the Y axis (does not affect character spacing).
+    /// </summary>
+    public int CharScaleY { get; init; } = 1;
+}
 
 /// <summary>
 /// References media to render as an image at an absolute position in printer dots.

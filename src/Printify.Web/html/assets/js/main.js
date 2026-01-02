@@ -346,110 +346,152 @@
             }
         }
 
-        function getDefaultState() {
-            return {
-                bold: false,
-                underline: false,
-                reverse: false,
-                justify: 'left',
-                lineSpacing: 0,
-                lineInterval: 4, // Vertical spacing between lines in pixels
-                fontNumber: 0, // 0 = Font A, 1 = Font B
-                scaleX: 1,
-                scaleY: 1
-            };
+        // NEW: Render ViewDocument with absolute positioning
+        function renderViewDocument(elements, documentWidth, documentHeight, docId) {
+            const width = Math.max(documentWidth || 384, 200);
+
+            if (!elements || elements.length === 0) {
+                return `<div class="document-paper" style="width:${width}px">
+                    <div class="document-content" style="width:${width}px; height: auto;">
+                        <div style="color: var(--muted); padding: 20px; text-align: center;">No printable content</div>
+                    </div>
+                </div>`;
+            }
+
+            // Calculate height from elements if not provided
+            let height = documentHeight;
+            if (!height) {
+                // Find max Y + Height to determine content height
+                let maxBottom = 0;
+                for (const el of elements) {
+                    if (el.type === 'text' || el.type === 'image') {
+                        const bottom = (Number(el.y) || 0) + (Number(el.height) || 0);
+                        if (bottom > maxBottom) {
+                            maxBottom = bottom;
+                        }
+                    }
+                }
+                height = maxBottom || 100; // Minimum 100px
+            }
+
+            // Sort elements by Y, then X for proper copy-paste order
+            const sortedElements = [...elements].sort((a, b) => {
+                const yDiff = (a.y || 0) - (b.y || 0);
+                if (yDiff !== 0) return yDiff;
+                return (a.x || 0) - (b.x || 0);
+            });
+
+            // Render elements with unique IDs for debug mode adjustment
+            let elementIndex = 0;
+            const elementsHtml = sortedElements.map(element => {
+                const id = `el-${docId}-${elementIndex++}`;
+                return renderViewElement(element, id);
+            }).join('');
+
+            const contentId = `doc-content-${docId}`;
+
+            return `<div class="document-paper" style="width:${width}px">
+                <div class="document-content" id="${contentId}" style="width:${width}px; height:${height}px;" data-debug="${debugMode}">
+                    ${elementsHtml}
+                </div>
+            </div>`;
         }
 
-        function renderEscPosDocument(elements, printerWidth) {
-            const state = getDefaultState();
-            const rows = []; // Array of {lineHtml, element}
-            const width = Math.max(printerWidth || 384, 200);
-            let lineBuffer = '';
+        // Render individual ViewElement
+        function renderViewElement(element, id) {
+            const elementType = (element?.type || '').toLowerCase();
 
-            for (const element of elements || []) {
-                const elementType = (element?.type || '').toLowerCase();
+            switch (elementType) {
+                case 'text':
+                    return renderViewTextElement(element, id);
+                case 'image':
+                    return renderViewImageElement(element, id);
+                case 'none':
+                    // State element - only render debug if enabled
+                    return debugMode ? `<div id="${id}" data-element-type="none">${renderDebugTable(element)}</div>` : '';
+                default:
+                    return '';
+            }
+        }
 
-                switch (elementType) {
-                    case 'appendtolinebuffer':
-                        lineBuffer += element.text || '';
-                        if (debugMode) {
-                            rows.push({ lineHtml: '', element: element });
-                        }
-                        break;
-                    case 'flushlinebufferandfeed':
-                        rows.push({
-                            lineHtml: renderTextLine(lineBuffer, state),
-                            element: element
-                        });
-                        lineBuffer = '';
-                        break;
-                    case 'rasterimage':
-                        rows.push({
-                            lineHtml: renderRasterImage(element, state),
-                            element: element
-                        });
-                        break;
-                    case 'setjustification':
-                        state.justify = (element.justification || 'left').toLowerCase();
-                        rows.push({ lineHtml: '', element: element });
-                        break;
-                    case 'setboldmode':
-                        state.bold = !!element.isEnabled;
-                        rows.push({ lineHtml: '', element: element });
-                        break;
-                    case 'setunderlinemode':
-                        state.underline = !!element.isEnabled;
-                        rows.push({ lineHtml: '', element: element });
-                        break;
-                    case 'setreversemode':
-                        state.reverse = !!element.isEnabled;
-                        rows.push({ lineHtml: '', element: element });
-                        break;
-                    case 'setlinespacing':
-                        state.lineSpacing = Number(element.spacing) || 0;
-                        rows.push({ lineHtml: '', element: element });
-                        break;
-                    case 'resetlinespacing':
-                        state.lineSpacing = 0;
-                        rows.push({ lineHtml: '', element: element });
-                        break;
-                    case 'setfont':
-                        // Font A (0) or Font B (1)
-                        state.fontNumber = Number(element.fontNumber) || 0;
-                        state.scaleX = element.isDoubleWidth ? 2 : 1;
-                        state.scaleY = element.isDoubleHeight ? 2 : 1;
-                        rows.push({ lineHtml: '', element: element });
-                        break;
-                    case 'resetprinter':
-                        // ESC @ - Reset printer to power-on state
-                        Object.assign(state, getDefaultState());
-                        rows.push({ lineHtml: '', element: element });
-                        break;
-                    default:
-                        rows.push({ lineHtml: '', element: element });
-                        break;
-                }
+        // Render text element with absolute positioning
+        function renderViewTextElement(element, id) {
+            const x = Number(element.x) || 0;
+            const y = Number(element.y) || 0;
+            const width = Number(element.width) || 0;
+            const height = Number(element.height) || 0;
+            const zIndex = Number(element.zIndex) || 0;
+            const text = element.text || '';
+            const font = element.font || 'ESCPOS_A';
+            const charSpacing = Number(element.charSpacing) || 0;
+            const charScaleX = Number(element.charScaleX) || 1;
+            const charScaleY = Number(element.charScaleY) || 1;
+
+            // Map font to CSS class
+            const fontClass = font === 'ESCPOS_B' ? 'escpos-font-b' : 'escpos-font-a';
+
+            // Build inline styles
+            const styles = [];
+            styles.push(`left: ${x}px`);
+            styles.push(`top: ${y}px`);
+            styles.push(`width: ${width}px`);
+            styles.push(`height: ${height}px`);
+            styles.push(`z-index: ${zIndex}`);
+
+            if (charSpacing !== 0) {
+                styles.push(`letter-spacing: ${charSpacing}px`);
             }
 
-            if (rows.length === 0) {
-                rows.push({
-                    lineHtml: '<div class="doc-line muted">No printable text</div>',
-                    element: null
-                });
+            // Apply character scaling (for double-width, double-height text)
+            if (charScaleX !== 1 || charScaleY !== 1) {
+                styles.push(`transform: scale(${charScaleX}, ${charScaleY})`);
+                styles.push('transform-origin: left top');
             }
 
-            if (debugMode) {
-                // Render with debug table above each element
-                const rowsHtml = rows.map(row => {
-                    const debugTable = row.element ? renderDebugTable(row.element) : '';
-                    return debugTable + row.lineHtml;
-                }).join('');
-                return `<div class="document-paper" style="width:${width}px">${rowsHtml}</div>`;
-            } else {
-                // Normal rendering without debug
-                const linesHtml = rows.map(row => row.lineHtml).join('');
-                return `<div class="document-paper" style="width:${width}px">${linesHtml}</div>`;
+            // Apply text styling modifiers inline
+            if (element.isBold) {
+                styles.push('font-weight: 700');
             }
+            if (element.isUnderline) {
+                styles.push('text-decoration: underline');
+            }
+            if (element.isReverse) {
+                styles.push('background: #000');
+                styles.push('color: #fff');
+                styles.push('padding: 2px 4px');
+                styles.push('border-radius: 3px');
+            }
+
+            const debugTable = debugMode ? renderDebugTable(element) : '';
+            const textContent = escapeHtml(text);
+
+            return `<div id="${id}" data-element-type="text" data-original-y="${y}">${debugTable}<div class="view-text ${fontClass}" style="${styles.join('; ')};">${textContent}</div></div>`;
+        }
+
+        // Render image element with absolute positioning
+        function renderViewImageElement(element, id) {
+            const x = Number(element.x) || 0;
+            const y = Number(element.y) || 0;
+            const width = Number(element.width) || 0;
+            const height = Number(element.height) || 0;
+            const zIndex = Number(element.zIndex) || 0;
+
+            const mediaUrl = resolveMediaUrl(element?.media?.url || '');
+            if (!mediaUrl) {
+                return '';
+            }
+
+            const styles = [];
+            styles.push(`left: ${x}px`);
+            styles.push(`top: ${y}px`);
+            styles.push(`width: ${width}px`);
+            styles.push(`height: ${height}px`);
+            styles.push(`z-index: ${zIndex}`);
+
+            const debugTable = debugMode ? renderDebugTable(element) : '';
+            const altText = `Image ${width}x${height}`;
+
+            return `<div id="${id}" data-element-type="image" data-original-y="${y}">${debugTable}<img class="view-image" src="${escapeHtml(mediaUrl)}" alt="${escapeHtml(altText)}" style="${styles.join('; ')};" loading="lazy"></div>`;
         }
 
         function renderDebugTable(element) {
@@ -540,112 +582,59 @@
             return result;
         }
 
-        function renderRasterImage(element, state) {
-            const mediaUrl = resolveMediaUrl(element?.media?.url || '');
-            if (!mediaUrl) {
-                return '<div class="doc-line muted">[Image unavailable]</div>';
-            }
-
-            const justify = (state.justify || 'left').toLowerCase();
-            const justifyContent = justify === 'right'
-                ? 'flex-end'
-                : justify === 'center'
-                    ? 'center'
-                    : 'flex-start';
-
-            const bottomMargin = Math.max(0, (state.lineInterval || 0) + (state.lineSpacing || 0));
-            const wrapperStyles = [`justify-content: ${justifyContent}`];
-            if (bottomMargin > 0) {
-                wrapperStyles.push(`margin-bottom: ${bottomMargin}px`);
-            }
-
-            const width = Number(element.width) || 0;
-            const height = Number(element.height) || 0;
-            const imageStyles = ['max-width: 100%', 'height: auto'];
-            if (width > 0) {
-                imageStyles.push(`width: ${width}px`);
-            }
-
-            if (height > 0) {
-                imageStyles.push(`height: ${height}px`);
-            }
-
-            const altText = width > 0 && height > 0
-                ? `Raster image ${width}x${height}`
-                : 'Raster image';
-
-            return `<div class="doc-image-row" style="${wrapperStyles.join(';')}">` +
-                `<img class="doc-image" src="${escapeHtml(mediaUrl)}" alt="${escapeHtml(altText)}" ` +
-                `style="${imageStyles.join(';')}" loading="lazy"></div>`;
+        // Extract plain text from ViewDocument elements
+        function extractViewDocumentText(elements) {
+            return (elements || [])
+                .filter(el => el.type === 'text')
+                .map(el => el.text || '')
+                .join('\n');
         }
 
-        function renderTextLine(text, state) {
-            const classes = ['doc-line'];
-            if (state.bold) classes.push('bold');
-            if (state.underline) classes.push('underline');
-            if (state.reverse) classes.push('reverse');
-            classes.push(`justify-${state.justify || 'left'}`);
+        // Adjust Y positions in debug mode to account for debug table heights
+        function adjustDebugYPositions(contentId) {
+            if (!debugMode) return;
 
-            // Font A or Font B
-            if (state.fontNumber === 1) {
-                classes.push('font-b');
-            } else {
-                classes.push('font-a');
-            }
+            const container = document.getElementById(contentId);
+            if (!container) return;
 
-            const styles = [];
+            // Get all element wrappers sorted by original Y position
+            const elements = Array.from(container.querySelectorAll('[data-original-y]'))
+                .sort((a, b) => {
+                    const yA = parseInt(a.getAttribute('data-original-y')) || 0;
+                    const yB = parseInt(b.getAttribute('data-original-y')) || 0;
+                    return yA - yB;
+                });
 
-            // Calculate base line height based on font
-            // Font A: 12×24 dots, Font B: 9×17 dots
-            const baseLineHeight = state.fontNumber === 1 ? 17 : 24;
+            let yOffset = 0;
 
-            // Calculate total bottom margin: lineInterval + scaling margin + lineSpacing
-            let bottomMargin = state.lineInterval || 0;
+            elements.forEach(wrapper => {
+                // Find debug table and actual element
+                const debugTable = wrapper.querySelector('.debug-table');
+                const actualElement = wrapper.querySelector('.view-text, .view-image');
 
-            if (state.scaleX !== 1 || state.scaleY !== 1) {
-                styles.push(`transform: scale(${state.scaleX}, ${state.scaleY})`);
-                styles.push('transform-origin: left top');
-                // Add margin to account for scaled height to prevent overlap
-                const scaledLineHeight = baseLineHeight * state.scaleY;
-                const extraMargin = Math.max(0, scaledLineHeight - baseLineHeight);
-                bottomMargin += extraMargin;
-            }
+                if (debugTable && actualElement) {
+                    const debugHeight = debugTable.offsetHeight;
 
-            if (state.lineSpacing > 0) {
-                bottomMargin += state.lineSpacing;
-            }
+                    // Update actual element's top position
+                    const originalY = parseInt(wrapper.getAttribute('data-original-y')) || 0;
+                    const newY = originalY + yOffset + debugHeight;
+                    actualElement.style.top = `${newY}px`;
 
-            if (bottomMargin > 0) {
-                styles.push(`margin-bottom: ${bottomMargin}px`);
-            }
-
-            const textContent = escapeHtml(text);
-
-            return `<div class="${classes.join(' ')}"${styles.length ? ` style="${styles.join(';')}"` : ''}>${textContent}</div>`;
-        }
-
-        function extractDocumentText(elements) {
-            const lines = [];
-            let lineBuffer = '';
-            for (const element of elements || []) {
-                const elementType = (element?.type || '').toLowerCase();
-                if (elementType === 'appendtolinebuffer') {
-                    lineBuffer += element.text || '';
-                } else if (elementType === 'flushlinebufferandfeed') {
-                    lines.push(lineBuffer);
-                    lineBuffer = '';
+                    // Accumulate offset for next elements
+                    yOffset += debugHeight;
                 }
-            }
-            return lines.join('\n');
+            });
         }
 
-        function mapDocumentDto(dto) {
+        // Map ViewDocumentDto to internal document object
+        function mapViewDocumentDto(dto) {
             const width = Number(dto.widthInDots) || 384;
             const height = dto.heightInDots ?? null;
             const protocol = (dto.protocol || 'escpos').toLowerCase();
             const elements = dto.elements || [];
-            const previewHtml = renderEscPosDocument(elements, width);
-            const plainText = extractDocumentText(elements);
+            const docId = dto.id || `doc-${Date.now()}`;
+            const previewHtml = renderViewDocument(elements, width, height, docId);
+            const plainText = extractViewDocumentText(elements);
             return {
                 id: dto.id,
                 printerId: dto.printerId,
@@ -666,9 +655,9 @@
             }
 
             console.debug('Loading documents for printer', printerId);
-            const response = await apiRequest(`/api/printers/${printerId}/documents?limit=50`);
+            const response = await apiRequest(`/api/printers/${printerId}/documents/view?limit=50`);
             const items = response?.result?.items || [];
-            documents[printerId] = items.map(dto => mapDocumentDto(dto));
+            documents[printerId] = items.map(dto => mapViewDocumentDto(dto));
         }
 
         async function startDocumentStream(printerId) {
@@ -688,7 +677,7 @@
             documentStreamPrinterId = printerId;
 
             try {
-                const response = await fetch(`/api/printers/${printerId}/documents/stream`, {
+                const response = await fetch(`/api/printers/${printerId}/documents/view/stream`, {
                     method: 'GET',
                     headers: { ...authHeaders(), 'Accept': 'text/event-stream' },
                     signal: controller.signal
@@ -725,7 +714,7 @@
                             }
                         }
 
-                        if (eventName === 'documentReady' && data) {
+                        if (eventName === 'documentViewReady' && data) {
                             handleDocumentEvent(printerId, data);
                         }
                     }
@@ -749,7 +738,7 @@
             try {
                 const payload = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
                 console.debug('Document event received', payload);
-                const mapped = mapDocumentDto(payload);
+                const mapped = mapViewDocumentDto(payload);
                 const list = documents[printerId] || [];
                 list.unshift(mapped);
                 documents[printerId] = list.slice(0, 200);
@@ -972,6 +961,17 @@
             }).join('');
 
             documentsPanel.innerHTML = documentsHtml;
+
+            // Adjust Y positions in debug mode after DOM insertion
+            if (debugMode) {
+                // Use requestAnimationFrame to ensure DOM is fully rendered
+                requestAnimationFrame(() => {
+                    docs.forEach(doc => {
+                        const contentId = `doc-content-${doc.id}`;
+                        adjustDebugYPositions(contentId);
+                    });
+                });
+            }
         }
 
         function showMenu(event, printerId, isPinned, isStarted) {
