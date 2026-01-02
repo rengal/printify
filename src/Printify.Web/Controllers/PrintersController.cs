@@ -9,12 +9,15 @@ using Printify.Application.Features.Printers.Delete;
 using Printify.Application.Features.Printers.Documents.Clear;
 using Printify.Application.Features.Printers.Documents.Get;
 using Printify.Application.Features.Printers.Documents.List;
+using Printify.Application.Features.Printers.Documents.View;
 using Printify.Application.Features.Printers.Get;
 using Printify.Application.Features.Printers.List;
 using Printify.Application.Features.Printers.Status;
 using Printify.Application.Printing;
+using Printify.Web.Contracts.Common.Pagination;
 using Printify.Web.Contracts.Documents.Requests;
 using Printify.Web.Contracts.Documents.Responses;
+using Printify.Web.Contracts.Documents.Responses.View;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Infrastructure;
@@ -143,6 +146,47 @@ public sealed class PrintersController : ControllerBase
     }
 
     [Authorize]
+    [HttpGet("{id:guid}/documents/view/stream")]
+    public async Task StreamViewDocuments(Guid id, CancellationToken cancellationToken)
+    {
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        var printer = await mediator.Send(new GetPrinterQuery(id, httpContext), cancellationToken);
+        if (printer is null)
+        {
+            Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["X-Accel-Buffering"] = "no";
+        Response.ContentType = "text/event-stream";
+
+        try
+        {
+            await foreach (var documentEvent in documentStream.Subscribe(id, cancellationToken))
+            {
+                var viewDocument = await mediator.Send(
+                    new GetPrinterViewDocumentQuery(
+                        id,
+                        documentEvent.Document.Id,
+                        httpContext),
+                    cancellationToken);
+                if (viewDocument is not null)
+                {
+                    await WriteSseAsync(
+                        "documentViewReady",
+                        ViewDocumentMapper.ToViewResponseDto(viewDocument),
+                        cancellationToken);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // client disconnected
+        }
+    }
+
+    [Authorize]
     [HttpGet("{id:guid}/documents")]
     public async Task<ActionResult<DocumentListResponseDto>> ListDocuments(
         Guid id,
@@ -167,6 +211,43 @@ public sealed class PrintersController : ControllerBase
             var nextBeforeId = hasMore ? documents.Last().Id : (Guid?)null;
             var response = new DocumentListResponseDto(
                 new Contracts.Common.Pagination.PagedResult<DocumentDto>(
+                    items,
+                    hasMore,
+                    nextBeforeId,
+                    null));
+            return Ok(response);
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound();
+        }
+    }
+
+    [Authorize]
+    [HttpGet("{id:guid}/documents/view")]
+    public async Task<ActionResult<ViewDocumentListResponseDto>> ListViewDocuments(
+        Guid id,
+        [FromQuery] GetDocumentsRequestDto? request,
+        CancellationToken cancellationToken = default)
+    {
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        try
+        {
+            var effectiveLimit = request?.Limit ?? 20;
+            var documents = await mediator.Send(
+                new ListPrinterViewDocumentsQuery(
+                    id,
+                    httpContext,
+                    request?.BeforeId,
+                    effectiveLimit),
+                cancellationToken);
+            var items = documents
+                .Select(ViewDocumentMapper.ToViewResponseDto)
+                .ToList();
+            var hasMore = effectiveLimit > 0 && documents.Count == effectiveLimit;
+            var nextBeforeId = hasMore ? documents.Last().Id : (Guid?)null;
+            var response = new ViewDocumentListResponseDto(
+                new PagedResult<ViewDocumentDto>(
                     items,
                     hasMore,
                     nextBeforeId,
@@ -341,4 +422,5 @@ public sealed class PrintersController : ControllerBase
         await Response.WriteAsync(builder.ToString(), cancellationToken);
         await Response.Body.FlushAsync(cancellationToken);
     }
+
 }

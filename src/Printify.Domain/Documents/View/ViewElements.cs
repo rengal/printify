@@ -3,6 +3,15 @@ using System.Collections.Generic;
 namespace Printify.Domain.Documents.View;
 
 /// <summary>
+/// Canonical font identifiers for view-oriented rendering.
+/// </summary>
+public static class ViewFontNames
+{
+    public const string EscPosA = "ESCPOS_A";
+    public const string EscPosB = "ESCPOS_B";
+}
+
+/// <summary>
 /// Base type for view-oriented elements with rendering metadata and debug details.
 /// </summary>
 public abstract record ViewElement

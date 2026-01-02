@@ -4,6 +4,15 @@ using Printify.Web.Contracts.Documents.Shared.Elements;
 namespace Printify.Web.Contracts.Documents.Responses.View.Elements;
 
 /// <summary>
+/// Canonical font identifiers for view-oriented rendering.
+/// </summary>
+public static class ViewFontNames
+{
+    public const string EscPosA = "ESCPOS_A";
+    public const string EscPosB = "ESCPOS_B";
+}
+
+/// <summary>
 /// Base contract for view-oriented elements; includes debug metadata shared by all protocols.
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]

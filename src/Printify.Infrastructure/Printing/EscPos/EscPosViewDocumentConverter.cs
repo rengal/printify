@@ -1,14 +1,15 @@
-using System;
-using System.Collections.Generic;
+using Printify.Application.Exceptions;
+using Printify.Application.Features.Printers.Documents;
+using Printify.Application.Features.Printers.Documents.View;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.View;
 using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
 
-namespace Printify.Web.Mapping;
+namespace Printify.Infrastructure.Printing.EscPos;
 
-internal static class EscPosViewDocumentConverter
+public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
 {
     private const int DefaultLineSpacing = 4;
     private const int FontAWidth = 12;
@@ -16,13 +17,13 @@ internal static class EscPosViewDocumentConverter
     private const int FontBWidth = 9;
     private const int FontBHeight = 17;
 
-    internal static ViewDocument ToViewDocument(Document document)
+    public ViewDocument ToViewDocument(Document document)
     {
         ArgumentNullException.ThrowIfNull(document);
 
         if (document.Protocol != Protocol.EscPos)
         {
-            throw new NotSupportedException(
+            throw new BadRequestException(
                 $"View conversion is only supported for EscPos, got {document.Protocol}.");
         }
 
@@ -176,7 +177,7 @@ internal static class EscPosViewDocumentConverter
             state.IsUnderline,
             state.IsReverse,
             textLine.CommandRaw,
-            DocumentMapper.BuildCommandDescription(textLine),
+            CommandDescriptionBuilder.Build(textLine),
             textLine.LengthInBytes,
             state.ZIndex));
     }
@@ -247,7 +248,7 @@ internal static class EscPosViewDocumentConverter
             raster.Height)
         {
             CommandRaw = raster.CommandRaw,
-            CommandDescription = DocumentMapper.BuildCommandDescription(raster),
+            CommandDescription = CommandDescriptionBuilder.Build(raster),
             LengthInBytes = raster.LengthInBytes,
             ZIndex = state.ZIndex
         });
@@ -271,7 +272,7 @@ internal static class EscPosViewDocumentConverter
             barcode.Height)
         {
             CommandRaw = barcode.CommandRaw,
-            CommandDescription = DocumentMapper.BuildCommandDescription(barcode),
+            CommandDescription = CommandDescriptionBuilder.Build(barcode),
             LengthInBytes = barcode.LengthInBytes,
             ZIndex = state.ZIndex
         });
@@ -295,7 +296,7 @@ internal static class EscPosViewDocumentConverter
             qrCode.Height)
         {
             CommandRaw = qrCode.CommandRaw,
-            CommandDescription = DocumentMapper.BuildCommandDescription(qrCode),
+            CommandDescription = CommandDescriptionBuilder.Build(qrCode),
             LengthInBytes = qrCode.LengthInBytes,
             ZIndex = state.ZIndex
         });
@@ -312,7 +313,7 @@ internal static class EscPosViewDocumentConverter
         elements.Add(new ViewStateElement(stateName, parameters)
         {
             CommandRaw = element.CommandRaw,
-            CommandDescription = DocumentMapper.BuildCommandDescription(element),
+            CommandDescription = CommandDescriptionBuilder.Build(element),
             LengthInBytes = element.LengthInBytes,
             ZIndex = 0
         });

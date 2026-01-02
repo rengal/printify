@@ -2,9 +2,10 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Auth.Login;
+using Printify.Application.Features.Printers.Documents.View;
 using Printify.Application.Interfaces;
-using Printify.Application.Printing;
 using Printify.Application.Pipeline;
+using Printify.Application.Printing;
 using Printify.Domain.Config;
 using Printify.Domain.Services;
 using Printify.Infrastructure.Clock;
@@ -84,6 +85,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPrinterListenerOrchestrator, PrinterListenerOrchestrator>();
         services.AddSingleton<IPrinterListenerFactory, PrinterListenerFactory>();
         services.AddSingleton<IPrinterDocumentStream, PrinterDocumentStream>();
+        services.AddSingleton<IViewDocumentConverter, EscPosViewDocumentConverter>();
 
         services.AddHostedService<PrinterListenerBootstrapper>();
 
