@@ -22,7 +22,16 @@ Protocol: Raw TCP
 
 ## Example Code
 
-### C# Example
+<div class="code-tabs">
+  <div class="code-tabs-header">
+    <button class="code-tab-btn" data-tab="csharp">C#</button>
+    <button class="code-tab-btn" data-tab="cpp">C++</button>
+    <button class="code-tab-btn" data-tab="nodejs">Node.js</button>
+    <button class="code-tab-btn" data-tab="python">Python</button>
+  </div>
+  <div class="code-tabs-content">
+    <div class="code-tab-panel" data-tab="csharp">
+
 ```csharp
 using System.Net.Sockets;
 using System.Text;
@@ -34,7 +43,40 @@ stream.Write(data, 0, data.Length);
 client.Close();
 ```
 
-### Node.js Example
+</div>
+    <div class="code-tab-panel" data-tab="cpp">
+
+```cpp
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iostream>
+#pragma comment(lib, "Ws2_32.lib")
+
+int main() {
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+    sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(9107);
+    inet_pton(AF_INET, "virtual-printer.online", &addr.sin_addr);
+
+    connect(sock, (sockaddr*)&addr, sizeof(addr));
+
+    const char* data = "Hello from Virtual Printer!\n";
+    send(sock, data, strlen(data), 0);
+
+    closesocket(sock);
+    WSACleanup();
+    return 0;
+}
+```
+
+</div>
+    <div class="code-tab-panel" data-tab="nodejs">
+
 ```javascript
 const net = require('net');
 
@@ -45,7 +87,9 @@ const client = net.connect({ host: 'virtual-printer.online', port: 9107 }, () =>
 });
 ```
 
-### Python Example
+</div>
+    <div class="code-tab-panel" data-tab="python">
+
 ```python
 import socket
 
@@ -55,6 +99,10 @@ data = 'Hello from Virtual Printer!\n'.encode('cp437')
 sock.sendall(data)
 sock.close()
 ```
+
+</div>
+  </div>
+</div>
 
 ## Next Steps
 

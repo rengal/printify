@@ -324,6 +324,62 @@
     color: var(--danger);
 }
 
+/* -------------- CODE TABS -------------- */
+.code-tabs {
+    margin: 16px 0;
+}
+
+.code-tabs-header {
+    display: flex;
+    gap: 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    padding: 8px 8px 0 8px;
+}
+
+.code-tab-btn {
+    padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.code-tab-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text);
+}
+
+.code-tab-btn.active {
+    background: var(--bg-elev);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.code-tabs-content {
+    position: relative;
+}
+
+.code-tab-panel {
+    display: none;
+}
+
+.code-tab-panel.active {
+    display: block;
+}
+
+.code-tab-panel pre {
+    margin: 0;
+    border-radius: 0 0 10px 10px;
+    border-top: none;
+}
+
 /* -------------- RESPONSIVE -------------- */
 @media (max-width: 768px) {
     .docs-content {

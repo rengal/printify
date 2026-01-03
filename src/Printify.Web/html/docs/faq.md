@@ -118,5 +118,3 @@ Email us at [support@virtual-printer.online](mailto:support@virtual-printer.onli
 - Steps to reproduce
 - Error messages (if any)
 - Screenshots (if applicable)
-
-We typically respond within 24-48 hours.

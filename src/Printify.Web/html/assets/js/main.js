@@ -1921,49 +1921,28 @@
             if (workspaceToken) {
                 menu.innerHTML = `
               <div class="menu-item" onclick="window.open('/docs/about', '_blank')">
-                <svg class="menu-item-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="16" x2="12" y2="12"></line>
-                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-                About
+                <img class="menu-item-icon" src="assets/icons/info.svg" alt="">
+                About Virtual Printer
               </div>
               <div class="menu-item" onclick="window.open('/docs/guide', '_blank')">
-                <svg class="menu-item-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                </svg>
-                Guide
+                <img class="menu-item-icon" src="assets/icons/book-open.svg" alt="">
+                Getting Started
               </div>
               <div class="menu-item" onclick="window.open('/docs/faq', '_blank')">
-                <svg class="menu-item-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
-                FAQ
+                <img class="menu-item-icon" src="assets/icons/help-circle.svg" alt="">
+                FAQ & Troubleshooting
               </div>
               <div class="menu-item" onclick="window.open('/docs/security', '_blank')">
-                <svg class="menu-item-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                </svg>
-                Security
+                <img class="menu-item-icon" src="assets/icons/shield.svg" alt="">
+                Security Guidelines
               </div>
               <div class="menu-item" onclick="window.open('/docs/terms', '_blank')">
-                <svg class="menu-item-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg>
-                Terms
+                <img class="menu-item-icon" src="assets/icons/file-text.svg" alt="">
+                Terms of Service
               </div>
               <div class="menu-item" onclick="window.open('/docs/privacy', '_blank')">
-                <svg class="menu-item-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                Privacy
+                <img class="menu-item-icon" src="assets/icons/lock.svg" alt="">
+                Privacy Policy
               </div>
               <div class="menu-divider"></div>
               <div class="menu-item" onclick="showWorkspaceDialog('create')">
@@ -1982,49 +1961,28 @@
             } else {
                 menu.innerHTML = `
               <div class="menu-item" onclick="window.open('/docs/about', '_blank')">
-                <svg class="menu-item-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="16" x2="12" y2="12"></line>
-                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-                About
+                <img class="menu-item-icon" src="assets/icons/info.svg" alt="">
+                About Virtual Printer
               </div>
               <div class="menu-item" onclick="window.open('/docs/guide', '_blank')">
-                <svg class="menu-item-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                </svg>
-                Guide
+                <img class="menu-item-icon" src="assets/icons/book-open.svg" alt="">
+                Getting Started
               </div>
               <div class="menu-item" onclick="window.open('/docs/faq', '_blank')">
-                <svg class="menu-item-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
-                FAQ
+                <img class="menu-item-icon" src="assets/icons/help-circle.svg" alt="">
+                FAQ & Troubleshooting
               </div>
               <div class="menu-item" onclick="window.open('/docs/security', '_blank')">
-                <svg class="menu-item-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                </svg>
-                Security
+                <img class="menu-item-icon" src="assets/icons/shield.svg" alt="">
+                Security Guidelines
               </div>
               <div class="menu-item" onclick="window.open('/docs/terms', '_blank')">
-                <svg class="menu-item-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                </svg>
-                Terms
+                <img class="menu-item-icon" src="assets/icons/file-text.svg" alt="">
+                Terms of Service
               </div>
               <div class="menu-item" onclick="window.open('/docs/privacy', '_blank')">
-                <svg class="menu-item-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                Privacy
+                <img class="menu-item-icon" src="assets/icons/lock.svg" alt="">
+                Privacy Policy
               </div>
               <div class="menu-divider"></div>
               <div class="menu-item" onclick="showWorkspaceDialog('create')">

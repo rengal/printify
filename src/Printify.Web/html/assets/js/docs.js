@@ -66,9 +66,56 @@ function highlightCurrentPage() {
     });
 }
 
+// Code Tabs Functions
+function switchCodeTab(tabsContainer, tabName) {
+    const buttons = tabsContainer.querySelectorAll('.code-tab-btn');
+    const panels = tabsContainer.querySelectorAll('.code-tab-panel');
+
+    buttons.forEach(btn => {
+        if (btn.dataset.tab === tabName) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    panels.forEach(panel => {
+        if (panel.dataset.tab === tabName) {
+            panel.classList.add('active');
+        } else {
+            panel.classList.remove('active');
+        }
+    });
+
+    // Save preference
+    localStorage.setItem('preferredCodeTab', tabName);
+}
+
+function initCodeTabs() {
+    const allTabContainers = document.querySelectorAll('.code-tabs');
+    const preferredTab = localStorage.getItem('preferredCodeTab') || 'csharp';
+
+    allTabContainers.forEach(container => {
+        const buttons = container.querySelectorAll('.code-tab-btn');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                switchCodeTab(container, btn.dataset.tab);
+            });
+        });
+
+        // Set initial active tab (prefer saved preference if available)
+        const tabToActivate = container.querySelector(`[data-tab="${preferredTab}"]`) ? preferredTab : buttons[0]?.dataset.tab;
+        if (tabToActivate) {
+            switchCodeTab(container, tabToActivate);
+        }
+    });
+}
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initSidebar();
     highlightCurrentPage();
+    initCodeTabs();
 });
