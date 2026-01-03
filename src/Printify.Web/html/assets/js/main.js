@@ -1301,6 +1301,16 @@
                   </div>
                 </div>
 
+                <div style="background: rgba(239,68,68,0.08); border: 1px solid var(--danger); border-radius: 10px; padding: 12px; margin: 16px 0 12px 0;">
+                  <div class="checkbox-field" style="margin-bottom: 0; align-items: flex-start;">
+                    <input type="checkbox" id="securityAck" style="width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0;" />
+                    <label for="securityAck" style="color: var(--text); line-height: 1.4; font-size: 13px;">
+                      I understand this printer uses raw TCP connection without encryption and transmitted data may be intercepted or modified. This is for testing/development only. I will not send sensitive data to this printer. <a href="/help/security" target="_blank" style="color: var(--danger); text-decoration: underline;">Learn more</a>
+                    </label>
+                  </div>
+                  <div class="field-error" id="securityAckError" style="margin-top: 6px; margin-left: 26px;">You must acknowledge the security notice</div>
+                </div>
+
                 <div class="form-actions">
                   <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
                   <button class="btn btn-primary" onclick="createPrinter()">Create</button>
@@ -1385,17 +1395,26 @@
             const emulateBuffer = document.getElementById('emulateBuffer').checked;
             const bufferSize = parseInt(document.getElementById('bufferSize').value) || 4096;
             const drainRate = parseInt(document.getElementById('drainRate').value) || 4096;
+            const securityAck = document.getElementById('securityAck').checked;
 
             const nameInput = document.getElementById('printerName');
             const nameError = document.getElementById('nameError');
+            const securityAckError = document.getElementById('securityAckError');
 
             nameInput.classList.remove('invalid');
             nameError.classList.remove('show');
+            securityAckError.classList.remove('show');
 
             if (!name) {
                 nameInput.classList.add('invalid');
                 nameError.classList.add('show');
                 nameInput.focus();
+                return;
+            }
+
+            if (!securityAck) {
+                securityAckError.classList.add('show');
+                document.getElementById('securityAck').focus();
                 return;
             }
 
