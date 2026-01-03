@@ -921,7 +921,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 12px;
+            padding: 6px 10px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 13px;
@@ -932,10 +932,17 @@
                 background: var(--hover-bg);
             }
 
-            .menu-item svg {
-                flex-shrink: 0;
-                color: var(--muted);
-            }
+        .menu-item svg {
+            flex-shrink: 0;
+            color: var(--muted);
+        }
+
+        .menu-item-icon {
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+            opacity: 0.85;
+        }
 
         .menu-item-danger {
             color: var(--danger);
@@ -964,7 +971,7 @@
         .menu-divider {
             height: 1px;
             background: var(--border);
-            margin: 4px 8px;
+            margin: 6px 6px;
         }
 
         /* -------------- MODAL -------------- */

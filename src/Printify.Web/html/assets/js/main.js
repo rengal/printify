@@ -1901,28 +1901,63 @@
 
             if (workspaceToken) {
                 menu.innerHTML = `
-              <div style="padding: 10px 14px 6px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Application</div>
-              <div class="menu-item" onclick="showAbout()">About</div>
-              <div class="menu-item" onclick="showTermsOfUse()">Terms of Use</div>
-              <div class="menu-item" onclick="showPrivacyPolicy()">Privacy Policy</div>
-              <div class="menu-item" onclick="showContacts()">Contacts</div>
-              <div style="border-top: 1px solid var(--border); margin: 8px 0;"></div>
-              <div style="padding: 10px 14px 6px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Workspace</div>
-              <div class="menu-item" onclick="showWorkspaceDialog('create')">New Workspace</div>
-              <div class="menu-item" onclick="showWorkspaceDialog('join')">Switch Workspace</div>
-              <div class="menu-item" onclick="logOut()">End Workspace</div>
+              <div class="menu-item" onclick="showAbout()">
+                <img class="menu-item-icon" src="assets/icons/info.svg" alt="">
+                About
+              </div>
+              <div class="menu-item" onclick="showTermsOfUse()">
+                <img class="menu-item-icon" src="assets/icons/file-text.svg" alt="">
+                Terms of Use
+              </div>
+              <div class="menu-item" onclick="showPrivacyPolicy()">
+                <img class="menu-item-icon" src="assets/icons/shield.svg" alt="">
+                Privacy Policy
+              </div>
+              <div class="menu-item" onclick="showContacts()">
+                <img class="menu-item-icon" src="assets/icons/mail.svg" alt="">
+                Contacts
+              </div>
+              <div class="menu-divider"></div>
+              <div class="menu-item" onclick="showWorkspaceDialog('create')">
+                <img class="menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
+                New Workspace
+              </div>
+              <div class="menu-item" onclick="showWorkspaceDialog('join')">
+                <img class="menu-item-icon" src="assets/icons/refresh.svg" alt="">
+                Switch Workspace
+              </div>
+              <div class="menu-item" onclick="logOut()">
+                <img class="menu-item-icon" src="assets/icons/log-out.svg" alt="">
+                Exit Workspace
+              </div>
             `;
             } else {
                 menu.innerHTML = `
-              <div style="padding: 10px 14px 6px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Application</div>
-              <div class="menu-item" onclick="showAbout()">About</div>
-              <div class="menu-item" onclick="showTermsOfUse()">Terms of Use</div>
-              <div class="menu-item" onclick="showPrivacyPolicy()">Privacy Policy</div>
-              <div class="menu-item" onclick="showContacts()">Contacts</div>
-              <div style="border-top: 1px solid var(--border); margin: 8px 0;"></div>
-              <div style="padding: 10px 14px 6px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">Workspace</div>
-              <div class="menu-item" onclick="showWorkspaceDialog('create')">Create Workspace</div>
-              <div class="menu-item" onclick="showWorkspaceDialog('join')">Access Workspace</div>
+              <div class="menu-item" onclick="showAbout()">
+                <img class="menu-item-icon" src="assets/icons/info.svg" alt="">
+                About
+              </div>
+              <div class="menu-item" onclick="showTermsOfUse()">
+                <img class="menu-item-icon" src="assets/icons/file-text.svg" alt="">
+                Terms of Use
+              </div>
+              <div class="menu-item" onclick="showPrivacyPolicy()">
+                <img class="menu-item-icon" src="assets/icons/shield.svg" alt="">
+                Privacy Policy
+              </div>
+              <div class="menu-item" onclick="showContacts()">
+                <img class="menu-item-icon" src="assets/icons/mail.svg" alt="">
+                Contacts
+              </div>
+              <div class="menu-divider"></div>
+              <div class="menu-item" onclick="showWorkspaceDialog('create')">
+                <img class="menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
+                Create Workspace
+              </div>
+              <div class="menu-item" onclick="showWorkspaceDialog('join')">
+                <img class="menu-item-icon" src="assets/icons/refresh.svg" alt="">
+                Access Workspace
+              </div>
             `;
             }
 
