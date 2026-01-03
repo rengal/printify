@@ -347,13 +347,25 @@
         }
 
         // NEW: Render ViewDocument with absolute positioning
-        function renderViewDocument(elements, documentWidth, documentHeight, docId) {
+        function renderViewDocument(elements, documentWidth, documentHeight, docId, errorMessages) {
             const width = Math.max(documentWidth || 384, 200);
+            const hasErrors = errorMessages && errorMessages.length > 0;
+            const errorClass = hasErrors ? ' has-errors' : '';
+            const hasElements = Array.isArray(elements) && elements.length > 0;
+            const hasVisualElements = hasElements && elements.some(el => {
+                const type = (el?.type || '').toLowerCase();
+                return type === 'text' || type === 'image';
+            });
+            const shouldShowEmptyMessage = !hasVisualElements && !debugMode;
 
-            if (!elements || elements.length === 0) {
-                return `<div class="document-paper">
-                    <div class="document-content" style="width:${width}px; height: auto;">
-                        <div style="color: var(--muted); padding: 20px; text-align: center;">No printable content</div>
+            if (!hasElements || shouldShowEmptyMessage) {
+                const emptyClass = ' empty-document';
+                const message = shouldShowEmptyMessage
+                    ? '<div class="document-empty-message">No visual elements detected.<br>Turn on Debug to see details</div>'
+                    : '';
+                return `<div class="document-paper${errorClass}${emptyClass}">
+                    <div class="document-content empty-document" style="width:${width}px; height: auto;">
+                        ${message}
                     </div>
                 </div>`;
             }
@@ -392,7 +404,7 @@
 
             const contentId = `doc-content-${docId}`;
 
-            return `<div class="document-paper">
+            return `<div class="document-paper${errorClass}">
                 <div class="document-content" id="${contentId}" style="width:${width}px; height:${height}px;" data-debug="${debugMode}">
                     ${elementsHtml}
                 </div>
@@ -502,9 +514,10 @@
                 : (element.commandDescription || '');
             const debugType = element.debugType || '';
 
-            // Check if this is an error debug type
+            // Determine CSS class based on debug type
             const isError = debugType === 'error' || debugType === 'printerError';
-            const errorClass = isError ? ' debug-error' : '';
+            const isStatusResponse = debugType === 'statusResponse';
+            const typeClass = isError ? ' debug-error' : (isStatusResponse ? ' debug-statusResponse' : '');
 
             // Format hex command with spaces
             const hexFormatted = formatHexCommand(commandRaw);
@@ -513,7 +526,7 @@
             const descFormatted = truncateTextInDescription(commandDescription);
 
             return `
-                <table class="debug-table${errorClass}">
+                <table class="debug-table${typeClass}">
                     <tr>
                         <td class="debug-hex">${hexFormatted}</td>
                           <td class="debug-desc">${escapeHtml(descFormatted).replace(/\n/g, '<br>') || '<span class="debug-missing">??</span>'}</td>
@@ -652,12 +665,14 @@
             const protocol = (dto.protocol || 'escpos').toLowerCase();
             const elements = dto.elements || [];
             const docId = dto.id || `doc-${Date.now()}`;
-            const previewHtml = renderViewDocument(elements, width, height, docId);
+            const errorMessages = dto.errorMessages || null;
+            const previewHtml = renderViewDocument(elements, width, height, docId, errorMessages);
             const plainText = extractViewDocumentText(elements);
             return {
                 id: dto.id,
                 printerId: dto.printerId,
                 timestamp: dto.timestamp ? new Date(dto.timestamp) : new Date(),
+                errorMessages: errorMessages,
                 protocol,
                 width,
                 widthInDots: width,
@@ -961,11 +976,19 @@
                 });
                 const relativeTime = formatRelativeTime(doc.timestamp);
 
+                // Check if document has errors
+                const hasErrors = doc.errorMessages && doc.errorMessages.length > 0;
+                const errorTooltip = hasErrors ? doc.errorMessages.join('\n') : '';
+                const errorTooltipHtml = escapeHtml(errorTooltip).replace(/\n/g, '&#10;');
+                const errorIcon = hasErrors ? `
+                  <img class="document-error-icon" src="assets/icons/alert-triangle.svg" alt="Error" title="${errorTooltipHtml}">
+                ` : '';
+
                 return `
                 <div class="document-item">
                   <div class="document-content">
                     <div class="document-header">
-                      <span class="document-meta-text">${dateTime} · ${relativeTime}</span>
+                      <span class="document-meta-text">${dateTime} · ${relativeTime}${errorIcon}</span>
                       <button class="copy-icon-btn document-copy-btn" onclick="copyToClipboard(\`${doc.plainText.replace(/\`/g, '\\\\`')}\`)" title="Copy document content">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -1729,7 +1752,7 @@
                 if (printer && docs) {
                     documents[printerId] = docs.map(doc => ({
                         ...doc,
-                        previewHtml: renderViewDocument(doc.elements || [], doc.widthInDots, doc.heightInDots, doc.id)
+                        previewHtml: renderViewDocument(doc.elements || [], doc.widthInDots, doc.heightInDots, doc.id, doc.errorMessages)
                     }));
                 }
             }

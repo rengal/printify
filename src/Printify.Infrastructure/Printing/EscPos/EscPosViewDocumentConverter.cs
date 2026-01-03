@@ -138,6 +138,19 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
 
         FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
 
+        // Collect error messages from Error and PrinterError elements
+        var errorMessages = document.Elements
+            .Where(e => e is Error or PrinterError)
+            .Select(e => e switch
+            {
+                Error error => error.Message ?? error.Code ?? "Unknown error",
+                PrinterError printerError => printerError.Message ?? "Printer error",
+                _ => null
+            })
+            .Where(msg => msg is not null)
+            .Cast<string>()
+            .ToArray();
+
         return new ViewDocument(
             document.Id,
             document.PrintJobId,
@@ -147,7 +160,8 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
             document.WidthInDots,
             document.HeightInDots,
             document.ClientAddress,
-            elements.AsReadOnly());
+            elements.AsReadOnly(),
+            errorMessages is { Length: > 0 } ? errorMessages : null);
     }
 
     private static void AppendTextSegment(
@@ -380,6 +394,8 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
             SetReverseMode => "setReverseMode",
             SetUnderlineMode => "setUnderlineMode",
             StoreQrData => "storeQrData",
+            StatusRequest => "statusRequest",
+            StatusResponse => "statusResponse",
             _ => element.GetType().Name
         };
     }
@@ -466,6 +482,17 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
             {
                 ["Mode"] = pagecut.Mode.ToString(),
                 ["FeedMotionUnits"] = pagecut.FeedMotionUnits?.ToString() ?? string.Empty
+            },
+            StatusRequest request => new Dictionary<string, string>
+            {
+                ["RequestType"] = request.RequestType.ToString()
+            },
+            StatusResponse response => new Dictionary<string, string>
+            {
+                ["StatusByte"] = $"0x{response.StatusByte:X2}",
+                ["IsPaperOut"] = response.IsPaperOut.ToString(),
+                ["IsCoverOpen"] = response.IsCoverOpen.ToString(),
+                ["IsOffline"] = response.IsOffline.ToString()
             },
             _ => new Dictionary<string, string>()
         };

@@ -22,6 +22,19 @@ public static class DocumentMapper
             .ToList()
             ?? new List<ResponseElements.ResponseElementDto>();
 
+        // Collect error messages from Error and PrinterError elements
+        var errorMessages = document.Elements?
+            .Where(e => e is DomainElements.Error or DomainElements.PrinterError)
+            .Select(e => e switch
+            {
+                DomainElements.Error error => error.Message ?? error.Code ?? "Unknown error",
+                DomainElements.PrinterError printerError => printerError.Message ?? "Printer error",
+                _ => null
+            })
+            .Where(msg => msg is not null)
+            .Cast<string>()
+            .ToArray();
+
         return new DocumentDto(
             document.Id,
             document.PrintJobId,
@@ -31,7 +44,8 @@ public static class DocumentMapper
             document.WidthInDots,
             document.HeightInDots,
             document.ClientAddress,
-            responseElements.AsReadOnly());
+            responseElements.AsReadOnly(),
+            errorMessages is { Length: > 0 } ? errorMessages : null);
     }
 
     public static ResponseElements.ResponseElementDto ToResponseElement(DomainElements.Element element)

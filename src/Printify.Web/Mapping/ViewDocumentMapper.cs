@@ -25,7 +25,8 @@ internal static class ViewDocumentMapper
             document.WidthInDots,
             document.HeightInDots,
             document.ClientAddress,
-            viewElements.AsReadOnly());
+            viewElements.AsReadOnly(),
+            document.ErrorMessages);
     }
 
     private static ViewElements.ViewElementDto ToViewElementDto(ViewElement element)

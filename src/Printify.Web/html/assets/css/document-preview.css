@@ -25,10 +25,23 @@
     overflow: hidden;
 }
 
+.document-paper.empty-document {
+    padding: 12px 12px;
+}
+
 /* Dark theme: use accent color for border and background */
 :root:not([data-theme="light"]) .document-paper {
     background: rgba(16,185,129,0.1);
     border: 1px solid var(--accent);
+}
+
+/* Error state: red border for documents with errors */
+.document-paper.has-errors {
+    border: 2px solid #e53e3e;
+}
+
+:root:not([data-theme="light"]) .document-paper.has-errors {
+    border: 2px solid #fc8181;
 }
 
 /* Document content container - positioned elements go here */
@@ -36,6 +49,16 @@
     position: relative;
     margin: 0 auto;
     overflow: hidden;
+}
+
+.document-content.empty-document {
+    min-height: 60px;
+}
+
+.document-empty-message {
+    color: var(--muted);
+    padding: 12px;
+    text-align: center;
 }
 
 /* View element - text */
@@ -85,6 +108,13 @@
     vertical-align: top;
 }
 
+.document-error-icon {
+    width: 16px;
+    height: 16px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
 .debug-hex {
     width: 145px;
     min-width: 145px;
@@ -127,4 +157,15 @@
 :root:not([data-theme="light"]) .debug-table.debug-error td {
     color: #fc8181;
     background: rgba(229, 62, 62, 0.1);
+}
+
+/* StatusResponse debug table styling - printer responses (FROM printer TO client) */
+.debug-table.debug-statusResponse td {
+    color: #047857;
+    background: rgba(16, 185, 129, 0.08);
+}
+
+:root:not([data-theme="light"]) .debug-table.debug-statusResponse td {
+    color: #6ee7b7;
+    background: rgba(16, 185, 129, 0.15);
 }

@@ -388,7 +388,11 @@ public sealed class EscPosParser
 
     private void EmitElement(Element element, int lengthInBytes)
     {
-        // Check buffer overflow and emit PrinterError, if needed
+        // Check buffer overflow and emit PrinterError, if needed.
+        // Note: Buffer overflow error is emitted only ONCE per print job.
+        // Once overflow occurs, the printer behavior becomes undefined - subsequent commands
+        // may be corrupted, partially executed, or ignored entirely as the receive buffer wraps
+        // or drops data. This single error signals the point where reliable command processing ends.
         if (!bufferOverflowEmitted &&
             getAvailableBytes is not null &&
             element is not (Error or PrinterError or StatusRequest)

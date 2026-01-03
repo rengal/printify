@@ -15,6 +15,7 @@ namespace Printify.Domain.Documents.View;
 /// <param name="HeightInDots">Optional printer height in dots at the time of capture.</param>
 /// <param name="ClientAddress">Address observed for the producer of the document.</param>
 /// <param name="Elements">Ordered list of view elements, including non-visual state changes.</param>
+/// <param name="ErrorMessages">Collection of error messages from Error or PrinterError elements. Null if no errors present.</param>
 public sealed record ViewDocument(
     Guid Id,
     Guid PrintJobId,
@@ -24,4 +25,5 @@ public sealed record ViewDocument(
     int WidthInDots,
     int? HeightInDots,
     string? ClientAddress,
-    IReadOnlyList<ViewElement> Elements);
+    IReadOnlyList<ViewElement> Elements,
+    string[]? ErrorMessages);
