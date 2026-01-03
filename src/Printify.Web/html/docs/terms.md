@@ -96,7 +96,3 @@ We may modify these terms at any time. Continued use of the service after change
 ## Contact
 
 Questions about these terms? Email [support@virtual-printer.online](mailto:support@virtual-printer.online).
-
-## Governing Law
-
-These terms are governed by the laws of [Your Jurisdiction], without regard to conflict of law principles.

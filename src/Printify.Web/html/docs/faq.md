@@ -71,7 +71,21 @@ Use the "Exit Workspace" option to log out. To permanently delete workspace data
 
 ### Is my data secure?
 
-See our [Security](/docs/security) page for important information about data transmission and [Privacy Policy](/docs/privacy) for data storage details.
+Virtual Printer can operate in two modes:
+
+**Cloud Mode (virtual-printer.online):**
+- Raw TCP connections are **not encrypted**
+- Data may be intercepted during transmission
+- **Only use for testing and development** with non-sensitive data
+- Never use for production workloads
+
+**Self-Hosted Mode (local network/machine):**
+- Install Virtual Printer on your own infrastructure
+- Security is your administrator's responsibility
+- Suitable for production use when properly secured
+- Can be isolated within private networks or VPNs
+
+See our [Security](/docs/security) page for detailed information about data transmission and [Privacy Policy](/docs/privacy) for data storage details.
 
 ## Troubleshooting
 

@@ -55,14 +55,16 @@ We do **not**:
 
 ## Important Security Limitation
 
-⚠️ **Data transmission to virtual printers is NOT encrypted.**
+⚠️ **Data transmission to virtual-printer.online printers is NOT encrypted.**
 
-Print data sent over raw TCP connections:
+When using printers hosted on virtual-printer.online, print data sent over raw TCP connections:
 - Travels unencrypted over the network
 - May be intercepted by third parties
 - Should never contain sensitive information
 
-See our [Security](/docs/security) page for detailed guidance on safe usage.
+**Self-hosted deployments:** If you host Virtual Printer on your own infrastructure, data transmission security is your administrator's responsibility.
+
+See our [Security](/docs/security) page for detailed guidance on safe usage and deployment modes.
 
 ## Your Rights
 

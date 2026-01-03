@@ -2,37 +2,53 @@
 
 Understanding the security implications of Virtual Printer is essential for safe usage.
 
-## Important Security Notice
+## Deployment Modes
 
-⚠️ **Virtual Printer uses raw TCP connections without encryption.**
+Virtual Printer can operate in two distinct modes with different security considerations:
 
-Data transmitted to virtual printers is sent over unencrypted TCP connections and may be:
-- **Intercepted** by third parties on the network
-- **Modified** through man-in-the-middle attacks
+### Cloud Mode (virtual-printer.online)
+
+⚠️ **Data transmitted to virtual-printer.online uses raw TCP connections without encryption.**
+
+When using printers hosted on virtual-printer.online:
+- Raw TCP connections are **not encrypted**
+- Data may be **intercepted** by third parties on the network
+- Data may be **modified** through man-in-the-middle attacks
+- **Only use for testing and development** with non-sensitive data
+- **Never use for production workloads**
+
+### Self-Hosted Mode (Local Network/Machine)
+
+When you host Virtual Printer on your own infrastructure:
+- Security is your administrator's responsibility
+- Can be deployed within private networks
+- Suitable for production use when properly secured
+- Can be isolated using VPNs or network segmentation
+- You control encryption and access policies
 
 ## Recommended Usage
 
-Virtual Printer is designed for **testing and development purposes only**.
-
-### ✅ Safe Use Cases
+### ✅ Safe Use Cases (Cloud Mode)
 - Local development and testing
 - Debugging print functionality
 - Demo and presentation environments
-- Non-sensitive test data
+- Non-sensitive test data only
 
-### ❌ Unsafe Use Cases
+### ❌ Unsafe Use Cases (Cloud Mode)
 - Printing customer data
 - Processing payment receipts
 - Handling personal information
-- Production environments over the internet
+- Production environments
+- Any sensitive or confidential data
 
-## Production Deployment
+### ✅ Production Deployment (Self-Hosted Only)
 
-For production use, we recommend:
-- Deploy on your local network only
-- Use VPN for remote access
+For production use, you must self-host Virtual Printer:
+- Deploy on your local network (not public cloud)
+- Use VPN for remote access if needed
 - Never expose TCP endpoints to the public internet
-- Consider implementing TLS/SSL encryption layer
+- Implement proper network security and access controls
+- Follow your organization's security policies
 
 ## Questions?
 

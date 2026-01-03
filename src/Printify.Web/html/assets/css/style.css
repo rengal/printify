@@ -13,6 +13,7 @@
             --ok: #22c55e;
             --focus: #60a5fa;
             --hover-bg: rgba(255,255,255,0.08);
+            --icon-filter: invert(1) brightness(0.9);
         }
 
             :root[data-theme="light"] {
@@ -24,6 +25,7 @@
                 --accent: #0ea372;
                 --accent-hover: #0a8b61;
                 --hover-bg: rgba(0,0,0,0.05);
+                --icon-filter: none;
             }
 
         /* -------------- BASE & TYPOGRAPHY -------------- */
