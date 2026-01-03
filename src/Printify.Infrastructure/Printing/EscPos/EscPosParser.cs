@@ -8,7 +8,9 @@ public sealed class EscPosParser
 {
     private readonly EscPosCommandTrieNode root;
     private readonly ParserState state;
+    private readonly Func<int>? getAvailableBytes;
     private readonly Action<Element> onElement;
+    private bool bufferOverflowEmitted;
     private static readonly Encoding DefaultCodePage;
     private const int CommandRawMaxBytes = 64;
 
@@ -20,8 +22,23 @@ public sealed class EscPosParser
     public EscPosParser(IEscPosCommandTrieProvider trieProvider, Action<Element> onElement)
     {
         ArgumentNullException.ThrowIfNull(trieProvider);
+        ArgumentNullException.ThrowIfNull(onElement);
         root = trieProvider.Root;
         this.onElement = onElement;
+        state = new ParserState(root);
+    }
+
+    public EscPosParser(
+        IEscPosCommandTrieProvider trieProvider,
+        Func<int> getAvailableBytes,
+        Action<Element> onElement)
+    {
+        ArgumentNullException.ThrowIfNull(trieProvider);
+        ArgumentNullException.ThrowIfNull(getAvailableBytes);
+        ArgumentNullException.ThrowIfNull(onElement);
+        root = trieProvider.Root;
+        this.onElement = onElement;
+        this.getAvailableBytes = getAvailableBytes;
         state = new ParserState(root);
     }
 
@@ -264,7 +281,7 @@ public sealed class EscPosParser
                 CommandRaw = BuildCommandRaw(textBytes),
                 LengthInBytes = textBytes.Length
             };
-            onElement.Invoke(element);
+            EmitElement(element, textBytes.Length);
         }
 
         state.Buffer.Clear();
@@ -293,7 +310,7 @@ public sealed class EscPosParser
             state.Encoding = GetEncodingFromCodePage(setCodePage.CodePage);
         }
 
-        onElement.Invoke(element);
+        EmitElement(element, rawBytes.Length);
         state.Buffer.Clear();
     }
 
@@ -322,6 +339,26 @@ public sealed class EscPosParser
             LengthInBytes = rawBytes.Length
         };
         state.UnrecognizedBuffer.Clear();
+        EmitElement(element, rawBytes.Length);
+    }
+
+    private void EmitElement(Element element, int lengthInBytes)
+    {
+        if (element is not Error && getAvailableBytes is not null)
+        {
+            var availableBytes = getAvailableBytes();
+            if (lengthInBytes > availableBytes && !bufferOverflowEmitted)
+            {
+                // Emit overflow once, just before the element that exceeds capacity.
+                bufferOverflowEmitted = true;
+                onElement.Invoke(new PrinterError("Buffer overflow")
+                {
+                    CommandRaw = string.Empty,
+                    LengthInBytes = 0
+                });
+            }
+        }
+
         onElement.Invoke(element);
     }
 
@@ -353,5 +390,6 @@ public sealed class EscPosParser
         // Reset to initial state
         state.Mode = ParserMode.Text;
         Navigate(root);
+        bufferOverflowEmitted = false;
     }
 }

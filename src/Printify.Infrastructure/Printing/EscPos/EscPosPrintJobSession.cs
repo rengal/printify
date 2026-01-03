@@ -35,7 +35,7 @@ public class EscPosPrintJobSession : PrintJobSession
         ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(trieProvider);
         idleClock = clockFactory.Create();
-        parser = new EscPosParser(trieProvider, OnElement);
+        parser = new EscPosParser(trieProvider, GetAvailableBytes, OnElement);
     }
 
     public override Task Feed(ReadOnlyMemory<byte> input, CancellationToken ct)
@@ -43,16 +43,32 @@ public class EscPosPrintJobSession : PrintJobSession
         if (IsCompleted)
             return Task.CompletedTask;
 
+        base.Feed(input, ct);
+
         parser.Feed(input.Span, ct);
 
         idleClock.Restart();
         _ = IdleTimeoutAsync(ct);
-        return base.Feed(input, ct);
+        return  Task.CompletedTask;
     }
 
     private void OnElement(Element element)
     {
+        // Drain before accounting for this element to reflect the printer buffer model.
+        UpdateBufferState();
+        if (Printer.EmulateBufferCapacity && Printer.BufferMaxCapacity is > 0 && element.LengthInBytes > 0)
+            bufferedBytes += element.LengthInBytes;
         ElementBuffer.Add(element);
+    }
+
+    private int GetAvailableBytes()
+    {
+        if (!Printer.EmulateBufferCapacity || Printer.BufferMaxCapacity is null or <= 0)
+            return int.MaxValue;
+
+        // Use drained value so available capacity matches the model at request time.
+        UpdateBufferState();
+        return Math.Max(0, Printer.BufferMaxCapacity.Value - bufferedBytes);
     }
 
     private async Task IdleTimeoutAsync(CancellationToken ct)

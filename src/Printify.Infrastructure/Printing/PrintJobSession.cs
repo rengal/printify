@@ -37,7 +37,7 @@ public abstract class PrintJobSession : IPrintJobSession
         get
         {
             UpdateBufferState();
-            return Printer is { EmulateBufferCapacity: true, BufferDrainRate: > 0 } && bufferedBytes >= busyThreshold;
+            return Printer is { EmulateBufferCapacity: true } && bufferedBytes >= overflowThreshold;
         }
     }
 
@@ -85,6 +85,7 @@ public abstract class PrintJobSession : IPrintJobSession
     protected int bufferedBytes;
     private readonly IClock drainClock;
     private readonly int busyThreshold;
+    private readonly int overflowThreshold;
     private const double BusyThresholdRatio = 0.5;
 
     #endregion
@@ -96,6 +97,7 @@ public abstract class PrintJobSession : IPrintJobSession
         Job = job;
         Channel = channel;
         busyThreshold = (int)(Printer.BufferMaxCapacity.GetValueOrDefault() * BusyThresholdRatio);
+        overflowThreshold = Printer.BufferMaxCapacity.GetValueOrDefault();
         drainClock = clockFactory.Create();
     }
 
