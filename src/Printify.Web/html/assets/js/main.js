@@ -306,12 +306,7 @@
 
             let statusIcon = '';
             if (isStopped) {
-                statusIcon = getIcon('alert-triangle', {
-                    width: '18',
-                    height: '18',
-                    stroke: '#ef4444',
-                    class: 'stopped-icon'
-                });
+                statusIcon = '<img class="stopped-icon" src="assets/icons/alert-triangle.svg" width="18" height="18" alt="Printer is stopped" title="Printer is stopped">';
             }
 
             return `
@@ -775,11 +770,20 @@
                 const mapped = mapViewDocumentDto(payload);
                 const list = documents[printerId] || [];
                 list.unshift(mapped);
+                list.sort((a, b) => b.timestamp - a.timestamp);
                 documents[printerId] = list.slice(0, 200);
 
                 if (selectedPrinterId !== printerId) {
                     const target = getPrinterById(printerId);
                     if (target) target.newDocs += 1;
+                }
+                else
+                {
+                    const target = getPrinterById(printerId);
+                    if (target)
+                    {
+                        target.lastDocumentAt = mapped.timestamp;
+                    }
                 }
 
                 renderDocuments();
