@@ -10,6 +10,7 @@ public sealed class EscPosParser
     private readonly ParserState state;
     private readonly Func<int>? getAvailableBytes;
     private readonly Action<Element> onElement;
+    private readonly Action<ReadOnlyMemory<byte>>? onResponse;
     private bool bufferOverflowEmitted;
     private static readonly Encoding DefaultCodePage;
     private const int CommandRawMaxBytes = 64;
@@ -31,7 +32,8 @@ public sealed class EscPosParser
     public EscPosParser(
         IEscPosCommandTrieProvider trieProvider,
         Func<int> getAvailableBytes,
-        Action<Element> onElement)
+        Action<Element> onElement,
+        Action<ReadOnlyMemory<byte>>? onResponse = null)
     {
         ArgumentNullException.ThrowIfNull(trieProvider);
         ArgumentNullException.ThrowIfNull(getAvailableBytes);
@@ -39,6 +41,7 @@ public sealed class EscPosParser
         root = trieProvider.Root;
         this.onElement = onElement;
         this.getAvailableBytes = getAvailableBytes;
+        this.onResponse = onResponse;
         state = new ParserState(root);
     }
 
@@ -126,7 +129,7 @@ public sealed class EscPosParser
             switch (state.Mode)
             {
                 case ParserMode.Text:
-                    EmitText();
+                    EmitTextElement();
                     break;
                 case ParserMode.Command:
                     if (newMode == ParserMode.Error)
@@ -225,7 +228,7 @@ public sealed class EscPosParser
 
         if (result.Kind == MatchKind.Matched)
         {
-            EmitCommand(result.Element);
+            EmitCommandElement(result.Element);
             // Command completed, restore text state
             ChangeState(ParserMode.Text);
             return true; // No state change
@@ -266,7 +269,7 @@ public sealed class EscPosParser
     /// <summary>
     /// Emits accumulated text from buffer and clears it.
     /// </summary>
-    private void EmitText()
+    private void EmitTextElement()
     {
         if (state.Buffer.Count == 0)
             return;
@@ -290,7 +293,7 @@ public sealed class EscPosParser
     /// <summary>
     /// Emits a parsed command from buffer and clears it.
     /// </summary>
-    private void EmitCommand(Element? element)
+    private void EmitCommandElement(Element? element)
     {
         if (element == null)
         {
@@ -311,7 +314,48 @@ public sealed class EscPosParser
         }
 
         EmitElement(element, rawBytes.Length);
+
+        // Handle status requests by immediately generating and sending response
+        if (element is StatusRequest statusRequest)
+        {
+            BuildAndSendStatusResponse(statusRequest.RequestType);
+        }
+
         state.Buffer.Clear();
+    }
+
+    /// <summary>
+    /// Builds and sends an ESC/POS status response for a given request type.
+    /// </summary>
+    private void BuildAndSendStatusResponse(StatusRequestType requestType)
+    {
+        // ESC/POS status byte format (for ready printer):
+        // Bit 0: Fixed (0)
+        // Bit 1: Fixed (1)
+        // Bit 2: Cover closed (0 = closed, 1 = open)
+        // Bit 3: Not used for offline sensor (0)
+        // Bit 4: Fixed (1)
+        // Bit 5: Paper present (0 = present, 1 = out)
+        // Bit 6: No error (0)
+        // Bit 7: Fixed (0)
+        // Ready printer = 0x12 (0001 0010)
+
+        const byte readyStatus = 0x12;
+        // TODO: Make configurable per printer settings for testing
+
+        // Send response to client immediately
+        onResponse?.Invoke(new[] { readyStatus });
+
+        // Also emit the response element for document/debugging
+        var response = new StatusResponse(readyStatus,
+            IsPaperOut: false,
+            IsCoverOpen: false,
+            IsOffline: false)
+        {
+            CommandRaw = Convert.ToHexString(new[] { readyStatus }),
+            LengthInBytes = 1
+        };
+        onElement.Invoke(response);
     }
 
     /// <summary>
@@ -344,7 +388,11 @@ public sealed class EscPosParser
 
     private void EmitElement(Element element, int lengthInBytes)
     {
-        if (element is not Error && getAvailableBytes is not null)
+        // Check buffer overflow and emit PrinterError, if needed
+        if (!bufferOverflowEmitted &&
+            getAvailableBytes is not null &&
+            element is not (Error or PrinterError or StatusRequest)
+           )
         {
             var availableBytes = getAvailableBytes();
             if (lengthInBytes > availableBytes && !bufferOverflowEmitted)
@@ -375,7 +423,7 @@ public sealed class EscPosParser
             switch (state.Mode)
             {
                 case ParserMode.Text:
-                    EmitText();
+                    EmitTextElement();
                     break;
                 case ParserMode.Command:
                 case ParserMode.Error:

@@ -59,13 +59,15 @@ public static class CommandDescriptionBuilder
             Bell => Lines(
                 "BEL - Buzzer (beeper)"),
             Error error => Lines(
-                "Tokenizer error (non-ESC/POS)",
+                "Parser error",
                 $"Code={error.Code}",
                 $"Message=\"{EscapeDescriptionText(error.Message)}\""),
             PrinterError printerError => Lines(
-                "Parser error (non-ESC/POS)",
+                "Printer error",
                 $"Message=\"{EscapeDescriptionText(printerError.Message)}\""),
             GetPrinterStatus status => BuildPrinterStatusDescription(status),
+            StatusRequest request => BuildStatusRequestDescription(request),
+            StatusResponse response => BuildStatusResponseDescription(response),
             Pulse pulse => Lines(
                 "ESC p m t1 t2 - Cash drawer pulse",
                 $"m={pulse.Pin}",
@@ -153,6 +155,41 @@ public static class CommandDescriptionBuilder
         return Lines(
             "DLE EOT n - Real-time status transmission",
             $"n={FormatHexByte(status.StatusByte)} ({status.StatusByte})");
+    }
+
+    private static IReadOnlyList<string> BuildStatusRequestDescription(StatusRequest request)
+    {
+        var requestTypeDescription = request.RequestType switch
+        {
+            StatusRequestType.PrinterStatus => "printer status",
+            StatusRequestType.OfflineCause => "offline cause",
+            StatusRequestType.ErrorCause => "error cause",
+            StatusRequestType.PaperRollSensor => "paper roll sensor",
+            _ => "unknown"
+        };
+
+        return Lines(
+            "DLE EOT n - Real-time status request",
+            $"n={FormatHexByte((byte)request.RequestType)} ({(byte)request.RequestType})",
+            $"Request type: {requestTypeDescription}");
+    }
+
+    private static IReadOnlyList<string> BuildStatusResponseDescription(StatusResponse response)
+    {
+        var flags = new List<string>();
+        if (response.IsPaperOut)
+            flags.Add("paper out");
+        if (response.IsCoverOpen)
+            flags.Add("cover open");
+        if (response.IsOffline)
+            flags.Add("offline");
+
+        var flagsText = flags.Count > 0 ? string.Join(", ", flags) : "ready";
+
+        return Lines(
+            "Status response from printer",
+            $"Status byte: {FormatHexByte(response.StatusByte)}",
+            $"State: {flagsText}");
     }
 
     private static IReadOnlyList<string> BuildCodePageDescription(string codePage)

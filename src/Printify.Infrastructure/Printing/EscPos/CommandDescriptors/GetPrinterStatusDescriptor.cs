@@ -30,12 +30,15 @@ public sealed class GetPrinterStatusDescriptor: ICommandDescriptor
     {
         byte statusByte = buffer[2];
 
+        // DLE EOT n for status bytes 0x01-0x04
         if (statusByte is >= 0x01 and <= 0x04)
         {
-            var element = new GetPrinterStatus(statusByte);
+            var requestType = (StatusRequestType)statusByte;
+            var element = new StatusRequest(requestType);
             return MatchResult.Matched(element);
         }
 
+        // Extended status queries (4 bytes) - keep as GetPrinterStatus for now
         if (statusByte is 0x07 or 0x08 or 0x12)
         {
             var additionalStatusByte = buffer[3];

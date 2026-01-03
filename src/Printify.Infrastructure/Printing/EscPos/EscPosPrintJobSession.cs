@@ -13,6 +13,12 @@ namespace Printify.Infrastructure.Printing.EscPos;
 public class EscPosPrintJobSession : PrintJobSession
 {
     public override event Func<IPrintJobSession, PrintJobSessionDataTimedOutEventArgs, ValueTask>? DataTimedOut;
+    public override event Func<IPrintJobSession, PrintJobSessionResponseEventArgs, ValueTask>? ResponseReady;
+
+    protected override void OnResponseReady(PrintJobSessionResponseEventArgs args)
+    {
+        ResponseReady?.Invoke(this, args);
+    }
 
     static EscPosPrintJobSession()
     {
@@ -35,7 +41,12 @@ public class EscPosPrintJobSession : PrintJobSession
         ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(trieProvider);
         idleClock = clockFactory.Create();
-        parser = new EscPosParser(trieProvider, GetAvailableBytes, OnElement);
+        parser = new EscPosParser(trieProvider, GetAvailableBytes, OnElement, OnResponse);
+    }
+
+    private void OnResponse(ReadOnlyMemory<byte> data)
+    {
+        SendResponse(data);
     }
 
     public override Task Feed(ReadOnlyMemory<byte> input, CancellationToken ct)
@@ -58,6 +69,7 @@ public class EscPosPrintJobSession : PrintJobSession
         UpdateBufferState();
         if (Printer.EmulateBufferCapacity && Printer.BufferMaxCapacity is > 0 && element.LengthInBytes > 0)
             bufferedBytes += element.LengthInBytes;
+
         ElementBuffer.Add(element);
     }
 

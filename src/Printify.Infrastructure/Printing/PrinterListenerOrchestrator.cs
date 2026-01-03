@@ -55,6 +55,17 @@ public sealed class PrinterListenerOrchestrator(
         var session = await printJobSessions.StartSessionAsync(args.Channel, CancellationToken.None).ConfigureAwait(false);
         var channel = args.Channel;
         session.DataTimedOut += Session_DataTimedOut;
+        session.ResponseReady += async (s, e) =>
+        {
+            try
+            {
+                await channel.WriteAsync(e.Data, e.CancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to send response to client for printer {PrinterId}", channel.Printer.Id);
+            }
+        };
         channel.DataReceived += Channel_DataReceived;
         channel.Closed += Channel_Closed;
 

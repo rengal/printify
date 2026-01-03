@@ -11,7 +11,9 @@ public interface IPrintJobSession
 {
     int TotalBytesReceived { get; }
     int TotalBytesSent { get; }
+    int TotalBytesSentToClient { get; }
     DateTimeOffset LastReceivedBytes { get; }
+    DateTimeOffset LastSentToClient { get; }
     bool IsBufferBusy { get; }
     bool HasOverflow { get; }
     bool IsCompleted { get; }
@@ -24,4 +26,10 @@ public interface IPrintJobSession
     /// indicating the print job session may be completed or stalled
     /// </summary>
     event Func<IPrintJobSession, PrintJobSessionDataTimedOutEventArgs, ValueTask>? DataTimedOut;
+
+    /// <summary>
+    /// Raised when the printer needs to send data back to the client (e.g., status responses).
+    /// Fire-and-forget; failures are logged but don't affect the print job.
+    /// </summary>
+    event Func<IPrintJobSession, PrintJobSessionResponseEventArgs, ValueTask>? ResponseReady;
 }

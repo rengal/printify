@@ -18,9 +18,12 @@ public abstract class PrintJobSession : IPrintJobSession
 
     public int TotalBytesReceived { get; private set; }
     public int TotalBytesSent { get; private set; }
+    public int TotalBytesSentToClient { get; private set; }
     public DateTimeOffset LastReceivedBytes { get; private set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset LastSentToClient { get; private set; } = DateTimeOffset.MinValue;
 
     public abstract event Func<IPrintJobSession, PrintJobSessionDataTimedOutEventArgs, ValueTask>? DataTimedOut;
+    public abstract event Func<IPrintJobSession, PrintJobSessionResponseEventArgs, ValueTask>? ResponseReady;
 
     public bool IsBufferBusy
     {
@@ -150,6 +153,26 @@ public abstract class PrintJobSession : IPrintJobSession
         if (drainedBytes > 0)
             bufferedBytes = Math.Max(0, (int)(bufferedBytes - drainedBytes));
         drainClock.Restart();
+    }
+
+    /// <summary>
+    /// Sends response data back to the client (e.g., status bytes).
+    /// Fire-and-forget; failures are handled by the event subscriber.
+    /// </summary>
+    protected void SendResponse(ReadOnlyMemory<byte> data)
+    {
+        TotalBytesSentToClient += data.Length;
+        LastSentToClient = DateTimeOffset.UtcNow;
+
+        OnResponseReady(new PrintJobSessionResponseEventArgs(data, CancellationToken.None));
+    }
+
+    /// <summary>
+    /// Raises the ResponseReady event. Override in derived classes to invoke the event.
+    /// </summary>
+    protected virtual void OnResponseReady(PrintJobSessionResponseEventArgs args)
+    {
+        // Base implementation does nothing; derived classes override to raise their event
     }
 
     #endregion

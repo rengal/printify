@@ -38,6 +38,8 @@ namespace Printify.Domain.Documents.Elements;
 [JsonDerivedType(typeof(StoredLogo), "storedLogo")]
 [JsonDerivedType(typeof(AppendToLineBuffer), "appendToLineBuffer")]
 [JsonDerivedType(typeof(FlushLineBufferAndFeed), "flushLineBufferAndFeed")]
+[JsonDerivedType(typeof(StatusRequest), "statusRequest")]
+[JsonDerivedType(typeof(StatusResponse), "statusResponse")]
 public abstract record Element
 {
     /// <summary>
@@ -466,3 +468,42 @@ public sealed record AppendToLineBuffer(string Text) : PrintingElement;
 /// Flushes the current line buffer and feeds one line.
 /// </summary>
 public sealed record FlushLineBufferAndFeed : PrintingElement;
+
+/// <summary>
+/// DLE EOT n - Real-time status transmission request.
+/// Client requests printer status; printer responds immediately with 1 byte.
+/// </summary>
+/// <param name="RequestType">Type of status being requested (1-4).</param>
+public sealed record StatusRequest(StatusRequestType RequestType) : Element;
+
+/// <summary>
+/// Status response sent from printer to client (1 byte).
+/// Generated in response to StatusRequest command.
+/// </summary>
+/// <param name="StatusByte">Single byte containing printer status flags.</param>
+/// <param name="IsPaperOut">Paper end detected (bit 5).</param>
+/// <param name="IsCoverOpen">Cover is open (bit 2).</param>
+/// <param name="IsOffline">Printer is offline/error (bit 6).</param>
+public sealed record StatusResponse(
+    byte StatusByte,
+    bool IsPaperOut,
+    bool IsCoverOpen,
+    bool IsOffline) : Element;
+
+/// <summary>
+/// Type of real-time status request (DLE EOT n parameter).
+/// </summary>
+public enum StatusRequestType : byte
+{
+    /// <summary>DLE EOT 1 - Printer status</summary>
+    PrinterStatus = 0x01,
+
+    /// <summary>DLE EOT 2 - Offline cause status</summary>
+    OfflineCause = 0x02,
+
+    /// <summary>DLE EOT 3 - Error cause status</summary>
+    ErrorCause = 0x03,
+
+    /// <summary>DLE EOT 4 - Paper roll sensor status</summary>
+    PaperRollSensor = 0x04
+}
