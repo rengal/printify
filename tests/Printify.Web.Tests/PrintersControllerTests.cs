@@ -40,7 +40,7 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
         };
 
         var payload = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF };
-        await channel.WriteAsync(payload, CancellationToken.None);
+        await channel.SendToServerAsync(payload, CancellationToken.None);
 
         var observedPayload = await payloadReceived.Task.WaitAsync(TimeSpan.FromSeconds(2));
         Assert.True(payload.SequenceEqual(observedPayload));

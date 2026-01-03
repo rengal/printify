@@ -33,4 +33,6 @@ internal static class DocumentElementTypeNames
     public const string AppendToLineBuffer = "appendToLineBuffer";
     public const string FlushLineBufferAndFeed = "flushLineBufferAndFeed";
     public const string RasterImage = "rasterImage";
+    public const string StatusRequest = "statusRequest";
+    public const string StatusResponse = "statusResponse";
 }

@@ -115,7 +115,7 @@ public sealed partial class PrintersControllerTests
 
         var channel = await listener.AcceptClientAsync(ct);
         var payload = Encoding.ASCII.GetBytes(text);
-        await channel.WriteAsync(payload, ct);
+        await channel.SendToServerAsync(payload, ct);
         await channel.CloseAsync(ChannelClosedReason.Completed);
 
         var hasNext = await documentStream.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(1), ct);

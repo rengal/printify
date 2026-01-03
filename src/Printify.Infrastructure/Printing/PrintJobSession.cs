@@ -116,7 +116,7 @@ public abstract class PrintJobSession : IPrintJobSession
         TotalBytesSent += data.Length;
         try
         {
-            await Channel.WriteAsync(data, ct);
+            await Channel.SendToClientAsync(data, ct);
         }
         catch (Exception)
         {

@@ -55,7 +55,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
             .GetAsyncEnumerator();
         var nextEventTask = streamEnumerator.MoveNextAsync().AsTask();
 
-        await channel.WriteAsync(new byte[] { 0x07 }, CancellationToken.None);
+        await channel.SendToServerAsync(new byte[] { 0x07 }, CancellationToken.None);
 
         var clockFactory = Assert.IsType<TestClockFactory>(environment.ClockFactory);
         var elapsed = 0;
@@ -303,7 +303,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
 
         foreach (var step in EscPosScenarioChunker.EnumerateChunks(payload, strategy))
         {
-            await channel.WriteAsync(step.Buffer, CancellationToken.None);
+            await channel.SendToServerAsync(step.Buffer, CancellationToken.None);
             remaining -= step.Buffer.Length;
 
             if (remaining <= 0)

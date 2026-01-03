@@ -177,6 +177,8 @@ internal static class DocumentElementEntityMapper
             AppendToLineBufferElementPayload => DocumentElementTypeNames.AppendToLineBuffer,
             FlushLineBufferAndFeedElementPayload => DocumentElementTypeNames.FlushLineBufferAndFeed,
             RasterImageElementPayload => DocumentElementTypeNames.RasterImage,
+            StatusRequestElementPayload => DocumentElementTypeNames.StatusRequest,
+            StatusResponseElementPayload => DocumentElementTypeNames.StatusResponse,
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }

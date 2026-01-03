@@ -83,7 +83,11 @@ public sealed class TcpPrinterChannel : IPrinterChannel
         }
     }
 
-    public async ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken ct)
+    /// <summary>
+    /// Sends data to the connected TCP client (physical printer device).
+    /// </summary>
+    /// <remarks>Server → Client: Sends responses like status bytes to the physical device.</remarks>
+    public async ValueTask SendToClientAsync(ReadOnlyMemory<byte> data, CancellationToken ct)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
 

@@ -515,7 +515,7 @@ public sealed class WorkspaceSummaryTests(WebApplicationFactory<Program> factory
 
         var channel = await listener.AcceptClientAsync(CancellationToken.None);
         var payload = Encoding.ASCII.GetBytes(text);
-        await channel.WriteAsync(payload, CancellationToken.None);
+        await channel.SendToServerAsync(payload, CancellationToken.None);
         await channel.CloseAsync(ChannelClosedReason.Completed);
     }
 }

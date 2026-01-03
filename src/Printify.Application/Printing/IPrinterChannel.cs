@@ -8,13 +8,24 @@ namespace Printify.Application.Printing;
 /// Transport abstraction for a bidirectional connection with a printer.
 /// Implementations encapsulate the underlying socket/stream and surface
 /// asynchronous read/write primitives.
+/// <para>
+/// <strong>Architecture Note:</strong> In this system, the printer application acts as the <strong>server</strong>,
+/// and the physical printer device (or test client) acts as the <strong>client</strong>.
+/// The client connects to the server to send print data and receive status responses.
+/// </para>
 /// </summary>
 public interface IPrinterChannel : IAsyncDisposable
 {
     /// <summary>
-    /// Sends a payload to the connected printer.
+    /// Sends data from the server (printer application) to the client (physical printer device).
+    /// This is used to send responses such as status bytes back to the client.
     /// </summary>
-    ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken ct);
+    /// <param name="data">The data to send to the client.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <remarks>
+    /// <strong>Direction:</strong> Server → Client (printer application sends to physical device)
+    /// </remarks>
+    ValueTask SendToClientAsync(ReadOnlyMemory<byte> data, CancellationToken ct);
 
     /// <summary>
     /// Printer that channel is related to
@@ -29,8 +40,12 @@ public interface IPrinterChannel : IAsyncDisposable
     string ClientAddress { get; }
 
     /// <summary>
-    /// Raised when a chunk of data is received from the printer.
+    /// Raised when data is received from the client (physical printer device or test simulator).
+    /// This event fires when the client sends print data or commands to the server.
     /// </summary>
+    /// <remarks>
+    /// <strong>Direction:</strong> Client → Server (physical device sends to printer application)
+    /// </remarks>
     event Func<IPrinterChannel, PrinterChannelDataEventArgs, ValueTask>? DataReceived;
 
     /// <summary>

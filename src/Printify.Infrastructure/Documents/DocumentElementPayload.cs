@@ -31,6 +31,8 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(AppendToLineBufferElementPayload), DocumentElementTypeNames.AppendToLineBuffer)]
 [JsonDerivedType(typeof(FlushLineBufferAndFeedElementPayload), DocumentElementTypeNames.FlushLineBufferAndFeed)]
 [JsonDerivedType(typeof(RasterImageElementPayload), DocumentElementTypeNames.RasterImage)]
+[JsonDerivedType(typeof(StatusRequestElementPayload), DocumentElementTypeNames.StatusRequest)]
+[JsonDerivedType(typeof(StatusResponseElementPayload), DocumentElementTypeNames.StatusResponse)]
 public abstract record DocumentElementPayload;
 
 public sealed record BellElementPayload : DocumentElementPayload;
@@ -149,3 +151,11 @@ public sealed record StoredLogoElementPayload(int LogoId) : DocumentElementPaylo
 public sealed record AppendToLineBufferElementPayload(string Text) : DocumentElementPayload;
 
 public sealed record FlushLineBufferAndFeedElementPayload : DocumentElementPayload;
+
+public sealed record StatusRequestElementPayload(byte RequestType) : DocumentElementPayload;
+
+public sealed record StatusResponseElementPayload(
+    byte StatusByte,
+    bool IsPaperOut,
+    bool IsCoverOpen,
+    bool IsOffline) : DocumentElementPayload;

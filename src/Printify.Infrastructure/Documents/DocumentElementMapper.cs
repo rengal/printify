@@ -61,6 +61,12 @@ public static class DocumentElementMapper
             StoredLogo logo => new StoredLogoElementPayload(logo.LogoId),
             AppendToLineBuffer append => new AppendToLineBufferElementPayload(append.Text),
             FlushLineBufferAndFeed => new FlushLineBufferAndFeedElementPayload(),
+            StatusRequest request => new StatusRequestElementPayload((byte)request.RequestType),
+            StatusResponse response => new StatusResponseElementPayload(
+                response.StatusByte,
+                response.IsPaperOut,
+                response.IsCoverOpen,
+                response.IsOffline),
             RasterImageUpload => throw new NotSupportedException("Raster image persistence is handled separately."),
             _ => throw new NotSupportedException($"Element type '{element.GetType().Name}' is not supported.")
         };
@@ -118,6 +124,12 @@ public static class DocumentElementMapper
             StoredLogoElementPayload logo => new StoredLogo(logo.LogoId),
             AppendToLineBufferElementPayload textLine => new AppendToLineBuffer(textLine.Text ?? string.Empty),
             FlushLineBufferAndFeedElementPayload => new FlushLineBufferAndFeed(),
+            StatusRequestElementPayload request => new StatusRequest((StatusRequestType)request.RequestType),
+            StatusResponseElementPayload response => new StatusResponse(
+                response.StatusByte,
+                response.IsPaperOut,
+                response.IsCoverOpen,
+                response.IsOffline),
             RasterImageElementPayload raster => new RasterImage(
                 raster.Width,
                 raster.Height,

@@ -59,7 +59,7 @@ public sealed class PrinterListenerOrchestrator(
         {
             try
             {
-                await channel.WriteAsync(e.Data, e.CancellationToken).ConfigureAwait(false);
+                await channel.SendToClientAsync(e.Data, e.CancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
