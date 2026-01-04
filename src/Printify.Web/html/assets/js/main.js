@@ -1825,6 +1825,19 @@
             }
         }
 
+        function toggleHelpMenu(event) {
+            event.stopPropagation();
+            const helpMenu = event.currentTarget.closest('.menu-help');
+            if (!helpMenu) return;
+
+            const submenu = helpMenu.querySelector('.menu-submenu');
+            const chevron = helpMenu.querySelector('.menu-item-chevron');
+            if (!submenu || !chevron) return;
+
+            const isOpen = submenu.classList.toggle('open');
+            chevron.src = isOpen ? 'assets/icons/chevron-down.svg' : 'assets/icons/chevron-right.svg';
+        }
+
         function toggleTheme() {
             const html = document.documentElement;
             const current = html.getAttribute('data-theme');
@@ -1966,25 +1979,36 @@
                 <img class="menu-item-icon" src="assets/icons/info.svg" alt="">
                 About Virtual Printer
               </div>
-              <div class="menu-item" onclick="window.open('/docs/guide', '_blank')">
-                <img class="menu-item-icon" src="assets/icons/book-open.svg" alt="">
-                Getting Started
-              </div>
-              <div class="menu-item" onclick="window.open('/docs/faq', '_blank')">
-                <img class="menu-item-icon" src="assets/icons/help-circle.svg" alt="">
-                FAQ & Troubleshooting
-              </div>
-              <div class="menu-item" onclick="window.open('/docs/security', '_blank')">
-                <img class="menu-item-icon" src="assets/icons/shield.svg" alt="">
-                Security Guidelines
-              </div>
-              <div class="menu-item" onclick="window.open('/docs/terms', '_blank')">
-                <img class="menu-item-icon" src="assets/icons/file-text.svg" alt="">
-                Terms of Service
-              </div>
-              <div class="menu-item" onclick="window.open('/docs/privacy', '_blank')">
-                <img class="menu-item-icon" src="assets/icons/lock.svg" alt="">
-                Privacy Policy
+              <div class="menu-help">
+                <div class="menu-item menu-item-submenu-toggle" onclick="toggleHelpMenu(event)">
+                  <span class="menu-item-text">
+                    <img class="menu-item-icon" src="assets/icons/book-open.svg" alt="">
+                    Help
+                  </span>
+                  <img class="menu-item-chevron" src="assets/icons/chevron-right.svg" width="14" height="14" alt="">
+                </div>
+                <div class="menu-submenu">
+                  <div class="menu-item" onclick="window.open('/docs/guide', '_blank')">
+                    <img class="menu-item-icon" src="assets/icons/book.svg" alt="">
+                    Getting Started
+                  </div>
+                  <div class="menu-item" onclick="window.open('/docs/faq', '_blank')">
+                    <img class="menu-item-icon" src="assets/icons/help-circle.svg" alt="">
+                    FAQ & Troubleshooting
+                  </div>
+                  <div class="menu-item" onclick="window.open('/docs/security', '_blank')">
+                    <img class="menu-item-icon" src="assets/icons/shield.svg" alt="">
+                    Security Guidelines
+                  </div>
+                  <div class="menu-item" onclick="window.open('/docs/terms', '_blank')">
+                    <img class="menu-item-icon" src="assets/icons/file-text.svg" alt="">
+                    Terms of Service
+                  </div>
+                  <div class="menu-item" onclick="window.open('/docs/privacy', '_blank')">
+                    <img class="menu-item-icon" src="assets/icons/lock.svg" alt="">
+                    Privacy Policy
+                  </div>
+                </div>
               </div>
               <div class="menu-divider"></div>
               <div class="menu-item" onclick="showWorkspaceDialog('create')">
@@ -2006,25 +2030,36 @@
                 <img class="menu-item-icon" src="assets/icons/info.svg" alt="">
                 About Virtual Printer
               </div>
-              <div class="menu-item" onclick="window.open('/docs/guide', '_blank')">
-                <img class="menu-item-icon" src="assets/icons/book-open.svg" alt="">
-                Getting Started
-              </div>
-              <div class="menu-item" onclick="window.open('/docs/faq', '_blank')">
-                <img class="menu-item-icon" src="assets/icons/help-circle.svg" alt="">
-                FAQ & Troubleshooting
-              </div>
-              <div class="menu-item" onclick="window.open('/docs/security', '_blank')">
-                <img class="menu-item-icon" src="assets/icons/shield.svg" alt="">
-                Security Guidelines
-              </div>
-              <div class="menu-item" onclick="window.open('/docs/terms', '_blank')">
-                <img class="menu-item-icon" src="assets/icons/file-text.svg" alt="">
-                Terms of Service
-              </div>
-              <div class="menu-item" onclick="window.open('/docs/privacy', '_blank')">
-                <img class="menu-item-icon" src="assets/icons/lock.svg" alt="">
-                Privacy Policy
+              <div class="menu-help">
+                <div class="menu-item menu-item-submenu-toggle" onclick="toggleHelpMenu(event)">
+                  <span class="menu-item-text">
+                    <img class="menu-item-icon" src="assets/icons/book-open.svg" alt="">
+                    Help
+                  </span>
+                  <img class="menu-item-chevron" src="assets/icons/chevron-right.svg" width="14" height="14" alt="">
+                </div>
+                <div class="menu-submenu">
+                  <div class="menu-item" onclick="window.open('/docs/guide', '_blank')">
+                    <img class="menu-item-icon" src="assets/icons/book.svg" alt="">
+                    Getting Started
+                  </div>
+                  <div class="menu-item" onclick="window.open('/docs/faq', '_blank')">
+                    <img class="menu-item-icon" src="assets/icons/help-circle.svg" alt="">
+                    FAQ & Troubleshooting
+                  </div>
+                  <div class="menu-item" onclick="window.open('/docs/security', '_blank')">
+                    <img class="menu-item-icon" src="assets/icons/shield.svg" alt="">
+                    Security Guidelines
+                  </div>
+                  <div class="menu-item" onclick="window.open('/docs/terms', '_blank')">
+                    <img class="menu-item-icon" src="assets/icons/file-text.svg" alt="">
+                    Terms of Service
+                  </div>
+                  <div class="menu-item" onclick="window.open('/docs/privacy', '_blank')">
+                    <img class="menu-item-icon" src="assets/icons/lock.svg" alt="">
+                    Privacy Policy
+                  </div>
+                </div>
               </div>
               <div class="menu-divider"></div>
               <div class="menu-item" onclick="showWorkspaceDialog('create')">
