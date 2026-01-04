@@ -903,27 +903,31 @@
                 </button>
               </div>
               <div class="operations-info">
-                <div class="operations-table">
-                  <div class="operations-row">
-                    <div class="operations-cell operations-cell-label">
-                      <span class="${statusClass}">${statusText}</span>
-                    </div>
-                    <div class="operations-cell operations-cell-value">
-                      <div>
-                        <span>${printerAddress}</span>
-                        <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
+                <div class="operations-info-item">
+                  <div class="operations-info-label">Status</div>
+                  <div class="operations-info-value">
+                    <span class="${statusClass}">${statusText}</span>
                   </div>
                 </div>
-                <div class="operations-last-doc">
-                  <div class="operations-last-doc-label">Last document:</div>
-                  <div class="operations-last-doc-value">${hasLastDocument
+                <div class="operations-info-item">
+                  <div class="operations-info-label">Address</div>
+                  <div class="operations-info-value">
+                    <span>${printerAddress}</span>
+                    <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <div class="operations-info-item">
+                  <div class="operations-info-label">Protocol</div>
+                  <div class="operations-info-value">${printer.protocol || 'ESC/POS'}</div>
+                </div>
+                <div class="operations-info-item">
+                  <div class="operations-info-label">Last document</div>
+                  <div class="operations-info-value">${hasLastDocument
                     ? `${lastDocDateTime} (${lastDocRelative})`
                     : `-`}</div>
                 </div>
@@ -1345,9 +1349,10 @@
                 <div class="field-group">
                     <div class="field">
                       <label class="label required">Protocol</label>
-                      <select class="input" id="printerProtocol">
+                      <select class="input" id="printerProtocol" disabled>
                       <option value="escpos" ${printer.protocol.toLowerCase() === 'escpos' ? 'selected' : ''}>ESC/POS emulation</option>
                       </select>
+                      <div class="field-hint">Protocol cannot be changed after creation</div>
                     </div>
 
                   <div class="field">

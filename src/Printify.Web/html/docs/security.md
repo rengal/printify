@@ -8,7 +8,7 @@ Virtual Printer can operate in two distinct modes with different security consid
 
 ### Cloud Mode (virtual-printer.online)
 
-⚠️ **Data transmitted to virtual-printer.online uses raw TCP connections without encryption.**
+> **WARNING:** Data transmitted to virtual-printer.online uses raw TCP connections without encryption.
 
 When using printers hosted on virtual-printer.online:
 - Raw TCP connections are **not encrypted**
@@ -28,20 +28,24 @@ When you host Virtual Printer on your own infrastructure:
 
 ## Recommended Usage
 
-### ✅ Safe Use Cases (Cloud Mode)
+### Safe Use Cases (Cloud Mode)
+
+Appropriate for cloud-hosted virtual-printer.online:
 - Local development and testing
 - Debugging print functionality
 - Demo and presentation environments
 - Non-sensitive test data only
 
-### ❌ Unsafe Use Cases (Cloud Mode)
+### Unsafe Use Cases (Cloud Mode)
+
+**Do not use cloud mode for:**
 - Printing customer data
 - Processing payment receipts
 - Handling personal information
 - Production environments
 - Any sensitive or confidential data
 
-### ✅ Production Deployment (Self-Hosted Only)
+### Production Deployment (Self-Hosted Only)
 
 For production use, you must self-host Virtual Printer:
 - Deploy on your local network (not public cloud)

@@ -1,18 +1,18 @@
 # Getting Started
 
-Get up and running with Virtual Printer in minutes.
+Learn how to test receipt and label printing without a physical printer using Virtual Printer's online emulator.
 
-## Quick Start
+## Quick Start: Virtual Receipt Printer Setup
 
 1. **Create a Workspace**: Click "Create or Access Workspace" and enter a workspace nickname
 2. **Save Your Token**: Store your workspace token securely for future access
-3. **Add a Printer**: Click "New Printer" and configure your virtual printer
+3. **Add a Virtual Printer**: Click "New Printer" and configure your ESC/POS emulator
 4. **Get the Address**: Note the TCP address (e.g., `virtual-printer.online:9107`)
-5. **Send Test Data**: Point your application to the printer address
+5. **Test Print Commands**: Point your application to the virtual printer address
 
-## Connecting Your Application
+## Connecting to the Virtual Thermal Printer
 
-Configure your application to send print data to the TCP address shown in the printer details:
+Configure your POS application to send ESC/POS commands to the virtual receipt printer:
 
 ```
 Host: virtual-printer.online (or your server IP if self-hosted)

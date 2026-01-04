@@ -1279,11 +1279,10 @@
         .operations-info {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 12px;
             padding-bottom: 16px;
             border-bottom: 1px solid var(--border);
             margin-bottom: 16px;
-            align-items: flex-start;
         }
 
         .operations-printer-name {
@@ -1293,73 +1292,26 @@
             line-height: 32px;
         }
 
-        .operations-table {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            column-gap: 12px;
-            row-gap: 10px;
-            width: 100%;
-        }
-
-        .operations-row {
-            display: contents;
-        }
-
-        .operations-cell {
-            font-size: 13px;
+        .operations-info-item {
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            gap: 4px;
         }
 
-        .operations-cell-label {
-            font-size: 14px;
+        .operations-info-label {
+            font-size: 13px;
             color: var(--muted);
-            line-height: 1.3;
             text-transform: uppercase;
             font-weight: 500;
             letter-spacing: 0.3px;
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-            justify-content: center;
         }
 
-        .operations-cell-label > div,
-        .operations-cell-label > span {
-            line-height: 1.3;
-        }
-
-        .operations-cell-value {
+        .operations-info-value {
             color: var(--text);
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-            font-size: 14px;
-            line-height: 1.3;
-            justify-content: center;
-        }
-
-        .operations-cell-value > span,
-        .operations-cell-value > div {
+            font-size: 15px;
             display: flex;
             align-items: center;
             gap: 6px;
-            line-height: 1.3;
-        }
-
-        .operations-last-doc {
-            margin-top: 0;
-            font-size: 13px;
-            line-height: 1.4;
-        }
-
-        .operations-last-doc-label {
-            color: var(--muted);
-            margin-bottom: 2px;
-        }
-
-        .operations-last-doc-value {
-            color: var(--text);
         }
 
         .operations-actions {

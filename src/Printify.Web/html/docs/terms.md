@@ -1,7 +1,5 @@
 # Terms of Use
 
-**Last Updated:** January 3, 2026
-
 By using Virtual Printer, you agree to these terms of service.
 
 ## Service Description
@@ -39,7 +37,7 @@ We reserve the right to adjust these limits or enforce them to maintain service 
 
 ## Security Notice
 
-⚠️ **Virtual Printer uses unencrypted raw TCP connections.**
+> **WARNING:** Virtual Printer uses unencrypted raw TCP connections.
 
 Data transmitted to virtual printers:
 - Is **not encrypted**

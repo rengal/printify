@@ -1,7 +1,5 @@
 # Privacy Policy
 
-**Last Updated:** January 3, 2026
-
 This privacy policy explains how Virtual Printer collects, uses, and protects your information.
 
 ## Information We Collect
@@ -18,9 +16,9 @@ This privacy policy explains how Virtual Printer collects, uses, and protects yo
 - **Browser information**: User-Agent headers for compatibility
 
 ### Data We Do NOT Collect
-- ❌ Email addresses
-- ❌ Payment information
-- ❌ Personal identification beyond optional workspace names
+- Email addresses
+- Payment information
+- Personal identification beyond optional workspace names
 
 ## How We Use Your Information
 
@@ -55,7 +53,7 @@ We do **not**:
 
 ## Important Security Limitation
 
-⚠️ **Data transmission to virtual-printer.online printers is NOT encrypted.**
+> **WARNING:** Data transmission to virtual-printer.online printers is NOT encrypted.
 
 When using printers hosted on virtual-printer.online, print data sent over raw TCP connections:
 - Travels unencrypted over the network

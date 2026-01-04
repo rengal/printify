@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-Common questions and troubleshooting help for Virtual Printer.
+Common questions about testing receipt printers without hardware and troubleshooting the virtual printer emulator.
 
 ## Getting Started
 
@@ -16,23 +16,28 @@ Use "Access Workspace" and enter your workspace token. You can use the same work
 
 Workspace tokens cannot be recovered. You'll need to create a new workspace. Always save your token in a secure location.
 
-## Printers
+## Virtual Printer Setup
+
+### Can I test receipt or label printing without buying a physical printer?
+
+Yes! Virtual Printer provides an online receipt and label printer emulator that lets you test ESC/POS commands, thermal printer output, and label printing without any physical hardware. Perfect for POS development and testing printing APIs.
 
 ### How many printers can I create?
 
-Each workspace can have up to **10 printers**.
+Each workspace can have up to **10 virtual printers**.
 
 ### Can I change the printer port?
 
 Port assignment is currently automatic and cannot be customized.
 
-### Why isn't my printer receiving data?
+### Why isn't my virtual receipt printer receiving data?
 
-Check that:
-1. The printer status shows "Listening" (not "Stopped")
-2. Your application is connecting to the correct host and port
-3. No firewall is blocking the connection
+When testing ESC/POS commands or thermal printer output, check that:
+1. The virtual printer status shows "Listening" (not "Stopped")
+2. Your POS application is connecting to the correct host and port
+3. No firewall is blocking the TCP connection
 4. You're using the correct protocol (raw TCP, not HTTP)
+5. Your receipt printer emulator is configured properly
 
 ### How do I delete a printer?
 
@@ -97,12 +102,21 @@ Ensure:
 - The port number matches the printer configuration
 - Your firewall allows outbound connections
 
+### How do I test ESC/POS commands without a thermal printer?
+
+Use Virtual Printer's ESC/POS emulator to test receipt printer commands. Send ESC/POS data to the virtual thermal printer via TCP connection, and view the rendered output in real-time. Perfect for testing POS printing without physical hardware.
+
 ### Documents show as "No visual elements detected"
 
-This means no text or images were rendered. Common causes:
-- Sending plain text without ESC/POS formatting
-- Protocol mismatch (check printer is configured for ESC/POS)
-- Enable "Debug" mode to see raw commands
+This means the document contains only non-visual commands (no text or images). Examples:
+- Opening the cash drawer connected to the printer
+- Polling printer status before continuing a receipt
+- Triggering the printer buzzer (internal or external)
+- The server received an unrecognized command because of a client/server bug, an unimplemented feature, or a protocol mismatch
+
+If you expected output:
+- Check the printer protocol matches your data (ESC/POS vs other)
+- Enable "Debug" mode to see the raw commands and responses
 
 ### Application can't connect
 
