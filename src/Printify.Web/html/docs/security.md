@@ -8,7 +8,7 @@ Virtual Printer can operate in two distinct modes with different security consid
 
 ### Cloud Mode (virtual-printer.online)
 
-> **WARNING:** Data transmitted to virtual-printer.online uses raw TCP connections without encryption.
+> **WARNING:** Data transmitted to **virtual-printer.online** uses raw TCP connections without encryption.
 
 When using printers hosted on virtual-printer.online:
 - Raw TCP connections are **not encrypted**

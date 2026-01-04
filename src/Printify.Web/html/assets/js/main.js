@@ -904,13 +904,11 @@
               </div>
               <div class="operations-info">
                 <div class="operations-info-item">
-                  <div class="operations-info-label">Status</div>
                   <div class="operations-info-value">
                     <span class="${statusClass}">${statusText}</span>
                   </div>
                 </div>
                 <div class="operations-info-item">
-                  <div class="operations-info-label">Address</div>
                   <div class="operations-info-value">
                     <span>${printerAddress}</span>
                     <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
