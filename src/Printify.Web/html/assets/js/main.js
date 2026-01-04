@@ -896,10 +896,7 @@
               <div class="operations-header">
                 <span class="operations-printer-name">${escapeHtml(printer.name)}</span>
                 <button class="icon-btn" onclick="toggleOperations()" title="Close operations">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
+                  <img src="assets/icons/x.svg" width="18" height="18" alt="Close">
                 </button>
               </div>
               <div class="operations-info">
@@ -912,16 +909,13 @@
                   <div class="operations-info-value">
                     <span>${printerAddress}</span>
                     <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                      </svg>
+                      <img src="assets/icons/copy.svg" width="14" height="14" alt="Copy">
                     </button>
                   </div>
                 </div>
                 <div class="operations-info-item">
                   <div class="operations-info-label">Protocol</div>
-                  <div class="operations-info-value">${printer.protocol || 'ESC/POS'}</div>
+                  <div class="operations-info-value">${protocolFormatted}</div>
                 </div>
                 <div class="operations-info-item">
                   <div class="operations-info-label">Last document</div>
@@ -931,36 +925,56 @@
                 </div>
               </div>
               <div class="operations-actions">
+                <!-- All Operations -->
                 ${isRunning
-                  ? `<button class="btn btn-outline-danger btn-sm" onclick="stopPrinter(event, '${printer.id}')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+                  ? `<button class="btn btn-primary btn-sm" onclick="stopPrinter(event, '${printer.id}')">
+                      <img src="assets/icons/square.svg" width="14" height="14" alt="">
                       Stop
                     </button>`
                   : `<button class="btn btn-primary btn-sm" onclick="startPrinter(event, '${printer.id}')">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      <img src="assets/icons/play.svg" width="14" height="14" alt="">
                       Start
                     </button>`
                 }
-                <button class="btn btn-secondary btn-sm" onclick="clearDocuments('${printer.id}')">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                  Clear
-                </button>
-                <button class="btn btn-secondary btn-sm ${debugMode ? 'active' : ''}" onclick="toggleDebugMode()">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h.01M15 9h.01M9 15h6"/></svg>
-                  Debug
-                </button>
+
                 <button class="btn btn-secondary btn-sm" onclick="editPrinter('${printer.id}')">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  <img src="assets/icons/edit-3.svg" width="14" height="14" alt="">
                   Edit
                 </button>
-                <button class="btn btn-ghost btn-sm" onclick="togglePin('${printer.id}')">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg>
+
+                <button class="btn btn-secondary btn-sm" onclick="togglePin('${printer.id}')">
+                  <img src="assets/icons/star.svg" width="14" height="14" alt="">
                   ${printer.pinned ? 'Unpin' : 'Pin'}
                 </button>
-                <button class="btn btn-ghost btn-sm" onclick="deletePrinter('${printer.id}')">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                  Delete
-                </button>
+
+                <label class="debug-toggle">
+                  <span class="debug-toggle-label">
+                    <img src="assets/icons/eye.svg" width="14" height="14" alt="">
+                    Debug Mode
+                  </span>
+                  <input type="checkbox" ${debugMode ? 'checked' : ''} onchange="toggleDebugMode()">
+                </label>
+
+                <!-- Danger Zone -->
+                <div class="danger-zone">
+                  <div class="danger-zone-header" onclick="toggleDangerZone()">
+                    <div class="danger-zone-title">
+                      <img class="danger-zone-icon" src="assets/icons/alert-triangle.svg" width="16" height="16" alt="">
+                      Danger Zone
+                    </div>
+                    <img class="danger-zone-chevron collapsed" src="assets/icons/chevron-down.svg" width="16" height="16" alt="">
+                  </div>
+                  <div class="danger-zone-content collapsed">
+                    <button class="btn btn-sm" onclick="clearDocuments('${printer.id}')">
+                      <img src="assets/icons/file-minus.svg" width="14" height="14" alt="">
+                      Clear all Documents
+                    </button>
+                    <button class="btn btn-sm" onclick="deletePrinter('${printer.id}')">
+                      <img src="assets/icons/trash-2.svg" width="14" height="14" alt="">
+                      Delete Printer
+                    </button>
+                  </div>
+                </div>
               </div>
             `;
 
@@ -1784,6 +1798,28 @@
             }
 
             renderDocuments();
+        }
+
+        // Danger Zone Toggle
+        function toggleDangerZone() {
+            const content = document.querySelector('.danger-zone-content');
+            const chevron = document.querySelector('.danger-zone-chevron');
+
+            if (!content || !chevron) return;
+
+            const isExpanded = content.classList.contains('expanded');
+
+            if (isExpanded) {
+                content.classList.remove('expanded');
+                content.classList.add('collapsed');
+                chevron.classList.remove('expanded');
+                localStorage.setItem('dangerZoneExpanded', 'false');
+            } else {
+                content.classList.remove('collapsed');
+                content.classList.add('expanded');
+                chevron.classList.add('expanded');
+                localStorage.setItem('dangerZoneExpanded', 'true');
+            }
         }
 
         function toggleTheme() {

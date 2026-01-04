@@ -1321,9 +1321,163 @@
         }
 
         .operations-actions .btn {
-            width: auto;
-            min-width: 80px;
+            width: 100%;
             justify-content: center;
+        }
+
+        /* Toggle checkbox for Debug mode */
+        .debug-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .debug-toggle:hover {
+            background: var(--bg-elev-2);
+        }
+
+        .debug-toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .debug-toggle-label svg,
+        .debug-toggle-label img {
+            width: 14px;
+            height: 14px;
+            stroke: var(--muted);
+            opacity: 0.7;
+        }
+
+        .debug-toggle input[type="checkbox"] {
+            width: 36px;
+            height: 20px;
+            appearance: none;
+            -webkit-appearance: none;
+            background: var(--bg-elev);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .debug-toggle input[type="checkbox"]::before {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--muted);
+            top: 50%;
+            left: 2px;
+            transform: translateY(-50%);
+            transition: all 0.2s ease;
+        }
+
+        .debug-toggle input[type="checkbox"]:checked {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .debug-toggle input[type="checkbox"]:checked::before {
+            background: white;
+            left: calc(100% - 16px);
+        }
+
+        .debug-toggle input[type="checkbox"]:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        /* Danger Zone */
+        .danger-zone {
+            margin-top: 16px;
+        }
+
+        .danger-zone-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: rgba(239, 68, 68, 0.08);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+            margin-bottom: 8px;
+        }
+
+        .danger-zone-header:hover {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .danger-zone-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #ef4444;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .danger-zone-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .danger-zone-chevron {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.2s ease;
+        }
+
+        .danger-zone-chevron.expanded {
+            transform: rotate(180deg);
+        }
+
+        .danger-zone-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.2s ease;
+        }
+
+        .danger-zone-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        .danger-zone-content.expanded {
+            max-height: 200px;
+            opacity: 1;
+        }
+
+        .danger-zone-content .btn {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .danger-zone-content .btn:hover {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.3);
         }
 
         /* Hide floating sidebar toggle since sidebar is always visible (just minimized) */
