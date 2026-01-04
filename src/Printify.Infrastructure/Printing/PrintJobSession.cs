@@ -102,29 +102,13 @@ public abstract class PrintJobSession : IPrintJobSession
         busyThreshold = (int)(Printer.BufferMaxCapacity.GetValueOrDefault() * BusyThresholdRatio);
         overflowThreshold = Printer.BufferMaxCapacity.GetValueOrDefault();
         drainClock = clockFactory.Create();
+        drainClock.Restart();
+        bufferedBytes = Printer.BufferMaxCapacity.GetValueOrDefault() * 2; //todo debugnow
     }
 
     #endregion
 
     #region Protected Methods
-
-    protected async Task<bool> TrySend(ReadOnlyMemory<byte> data, CancellationToken ct)
-    {
-        if (IsCompleted)
-            return false;
-
-        TotalBytesSent += data.Length;
-        try
-        {
-            await Channel.SendToClientAsync(data, ct);
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-
-        return true;
-    }
 
     protected void UpdateBufferState()
     {
@@ -135,10 +119,10 @@ public abstract class PrintJobSession : IPrintJobSession
         }
 
         var elapsedMs = drainClock.ElapsedMs;
+        drainClock.Restart();
+
         if (elapsedMs <= 0)
-        {
             return;
-        }
 
         if (!Printer.BufferDrainRate.HasValue)
         {
@@ -152,7 +136,6 @@ public abstract class PrintJobSession : IPrintJobSession
         var drainedBytes = Printer.BufferDrainRate.Value * (elapsedMs / 1000.0m);
         if (drainedBytes > 0)
             bufferedBytes = Math.Max(0, (int)(bufferedBytes - drainedBytes));
-        drainClock.Restart();
     }
 
     /// <summary>

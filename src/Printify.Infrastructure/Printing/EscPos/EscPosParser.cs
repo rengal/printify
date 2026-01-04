@@ -341,18 +341,23 @@ public sealed class EscPosParser
         // Ready printer = 0x12 (0001 0010)
 
         const byte readyStatus = 0x12;
+        const byte offlineStatus = 0x52;
         // TODO: Make configurable per printer settings for testing
 
+        var availableBytes = getAvailableBytes?.Invoke();
+        var isReady = availableBytes is null || availableBytes > 0;
+        var statusByte = isReady ? readyStatus : offlineStatus;
+
         // Send response to client immediately
-        onResponse?.Invoke(new[] { readyStatus });
+        onResponse?.Invoke(new[] { statusByte });
 
         // Also emit the response element for document/debugging
-        var response = new StatusResponse(readyStatus,
+        var response = new StatusResponse(statusByte,
             IsPaperOut: false,
             IsCoverOpen: false,
-            IsOffline: false)
+            IsOffline: !isReady)
         {
-            CommandRaw = Convert.ToHexString(new[] { readyStatus }),
+            CommandRaw = Convert.ToHexString(new[] { statusByte }),
             LengthInBytes = 1
         };
         onElement.Invoke(response);
