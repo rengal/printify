@@ -176,6 +176,7 @@ internal static class DocumentElementEntityMapper
             StoredLogoElementPayload => DocumentElementTypeNames.StoredLogo,
             AppendToLineBufferElementPayload => DocumentElementTypeNames.AppendToLineBuffer,
             FlushLineBufferAndFeedElementPayload => DocumentElementTypeNames.FlushLineBufferAndFeed,
+            LegacyCarriageReturnElementPayload => DocumentElementTypeNames.LegacyCarriageReturn,
             RasterImageElementPayload => DocumentElementTypeNames.RasterImage,
             StatusRequestElementPayload => DocumentElementTypeNames.StatusRequest,
             StatusResponseElementPayload => DocumentElementTypeNames.StatusResponse,

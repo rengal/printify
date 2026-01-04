@@ -1804,8 +1804,9 @@
         function toggleDangerZone() {
             const content = document.querySelector('.danger-zone-content');
             const chevron = document.querySelector('.danger-zone-chevron');
+            const container = document.querySelector('.danger-zone');
 
-            if (!content || !chevron) return;
+            if (!content || !chevron || !container) return;
 
             const isExpanded = content.classList.contains('expanded');
 
@@ -1813,11 +1814,13 @@
                 content.classList.remove('expanded');
                 content.classList.add('collapsed');
                 chevron.classList.remove('expanded');
+                container.classList.remove('expanded');
                 localStorage.setItem('dangerZoneExpanded', 'false');
             } else {
                 content.classList.remove('collapsed');
                 content.classList.add('expanded');
                 chevron.classList.add('expanded');
+                container.classList.add('expanded');
                 localStorage.setItem('dangerZoneExpanded', 'true');
             }
         }

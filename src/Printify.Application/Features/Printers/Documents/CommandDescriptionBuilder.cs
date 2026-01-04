@@ -135,6 +135,9 @@ public static class CommandDescriptionBuilder
                 $"preview=\"{EscapeDescriptionText(textLine.Text)}\""),
             FlushLineBufferAndFeed => Lines(
                 "LF - Flush line buffer and feed one line"),
+            LegacyCarriageReturn => Lines(
+                "CR - Carriage return (legacy compatibility)",
+                "Ignored by the printer"),
             RasterImage raster => BuildRasterImageDescription(raster.Width, raster.Height),
             RasterImageUpload upload => BuildRasterImageDescription(upload.Width, upload.Height),
             Pagecut pagecut => BuildPagecutDescription(pagecut),

@@ -40,6 +40,9 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                 case FlushLineBufferAndFeed flushLine:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: true, flushLine);
                     break;
+                case LegacyCarriageReturn legacyCarriageReturn:
+                    AddDebugElement(elements, legacyCarriageReturn, "legacyCarriageReturn", new Dictionary<string, string>());
+                    break;
                 case RasterImage raster:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
                     AddDebugElement(elements, raster, "rasterImage", new Dictionary<string, string>());
@@ -396,6 +399,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
             StoreQrData => "storeQrData",
             StatusRequest => "statusRequest",
             StatusResponse => "statusResponse",
+            LegacyCarriageReturn => "legacyCarriageReturn",
             _ => element.GetType().Name
         };
     }

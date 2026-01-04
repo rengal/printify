@@ -20,6 +20,7 @@ public sealed class EscPosCommandTrieProvider : IEscPosCommandTrieProvider
         new BelDescriptor(),
         new GetPrinterStatusDescriptor(),
         new FlushLineBufferAndFeedDescriptor(),
+        new LegacyCarriageReturnDescriptor(),
         new PageCutDescriptor(),
         new PartialCutOnePointDescriptor(),
         new PartialCutThreePointDescriptor(),

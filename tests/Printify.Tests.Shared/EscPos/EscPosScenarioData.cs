@@ -16,6 +16,7 @@ public static class EscPosScenarioData
     private const byte Esc = 0x1B;
     private const byte Gs = 0x1D;
     private const byte Lf = 0x0A;
+    private const byte Cr = 0x0D;
 
     static EscPosScenarioData()
     {
@@ -66,6 +67,21 @@ public static class EscPosScenarioData
             expectedViewElements:
             [
                 ViewAppend("ABC", lengthInBytes: 3),
+                ViewFlush(lengthInBytes: 1),
+                ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
+            ]),
+        new(
+            input: [.. "ABC"u8, Cr, Lf],
+            expectedRequestElements:
+            [
+                new AppendToLineBuffer("ABC") { LengthInBytes = 3 },
+                new LegacyCarriageReturn { LengthInBytes = 1 },
+                new FlushLineBufferAndFeed { LengthInBytes = 1 }
+            ],
+            expectedViewElements:
+            [
+                ViewAppend("ABC", lengthInBytes: 3),
+                ViewDebug("legacyCarriageReturn", lengthInBytes: 1),
                 ViewFlush(lengthInBytes: 1),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3)
             ]),

@@ -148,6 +148,9 @@ public static class DocumentMapper
             DomainElements.FlushLineBufferAndFeed flushLine => WithCommandMetadata(
                 new ResponseElements.FlushLineBufferAndFeedDto(),
                 flushLine),
+            DomainElements.LegacyCarriageReturn legacyCarriageReturn => WithCommandMetadata(
+                new ResponseElements.LegacyCarriageReturnDto(),
+                legacyCarriageReturn),
             _ => throw new NotSupportedException(
                 $"Element type '{element.GetType().FullName}' is not supported in responses.")
         };

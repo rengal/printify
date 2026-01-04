@@ -1404,6 +1404,10 @@
         /* Danger Zone */
         .danger-zone {
             margin-top: 16px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            padding: 8px;
+            background: transparent;
         }
 
         .danger-zone-header {
@@ -1411,8 +1415,8 @@
             align-items: center;
             justify-content: space-between;
             padding: 10px 12px;
-            background: rgba(239, 68, 68, 0.08);
-            border: 1px solid rgba(239, 68, 68, 0.2);
+            background: var(--bg-elev);
+            border: 1px solid var(--border);
             border-radius: 6px;
             cursor: pointer;
             user-select: none;
@@ -1421,8 +1425,8 @@
         }
 
         .danger-zone-header:hover {
-            background: rgba(239, 68, 68, 0.12);
-            border-color: rgba(239, 68, 68, 0.3);
+            background: var(--bg);
+            border-color: var(--border);
         }
 
         .danger-zone-title {
@@ -1431,7 +1435,7 @@
             gap: 8px;
             font-size: 13px;
             font-weight: 600;
-            color: #ef4444;
+            color: var(--muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
@@ -1439,6 +1443,7 @@
         .danger-zone-icon {
             width: 16px;
             height: 16px;
+            opacity: 0.7;
         }
 
         .danger-zone-chevron {
@@ -1478,6 +1483,24 @@
         .danger-zone-content .btn:hover {
             background: rgba(239, 68, 68, 0.15);
             border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .danger-zone.expanded {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.35);
+        }
+
+        .danger-zone.expanded .danger-zone-header {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.35);
+        }
+
+        .danger-zone.expanded .danger-zone-title {
+            color: #ef4444;
+        }
+
+        .danger-zone.expanded .danger-zone-icon {
+            opacity: 1;
         }
 
         /* Hide floating sidebar toggle since sidebar is always visible (just minimized) */

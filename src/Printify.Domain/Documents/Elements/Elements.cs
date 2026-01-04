@@ -38,6 +38,7 @@ namespace Printify.Domain.Documents.Elements;
 [JsonDerivedType(typeof(StoredLogo), "storedLogo")]
 [JsonDerivedType(typeof(AppendToLineBuffer), "appendToLineBuffer")]
 [JsonDerivedType(typeof(FlushLineBufferAndFeed), "flushLineBufferAndFeed")]
+[JsonDerivedType(typeof(LegacyCarriageReturn), "legacyCarriageReturn")]
 [JsonDerivedType(typeof(StatusRequest), "statusRequest")]
 [JsonDerivedType(typeof(StatusResponse), "statusResponse")]
 public abstract record Element
@@ -468,6 +469,11 @@ public sealed record AppendToLineBuffer(string Text) : PrintingElement;
 /// Flushes the current line buffer and feeds one line.
 /// </summary>
 public sealed record FlushLineBufferAndFeed : PrintingElement;
+
+/// <summary>
+/// Legacy carriage return kept for compatibility; ignored by the printer.
+/// </summary>
+public sealed record LegacyCarriageReturn : NonPrintingElement;
 
 /// <summary>
 /// DLE EOT n - Real-time status transmission request.

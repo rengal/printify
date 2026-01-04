@@ -34,6 +34,7 @@ namespace Printify.Web.Contracts.Documents.Responses.Elements;
 [JsonDerivedType(typeof(StoredLogoDto), "storedLogo")]
 [JsonDerivedType(typeof(AppendToLineBufferDto), "appendToLineBuffer")]
 [JsonDerivedType(typeof(FlushLineBufferAndFeedDto), "flushLineBufferAndFeed")]
+[JsonDerivedType(typeof(LegacyCarriageReturnDto), "legacyCarriageReturn")]
 public abstract record ResponseElementDto : BaseElementDto;
 
 /// <summary>
@@ -148,6 +149,11 @@ public sealed record AppendToLineBufferDto(string Text) : ResponsePrintingElemen
 /// Flushes the line buffer and feeds one line.
 /// </summary>
 public sealed record FlushLineBufferAndFeedDto : ResponsePrintingElementDto;
+
+/// <summary>
+/// Legacy carriage return kept for compatibility; ignored by the printer.
+/// </summary>
+public sealed record LegacyCarriageReturnDto : ResponseNonPrintingElementDto;
 
 /// <summary>
 /// Prints a logo stored in printer memory by its identifier via ESC/POS stored logo commands (e.g., FS p).

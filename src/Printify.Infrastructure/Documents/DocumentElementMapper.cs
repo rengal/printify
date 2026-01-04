@@ -61,6 +61,7 @@ public static class DocumentElementMapper
             StoredLogo logo => new StoredLogoElementPayload(logo.LogoId),
             AppendToLineBuffer append => new AppendToLineBufferElementPayload(append.Text),
             FlushLineBufferAndFeed => new FlushLineBufferAndFeedElementPayload(),
+            LegacyCarriageReturn => new LegacyCarriageReturnElementPayload(),
             StatusRequest request => new StatusRequestElementPayload((byte)request.RequestType),
             StatusResponse response => new StatusResponseElementPayload(
                 response.StatusByte,
@@ -124,6 +125,7 @@ public static class DocumentElementMapper
             StoredLogoElementPayload logo => new StoredLogo(logo.LogoId),
             AppendToLineBufferElementPayload textLine => new AppendToLineBuffer(textLine.Text ?? string.Empty),
             FlushLineBufferAndFeedElementPayload => new FlushLineBufferAndFeed(),
+            LegacyCarriageReturnElementPayload => new LegacyCarriageReturn(),
             StatusRequestElementPayload request => new StatusRequest((StatusRequestType)request.RequestType),
             StatusResponseElementPayload response => new StatusResponse(
                 response.StatusByte,
