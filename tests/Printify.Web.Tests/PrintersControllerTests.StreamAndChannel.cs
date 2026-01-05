@@ -55,7 +55,7 @@ public sealed partial class PrintersControllerTests
         Assert.NotNull(listResponse);
         foreach (var printer in listResponse!)
         {
-            Assert.Equal("started", printer.RuntimeStatus.ToLowerInvariant());
+            Assert.Equal("started", printer.RealtimeStatus?.State?.ToLowerInvariant());
         }
 
         // Step 5: Stop all printers and wait for stopped events
@@ -93,7 +93,7 @@ public sealed partial class PrintersControllerTests
         Assert.NotNull(listAfterStop);
         foreach (var printer in listAfterStop!)
         {
-            Assert.Equal("stopped", printer.RuntimeStatus.ToLowerInvariant());
+            Assert.Equal("stopped", printer.RealtimeStatus?.State?.ToLowerInvariant());
         }
     }
 

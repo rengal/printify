@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Mime;
 using System.Text.Json;
 using FluentValidation;
@@ -22,14 +22,23 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
 
     private async Task HandleExceptionAsync(HttpContext context, Exception ex)
     {
+        if (ex is OperationCanceledException)
+        {
+            return;
+        }
+
         logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
 
         var status = ex switch
         {
+            // 400-series errors represent invalid client input.
             AuthenticationFailedException => HttpStatusCode.Unauthorized,
             PrinterNotFoundException => HttpStatusCode.NotFound,
             BadRequestException => HttpStatusCode.BadRequest,
+            ArgumentException => HttpStatusCode.BadRequest,
             ValidationException => HttpStatusCode.BadRequest,
+            // 500-series errors represent server-side failures.
+            PrinterListenerStartFailedException => HttpStatusCode.InternalServerError,
             _ => HttpStatusCode.InternalServerError
         };
 

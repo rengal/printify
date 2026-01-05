@@ -23,7 +23,6 @@ internal static class PrinterEntityMapper
         entity.BufferMaxCapacity = printer.BufferMaxCapacity;
         entity.CreatedFromIp = printer.CreatedFromIp;
         entity.RuntimeStatusUpdatedAt = null;
-        entity.RuntimeStatusError = null;
         entity.IsPinned = printer.IsPinned;
         entity.IsDeleted = printer.IsDeleted;
         entity.LastViewedDocumentId = printer.LastViewedDocumentId;
@@ -56,8 +55,7 @@ internal static class PrinterEntityMapper
             entity.EmulateBufferCapacity,
             entity.BufferDrainRate,
             entity.BufferMaxCapacity,
-            null,
-            null,
+            entity.RuntimeStatusUpdatedAt,
             entity.IsPinned,
             entity.IsDeleted,
             entity.LastViewedDocumentId,

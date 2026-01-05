@@ -101,4 +101,25 @@ public static class DomainMapper
     {
         return status.ToString();
     }
+
+    public static PrinterRealtimeScope ParsePrinterRealtimeScope(string? scope)
+    {
+        if (string.IsNullOrWhiteSpace(scope))
+        {
+            // Default to state-only to avoid sending full realtime payloads unless explicitly requested.
+            return PrinterRealtimeScope.State;
+        }
+
+        return scope.Trim().ToLowerInvariant() switch
+        {
+            "state" => PrinterRealtimeScope.State,
+            "full" => PrinterRealtimeScope.Full,
+            _ => throw new ArgumentOutOfRangeException(nameof(scope), scope, "Scope must be 'state' or 'full'.")
+        };
+    }
+
+    public static string ToString(PrinterRealtimeScope scope)
+    {
+        return scope.ToString();
+    }
 }

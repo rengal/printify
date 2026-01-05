@@ -46,10 +46,6 @@ internal static class PrinterMapper
             printer.EmulateBufferCapacity,
             printer.BufferDrainRate,
             printer.BufferMaxCapacity,
-            targetState.ToString(),
-            state.ToString(),
-            runtime?.Status == null ? null : DateTimeOffset.UtcNow,
-            state == PrinterState.Error ? runtime?.Status.ToString() : null,
             ToRealtimeStatusDto(effectiveRealtimeStatus),
             printer.IsPinned,
             printer.LastViewedDocumentId,
@@ -68,7 +64,29 @@ internal static class PrinterMapper
             status.TargetState.ToString(),
             status.State.ToString(),
             status.UpdatedAt,
-            status.Error,
+            status.BufferedBytes,
+            status.IsCoverOpen,
+            status.IsPaperOut,
+            status.IsOffline,
+            status.HasError,
+            status.IsPaperNearEnd,
+            status.Drawer1State?.ToString(),
+            status.Drawer2State?.ToString());
+    }
+
+    internal static PrinterRealtimeStatusUpdateDto? ToRealtimeStatusUpdateDto(
+        PrinterRealtimeStatusUpdate? status)
+    {
+        if (status is null)
+        {
+            return null;
+        }
+
+        return new PrinterRealtimeStatusUpdateDto(
+            status.PrinterId,
+            status.UpdatedAt,
+            status.TargetState?.ToString(),
+            status.State?.ToString(),
             status.BufferedBytes,
             status.IsCoverOpen,
             status.IsPaperOut,

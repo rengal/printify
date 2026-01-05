@@ -41,9 +41,6 @@ public sealed class PrinterEntity : BaseEntity
     [Column("runtime_status_updated_at")]
     public DateTimeOffset? RuntimeStatusUpdatedAt { get; set; }
 
-    [Column("runtime_status_error")]
-    public string? RuntimeStatusError { get; set; }
-
     [Column("is_pinned")]
     public bool IsPinned { get; set; }
 

@@ -101,7 +101,7 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
         Assert.NotEqual(firstDto.TcpListenPort, secondDto.TcpListenPort);
     }
 
-    private static async Task<List<PrinterRealtimeStatusDto>> ListenForStatusEventsAsync(
+    private static async Task<List<PrinterRealtimeStatusUpdateDto>> ListenForStatusEventsAsync(
         HttpClient client,
         int expectedCount,
         TimeSpan timeout,
@@ -110,7 +110,7 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
     {
         const string defaultUrl = "/api/printers/status/stream?scope=state";
         using var cts = new CancellationTokenSource(timeout);
-        var events = new List<PrinterRealtimeStatusDto>();
+        var events = new List<PrinterRealtimeStatusUpdateDto>();
 
         var requestUrl = string.IsNullOrWhiteSpace(url) ? defaultUrl : url;
         using var response = await client.GetAsync(
@@ -145,7 +145,7 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
             {
                 if ((currentEvent == "status" || currentEvent == "state") && !string.IsNullOrEmpty(currentData))
                 {
-                    var ev = JsonSerializer.Deserialize<PrinterRealtimeStatusDto>(currentData, new JsonSerializerOptions
+                    var ev = JsonSerializer.Deserialize<PrinterRealtimeStatusUpdateDto>(currentData, new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true
                     });
@@ -174,14 +174,14 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
         return events;
     }
 
-    private static async Task<List<PrinterRealtimeStatusDto>> ListenForFullStatusEventsAsync(
+    private static async Task<List<PrinterRealtimeStatusUpdateDto>> ListenForFullStatusEventsAsync(
         HttpClient client,
         Guid printerId,
         int expectedCount,
         TimeSpan timeout)
     {
         using var cts = new CancellationTokenSource(timeout);
-        var events = new List<PrinterRealtimeStatusDto>();
+        var events = new List<PrinterRealtimeStatusUpdateDto>();
 
         var url = $"/api/printers/status/stream?scope=full&printerId={printerId}";
         using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cts.Token);
@@ -214,7 +214,7 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
                 if (string.Equals(currentEvent, "full", StringComparison.OrdinalIgnoreCase)
                     && !string.IsNullOrEmpty(currentData))
                 {
-                    var ev = JsonSerializer.Deserialize<PrinterRealtimeStatusDto>(currentData, new JsonSerializerOptions
+                    var ev = JsonSerializer.Deserialize<PrinterRealtimeStatusUpdateDto>(currentData, new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true
                     });

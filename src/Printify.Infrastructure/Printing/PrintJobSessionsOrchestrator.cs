@@ -78,14 +78,14 @@ public sealed class PrintJobSessionsOrchestrator(
             await printerRepository.SetLastDocumentReceivedAtAsync(finalizedDocument.PrinterId, finalizedDocument.CreatedAt, ct)
                 .ConfigureAwait(false);
             // Update cash drawers status, if needed
-            var drawerStatus = await TryUpdateDrawerStateFromElementsAsync(
+            var drawerUpdate = await TryUpdateDrawerStateFromElementsAsync(
                 channel.Printer,
                 finalizedDocument.Elements,
                 printerRepository,
                 ct).ConfigureAwait(false);
-            if (drawerStatus is not null)
+            if (drawerUpdate is not null)
             {
-                statusStream.Publish(channel.Printer.OwnerWorkspaceId, drawerStatus);
+                statusStream.Publish(channel.Printer.OwnerWorkspaceId, drawerUpdate);
             }
             documentStream.Publish(new DocumentStreamEvent(finalizedDocument));
         }
@@ -250,7 +250,7 @@ public sealed class PrintJobSessionsOrchestrator(
     /// <summary>
     /// Updates drawer state based on ESC/POS pulse elements and returns the new snapshot for publishing.
     /// </summary>
-    private static async Task<PrinterRealtimeStatus?> TryUpdateDrawerStateFromElementsAsync(
+    private static async Task<PrinterRealtimeStatusUpdate?> TryUpdateDrawerStateFromElementsAsync(
         Printer printer,
         IReadOnlyCollection<Element> elements,
         IPrinterRepository printerRepository,
@@ -281,15 +281,8 @@ public sealed class PrintJobSessionsOrchestrator(
             State: PrinterState.Started,
             Drawer1State: nextDrawer1,
             Drawer2State: nextDrawer2);
-        var baseStatus = existing ?? new PrinterRealtimeStatus(
-            printer.Id,
-            targetState,
-            PrinterState.Started,
-            updatedAt);
-        var updated = update.ApplyTo(baseStatus);
-
         await printerRepository.UpsertRealtimeStatusAsync(update, ct).ConfigureAwait(false);
-        return updated;
+        return update;
     }
 
     private static (DrawerState? Drawer1State, DrawerState? Drawer2State) GetDrawerStateUpdates(

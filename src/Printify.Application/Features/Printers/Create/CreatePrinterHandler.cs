@@ -42,7 +42,6 @@ public sealed class CreatePrinterHandler(
             request.BufferDrainRate,
             request.BufferMaxCapacity,
             null,
-            null,
             false,
             false,
             null,

@@ -102,8 +102,8 @@
         }
 
         function mapPrinterDto(dto, index) {
-            const targetStatus = (dto.targetStatus || 'started').toLowerCase();
-            const runtimeStatus = (dto.runtimeStatus || 'unknown').toLowerCase();
+            const targetStatus = (dto.realtimeStatus?.targetState || 'started').toLowerCase();
+            const runtimeStatus = (dto.realtimeStatus?.state || 'unknown').toLowerCase();
             return {
                 id: dto.id,
                 name: dto.displayName,
@@ -117,8 +117,7 @@
                 pinned: dto.isPinned,
                 targetStatus,
                 runtimeStatus,
-                runtimeStatusAt: dto.runtimeStatusUpdatedAt ? new Date(dto.runtimeStatusUpdatedAt) : null,
-                runtimeStatusError: dto.runtimeStatusError || null,
+                runtimeStatusAt: dto.realtimeStatus?.updatedAt ? new Date(dto.realtimeStatus.updatedAt) : null,
                 lastDocumentAt: dto.lastDocumentReceivedAt ? new Date(dto.lastDocumentReceivedAt) : null,
                 newDocs: 0,
                 pinOrder: index
@@ -2166,7 +2165,6 @@
             updated.targetStatus = (payload.targetState || payload.targetStatus || updated.targetStatus || '').toLowerCase();
             updated.runtimeStatus = (payload.state || payload.runtimeStatus || updated.runtimeStatus || '').toLowerCase();
             updated.runtimeStatusAt = payload.updatedAt ? new Date(payload.updatedAt) : updated.runtimeStatusAt;
-            updated.runtimeStatusError = payload.error || null;
             printers[idx] = updated;
             renderSidebar();
         }

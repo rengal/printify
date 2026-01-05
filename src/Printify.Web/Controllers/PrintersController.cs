@@ -1,4 +1,3 @@
-using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 using MediatR;
@@ -15,6 +14,7 @@ using Printify.Application.Features.Printers.List;
 using Printify.Application.Features.Printers.Status;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
+using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
 using Printify.Web.Contracts.Common.Pagination;
 using Printify.Web.Contracts.Documents.Requests;
@@ -34,31 +34,25 @@ public sealed class PrintersController : ControllerBase
     private readonly IMediator mediator;
     private readonly IPrinterRepository printerRepository;
     private readonly IPrinterDocumentStream documentStream;
-    private readonly IPrinterStatusStream statusStream;
     private readonly IPrinterListenerOrchestrator listenerOrchestrator;
     private readonly HttpContextExtensions httpExtensions;
     private readonly JsonSerializerOptions jsonOptions;
-    private readonly ILogger<PrintersController> logger;
 
     public PrintersController(
         IMediator mediator,
         IPrinterRepository printerRepository,
         IPrinterDocumentStream documentStream,
-        IPrinterStatusStream statusStream,
         IPrinterListenerOrchestrator listenerOrchestrator,
         HttpContextExtensions httpExtensions,
-        IOptions<JsonOptions> jsonOptions,
-        ILogger<PrintersController> logger)
+        IOptions<JsonOptions> jsonOptions)
     {
         this.mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
         this.printerRepository = printerRepository ?? throw new ArgumentNullException(nameof(printerRepository));
         this.documentStream = documentStream ?? throw new ArgumentNullException(nameof(documentStream));
-        this.statusStream = statusStream ?? throw new ArgumentNullException(nameof(statusStream));
         this.listenerOrchestrator = listenerOrchestrator ?? throw new ArgumentNullException(nameof(listenerOrchestrator));
         this.httpExtensions = httpExtensions;
         ArgumentNullException.ThrowIfNull(jsonOptions);
         this.jsonOptions = jsonOptions.Value.JsonSerializerOptions;
-        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     [Authorize]
@@ -105,64 +99,26 @@ public sealed class PrintersController : ControllerBase
         CancellationToken cancellationToken)
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        if (httpContext.WorkspaceId is null)
-        {
-            Response.StatusCode = StatusCodes.Status403Forbidden;
-            return;
-        }
-
-        // Scope controls payload shape: state-only or full realtime snapshot.
-        var normalizedScope = string.IsNullOrWhiteSpace(scope)
-            ? "state"
-            : scope.Trim().ToLowerInvariant();
-        if (normalizedScope is not ("state" or "full"))
-        {
-            Response.StatusCode = StatusCodes.Status400BadRequest;
-            return;
-        }
-
-        if (normalizedScope == "full" && printerId is null)
-        {
-            Response.StatusCode = StatusCodes.Status400BadRequest;
-            return;
-        }
+        var streamResult = await mediator.Send(
+            new StreamPrinterStatusQuery(
+                httpContext,
+                printerId,
+                DomainMapper.ParsePrinterRealtimeScope(scope)),
+            cancellationToken);
 
         Response.Headers.CacheControl = "no-store";
         Response.Headers["X-Accel-Buffering"] = "no";
         Response.ContentType = "text/event-stream";
 
-        try
+        await foreach (var statusUpdate in streamResult.Updates.WithCancellation(cancellationToken))
         {
-            await foreach (var statusEvent in statusStream.Subscribe(httpContext.WorkspaceId.Value, cancellationToken))
+            var payload = PrinterMapper.ToRealtimeStatusUpdateDto(statusUpdate);
+            if (payload is null)
             {
-                if (printerId.HasValue && statusEvent.PrinterId != printerId.Value)
-                {
-                    continue;
-                }
-
-                if (normalizedScope == "state" && HasRealtimePayload(statusEvent))
-                {
-                    continue;
-                }
-
-                if (normalizedScope == "full" && !HasRealtimePayload(statusEvent))
-                {
-                    continue;
-                }
-
-                var payload = PrinterMapper.ToRealtimeStatusDto(statusEvent);
-                if (payload is null)
-                {
-                    continue;
-                }
-
-                var eventName = normalizedScope == "state" ? "state" : "full";
-                await WriteSseAsync(eventName, payload, cancellationToken);
+                continue;
             }
-        }
-        catch (OperationCanceledException)
-        {
-            // client disconnected
+
+            await WriteSseAsync(streamResult.EventName, payload, cancellationToken);
         }
     }
 
@@ -182,20 +138,9 @@ public sealed class PrintersController : ControllerBase
         Response.Headers["X-Accel-Buffering"] = "no";
         Response.ContentType = "text/event-stream";
 
-        try
+        await foreach (var documentEvent in documentStream.Subscribe(id, cancellationToken))
         {
-            await foreach (var documentEvent in documentStream.Subscribe(id, cancellationToken))
-            {
-                await WriteSseAsync("documentReady", DocumentMapper.ToResponseDto(documentEvent.Document), cancellationToken);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            Console.WriteLine("Canceled");
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
+            await WriteSseAsync("documentReady", DocumentMapper.ToResponseDto(documentEvent.Document), cancellationToken);
         }
     }
 
@@ -215,28 +160,21 @@ public sealed class PrintersController : ControllerBase
         Response.Headers["X-Accel-Buffering"] = "no";
         Response.ContentType = "text/event-stream";
 
-        try
+        await foreach (var documentEvent in documentStream.Subscribe(id, cancellationToken))
         {
-            await foreach (var documentEvent in documentStream.Subscribe(id, cancellationToken))
+            var viewDocument = await mediator.Send(
+                new GetPrinterViewDocumentQuery(
+                    id,
+                    documentEvent.Document.Id,
+                    httpContext),
+                cancellationToken);
+            if (viewDocument is not null)
             {
-                var viewDocument = await mediator.Send(
-                    new GetPrinterViewDocumentQuery(
-                        id,
-                        documentEvent.Document.Id,
-                        httpContext),
+                await WriteSseAsync(
+                    "documentViewReady",
+                    ViewDocumentMapper.ToViewResponseDto(viewDocument),
                     cancellationToken);
-                if (viewDocument is not null)
-                {
-                    await WriteSseAsync(
-                        "documentViewReady",
-                        ViewDocumentMapper.ToViewResponseDto(viewDocument),
-                        cancellationToken);
-                }
             }
-        }
-        catch (OperationCanceledException)
-        {
-            // client disconnected
         }
     }
 
@@ -371,51 +309,20 @@ public sealed class PrintersController : ControllerBase
         ArgumentNullException.ThrowIfNull(request);
 
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        try
-        {
-            var updatedStatus = await mediator.Send(
-                new UpdatePrinterRealtimeStatusCommand(
-                    httpContext,
-                    id,
-                    request.TargetStatus,
-                    request.IsCoverOpen,
-                    request.IsPaperOut,
-                    request.IsOffline,
-                    request.HasError,
-                    request.IsPaperNearEnd,
-                    request.Drawer1State,
-                    request.Drawer2State),
-                cancellationToken);
-            return Ok(PrinterMapper.ToRealtimeStatusDto(updatedStatus));
-        }
-        catch (SocketException ex)
-        {
-            logger.LogWarning(
-                ex,
-                "Socket error while starting printer listener for printer {PrinterId} in workspace {WorkspaceId}",
+        var updatedStatus = await mediator.Send(
+            new UpdatePrinterRealtimeStatusCommand(
+                httpContext,
                 id,
-                httpContext.WorkspaceId);
-            return Problem(
-                statusCode: StatusCodes.Status409Conflict,
-                detail: $"Unable to start listener for this printer: {ex.Message}");
-        }
-        catch (ArgumentOutOfRangeException ex)
-        {
-            logger.LogWarning(
-                ex,
-                "Invalid realtime status update for printer {PrinterId} in workspace {WorkspaceId}",
-                id,
-                httpContext.WorkspaceId);
-            return ValidationProblem(ex.Message);
-        }
-        catch (ArgumentException ex)
-        {
-            return ValidationProblem(ex.Message);
-        }
-        catch (InvalidOperationException)
-        {
-            return NotFound();
-        }
+                request.TargetStatus,
+                request.IsCoverOpen,
+                request.IsPaperOut,
+                request.IsOffline,
+                request.HasError,
+                request.IsPaperNearEnd,
+                request.Drawer1State,
+                request.Drawer2State),
+            cancellationToken);
+        return Ok(PrinterMapper.ToRealtimeStatusDto(updatedStatus));
     }
 
     [Authorize]
@@ -482,18 +389,6 @@ public sealed class PrintersController : ControllerBase
         builder.Append("data: ").Append(data).Append("\n\n");
         await Response.WriteAsync(builder.ToString(), cancellationToken);
         await Response.Body.FlushAsync(cancellationToken);
-    }
-
-    private static bool HasRealtimePayload(PrinterRealtimeStatus status)
-    {
-        return status.BufferedBytes.HasValue
-               || status.IsCoverOpen.HasValue
-               || status.IsPaperOut.HasValue
-               || status.IsOffline.HasValue
-               || status.HasError.HasValue
-               || status.IsPaperNearEnd.HasValue
-               || status.Drawer1State.HasValue
-               || status.Drawer2State.HasValue;
     }
 
 }

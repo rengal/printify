@@ -111,7 +111,7 @@ public sealed partial class PrintersControllerTests
             if (response.IsSuccessStatusCode)
             {
                 var printer = await response.Content.ReadFromJsonAsync<PrinterResponseDto>(cancellationToken: ct);
-                if (printer?.RuntimeStatus == expectedStatus.ToString())
+                if (printer?.RealtimeStatus?.State == expectedStatus.ToString())
                 {
                     return;
                 }

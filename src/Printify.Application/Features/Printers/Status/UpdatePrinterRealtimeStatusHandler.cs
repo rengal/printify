@@ -70,7 +70,20 @@ public sealed class UpdatePrinterRealtimeStatusHandler(
                     "Starting listener for printer {PrinterId} in workspace {WorkspaceId}",
                     request.PrinterId,
                     request.Context.WorkspaceId);
-                await listenerOrchestrator.AddListenerAsync(printer, targetState, cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await listenerOrchestrator.AddListenerAsync(printer, targetState, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(
+                        ex,
+                        "Failed to start listener for printer {PrinterId} in workspace {WorkspaceId}",
+                        request.PrinterId,
+                        request.Context.WorkspaceId);
+                    throw new PrinterListenerStartFailedException("Printer failed to start.");
+                }
             }
             else
             {
@@ -120,7 +133,7 @@ public sealed class UpdatePrinterRealtimeStatusHandler(
 
         // Persist and broadcast the new snapshot so subscribers stay consistent.
         await printerRepository.UpsertRealtimeStatusAsync(update, cancellationToken).ConfigureAwait(false);
-        statusStream.Publish(printer.OwnerWorkspaceId, updatedStatus);
+        statusStream.Publish(printer.OwnerWorkspaceId, update);
 
         return updatedStatus;
     }

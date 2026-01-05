@@ -28,6 +28,15 @@ public enum DrawerState
 }
 
 /// <summary>
+/// Controls which realtime fields are included in status streams.
+/// </summary>
+public enum PrinterRealtimeScope
+{
+    State = 0,
+    Full = 1
+}
+
+/// <summary>
 /// Full realtime status snapshot used for storage, API responses, and SSE payloads.
 /// </summary>
 public sealed record PrinterRealtimeStatus(
@@ -35,7 +44,6 @@ public sealed record PrinterRealtimeStatus(
     PrinterTargetState? TargetState,
     PrinterState? State,
     DateTimeOffset UpdatedAt,
-    string? Error = null,
     int? BufferedBytes = null,
     bool? IsCoverOpen = null,
     bool? IsPaperOut = null,
@@ -51,7 +59,7 @@ public sealed record PrinterRealtimeStatus(
         PrinterTargetState targetState,
         PrinterState state,
         DateTimeOffset updatedAt)
-        : this(printerId, targetState, state, updatedAt, null, null, null, null, null, null, null, null, null)
+        : this(printerId, targetState, state, updatedAt, null, null, null, null, null, null, null, null)
     {
     }
 }
@@ -64,7 +72,6 @@ public sealed record PrinterRealtimeStatusUpdate(
     DateTimeOffset UpdatedAt,
     PrinterTargetState? TargetState = null,
     PrinterState? State = null,
-    string? Error = null,
     int? BufferedBytes = null,
     bool? IsCoverOpen = null,
     bool? IsPaperOut = null,
@@ -84,7 +91,6 @@ public sealed record PrinterRealtimeStatusUpdate(
             TargetState = TargetState ?? baseline.TargetState,
             State = State ?? baseline.State,
             UpdatedAt = UpdatedAt,
-            Error = Error ?? baseline.Error,
             BufferedBytes = BufferedBytes ?? baseline.BufferedBytes,
             IsCoverOpen = IsCoverOpen ?? baseline.IsCoverOpen,
             IsPaperOut = IsPaperOut ?? baseline.IsPaperOut,

@@ -15,7 +15,6 @@ internal static class PrinterRealtimeStatusEntityMapper
             // State is runtime-only and populated by listener services.
             PrinterState.Stopped,
             entity.UpdatedAt,
-            null,
             entity.BufferedBytes,
             entity.IsCoverOpen,
             entity.IsPaperOut,

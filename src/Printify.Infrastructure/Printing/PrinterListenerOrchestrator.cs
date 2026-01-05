@@ -31,19 +31,18 @@ public sealed class PrinterListenerOrchestrator(
         listeners[printer.Id] = listener;
         listener.ChannelAccepted += Listener_ChannelAccepted;
 
-        await UpdateRuntimeStatusAsync(printer, targetState, PrinterState.Starting, null, ct).ConfigureAwait(false);
+        await UpdateRuntimeStatusAsync(printer, targetState, PrinterState.Starting, ct).ConfigureAwait(false);
         try
         {
             await listener.StartAsync(ct).ConfigureAwait(false);
-            await UpdateRuntimeStatusAsync(printer, targetState, MapState(listener.Status), null, ct).ConfigureAwait(false);
+            await UpdateRuntimeStatusAsync(printer, targetState, MapState(listener.Status), ct).ConfigureAwait(false);
         }
         catch
         {
             listener.ChannelAccepted -= Listener_ChannelAccepted;
             listeners.TryRemove(printer.Id, out _);
             await listener.DisposeAsync().ConfigureAwait(false);
-            await UpdateRuntimeStatusAsync(printer, targetState, PrinterState.Error, "Failed to start listener", ct)
-                .ConfigureAwait(false);
+            await UpdateRuntimeStatusAsync(printer, targetState, PrinterState.Error, ct).ConfigureAwait(false);
             throw;
         }
     }
@@ -127,7 +126,7 @@ public sealed class PrinterListenerOrchestrator(
         await listener.DisposeAsync().ConfigureAwait(false);
         logger.LogInformation("Listener removed for printer {PrinterId}", printer.Id);
         listener.ChannelAccepted -= Listener_ChannelAccepted;
-        await UpdateRuntimeStatusAsync(printer, targetState, PrinterState.Stopped, null, ct).ConfigureAwait(false);
+        await UpdateRuntimeStatusAsync(printer, targetState, PrinterState.Stopped, ct).ConfigureAwait(false);
     }
 
     public ListenerStatusSnapshot GetStatus(Printer printer)
@@ -159,26 +158,16 @@ public sealed class PrinterListenerOrchestrator(
         Printer printer,
         PrinterTargetState targetState,
         PrinterState status,
-        string? error,
         CancellationToken ct)
     {
         var timestamp = DateTimeOffset.UtcNow;
 
-        var realtimeStatus = new PrinterRealtimeStatus(
+        var update = new PrinterRealtimeStatusUpdate(
             printer.Id,
-            targetState,
-            status,
             timestamp,
-            error,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null);
-        statusStream.Publish(printer.OwnerWorkspaceId, realtimeStatus);
+            targetState,
+            status);
+        statusStream.Publish(printer.OwnerWorkspaceId, update);
         return Task.CompletedTask;
     }
 

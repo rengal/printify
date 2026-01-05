@@ -79,8 +79,8 @@ public sealed partial class PrintersControllerTests
         var printerResponse = await client.GetFromJsonAsync<PrinterResponseDto>($"/api/printers/{printerId}");
         Assert.NotNull(printerResponse);
         Assert.NotNull(printerResponse!.RealtimeStatus);
-        Assert.Equal(printerResponse.TargetStatus, printerResponse.RealtimeStatus!.TargetState);
-        Assert.Equal(printerResponse.RuntimeStatus, printerResponse.RealtimeStatus.State);
+        Assert.Equal("Started", printerResponse.RealtimeStatus!.TargetState);
+        Assert.Equal("Started", printerResponse.RealtimeStatus.State);
         Assert.NotEqual(default, printerResponse.RealtimeStatus!.UpdatedAt);
         Assert.True(printerResponse.RealtimeStatus.IsCoverOpen ?? false);
         Assert.False(printerResponse.RealtimeStatus.IsPaperOut ?? true);
@@ -327,7 +327,7 @@ public sealed partial class PrintersControllerTests
 
         var stopped = await client.GetFromJsonAsync<PrinterResponseDto>($"/api/printers/{printerId}");
         Assert.NotNull(stopped);
-        Assert.Equal("Stopped", stopped!.RuntimeStatus);
+        Assert.Equal("Stopped", stopped!.RealtimeStatus?.State);
 
         var startResponse = await client.PatchAsJsonAsync(
             $"/api/printers/{printerId}/realtime-status",
@@ -345,7 +345,7 @@ public sealed partial class PrintersControllerTests
 
         var started = await client.GetFromJsonAsync<PrinterResponseDto>($"/api/printers/{printerId}");
         Assert.NotNull(started);
-        Assert.Equal("Started", started!.RuntimeStatus);
+        Assert.Equal("Started", started!.RealtimeStatus?.State);
     }
 
     [Fact]
