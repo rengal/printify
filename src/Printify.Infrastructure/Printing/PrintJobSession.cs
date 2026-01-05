@@ -31,7 +31,7 @@ public abstract class PrintJobSession : IPrintJobSession
         {
             UpdateBufferState();
 
-            return Printer is { EmulateBufferCapacity: true, BufferDrainRate: > 0 } && bufferedBytes >= busyThreshold;
+            return Settings is { EmulateBufferCapacity: true, BufferDrainRate: > 0 } && bufferedBytes >= busyThreshold;
         }
     }
 
@@ -40,7 +40,7 @@ public abstract class PrintJobSession : IPrintJobSession
         get
         {
             UpdateBufferState();
-            return Printer is { EmulateBufferCapacity: true } && bufferedBytes >= overflowThreshold;
+            return Settings is { EmulateBufferCapacity: true } && bufferedBytes >= overflowThreshold;
         }
     }
 
@@ -55,6 +55,7 @@ public abstract class PrintJobSession : IPrintJobSession
     protected PrintJob Job { get; }
     protected IPrinterChannel Channel { get; }
     protected Printer Printer => Job.Printer;
+    protected PrinterSettings Settings => Job.Settings;
     public virtual Task Feed(ReadOnlyMemory<byte> data, CancellationToken ct)
     {
         if (IsCompleted || data.Length == 0)
@@ -99,11 +100,11 @@ public abstract class PrintJobSession : IPrintJobSession
     {
         Job = job;
         Channel = channel;
-        busyThreshold = (int)(Printer.BufferMaxCapacity.GetValueOrDefault() * BusyThresholdRatio);
-        overflowThreshold = Printer.BufferMaxCapacity.GetValueOrDefault();
+        busyThreshold = (int)(Settings.BufferMaxCapacity.GetValueOrDefault() * BusyThresholdRatio);
+        overflowThreshold = Settings.BufferMaxCapacity.GetValueOrDefault();
         drainClock = clockFactory.Create();
         drainClock.Restart();
-        bufferedBytes = Printer.BufferMaxCapacity.GetValueOrDefault() * 2; //todo debugnow
+        bufferedBytes = Settings.BufferMaxCapacity.GetValueOrDefault() * 2; //todo debugnow
     }
 
     #endregion
@@ -112,7 +113,7 @@ public abstract class PrintJobSession : IPrintJobSession
 
     protected void UpdateBufferState()
     {
-        if (!Printer.EmulateBufferCapacity || Printer.BufferDrainRate == 0)
+        if (!Settings.EmulateBufferCapacity || Settings.BufferDrainRate == 0)
         {
             bufferedBytes = 0;
             return;
@@ -124,16 +125,16 @@ public abstract class PrintJobSession : IPrintJobSession
         if (elapsedMs <= 0)
             return;
 
-        if (!Printer.BufferDrainRate.HasValue)
+        if (!Settings.BufferDrainRate.HasValue)
         {
             bufferedBytes = 0;
             return;
         }
 
-        if (Printer.BufferDrainRate.Value <= 0)
+        if (Settings.BufferDrainRate.Value <= 0)
             return;
 
-        var drainedBytes = Printer.BufferDrainRate.Value * (elapsedMs / 1000.0m);
+        var drainedBytes = Settings.BufferDrainRate.Value * (elapsedMs / 1000.0m);
         if (drainedBytes > 0)
             bufferedBytes = Math.Max(0, (int)(bufferedBytes - drainedBytes));
     }

@@ -2,6 +2,8 @@
 using Printify.TestServices;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
+using PrinterRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterDto;
+using PrinterSettingsRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterSettingsDto;
 
 namespace Printify.Web.Tests;
 
@@ -29,20 +31,24 @@ public sealed partial class PrintersControllerTests
         {
             var printerId = Guid.NewGuid();
             printerIds.Add(printerId);
-            var request = new CreatePrinterRequestDto(printerId, $"Loop-{i}", "EscPos", 512, null, false, null, null);
+            var request = new CreatePrinterRequestDto(
+                new PrinterRequestDto(printerId, $"Loop-{i}"),
+                new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
             var response = await client.PostAsJsonAsync("/api/printers", request);
             response.EnsureSuccessStatusCode();
         }
 
         // Step 3: Wait for starting/started events
+        Console.WriteLine("Waiting for startStatusTask...");
         var startEvents = await startStatusTask;
+        Console.WriteLine($"startStatusTask done: {startEvents.Count}");
         var startingCount = startEvents.Count(
-            e => string.Equals(e.State, "starting", StringComparison.OrdinalIgnoreCase));
+            e => string.Equals(e.RuntimeStatus?.State, "starting", StringComparison.OrdinalIgnoreCase));
         var startedCount = startEvents.Count(
-            e => string.Equals(e.State, "started", StringComparison.OrdinalIgnoreCase));
+            e => string.Equals(e.RuntimeStatus?.State, "started", StringComparison.OrdinalIgnoreCase));
         var distinctStarted = startEvents
-            .Where(e => string.Equals(e.State, "started", StringComparison.OrdinalIgnoreCase))
-            .Select(e => e.PrinterId)
+            .Where(e => string.Equals(e.RuntimeStatus?.State, "started", StringComparison.OrdinalIgnoreCase))
+            .Select(e => e.Printer.Id)
             .Distinct()
             .ToHashSet();
 
@@ -55,7 +61,7 @@ public sealed partial class PrintersControllerTests
         Assert.NotNull(listResponse);
         foreach (var printer in listResponse!)
         {
-            Assert.Equal("started", printer.RealtimeStatus?.State?.ToLowerInvariant());
+            Assert.Equal("started", printer.RuntimeStatus?.State?.ToLowerInvariant());
         }
 
         // Step 5: Stop all printers and wait for stopped events
@@ -64,26 +70,26 @@ public sealed partial class PrintersControllerTests
             expectedCount: n,
             timeout: TimeSpan.FromSeconds(2),
             breakOnDistinct: true);
+        Console.WriteLine("Waiting for stopStatusTask...");
         foreach (var printerId in printerIds)
         {
             var stopResponse = await client.PatchAsJsonAsync(
-                $"/api/printers/{printerId}/realtime-status",
-                new UpdatePrinterRealtimeStatusRequestDto(
-                    TargetStatus: "Stopped",
+                $"/api/printers/{printerId}/operational-flags",
+                new UpdatePrinterOperationalFlagsRequestDto(
                     IsCoverOpen: null,
                     IsPaperOut: null,
                     IsOffline: null,
                     HasError: null,
                     IsPaperNearEnd: null,
-                    Drawer1State: null,
-                    Drawer2State: null));
+                    TargetState: "Stopped"));
             stopResponse.EnsureSuccessStatusCode();
         }
 
         var stopEvents = await stopStatusTask;
+        Console.WriteLine($"stopStatusTask done: {stopEvents.Count}");
         var stoppedIds = stopEvents
-            .Where(e => string.Equals(e.State, "stopped", StringComparison.OrdinalIgnoreCase))
-            .Select(e => e.PrinterId)
+            .Where(e => string.Equals(e.RuntimeStatus?.State, "stopped", StringComparison.OrdinalIgnoreCase))
+            .Select(e => e.Printer.Id)
             .Distinct()
             .ToHashSet();
         Assert.True(printerIds.All(stoppedIds.Contains), "Not all printers reported stopped.");
@@ -93,7 +99,7 @@ public sealed partial class PrintersControllerTests
         Assert.NotNull(listAfterStop);
         foreach (var printer in listAfterStop!)
         {
-            Assert.Equal("stopped", printer.RealtimeStatus?.State?.ToLowerInvariant());
+            Assert.Equal("stopped", printer.RuntimeStatus?.State?.ToLowerInvariant());
         }
     }
 

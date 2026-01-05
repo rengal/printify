@@ -7,12 +7,18 @@ namespace Printify.Application.Features.Printers.Create;
 
 public sealed record CreatePrinterCommand(
     RequestContext Context,
-    Guid PrinterId,
-    string DisplayName,
+    CreatePrinterPayload Printer,
+    CreatePrinterSettingsPayload Settings)
+    : IRequest<PrinterDetailsSnapshot>, ITransactionalRequest;
+
+public sealed record CreatePrinterPayload(
+    Guid Id,
+    string DisplayName);
+
+public sealed record CreatePrinterSettingsPayload(
     Protocol Protocol,
     int WidthInDots,
     int? HeightInDots,
     bool EmulateBufferCapacity,
     decimal? BufferDrainRate,
-    int? BufferMaxCapacity)
-    : IRequest<Printer>, ITransactionalRequest;
+    int? BufferMaxCapacity);

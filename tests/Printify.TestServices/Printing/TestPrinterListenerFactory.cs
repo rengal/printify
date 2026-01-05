@@ -16,12 +16,13 @@ public sealed class TestPrinterListenerFactory : IPrinterListenerFactory
         this.serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     }
 
-    public IPrinterListener Create(Printer printer)
+    public IPrinterListener Create(Printer printer, PrinterSettings settings)
     {
         ArgumentNullException.ThrowIfNull(printer);
+        ArgumentNullException.ThrowIfNull(settings);
 
         var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
-        var listener = new TestPrinterListener(printer, scopeFactory);
+        var listener = new TestPrinterListener(printer, settings, scopeFactory);
         listeners[printer.Id] = listener;
         return listener;
     }

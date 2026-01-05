@@ -7,7 +7,7 @@ namespace Printify.TestServices.Printing;
 /// <summary>
 /// In-memory printer channel used for integration tests. It relays written data through the <see cref="DataReceived"/> event so tests can observe payloads.
 /// </summary>
-public sealed class TestPrinterChannel(Printer printer, string clientAddress) : IPrinterChannel
+public sealed class TestPrinterChannel(Printer printer, PrinterSettings settings, string clientAddress) : IPrinterChannel
 {
     private bool isDisposed;
     private readonly List<Action<ReadOnlyMemory<byte>>> responseHandlers = new();
@@ -17,6 +17,8 @@ public sealed class TestPrinterChannel(Printer printer, string clientAddress) : 
     public event Func<IPrinterChannel, PrinterChannelClosedEventArgs, ValueTask>? Closed;
 
     public Printer Printer { get; } = printer ?? throw new ArgumentNullException(nameof(printer));
+
+    public PrinterSettings Settings { get; } = settings ?? throw new ArgumentNullException(nameof(settings));
 
     public string ClientAddress { get; } = clientAddress;
 

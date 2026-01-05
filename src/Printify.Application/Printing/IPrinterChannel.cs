@@ -33,6 +33,11 @@ public interface IPrinterChannel : IAsyncDisposable
     Printer Printer { get; }
 
     /// <summary>
+    /// Settings used for this channel's printer listener session.
+    /// </summary>
+    PrinterSettings Settings { get; }
+
+    /// <summary>
     /// Address of the connected client.
     /// For TCP connections, this is "IP:port" (e.g., "192.168.1.100:52341").
     /// For in-memory channels, this is a test identifier (e.g., "memory://test-client-1").

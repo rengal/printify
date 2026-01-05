@@ -9,6 +9,8 @@ using Printify.Web.Contracts.Documents.Responses;
 using Printify.Web.Contracts.Documents.Responses.Elements;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
+using PrinterRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterDto;
+using PrinterSettingsRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterSettingsDto;
 
 namespace Printify.Web.Tests;
 
@@ -30,14 +32,8 @@ public sealed partial class PrintersControllerTests
 
         var printerId = Guid.NewGuid();
         var createRequest = new CreatePrinterRequestDto(
-            printerId,
-            "Lifecycle Printer",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerId, "Lifecycle Printer"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -50,38 +46,34 @@ public sealed partial class PrintersControllerTests
             documentStream,
             printerId,
             "test document 1",
-            createRequest.WidthInDots,
-            createRequest.HeightInDots,
+            createRequest.Settings.WidthInDots,
+            createRequest.Settings.HeightInDots,
             CancellationToken.None);
 
         for (var i = 1; i <= iterations; i++)
         {
             var stopResponse = await client.PatchAsJsonAsync(
-                $"/api/printers/{printerId}/realtime-status",
-                new UpdatePrinterRealtimeStatusRequestDto(
-                    TargetStatus: "Stopped",
+                $"/api/printers/{printerId}/operational-flags",
+                new UpdatePrinterOperationalFlagsRequestDto(
                     IsCoverOpen: null,
                     IsPaperOut: null,
                     IsOffline: null,
                     HasError: null,
                     IsPaperNearEnd: null,
-                    Drawer1State: null,
-                    Drawer2State: null));
+                    TargetState: "Stopped"));
             stopResponse.EnsureSuccessStatusCode();
 
             await WaitForPrinterStateAsync(client, printerId, PrinterState.Stopped, CancellationToken.None);
 
             var startResponse = await client.PatchAsJsonAsync(
-                $"/api/printers/{printerId}/realtime-status",
-                new UpdatePrinterRealtimeStatusRequestDto(
-                    TargetStatus: "Started",
+                $"/api/printers/{printerId}/operational-flags",
+                new UpdatePrinterOperationalFlagsRequestDto(
                     IsCoverOpen: null,
                     IsPaperOut: null,
                     IsOffline: null,
                     HasError: null,
                     IsPaperNearEnd: null,
-                    Drawer1State: null,
-                    Drawer2State: null));
+                    TargetState: "Started"));
             startResponse.EnsureSuccessStatusCode();
 
             await WaitForPrinterStateAsync(client, printerId, PrinterState.Started, CancellationToken.None);
@@ -92,8 +84,8 @@ public sealed partial class PrintersControllerTests
                 documentStream,
                 printerId,
                 text,
-                createRequest.WidthInDots,
-                createRequest.HeightInDots,
+                createRequest.Settings.WidthInDots,
+                createRequest.Settings.HeightInDots,
                 CancellationToken.None);
         }
     }
@@ -111,7 +103,7 @@ public sealed partial class PrintersControllerTests
             if (response.IsSuccessStatusCode)
             {
                 var printer = await response.Content.ReadFromJsonAsync<PrinterResponseDto>(cancellationToken: ct);
-                if (printer?.RealtimeStatus?.State == expectedStatus.ToString())
+                if (printer?.RuntimeStatus?.State == expectedStatus.ToString())
                 {
                     return;
                 }

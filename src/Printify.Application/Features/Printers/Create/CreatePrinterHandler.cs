@@ -8,19 +8,30 @@ namespace Printify.Application.Features.Printers.Create;
 
 public sealed class CreatePrinterHandler(
     IPrinterRepository printerRepository,
-    IPrinterListenerOrchestrator listenerOrchestrator)
-    : IRequestHandler<CreatePrinterCommand, Printer>
+    IPrinterListenerOrchestrator listenerOrchestrator,
+    IPrinterRuntimeStatusStore runtimeStatusStore)
+    : IRequestHandler<CreatePrinterCommand, PrinterDetailsSnapshot>
 {
-    public async Task<Printer> Handle(
+    public async Task<PrinterDetailsSnapshot> Handle(
         CreatePrinterCommand request,
         CancellationToken ct)
     {
         var existing = await printerRepository
-            .GetByIdAsync(request.PrinterId, request.Context.WorkspaceId, ct)
+            .GetByIdAsync(request.Printer.Id, request.Context.WorkspaceId, ct)
             .ConfigureAwait(false);
         if (existing is not null)
         {
-            return existing;
+            var existingFlags = await printerRepository.GetOperationalFlagsAsync(existing.Id, ct)
+                .ConfigureAwait(false);
+            var existingSettings = await printerRepository.GetSettingsAsync(existing.Id, ct)
+                .ConfigureAwait(false);
+            // Settings are persisted separately; missing settings indicate a data integrity issue.
+            if (existingSettings is null)
+            {
+                throw new InvalidOperationException($"Settings for printer {existing.Id} are missing.");
+            }
+            var existingRuntime = runtimeStatusStore.Get(existing.Id);
+            return new PrinterDetailsSnapshot(existing, existingSettings, existingFlags, existingRuntime);
         }
 
         if (request.Context.WorkspaceId is null)
@@ -28,37 +39,50 @@ public sealed class CreatePrinterHandler(
 
         var listenTcpPortNumber = await printerRepository.GetFreeTcpPortNumber(ct).ConfigureAwait(false);
 
+        var settings = new PrinterSettings(
+            request.Settings.Protocol,
+            request.Settings.WidthInDots,
+            request.Settings.HeightInDots,
+            listenTcpPortNumber,
+            request.Settings.EmulateBufferCapacity,
+            request.Settings.BufferDrainRate,
+            request.Settings.BufferMaxCapacity);
+
         var printer = new Printer(
-            request.PrinterId,
+            request.Printer.Id,
             request.Context.WorkspaceId.Value,
-            request.DisplayName,
-            request.Protocol,
-            request.WidthInDots,
-            request.HeightInDots,
+            request.Printer.DisplayName,
             DateTimeOffset.UtcNow,
             request.Context.IpAddress,
-            listenTcpPortNumber,
-            request.EmulateBufferCapacity,
-            request.BufferDrainRate,
-            request.BufferMaxCapacity,
             null,
             false,
             false,
             null,
             null);
 
-        await printerRepository.AddAsync(printer, ct).ConfigureAwait(false);
+        await printerRepository.AddAsync(printer, settings, ct).ConfigureAwait(false);
 
-        // Seed realtime status so target state is stored outside the printer aggregate.
-        var initialUpdate = new PrinterRealtimeStatusUpdate(
+        // Seed operational flags so target state is stored outside the printer aggregate.
+        var initialUpdate = new PrinterOperationalFlagsUpdate(
             printer.Id,
             DateTimeOffset.UtcNow,
-            TargetState: PrinterTargetState.Started,
-            State: PrinterState.Stopped);
-        await printerRepository.UpsertRealtimeStatusAsync(initialUpdate, ct).ConfigureAwait(false);
+            TargetState: PrinterTargetState.Started);
+        await printerRepository.UpsertOperationalFlagsAsync(initialUpdate, ct).ConfigureAwait(false);
 
-        await listenerOrchestrator.AddListenerAsync(printer, PrinterTargetState.Started, ct).ConfigureAwait(false);
+        await listenerOrchestrator.AddListenerAsync(printer, settings, PrinterTargetState.Started, ct)
+            .ConfigureAwait(false);
 
-        return printer;
+        var runtimeStatus = runtimeStatusStore.Get(printer.Id);
+        var flags = new PrinterOperationalFlags(
+            printer.Id,
+            PrinterTargetState.Started,
+            initialUpdate.UpdatedAt,
+            false,
+            false,
+            false,
+            false,
+            false);
+
+        return new PrinterDetailsSnapshot(printer, settings, flags, runtimeStatus);
     }
 }

@@ -3,8 +3,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Printify.Infrastructure.Persistence.Entities.Printers;
 
-[Table("printer_realtime_status")]
-public sealed class PrinterRealtimeStatusEntity
+[Table("printer_operational_flags")]
+public sealed class PrinterOperationalFlagsEntity
 {
     [Key]
     [Column("printer_id")]
@@ -15,9 +15,6 @@ public sealed class PrinterRealtimeStatusEntity
 
     [Column("updated_at")]
     public DateTimeOffset UpdatedAt { get; set; }
-
-    [Column("buffered_bytes")]
-    public int BufferedBytes { get; set; }
 
     [Column("cover_open")]
     public bool IsCoverOpen { get; set; }
@@ -33,10 +30,4 @@ public sealed class PrinterRealtimeStatusEntity
 
     [Column("paper_near_end")]
     public bool IsPaperNearEnd { get; set; }
-
-    [Column("drawer_1_state")]
-    public string Drawer1State { get; set; } = "Closed";
-
-    [Column("drawer_2_state")]
-    public string Drawer2State { get; set; } = "Closed";
 }

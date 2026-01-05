@@ -18,7 +18,8 @@ public sealed class PrintJobSessionsOrchestrator(
     IPrintJobSessionFactory printJobSessionFactory,
     IServiceScopeFactory scopeFactory,
     IPrinterDocumentStream documentStream,
-    IPrinterStatusStream statusStream)
+    IPrinterStatusStream statusStream,
+    IPrinterRuntimeStatusStore runtimeStatusStore)
     : IPrintJobSessionsOrchestrator
 {
     private readonly ConcurrentDictionary<IPrinterChannel, IPrintJobSession> jobSessions = new();
@@ -30,7 +31,12 @@ public sealed class PrintJobSessionsOrchestrator(
 
         var printer = channel.Printer;
 
-        var printJob = new PrintJob(Guid.NewGuid(), printer, DateTimeOffset.Now, channel.ClientAddress);
+        var printJob = new PrintJob(
+            Guid.NewGuid(),
+            printer,
+            channel.Settings,
+            DateTimeOffset.Now,
+            channel.ClientAddress);
         await using (var scope = scopeFactory.CreateAsyncScope())
         {
             var printJobRepository = scope.ServiceProvider.GetRequiredService<IPrintJobRepository>();
@@ -81,10 +87,13 @@ public sealed class PrintJobSessionsOrchestrator(
             var drawerUpdate = await TryUpdateDrawerStateFromElementsAsync(
                 channel.Printer,
                 finalizedDocument.Elements,
-                printerRepository,
                 ct).ConfigureAwait(false);
             if (drawerUpdate is not null)
             {
+                if (drawerUpdate.RuntimeUpdate is not null)
+                {
+                    runtimeStatusStore.Update(drawerUpdate.RuntimeUpdate);
+                }
                 statusStream.Publish(channel.Printer.OwnerWorkspaceId, drawerUpdate);
             }
             documentStream.Publish(new DocumentStreamEvent(finalizedDocument));
@@ -110,6 +119,9 @@ public sealed class PrintJobSessionsOrchestrator(
         var resultElements = new List<Element>(sourceElements.Count);
 
         var printer = await printerRepository.GetByIdAsync(document.PrinterId, ct).ConfigureAwait(false);
+        var settings = printer is null
+            ? null
+            : await printerRepository.GetSettingsAsync(document.PrinterId, ct).ConfigureAwait(false);
         var barcodeState = new BarcodeState();
         var qrState = new QrState();
         TextJustification? justification = null;
@@ -118,7 +130,8 @@ public sealed class PrintJobSessionsOrchestrator(
         {
             if (sourceElement is RasterImageUpload or PrintQrCodeUpload or PrintBarcodeUpload)
             {
-                if (printer == null)
+                // Media rendering depends on printer settings; skip conversion if settings are missing.
+                if (printer == null || settings is null)
                     continue;
 
                 //Domain.Media.MediaUpload media = null;
@@ -138,7 +151,7 @@ public sealed class PrintJobSessionsOrchestrator(
                             qrState.ModuleSizeInDots,
                             qrState.ErrorCorrectionLevel,
                             justification,
-                            printer.WidthInDots));
+                            settings.WidthInDots));
                         break;
                     case PrintBarcodeUpload barcodeUpload when string.IsNullOrEmpty(barcodeUpload.Data):
                         continue;
@@ -150,7 +163,7 @@ public sealed class PrintJobSessionsOrchestrator(
                                 barcodeState.ModuleWidthInDots,
                                 barcodeState.LabelPosition,
                                 justification,
-                                printer.WidthInDots));
+                                settings.WidthInDots));
                         break;
                 }
 
@@ -248,41 +261,33 @@ public sealed class PrintJobSessionsOrchestrator(
         QrErrorCorrectionLevel? ErrorCorrectionLevel = null);
 
     /// <summary>
-    /// Updates drawer state based on ESC/POS pulse elements and returns the new snapshot for publishing.
+    /// Emits drawer state updates derived from ESC/POS pulse elements.
     /// </summary>
-    private static async Task<PrinterRealtimeStatusUpdate?> TryUpdateDrawerStateFromElementsAsync(
+    private static Task<PrinterStatusUpdate?> TryUpdateDrawerStateFromElementsAsync(
         Printer printer,
         IReadOnlyCollection<Element> elements,
-        IPrinterRepository printerRepository,
         CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
+
         var (drawer1, drawer2) = GetDrawerStateUpdates(elements);
         if (drawer1 is null && drawer2 is null)
         {
-            return null;
-        }
-
-        var existing = await printerRepository.GetRealtimeStatusAsync(printer.Id, ct).ConfigureAwait(false);
-        // Default to Started so drawer updates align with the default target state when no snapshot exists.
-        var targetState = existing?.TargetState ?? PrinterTargetState.Started;
-        var nextDrawer1 = drawer1 ?? existing?.Drawer1State ?? DrawerState.Closed;
-        var nextDrawer2 = drawer2 ?? existing?.Drawer2State ?? DrawerState.Closed;
-        if (nextDrawer1 == existing?.Drawer1State && nextDrawer2 == existing?.Drawer2State)
-        {
-            return null;
+            return Task.FromResult<PrinterStatusUpdate?>(null);
         }
 
         var updatedAt = DateTimeOffset.UtcNow;
-        // Only persist target state when there is no existing snapshot.
-        var update = new PrinterRealtimeStatusUpdate(
+        var runtimeUpdate = new PrinterRuntimeStatusUpdate(
             printer.Id,
             updatedAt,
-            TargetState: existing is null ? targetState : null,
-            State: PrinterState.Started,
-            Drawer1State: nextDrawer1,
-            Drawer2State: nextDrawer2);
-        await printerRepository.UpsertRealtimeStatusAsync(update, ct).ConfigureAwait(false);
-        return update;
+            Drawer1State: drawer1,
+            Drawer2State: drawer2);
+        var update = new PrinterStatusUpdate(
+            printer.Id,
+            updatedAt,
+            RuntimeUpdate: runtimeUpdate);
+
+        return Task.FromResult<PrinterStatusUpdate?>(update);
     }
 
     private static (DrawerState? Drawer1State, DrawerState? Drawer2State) GetDrawerStateUpdates(

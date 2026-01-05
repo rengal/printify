@@ -7,7 +7,10 @@ using Printify.Domain.Printers;
 
 namespace Printify.Infrastructure.Printing.Tcp;
 
-public sealed class TcpPrinterListener(Printer printer, ILogger<TcpPrinterListener>? logger = null) : IPrinterListener
+public sealed class TcpPrinterListener(
+    Printer printer,
+    PrinterSettings settings,
+    ILogger<TcpPrinterListener>? logger = null) : IPrinterListener
 {
     private TcpListener? listener;
     private CancellationTokenSource? acceptLoopCts;
@@ -26,16 +29,16 @@ public sealed class TcpPrinterListener(Printer printer, ILogger<TcpPrinterListen
         }
 
         Status = PrinterListenerStatus.OpeningPort;
-        logger?.LogInformation("Starting TCP listener for printer {PrinterId} on port {Port}", printer.Id, printer.ListenTcpPortNumber);
+        logger?.LogInformation("Starting TCP listener for printer {PrinterId} on port {Port}", printer.Id, settings.ListenTcpPortNumber);
 
         try
         {
-            var endpoint = new IPEndPoint(IPAddress.Any, printer.ListenTcpPortNumber);
+            var endpoint = new IPEndPoint(IPAddress.Any, settings.ListenTcpPortNumber);
             listener = new TcpListener(endpoint);
             listener.Start();
 
             Status = PrinterListenerStatus.Listening;
-            logger?.LogInformation("TCP listener is now active on port {Port}", printer.ListenTcpPortNumber);
+            logger?.LogInformation("TCP listener is now active on port {Port}", settings.ListenTcpPortNumber);
 
             acceptLoopCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             backgroundTask = RunAcceptLoopAsync(acceptLoopCts.Token);
@@ -49,13 +52,13 @@ public sealed class TcpPrinterListener(Printer printer, ILogger<TcpPrinterListen
         catch (SocketException ex)
         {
             Status = PrinterListenerStatus.Failed;
-            logger?.LogError(ex, "Failed to bind port {Port} for printer {PrinterId}", printer.ListenTcpPortNumber, printer.Id);
+            logger?.LogError(ex, "Failed to bind port {Port} for printer {PrinterId}", settings.ListenTcpPortNumber, printer.Id);
             throw;
         }
         catch (Exception ex)
         {
             Status = PrinterListenerStatus.Failed;
-            logger?.LogError(ex, "Unexpected error starting listener on port {Port}", printer.ListenTcpPortNumber);
+            logger?.LogError(ex, "Unexpected error starting listener on port {Port}", settings.ListenTcpPortNumber);
             throw;
         }
     }
@@ -76,7 +79,7 @@ public sealed class TcpPrinterListener(Printer printer, ILogger<TcpPrinterListen
                     var tcpClient = await listener.AcceptTcpClientAsync(ct).ConfigureAwait(false);
                     logger?.LogInformation("Accepted new TCP connection for printer {PrinterId}", printer.Id);
 
-                    var channel = new TcpPrinterChannel(printer, tcpClient);
+                    var channel = new TcpPrinterChannel(printer, settings, tcpClient);
                     if (ChannelAccepted != null)
                     {
                         var args = new PrinterChannelAcceptedEventArgs(printer.Id, channel);
@@ -95,7 +98,7 @@ public sealed class TcpPrinterListener(Printer printer, ILogger<TcpPrinterListen
                 }
                 catch (Exception ex)
                 {
-                    logger?.LogError(ex, "Error accepting client on port {Port}", printer.ListenTcpPortNumber);
+                    logger?.LogError(ex, "Error accepting client on port {Port}", settings.ListenTcpPortNumber);
                     await Task.Delay(500, ct).ConfigureAwait(false);
                 }
             }

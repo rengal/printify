@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
 using Printify.TestServices;
@@ -11,6 +13,8 @@ using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Contracts.Workspaces.Requests;
 using Printify.Web.Contracts.Workspaces.Responses;
+using PrinterRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterDto;
+using PrinterSettingsRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterSettingsDto;
 
 namespace Printify.Web.Tests;
 
@@ -25,21 +29,15 @@ public sealed partial class PrintersControllerTests
 
         var printerId = Guid.NewGuid();
         var createRequest = new CreatePrinterRequestDto(
-            printerId,
-            "Realtime Missing",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerId, "Realtime Missing"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
         var printerResponse = await client.GetFromJsonAsync<PrinterResponseDto>($"/api/printers/{printerId}");
         Assert.NotNull(printerResponse);
-        Assert.NotNull(printerResponse!.RealtimeStatus);
-        Assert.Equal("Started", printerResponse.RealtimeStatus!.TargetState);
+        Assert.NotNull(printerResponse!.OperationalFlags);
+        Assert.Equal("Started", printerResponse.OperationalFlags!.TargetState);
     }
 
     [Fact]
@@ -51,44 +49,43 @@ public sealed partial class PrintersControllerTests
 
         var printerId = Guid.NewGuid();
         var createRequest = new CreatePrinterRequestDto(
-            printerId,
-            "Realtime Ready",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerId, "Realtime Ready"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
-        var patchRequest = new UpdatePrinterRealtimeStatusRequestDto(
-            TargetStatus: null,
+        var flagsRequest = new UpdatePrinterOperationalFlagsRequestDto(
             IsCoverOpen: true,
             IsPaperOut: false,
             IsOffline: false,
             HasError: false,
-            IsPaperNearEnd: true,
-            Drawer1State: DrawerState.OpenedManually.ToString(),
-            Drawer2State: DrawerState.Closed.ToString());
-        var patchResponse = await client.PatchAsJsonAsync(
-            $"/api/printers/{printerId}/realtime-status",
-            patchRequest);
-        patchResponse.EnsureSuccessStatusCode();
+            IsPaperNearEnd: true);
+        var flagsResponse = await client.PatchAsJsonAsync(
+            $"/api/printers/{printerId}/operational-flags",
+            flagsRequest);
+        flagsResponse.EnsureSuccessStatusCode();
+
+        var drawerResponse = await client.PatchAsJsonAsync(
+            $"/api/printers/{printerId}/drawers",
+            new UpdatePrinterDrawerStateRequestDto(
+                Drawer1State: DrawerState.OpenedManually.ToString(),
+                Drawer2State: DrawerState.Closed.ToString()));
+        drawerResponse.EnsureSuccessStatusCode();
 
         var printerResponse = await client.GetFromJsonAsync<PrinterResponseDto>($"/api/printers/{printerId}");
         Assert.NotNull(printerResponse);
-        Assert.NotNull(printerResponse!.RealtimeStatus);
-        Assert.Equal("Started", printerResponse.RealtimeStatus!.TargetState);
-        Assert.Equal("Started", printerResponse.RealtimeStatus.State);
-        Assert.NotEqual(default, printerResponse.RealtimeStatus!.UpdatedAt);
-        Assert.True(printerResponse.RealtimeStatus.IsCoverOpen ?? false);
-        Assert.False(printerResponse.RealtimeStatus.IsPaperOut ?? true);
-        Assert.False(printerResponse.RealtimeStatus.IsOffline ?? true);
-        Assert.False(printerResponse.RealtimeStatus.HasError ?? true);
-        Assert.True(printerResponse.RealtimeStatus.IsPaperNearEnd ?? false);
-        Assert.Equal(DrawerState.OpenedManually.ToString(), printerResponse.RealtimeStatus.Drawer1State);
-        Assert.Equal(DrawerState.Closed.ToString(), printerResponse.RealtimeStatus.Drawer2State);
+        Assert.NotNull(printerResponse!.OperationalFlags);
+        Assert.NotNull(printerResponse.RuntimeStatus);
+        Assert.Equal("Started", printerResponse.OperationalFlags!.TargetState);
+        Assert.Equal("Started", printerResponse.RuntimeStatus!.State);
+        Assert.NotEqual(default, printerResponse.RuntimeStatus.UpdatedAt);
+        Assert.True(printerResponse.OperationalFlags.IsCoverOpen);
+        Assert.False(printerResponse.OperationalFlags.IsPaperOut);
+        Assert.False(printerResponse.OperationalFlags.IsOffline);
+        Assert.False(printerResponse.OperationalFlags.HasError);
+        Assert.True(printerResponse.OperationalFlags.IsPaperNearEnd);
+        Assert.Equal(DrawerState.OpenedManually.ToString(), printerResponse.RuntimeStatus.Drawer1State);
+        Assert.Equal(DrawerState.Closed.ToString(), printerResponse.RuntimeStatus.Drawer2State);
     }
 
     [Fact]
@@ -100,14 +97,8 @@ public sealed partial class PrintersControllerTests
         await CreateWorkspaceAndLoginAsync(client);
         var printerId = Guid.NewGuid();
         var createRequest = new CreatePrinterRequestDto(
-            printerId,
-            "Realtime Stream",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerId, "Realtime Stream"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -116,29 +107,26 @@ public sealed partial class PrintersControllerTests
             expectedCount: 1,
             timeout: TimeSpan.FromSeconds(2),
             breakOnDistinct: true,
-            url: "/api/printers/status/stream?scope=state");
+            url: "/api/printers/sidebar/stream");
 
         // Ensure the SSE reader is active before we publish the event.
         await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         var stopResponse = await client.PatchAsJsonAsync(
-            $"/api/printers/{printerId}/realtime-status",
-            new UpdatePrinterRealtimeStatusRequestDto(
-                TargetStatus: "Stopped",
+            $"/api/printers/{printerId}/operational-flags",
+            new UpdatePrinterOperationalFlagsRequestDto(
                 IsCoverOpen: null,
                 IsPaperOut: null,
                 IsOffline: null,
                 HasError: null,
                 IsPaperNearEnd: null,
-                Drawer1State: null,
-                Drawer2State: null));
+                TargetState: "Stopped"));
         stopResponse.EnsureSuccessStatusCode();
 
         var events = await listenTask;
         Assert.Single(events);
-        Assert.Equal(printerId, events[0].PrinterId);
-        Assert.Equal("Stopped", events[0].TargetState);
-        Assert.Equal("Stopped", events[0].State);
+        Assert.Equal(printerId, events[0].Printer.Id);
+        Assert.Equal("Stopped", events[0].RuntimeStatus?.State);
     }
 
     [Fact]
@@ -151,27 +139,15 @@ public sealed partial class PrintersControllerTests
 
         var printerA = Guid.NewGuid();
         var createRequestA = new CreatePrinterRequestDto(
-            printerA,
-            "Stream State A",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerA, "Stream State A"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var responseA = await client.PostAsJsonAsync("/api/printers", createRequestA);
         responseA.EnsureSuccessStatusCode();
 
         var printerB = Guid.NewGuid();
         var createRequestB = new CreatePrinterRequestDto(
-            printerB,
-            "Stream State B",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerB, "Stream State B"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var responseB = await client.PostAsJsonAsync("/api/printers", createRequestB);
         responseB.EnsureSuccessStatusCode();
 
@@ -179,40 +155,197 @@ public sealed partial class PrintersControllerTests
             client,
             expectedCount: 2,
             timeout: TimeSpan.FromSeconds(2),
-            breakOnDistinct: false,
-            url: "/api/printers/status/stream?scope=state");
+            breakOnDistinct: true,
+            url: "/api/printers/sidebar/stream");
 
         await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         var stopResponse = await client.PatchAsJsonAsync(
-            $"/api/printers/{printerA}/realtime-status",
-            new UpdatePrinterRealtimeStatusRequestDto(
-                TargetStatus: "Stopped",
+            $"/api/printers/{printerA}/operational-flags",
+            new UpdatePrinterOperationalFlagsRequestDto(
                 IsCoverOpen: null,
                 IsPaperOut: null,
                 IsOffline: null,
                 HasError: null,
                 IsPaperNearEnd: null,
-                Drawer1State: null,
-                Drawer2State: null));
+                TargetState: "Stopped"));
         stopResponse.EnsureSuccessStatusCode();
-        var startResponse = await client.PatchAsJsonAsync(
-            $"/api/printers/{printerB}/realtime-status",
-            new UpdatePrinterRealtimeStatusRequestDto(
-                TargetStatus: "Started",
+        var stopResponseB = await client.PatchAsJsonAsync(
+            $"/api/printers/{printerB}/operational-flags",
+            new UpdatePrinterOperationalFlagsRequestDto(
                 IsCoverOpen: null,
                 IsPaperOut: null,
                 IsOffline: null,
                 HasError: null,
                 IsPaperNearEnd: null,
-                Drawer1State: null,
-                Drawer2State: null));
-        startResponse.EnsureSuccessStatusCode();
+                TargetState: "Stopped"));
+        stopResponseB.EnsureSuccessStatusCode();
 
         var events = await listenTask;
         Assert.Equal(2, events.Count);
-        Assert.Contains(events, e => e.PrinterId == printerA && e.TargetState == "Stopped");
-        Assert.Contains(events, e => e.PrinterId == printerB && e.TargetState == "Started");
+        Assert.Contains(events, e => e.Printer.Id == printerA && e.RuntimeStatus?.State == "Stopped");
+        Assert.Contains(events, e => e.Printer.Id == printerB && e.RuntimeStatus?.State == "Stopped");
+    }
+
+    [Fact]
+    public async Task StatusStream_StateScope_EmitsOnEachToggle()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var client = environment.Client;
+        await CreateWorkspaceAndLoginAsync(client);
+
+        var printerId = Guid.NewGuid();
+        var createRequest = new CreatePrinterRequestDto(
+            new PrinterRequestDto(printerId, "Stream State Toggle"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
+        var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
+        createResponse.EnsureSuccessStatusCode();
+
+        // Avoid the startup race by waiting until the listener reports Started before toggling state.
+        await WaitForPrinterStateAsync(client, printerId, PrinterState.Started, CancellationToken.None);
+        Console.WriteLine("Printer reached Started state, opening SSE stream...");
+
+        var responseTask = client.GetAsync(
+            "/api/printers/sidebar/stream",
+            HttpCompletionOption.ResponseHeadersRead,
+            CancellationToken.None);
+        // Diagnostic log if the SSE response headers are not received quickly.
+        var headersDelay = Task.Delay(TimeSpan.FromSeconds(1));
+        var headersWinner = await Task.WhenAny(responseTask, headersDelay);
+        if (headersWinner == headersDelay)
+        {
+            Console.WriteLine("SSE headers not received after 1s, still waiting...");
+        }
+
+        using var response = await responseTask;
+        response.EnsureSuccessStatusCode();
+        Console.WriteLine("SSE stream opened, entering toggle loop...");
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+        var stopwatch = Stopwatch.StartNew();
+
+        var targetStates = new[] { "Stopped", "Started", "Stopped", "Started" };
+        for (var i = 0; i < targetStates.Length; i++)
+        {
+            Console.WriteLine($"Loop iteration {i + 1} starting");
+            var targetState = targetStates[i];
+            var sendAtMs = stopwatch.ElapsedMilliseconds;
+            Console.WriteLine($"[{sendAtMs} ms] Iteration {i + 1}: sending targetState={targetState}");
+
+            var patchResponse = await client.PatchAsJsonAsync(
+                $"/api/printers/{printerId}/operational-flags",
+                new UpdatePrinterOperationalFlagsRequestDto(
+                    IsCoverOpen: null,
+                    IsPaperOut: null,
+                    IsOffline: null,
+                    HasError: null,
+                    IsPaperNearEnd: null,
+                    TargetState: targetState));
+            patchResponse.EnsureSuccessStatusCode();
+
+            using var sseTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            var update = await ReadSidebarEventAsync(reader, printerId, targetState, sseTimeout.Token);
+            var receiveAtMs = stopwatch.ElapsedMilliseconds;
+            Console.WriteLine(
+                $"[{receiveAtMs} ms] Iteration {i + 1}: received state={update.RuntimeStatus?.State} after {receiveAtMs - sendAtMs} ms");
+
+            Assert.Equal(printerId, update.Printer.Id);
+            Assert.Equal(targetState, update.RuntimeStatus?.State);
+        }
+    }
+
+    [Fact]
+    public async Task StatusStream_OperationalFlags_EmitsPartialUpdateOnly()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var client = environment.Client;
+        await CreateWorkspaceAndLoginAsync(client);
+
+        var printerId = Guid.NewGuid();
+        var createRequest = new CreatePrinterRequestDto(
+            new PrinterRequestDto(printerId, "Stream Flags Update"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
+        var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
+        createResponse.EnsureSuccessStatusCode();
+
+        await WaitForPrinterStateAsync(client, printerId, PrinterState.Started, CancellationToken.None);
+
+        var listenTask = ListenForFullStatusEventsAsync(
+            client,
+            printerId,
+            expectedCount: 1,
+            timeout: TimeSpan.FromSeconds(2));
+
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+
+        var flagsResponse = await client.PatchAsJsonAsync(
+            $"/api/printers/{printerId}/operational-flags",
+            new UpdatePrinterOperationalFlagsRequestDto(
+                IsCoverOpen: true,
+                IsPaperOut: null,
+                IsOffline: null,
+                HasError: null,
+                IsPaperNearEnd: null));
+        flagsResponse.EnsureSuccessStatusCode();
+
+        var updates = await listenTask;
+        var update = Assert.Single(updates);
+        Assert.Equal(printerId, update.PrinterId);
+        Assert.NotNull(update.OperationalFlags);
+        Assert.True(update.OperationalFlags!.IsCoverOpen);
+        Assert.Null(update.OperationalFlags.IsPaperOut);
+        Assert.Null(update.OperationalFlags.IsOffline);
+        Assert.Null(update.OperationalFlags.HasError);
+        Assert.Null(update.OperationalFlags.IsPaperNearEnd);
+        Assert.Null(update.OperationalFlags.TargetState);
+        Assert.Null(update.Runtime);
+        Assert.Null(update.Settings);
+        Assert.Null(update.Printer);
+    }
+
+    [Fact]
+    public async Task StatusStream_Runtime_EmitsDrawerUpdateOnly()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var client = environment.Client;
+        await CreateWorkspaceAndLoginAsync(client);
+
+        var printerId = Guid.NewGuid();
+        var createRequest = new CreatePrinterRequestDto(
+            new PrinterRequestDto(printerId, "Stream Drawer Update"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
+        var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
+        createResponse.EnsureSuccessStatusCode();
+
+        await WaitForPrinterStateAsync(client, printerId, PrinterState.Started, CancellationToken.None);
+
+        var listenTask = ListenForFullStatusEventsAsync(
+            client,
+            printerId,
+            expectedCount: 1,
+            timeout: TimeSpan.FromSeconds(2));
+
+        await Task.Delay(TimeSpan.FromMilliseconds(50));
+
+        var drawerResponse = await client.PatchAsJsonAsync(
+            $"/api/printers/{printerId}/drawers",
+            new UpdatePrinterDrawerStateRequestDto(
+                Drawer1State: DrawerState.OpenedManually.ToString(),
+                Drawer2State: null));
+        drawerResponse.EnsureSuccessStatusCode();
+
+        var updates = await listenTask;
+        var update = Assert.Single(updates);
+        Assert.Equal(printerId, update.PrinterId);
+        Assert.NotNull(update.Runtime);
+        Assert.Equal(DrawerState.OpenedManually.ToString(), update.Runtime!.Drawer1State);
+        Assert.Null(update.Runtime.Drawer2State);
+        Assert.Null(update.Runtime.State);
+        Assert.Null(update.Runtime.BufferedBytes);
+        Assert.Null(update.OperationalFlags);
+        Assert.Null(update.Settings);
+        Assert.Null(update.Printer);
     }
 
     [Fact]
@@ -225,27 +358,15 @@ public sealed partial class PrintersControllerTests
 
         var printerA = Guid.NewGuid();
         var createRequestA = new CreatePrinterRequestDto(
-            printerA,
-            "Stream Full A",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerA, "Stream Full A"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var responseA = await client.PostAsJsonAsync("/api/printers", createRequestA);
         responseA.EnsureSuccessStatusCode();
 
         var printerB = Guid.NewGuid();
         var createRequestB = new CreatePrinterRequestDto(
-            printerB,
-            "Stream Full B",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerB, "Stream Full B"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var responseB = await client.PostAsJsonAsync("/api/printers", createRequestB);
         responseB.EnsureSuccessStatusCode();
 
@@ -258,27 +379,18 @@ public sealed partial class PrintersControllerTests
         await Task.Delay(TimeSpan.FromMilliseconds(50));
 
         var patchResponseB = await client.PatchAsJsonAsync(
-            $"/api/printers/{printerB}/realtime-status",
-            new UpdatePrinterRealtimeStatusRequestDto(
-                TargetStatus: null,
+            $"/api/printers/{printerB}/operational-flags",
+            new UpdatePrinterOperationalFlagsRequestDto(
                 IsCoverOpen: true,
                 IsPaperOut: null,
                 IsOffline: null,
                 HasError: null,
-                IsPaperNearEnd: null,
-                Drawer1State: null,
-                Drawer2State: null));
+                IsPaperNearEnd: null));
         patchResponseB.EnsureSuccessStatusCode();
 
         var patchResponseA = await client.PatchAsJsonAsync(
-            $"/api/printers/{printerA}/realtime-status",
-            new UpdatePrinterRealtimeStatusRequestDto(
-                TargetStatus: null,
-                IsCoverOpen: true,
-                IsPaperOut: null,
-                IsOffline: null,
-                HasError: null,
-                IsPaperNearEnd: null,
+            $"/api/printers/{printerA}/drawers",
+            new UpdatePrinterDrawerStateRequestDto(
                 Drawer1State: DrawerState.Closed.ToString(),
                 Drawer2State: DrawerState.Closed.ToString()));
         patchResponseA.EnsureSuccessStatusCode();
@@ -287,8 +399,7 @@ public sealed partial class PrintersControllerTests
         Assert.Single(events);
         var full = events[0];
         Assert.Equal(printerA, full.PrinterId);
-        Assert.True(full.IsCoverOpen ?? false);
-        Assert.Equal(DrawerState.Closed.ToString(), full.Drawer2State);
+        Assert.Equal(DrawerState.Closed.ToString(), full.Runtime?.Drawer2State);
     }
 
     [Fact]
@@ -300,56 +411,46 @@ public sealed partial class PrintersControllerTests
 
         var printerId = Guid.NewGuid();
         var createRequest = new CreatePrinterRequestDto(
-            printerId,
-            "State On Demand",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerId, "State On Demand"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
         var stopResponse = await client.PatchAsJsonAsync(
-            $"/api/printers/{printerId}/realtime-status",
-            new UpdatePrinterRealtimeStatusRequestDto(
-                TargetStatus: "Stopped",
+            $"/api/printers/{printerId}/operational-flags",
+            new UpdatePrinterOperationalFlagsRequestDto(
                 IsCoverOpen: null,
                 IsPaperOut: null,
                 IsOffline: null,
                 HasError: null,
                 IsPaperNearEnd: null,
-                Drawer1State: null,
-                Drawer2State: null));
+                TargetState: "Stopped"));
         stopResponse.EnsureSuccessStatusCode();
         await WaitForPrinterStateAsync(client, printerId, PrinterState.Stopped, CancellationToken.None);
 
         var stopped = await client.GetFromJsonAsync<PrinterResponseDto>($"/api/printers/{printerId}");
         Assert.NotNull(stopped);
-        Assert.Equal("Stopped", stopped!.RealtimeStatus?.State);
+        Assert.Equal("Stopped", stopped!.RuntimeStatus?.State);
 
         var startResponse = await client.PatchAsJsonAsync(
-            $"/api/printers/{printerId}/realtime-status",
-            new UpdatePrinterRealtimeStatusRequestDto(
-                TargetStatus: "Started",
+            $"/api/printers/{printerId}/operational-flags",
+            new UpdatePrinterOperationalFlagsRequestDto(
                 IsCoverOpen: null,
                 IsPaperOut: null,
                 IsOffline: null,
                 HasError: null,
                 IsPaperNearEnd: null,
-                Drawer1State: null,
-                Drawer2State: null));
+                TargetState: "Started"));
         startResponse.EnsureSuccessStatusCode();
         await WaitForPrinterStateAsync(client, printerId, PrinterState.Started, CancellationToken.None);
 
         var started = await client.GetFromJsonAsync<PrinterResponseDto>($"/api/printers/{printerId}");
         Assert.NotNull(started);
-        Assert.Equal("Started", started!.RealtimeStatus?.State);
+        Assert.Equal("Started", started!.RuntimeStatus?.State);
     }
 
     [Fact]
-    public async Task UpdateRealtimeStatus_RejectsOpenedByCommand()
+    public async Task UpdateDrawerState_RejectsOpenedByCommand()
     {
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
@@ -357,35 +458,23 @@ public sealed partial class PrintersControllerTests
 
         var printerId = Guid.NewGuid();
         var createRequest = new CreatePrinterRequestDto(
-            printerId,
-            "Realtime Invalid Drawer",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerId, "Realtime Invalid Drawer"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
-        var patchRequest = new UpdatePrinterRealtimeStatusRequestDto(
-            TargetStatus: null,
-            IsCoverOpen: null,
-            IsPaperOut: null,
-            IsOffline: null,
-            HasError: null,
-            IsPaperNearEnd: null,
+        var patchRequest = new UpdatePrinterDrawerStateRequestDto(
             Drawer1State: DrawerState.OpenedByCommand.ToString(),
             Drawer2State: null);
         var patchResponse = await client.PatchAsJsonAsync(
-            $"/api/printers/{printerId}/realtime-status",
+            $"/api/printers/{printerId}/drawers",
             patchRequest);
 
         Assert.Equal(HttpStatusCode.BadRequest, patchResponse.StatusCode);
     }
 
     [Fact]
-    public async Task UpdateRealtimeStatus_DoesNotAffectOtherPrinters()
+    public async Task UpdateDrawerState_DoesNotAffectOtherPrinters()
     {
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
@@ -393,48 +482,30 @@ public sealed partial class PrintersControllerTests
 
         var printerA = Guid.NewGuid();
         var createRequestA = new CreatePrinterRequestDto(
-            printerA,
-            "Realtime A",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerA, "Realtime A"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var responseA = await client.PostAsJsonAsync("/api/printers", createRequestA);
         responseA.EnsureSuccessStatusCode();
 
         var printerB = Guid.NewGuid();
         var createRequestB = new CreatePrinterRequestDto(
-            printerB,
-            "Realtime B",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerB, "Realtime B"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var responseB = await client.PostAsJsonAsync("/api/printers", createRequestB);
         responseB.EnsureSuccessStatusCode();
 
-        var patchRequest = new UpdatePrinterRealtimeStatusRequestDto(
-            TargetStatus: null,
-            IsCoverOpen: true,
-            IsPaperOut: null,
-            IsOffline: null,
-            HasError: null,
-            IsPaperNearEnd: null,
+        var patchRequest = new UpdatePrinterDrawerStateRequestDto(
             Drawer1State: DrawerState.OpenedManually.ToString(),
             Drawer2State: null);
         var patchResponse = await client.PatchAsJsonAsync(
-            $"/api/printers/{printerA}/realtime-status",
+            $"/api/printers/{printerA}/drawers",
             patchRequest);
         patchResponse.EnsureSuccessStatusCode();
 
         var printerBResponse = await client.GetFromJsonAsync<PrinterResponseDto>($"/api/printers/{printerB}");
         Assert.NotNull(printerBResponse);
-        Assert.NotNull(printerBResponse!.RealtimeStatus);
-        Assert.Equal(DrawerState.Closed.ToString(), printerBResponse.RealtimeStatus!.Drawer1State);
+        Assert.NotNull(printerBResponse!.RuntimeStatus);
+        Assert.Equal(DrawerState.Closed.ToString(), printerBResponse.RuntimeStatus!.Drawer1State);
     }
 
     [Fact]
@@ -446,14 +517,8 @@ public sealed partial class PrintersControllerTests
 
         var printerId = Guid.NewGuid();
         var createRequest = new CreatePrinterRequestDto(
-            printerId,
-            "Realtime Pulse",
-            "EscPos",
-            512,
-            null,
-            false,
-            null,
-            null);
+            new PrinterRequestDto(printerId, "Realtime Pulse"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -495,10 +560,10 @@ public sealed partial class PrintersControllerTests
         return workspaceId;
     }
 
-    private static async Task<PrinterRealtimeStatusDto> WaitForRealtimeStatusAsync(
+    private static async Task<PrinterRuntimeStatusDto> WaitForRealtimeStatusAsync(
         HttpClient client,
         Guid printerId,
-        Func<PrinterRealtimeStatusDto, bool> predicate,
+        Func<PrinterRuntimeStatusDto, bool> predicate,
         CancellationToken ct)
     {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
@@ -508,10 +573,10 @@ public sealed partial class PrintersControllerTests
             if (response.IsSuccessStatusCode)
             {
                 var printer = await response.Content.ReadFromJsonAsync<PrinterResponseDto>(cancellationToken: ct);
-                var realtime = printer?.RealtimeStatus;
-                if (realtime is not null && predicate(realtime))
+                var runtimeStatus = printer?.RuntimeStatus;
+                if (runtimeStatus is not null && predicate(runtimeStatus))
                 {
-                    return realtime;
+                    return runtimeStatus;
                 }
             }
 
@@ -519,5 +584,66 @@ public sealed partial class PrintersControllerTests
         }
 
         throw new TimeoutException($"Printer {printerId} did not reach expected realtime status within timeout");
+    }
+
+    private static async Task<PrinterSidebarSnapshotDto> ReadSidebarEventAsync(
+        StreamReader reader,
+        Guid printerId,
+        string expectedState,
+        CancellationToken ct)
+    {
+        string? currentEvent = null;
+        string? currentData = null;
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+        while (true)
+        {
+            ct.ThrowIfCancellationRequested();
+            var line = await reader.ReadLineAsync().WaitAsync(ct);
+            if (line is null)
+            {
+                throw new InvalidOperationException("SSE stream closed unexpectedly.");
+            }
+
+            Console.WriteLine($"[SSE] {line}");
+
+            if (line.StartsWith("event:", StringComparison.OrdinalIgnoreCase))
+            {
+                currentEvent = line[6..].Trim();
+                continue;
+            }
+
+            if (line.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                currentData = line[5..].Trim();
+                continue;
+            }
+
+            // SSE events are terminated by a blank line.
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                if (!string.Equals(currentEvent, "sidebar", StringComparison.OrdinalIgnoreCase)
+                    || string.IsNullOrWhiteSpace(currentData))
+                {
+                    currentEvent = null;
+                    currentData = null;
+                    continue;
+                }
+
+                var update = JsonSerializer.Deserialize<PrinterSidebarSnapshotDto>(currentData, options);
+                currentEvent = null;
+                currentData = null;
+                if (update is null)
+                {
+                    continue;
+                }
+
+                if (update.Printer.Id == printerId
+                    && string.Equals(update.RuntimeStatus?.State, expectedState, StringComparison.OrdinalIgnoreCase))
+                {
+                    return update;
+                }
+            }
+        }
     }
 }

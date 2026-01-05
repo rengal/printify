@@ -11,12 +11,14 @@ namespace Printify.TestServices.Printing;
 public sealed class TestPrinterListener : IPrinterListener
 {
     private readonly Printer printer;
+    private readonly PrinterSettings settings;
     private readonly IServiceScopeFactory scopeFactory;
     private bool disposed;
 
-    public TestPrinterListener(Printer printer, IServiceScopeFactory scopeFactory)
+    public TestPrinterListener(Printer printer, PrinterSettings settings, IServiceScopeFactory scopeFactory)
     {
         this.printer = printer ?? throw new ArgumentNullException(nameof(printer));
+        this.settings = settings ?? throw new ArgumentNullException(nameof(settings));
         this.scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     }
 
@@ -37,7 +39,7 @@ public sealed class TestPrinterListener : IPrinterListener
         // Track claimed port within the current scope lifetime to align with allocator.
         using var scope = scopeFactory.CreateScope();
         var registry = scope.ServiceProvider.GetRequiredService<ITestPortRegistry>();
-        registry.ClaimPort(printer.ListenTcpPortNumber);
+        registry.ClaimPort(settings.ListenTcpPortNumber);
 
         Status = PrinterListenerStatus.Listening;
         return Task.CompletedTask;
@@ -49,7 +51,7 @@ public sealed class TestPrinterListener : IPrinterListener
         Status = PrinterListenerStatus.Idle;
         using var scope = scopeFactory.CreateScope();
         var registry = scope.ServiceProvider.GetRequiredService<ITestPortRegistry>();
-        registry.ReleasePort(printer.ListenTcpPortNumber);
+        registry.ReleasePort(settings.ListenTcpPortNumber);
         return Task.CompletedTask;
     }
 
@@ -58,7 +60,7 @@ public sealed class TestPrinterListener : IPrinterListener
         disposed = true;
         using var scope = scopeFactory.CreateScope();
         var registry = scope.ServiceProvider.GetRequiredService<ITestPortRegistry>();
-        registry.ReleasePort(printer.ListenTcpPortNumber);
+        registry.ReleasePort(settings.ListenTcpPortNumber);
         TestPrinterListenerFactory.Unregister(printer.Id);
         LastChannel = null;
         return ValueTask.CompletedTask;
@@ -73,7 +75,7 @@ public sealed class TestPrinterListener : IPrinterListener
             throw new InvalidOperationException("Listener must be in Listening state before accepting a client.");
         }
 
-        var channel = new TestPrinterChannel(printer, $"memory://{printer.Id:N}");
+        var channel = new TestPrinterChannel(printer, settings, $"memory://{printer.Id:N}");
         LastChannel = channel;
 
         if (ChannelAccepted is not null)

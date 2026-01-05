@@ -14,26 +14,28 @@ public sealed class TcpPrinterChannelTests
     public async Task CreateConnected_WithActiveListener_EstablishesBidirectionalChannel()
     {
         var port = GetFreeTcpPort();
+        var settings = new PrinterSettings(
+            Protocol.EscPos,
+            512,
+            null,
+            port,
+            true,
+            1024,
+            4096);
+
         var printer = new Printer(
             Guid.NewGuid(),
             Guid.NewGuid(),
             "test-printer",
-            Protocol.EscPos,
-            512,
-            null,
             DateTimeOffset.UtcNow,
             "127.0.0.1",
-            port,
-            true,
-            1024,
-            4096,
             null,
             IsPinned: false,
             IsDeleted: false,
             LastViewedDocumentId: null,
             LastDocumentReceivedAt: null);
 
-        await using var listener = new TcpPrinterListener(printer, NullLogger<TcpPrinterListener>.Instance);
+        await using var listener = new TcpPrinterListener(printer, settings, NullLogger<TcpPrinterListener>.Instance);
         await listener.StartAsync(CancellationToken.None);
 
         var acceptedChannelSource = new TaskCompletionSource<IPrinterChannel>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -77,26 +79,28 @@ public sealed class TcpPrinterChannelTests
     public async Task MultipleConnections_FirstDisconnect_DoesNotAffectSecond()
     {
         var port = GetFreeTcpPort();
+        var settings = new PrinterSettings(
+            Protocol.EscPos,
+            512,
+            null,
+            port,
+            true,
+            1024,
+            4096);
+
         var printer = new Printer(
             Guid.NewGuid(),
             Guid.NewGuid(),
             "multi-connection-printer",
-            Protocol.EscPos,
-            512,
-            null,
             DateTimeOffset.UtcNow,
             "127.0.0.1",
-            port,
-            true,
-            1024,
-            4096,
             null,
             IsPinned: false,
             IsDeleted: false,
             LastViewedDocumentId: null,
             LastDocumentReceivedAt: null);
 
-        await using var listener = new TcpPrinterListener(printer, NullLogger<TcpPrinterListener>.Instance);
+        await using var listener = new TcpPrinterListener(printer, settings, NullLogger<TcpPrinterListener>.Instance);
         await listener.StartAsync(CancellationToken.None);
 
         var firstChannelSource = new TaskCompletionSource<IPrinterChannel>(TaskCreationOptions.RunContinuationsAsynchronously);

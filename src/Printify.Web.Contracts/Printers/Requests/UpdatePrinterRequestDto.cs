@@ -1,19 +1,48 @@
-using System;
+using System.Text.Json.Serialization;
 
 namespace Printify.Web.Contracts.Printers.Requests;
 
 /// <summary>
 /// Payload used to update printer configuration.
 /// </summary>
-/// <param name="DisplayName">Friendly name shown in UI.</param>
-/// <param name="Protocol">Protocol the printer expects (e.g., escpos).</param>
-/// <param name="WidthInDots">Configured print width in dots.</param>
-/// <param name="HeightInDots">Optional maximum height in dots when known.</param>
-public sealed record UpdatePrinterRequestDto(
-    string DisplayName,
-    string Protocol,
-    int WidthInDots,
-    int? HeightInDots,
-    bool EmulateBufferCapacity,
-    decimal? BufferDrainRate,
-    int? BufferMaxCapacity);
+/// <param name="Printer">Printer identity payload.</param>
+/// <param name="Settings">Printer configuration settings.</param>
+public sealed partial record UpdatePrinterRequestDto
+{
+    [JsonConstructor]
+    public UpdatePrinterRequestDto(PrinterDto printer, PrinterSettingsDto settings)
+    {
+        Printer = printer;
+        Settings = settings;
+    }
+
+    public PrinterDto Printer { get; init; }
+
+    public PrinterSettingsDto Settings { get; init; }
+}
+
+/// <summary>
+/// Compatibility constructor for tests and tooling that still pass flat parameters.
+/// </summary>
+public sealed partial record UpdatePrinterRequestDto
+{
+    public UpdatePrinterRequestDto(
+        string displayName,
+        string protocol,
+        int widthInDots,
+        int? heightInDots,
+        bool emulateBufferCapacity,
+        decimal? bufferDrainRate,
+        int? bufferMaxCapacity)
+        : this(
+            new PrinterDto(Guid.Empty, displayName),
+            new PrinterSettingsDto(
+                protocol,
+                widthInDots,
+                heightInDots,
+                emulateBufferCapacity,
+                bufferDrainRate,
+                bufferMaxCapacity))
+    {
+    }
+}

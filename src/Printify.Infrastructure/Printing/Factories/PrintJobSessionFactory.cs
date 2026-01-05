@@ -12,7 +12,7 @@ public class PrintJobSessionFactory(IClockFactory clockFactory, IEscPosCommandTr
 {
     public Task<IPrintJobSession> Create(PrintJob job, IPrinterChannel channel, CancellationToken ct)
     {
-        var protocol = channel.Printer.Protocol;
+        var protocol = channel.Settings.Protocol;
         if (protocol == Protocol.EscPos)
         {
             return Task.FromResult<IPrintJobSession>(

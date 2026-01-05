@@ -1,15 +1,20 @@
-using Microsoft.EntityFrameworkCore;
-using Printify.Web.Middleware;
 using System.Text;
+using System.Text.Json.Serialization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using Printify.Infrastructure.Persistence;
 using Printify.Web.Extensions;
-using Microsoft.Extensions.FileProviders;
+using Printify.Web.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    });
 builder.Services.AddServices(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();

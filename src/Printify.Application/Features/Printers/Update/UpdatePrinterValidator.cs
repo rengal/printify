@@ -10,15 +10,15 @@ public sealed class UpdatePrinterValidator : AbstractValidator<UpdatePrinterComm
         RuleFor(command => command.PrinterId)
             .NotEmpty();
 
-        RuleFor(command => command.DisplayName)
+        RuleFor(command => command.Printer.DisplayName)
             .NotEmpty()
             .MaximumLength(PrinterConstants.MaxNameLength);
 
-        RuleFor(command => command.WidthInDots)
+        RuleFor(command => command.Settings.WidthInDots)
             .InclusiveBetween(PrinterConstants.MinWidthInDots, PrinterConstants.MaxWidthInDots);
 
-        RuleFor(command => command.HeightInDots)
+        RuleFor(command => command.Settings.HeightInDots)
             .Must(height => height is null || height >= PrinterConstants.MinHeightInDots)
-            .WithMessage($"{nameof(UpdatePrinterCommand.HeightInDots)} must be null or >= {PrinterConstants.MinHeightInDots}");
+            .WithMessage($"{nameof(UpdatePrinterSettingsPayload.HeightInDots)} must be null or >= {PrinterConstants.MinHeightInDots}");
     }
 }

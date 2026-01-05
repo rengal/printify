@@ -5,4 +5,4 @@ using Printify.Domain.Requests;
 
 namespace Printify.Application.Features.Printers.Get;
 
-public sealed record GetPrinterQuery(Guid PrinterId, RequestContext Context) : IRequest<Printer?>;
+public sealed record GetPrinterQuery(Guid PrinterId, RequestContext Context) : IRequest<PrinterDetailsSnapshot?>;

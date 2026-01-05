@@ -14,14 +14,16 @@ internal static class CommandMapper
 
         return new Features.Printers.Create.CreatePrinterCommand(
             context,
-            request.Id,
-            request.DisplayName,
-            ParseProtocol(request.Protocol),
-            request.WidthInDots,
-            request.HeightInDots,
-            request.EmulateBufferCapacity,
-            request.BufferDrainRate,
-            request.BufferMaxCapacity);
+            new Features.Printers.Create.CreatePrinterPayload(
+                request.Printer.Id,
+                request.Printer.DisplayName),
+            new Features.Printers.Create.CreatePrinterSettingsPayload(
+                ParseProtocol(request.Settings.Protocol),
+                request.Settings.WidthInDots,
+                request.Settings.HeightInDots,
+                request.Settings.EmulateBufferCapacity,
+                request.Settings.BufferDrainRate,
+                request.Settings.BufferMaxCapacity));
     }
 
     internal static Features.Printers.Update.UpdatePrinterCommand ToCommand(this WebApi.Printers.Requests.UpdatePrinterRequestDto request, Guid printerId, RequestContext context)
@@ -31,13 +33,15 @@ internal static class CommandMapper
         return new Features.Printers.Update.UpdatePrinterCommand(
             context,
             printerId,
-            request.DisplayName,
-            ParseProtocol(request.Protocol),
-            request.WidthInDots,
-            request.HeightInDots,
-            request.EmulateBufferCapacity,
-            request.BufferDrainRate,
-            request.BufferMaxCapacity);
+            new Features.Printers.Update.UpdatePrinterPayload(
+                request.Printer.DisplayName),
+            new Features.Printers.Update.UpdatePrinterSettingsPayload(
+                ParseProtocol(request.Settings.Protocol),
+                request.Settings.WidthInDots,
+                request.Settings.HeightInDots,
+                request.Settings.EmulateBufferCapacity,
+                request.Settings.BufferDrainRate,
+                request.Settings.BufferMaxCapacity));
     }
 
     internal static Features.Printers.Pin.SetPrinterPinnedCommand ToCommand(this WebApi.Printers.Requests.PinPrinterRequestDto request, Guid printerId, RequestContext context)

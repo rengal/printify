@@ -14,19 +14,25 @@ public sealed class PrinterListenerOrchestrator(
     IPrintJobSessionsOrchestrator printJobSessions,
     IServiceScopeFactory scopeFactory,
     IPrinterStatusStream statusStream,
+    IPrinterRuntimeStatusStore runtimeStatusStore,
     ILogger<PrinterListenerOrchestrator> logger)
     : IPrinterListenerOrchestrator
 {
     private readonly ConcurrentDictionary<Guid, IPrinterListener> listeners = new();
     private readonly ConcurrentDictionary<Guid, HashSet<IPrinterChannel>> printerChannels = new();
 
-    public async Task AddListenerAsync(Printer printer, PrinterTargetState targetState, CancellationToken ct)
+    public async Task AddListenerAsync(
+        Printer printer,
+        PrinterSettings settings,
+        PrinterTargetState targetState,
+        CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(printer);
+        ArgumentNullException.ThrowIfNull(settings);
 
         await RemoveListenerAsync(printer, targetState, ct).ConfigureAwait(false);
 
-        var listener = listenerFactory.Create(printer);
+        var listener = listenerFactory.Create(printer, settings);
         logger.LogInformation("Listener added for printer {PrinterId}", printer.Id);
         listeners[printer.Id] = listener;
         listener.ChannelAccepted += Listener_ChannelAccepted;
@@ -162,11 +168,16 @@ public sealed class PrinterListenerOrchestrator(
     {
         var timestamp = DateTimeOffset.UtcNow;
 
-        var update = new PrinterRealtimeStatusUpdate(
+        var runtimeUpdate = new PrinterRuntimeStatusUpdate(
             printer.Id,
             timestamp,
             targetState,
             status);
+        var update = new PrinterStatusUpdate(
+            printer.Id,
+            timestamp,
+            RuntimeUpdate: runtimeUpdate);
+        runtimeStatusStore.Update(runtimeUpdate);
         statusStream.Publish(printer.OwnerWorkspaceId, update);
         return Task.CompletedTask;
     }

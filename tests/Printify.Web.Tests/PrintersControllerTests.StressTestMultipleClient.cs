@@ -2,6 +2,8 @@
 using Printify.TestServices;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
+using PrinterRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterDto;
+using PrinterSettingsRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterSettingsDto;
 
 namespace Printify.Web.Tests;
 
@@ -31,7 +33,9 @@ public sealed partial class PrintersControllerTests
             client.DefaultRequestHeaders.Authorization = environment.Client.DefaultRequestHeaders.Authorization;
 
             var printerId = Guid.NewGuid();
-            var request = new CreatePrinterRequestDto(printerId, $"Parallel-{i}", "EscPos", 512, null, false, null, null);
+            var request = new CreatePrinterRequestDto(
+                new PrinterRequestDto(printerId, $"Parallel-{i}"),
+                new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
             createTasks.Add(CreatePrinterAsync(client, request));
         }
 
@@ -40,7 +44,7 @@ public sealed partial class PrintersControllerTests
             var created = await Task.WhenAll(createTasks).WaitAsync(TimeSpan.FromSeconds(15));
             var ports = created
                 .Where(p => p != null)
-                .Select(p => p!.TcpListenPort)
+                .Select(p => p!.Settings.TcpListenPort)
                 .ToList();
 
             Assert.Equal(ports.Count, ports.Distinct().Count());
@@ -52,7 +56,7 @@ public sealed partial class PrintersControllerTests
         }
 
         var statusEvents = await statusTask;
-        var distinctStatusPrinters = statusEvents.Select(e => e.PrinterId).Distinct().Count();
+        var distinctStatusPrinters = statusEvents.Select(e => e.Printer.Id).Distinct().Count();
         Assert.True(distinctStatusPrinters >= n, "Did not observe status events for all printers.");
     }
 

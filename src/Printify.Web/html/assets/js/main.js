@@ -102,23 +102,23 @@
         }
 
         function mapPrinterDto(dto, index) {
-            const targetStatus = (dto.realtimeStatus?.targetState || 'started').toLowerCase();
-            const runtimeStatus = (dto.realtimeStatus?.state || 'unknown').toLowerCase();
+            const targetStatus = (dto.operationalFlags?.targetState || 'started').toLowerCase();
+            const runtimeStatus = (dto.runtimeStatus?.state || 'unknown').toLowerCase();
             return {
-                id: dto.id,
-                name: dto.displayName,
-                protocol: dto.protocol,
-                width: dto.widthInDots,
-                height: dto.heightInDots,
-                port: dto.tcpListenPort,
-                emulateBuffer: dto.emulateBufferCapacity,
-                bufferSize: dto.bufferMaxCapacity || 0,
-                drainRate: dto.bufferDrainRate || 0,
-                pinned: dto.isPinned,
+                id: dto.printer.id,
+                name: dto.printer.displayName,
+                protocol: dto.settings.protocol,
+                width: dto.settings.widthInDots,
+                height: dto.settings.heightInDots,
+                port: dto.settings.tcpListenPort,
+                emulateBuffer: dto.settings.emulateBufferCapacity,
+                bufferSize: dto.settings.bufferMaxCapacity || 0,
+                drainRate: dto.settings.bufferDrainRate || 0,
+                pinned: dto.printer.isPinned,
                 targetStatus,
                 runtimeStatus,
-                runtimeStatusAt: dto.realtimeStatus?.updatedAt ? new Date(dto.realtimeStatus.updatedAt) : null,
-                lastDocumentAt: dto.lastDocumentReceivedAt ? new Date(dto.lastDocumentReceivedAt) : null,
+                runtimeStatusAt: dto.runtimeStatus?.updatedAt ? new Date(dto.runtimeStatus.updatedAt) : null,
+                lastDocumentAt: dto.printer.lastDocumentReceivedAt ? new Date(dto.printer.lastDocumentReceivedAt) : null,
                 newDocs: 0,
                 pinOrder: index
             };
@@ -1198,9 +1198,9 @@
             if (!printer) return;
 
             try {
-                await apiRequest(`/api/printers/${printerId}/realtime-status`, {
+                await apiRequest(`/api/printers/${printerId}/operational-flags`, {
                     method: 'PATCH',
-                    body: JSON.stringify({ targetStatus })
+                    body: JSON.stringify({ targetState: targetStatus })
                 });
                 await loadPrinters(printerId);
                 const action = targetStatus.toLowerCase() === 'started' ? 'started' : 'stopped';
@@ -1437,15 +1437,18 @@
             try
             {
                 const request = {
-                    id: crypto.randomUUID(),
-                    displayName: name,
-                    protocol: normalizeProtocol(protocol),
-                    widthInDots: width,
-                    heightInDots: null,
-                    tcpListenPort: 9106,
-                    emulateBufferCapacity: emulateBuffer,
-                    bufferDrainRate: drainRate,
-                    bufferMaxCapacity: bufferSize
+                    printer: {
+                        id: crypto.randomUUID(),
+                        displayName: name
+                    },
+                    settings: {
+                        protocol: normalizeProtocol(protocol),
+                        widthInDots: width,
+                        heightInDots: null,
+                        emulateBufferCapacity: emulateBuffer,
+                        bufferDrainRate: drainRate,
+                        bufferMaxCapacity: bufferSize
+                    }
                 };
 
                 const created = await apiRequest('/api/printers', {
@@ -1453,7 +1456,7 @@
                     body: JSON.stringify(request)
                 });
 
-                await loadPrinters(created.id);
+                await loadPrinters(created.printer.id);
                 closeModal();
                 showToast('Printer created successfully');
             }
@@ -1490,14 +1493,18 @@
 
             try {
                 const request = {
-                    displayName: name,
-                    protocol: normalizeProtocol(protocol),
-                    widthInDots: width,
-                    heightInDots: null,
-                    tcpListenPort: printer.port || 9106,
-                    emulateBufferCapacity: emulateBuffer,
-                    bufferDrainRate: drainRate,
-                    bufferMaxCapacity: bufferSize
+                    printer: {
+                        id: printerId,
+                        displayName: name
+                    },
+                    settings: {
+                        protocol: normalizeProtocol(protocol),
+                        widthInDots: width,
+                        heightInDots: null,
+                        emulateBufferCapacity: emulateBuffer,
+                        bufferDrainRate: drainRate,
+                        bufferMaxCapacity: bufferSize
+                    }
                 };
 
                 await apiRequest(`/api/printers/${printerId}`, {
@@ -2095,7 +2102,7 @@
             statusStreamController = controller;
 
             try {
-                const response = await fetch('/api/printers/status/stream?scope=state', {
+                const response = await fetch('/api/printers/sidebar/stream', {
                     method: 'GET',
                     headers: { ...authHeaders(), 'Accept': 'text/event-stream' },
                     signal: controller.signal
@@ -2132,7 +2139,7 @@
                             }
                         }
 
-                        if ((eventName === 'state' || eventName === 'status') && data) {
+                        if (eventName === 'sidebar' && data) {
                             try {
                                 const payload = JSON.parse(data);
                                 handleStatusEvent(payload);
@@ -2157,14 +2164,28 @@
         }
 
         function handleStatusEvent(payload) {
-            if (!payload?.printerId) return;
-            const idx = printers.findIndex(p => p.id === payload.printerId);
+            const printerId = payload?.printer?.id;
+            if (!printerId) return;
+
+            const idx = printers.findIndex(p => p.id === printerId);
             if (idx === -1) return;
 
             const updated = { ...printers[idx] };
-            updated.targetStatus = (payload.targetState || payload.targetStatus || updated.targetStatus || '').toLowerCase();
-            updated.runtimeStatus = (payload.state || payload.runtimeStatus || updated.runtimeStatus || '').toLowerCase();
-            updated.runtimeStatusAt = payload.updatedAt ? new Date(payload.updatedAt) : updated.runtimeStatusAt;
+            if (payload.printer?.displayName) {
+                updated.name = payload.printer.displayName;
+            }
+            if (payload.printer?.isPinned !== undefined) {
+                updated.pinned = payload.printer.isPinned;
+            }
+
+            const runtime = payload.runtimeStatus;
+            if (runtime?.state) {
+                updated.runtimeStatus = runtime.state.toLowerCase();
+            }
+            if (runtime?.updatedAt) {
+                updated.runtimeStatusAt = new Date(runtime.updatedAt);
+            }
+
             printers[idx] = updated;
             renderSidebar();
         }

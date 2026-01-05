@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
-using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
 using Printify.Infrastructure.Mapping;
 using Printify.Infrastructure.Persistence;
@@ -56,18 +55,39 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
             .ConfigureAwait(false);
     }
 
-    public async ValueTask AddAsync(Printer printer, CancellationToken ct)
+    public async ValueTask<IReadOnlyList<PrinterSidebarSnapshot>> ListForSidebarAsync(Guid workspaceId, CancellationToken ct)
+    {
+        var printers = await dbContext.Printers
+            .AsNoTracking()
+            .Where(p => !p.IsDeleted && p.OwnerWorkspaceId == workspaceId)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        if (printers.Count == 0)
+        {
+            return [];
+        }
+
+        return printers
+            .Select(printer =>
+                new PrinterSidebarSnapshot(printer.ToDomain()))
+            .ToList();
+    }
+
+    public async ValueTask AddAsync(Printer printer, PrinterSettings settings, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(printer);
+        ArgumentNullException.ThrowIfNull(settings);
 
-        var entity = printer.ToEntity();
+        var entity = printer.ToEntity(settings);
         await dbContext.Printers.AddAsync(entity, ct).ConfigureAwait(false);
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task UpdateAsync(Printer printer, CancellationToken ct)
+    public async Task UpdateAsync(Printer printer, PrinterSettings settings, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(printer);
+        ArgumentNullException.ThrowIfNull(settings);
 
         var entity = await dbContext.Printers
             .FirstOrDefaultAsync(p => p.Id == printer.Id && !p.IsDeleted, ct)
@@ -76,7 +96,7 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         if (entity is null)
             throw new InvalidOperationException($"Printer {printer.Id} does not exist.");
 
-        printer.MapToEntity(entity);
+        printer.MapToEntity(settings, entity);
 
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
@@ -114,12 +134,12 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         if (!entity.IsDeleted)
         {
             entity.IsDeleted = true;
-            var realtimeStatus = await dbContext.PrinterRealtimeStatuses
+            var operationalFlags = await dbContext.PrinterOperationalFlags
                 .FirstOrDefaultAsync(status => status.PrinterId == printer.Id, ct)
                 .ConfigureAwait(false);
-            if (realtimeStatus is not null)
+            if (operationalFlags is not null)
             {
-                dbContext.PrinterRealtimeStatuses.Remove(realtimeStatus);
+                dbContext.PrinterOperationalFlags.Remove(operationalFlags);
             }
             await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
         }
@@ -146,7 +166,7 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         // Choose next sequential port based on existing printers; fall back to 9101 when none exist.
         var maxPort = dbContext.Printers
             .AsNoTracking()
-            .Select(p => (int?)p.ListenTcpPortNumber)
+            .Select(p => (int?)p.Settings.ListenTcpPortNumber)
             .Max() ?? 9100; // so that first printer becomes 9101
 
         var nextPort = maxPort + 1;
@@ -154,9 +174,9 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         return ValueTask.FromResult(nextPort);
     }
 
-    public async ValueTask<PrinterRealtimeStatus?> GetRealtimeStatusAsync(Guid printerId, CancellationToken ct)
+    public async ValueTask<PrinterOperationalFlags?> GetOperationalFlagsAsync(Guid printerId, CancellationToken ct)
     {
-        var entity = await dbContext.PrinterRealtimeStatuses
+        var entity = await dbContext.PrinterOperationalFlags
             .AsNoTracking()
             .FirstOrDefaultAsync(status => status.PrinterId == printerId, ct)
             .ConfigureAwait(false);
@@ -164,11 +184,36 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         return entity?.ToDomain();
     }
 
-    public async ValueTask<IReadOnlyDictionary<Guid, PrinterRealtimeStatus>> ListRealtimeStatusesAsync(
+    public async ValueTask<PrinterSettings?> GetSettingsAsync(Guid printerId, CancellationToken ct)
+    {
+        var entity = await dbContext.Printers
+            .AsNoTracking()
+            .Where(p => p.Id == printerId && !p.IsDeleted)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+        return entity?.ToSettings();
+    }
+
+    public async ValueTask<IReadOnlyDictionary<Guid, PrinterSettings>> ListSettingsAsync(
         Guid workspaceId,
         CancellationToken ct)
     {
-        var statuses = await (from status in dbContext.PrinterRealtimeStatuses.AsNoTracking()
+        var printers = await dbContext.Printers
+            .AsNoTracking()
+            .Where(p => p.OwnerWorkspaceId == workspaceId && !p.IsDeleted)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        return printers
+            .ToDictionary(printer => printer.Id, printer => printer.ToSettings());
+    }
+
+    public async ValueTask<IReadOnlyDictionary<Guid, PrinterOperationalFlags>> ListOperationalFlagsAsync(
+        Guid workspaceId,
+        CancellationToken ct)
+    {
+        var statuses = await (from status in dbContext.PrinterOperationalFlags.AsNoTracking()
                               join printer in dbContext.Printers.AsNoTracking()
                                   on status.PrinterId equals printer.Id
                               where printer.OwnerWorkspaceId == workspaceId && !printer.IsDeleted
@@ -181,7 +226,7 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
             .ToDictionary(status => status.PrinterId);
     }
 
-    public async Task UpsertRealtimeStatusAsync(PrinterRealtimeStatusUpdate update, CancellationToken ct)
+    public async Task UpsertOperationalFlagsAsync(PrinterOperationalFlagsUpdate update, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(update);
 
@@ -194,103 +239,29 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
             throw new PrinterNotFoundException(update.PrinterId);
         }
 
-        var entity = await dbContext.PrinterRealtimeStatuses
+        var entity = await dbContext.PrinterOperationalFlags
             .FirstOrDefaultAsync(existing => existing.PrinterId == update.PrinterId, ct)
             .ConfigureAwait(false);
 
-        // Default to Started to preserve legacy target-state behavior when no snapshot exists.
-        var effectiveTargetState = update.TargetState
-            ?? (entity is null ? PrinterTargetState.Started : ParseTargetState(entity.TargetState));
-
-        // Update printer's target status only when the caller sets it or when creating a new snapshot.
-        if (update.TargetState is not null || entity is null)
-        {
-            var desiredTarget = DomainMapper.ToString(effectiveTargetState);
-            if (!string.Equals(printerEntity.TargetStatus, desiredTarget, StringComparison.Ordinal))
-            {
-                printerEntity.TargetStatus = desiredTarget;
-            }
-        }
-
         if (entity is null)
         {
-            entity = new PrinterRealtimeStatusEntity();
+            entity = new PrinterOperationalFlagsEntity();
             entity.PrinterId = update.PrinterId;
-            entity.TargetState = effectiveTargetState.ToString();
+            entity.TargetState = (update.TargetState ?? PrinterTargetState.Started).ToString();
             entity.UpdatedAt = update.UpdatedAt;
-            entity.BufferedBytes = update.BufferedBytes ?? 0;
             entity.IsCoverOpen = update.IsCoverOpen ?? false;
             entity.IsPaperOut = update.IsPaperOut ?? false;
             entity.IsOffline = update.IsOffline ?? false;
             entity.HasError = update.HasError ?? false;
             entity.IsPaperNearEnd = update.IsPaperNearEnd ?? false;
-            entity.Drawer1State = (update.Drawer1State ?? DrawerState.Closed).ToString();
-            entity.Drawer2State = (update.Drawer2State ?? DrawerState.Closed).ToString();
-            await dbContext.PrinterRealtimeStatuses.AddAsync(entity, ct).ConfigureAwait(false);
+            await dbContext.PrinterOperationalFlags.AddAsync(entity, ct).ConfigureAwait(false);
         }
         else
         {
-            // Persist only provided fields to avoid overwriting stored values with defaults.
-            if (update.TargetState is not null)
-            {
-                entity.TargetState = update.TargetState.Value.ToString();
-            }
-
-            entity.UpdatedAt = update.UpdatedAt;
-            // Update only provided fields to avoid overwriting stored values with defaults.
-            if (update.BufferedBytes is not null)
-            {
-                entity.BufferedBytes = update.BufferedBytes.Value;
-            }
-
-            if (update.IsCoverOpen is not null)
-            {
-                entity.IsCoverOpen = update.IsCoverOpen.Value;
-            }
-
-            if (update.IsPaperOut is not null)
-            {
-                entity.IsPaperOut = update.IsPaperOut.Value;
-            }
-
-            if (update.IsOffline is not null)
-            {
-                entity.IsOffline = update.IsOffline.Value;
-            }
-
-            if (update.HasError is not null)
-            {
-                entity.HasError = update.HasError.Value;
-            }
-
-            if (update.IsPaperNearEnd is not null)
-            {
-                entity.IsPaperNearEnd = update.IsPaperNearEnd.Value;
-            }
-
-            if (update.Drawer1State is not null)
-            {
-                entity.Drawer1State = update.Drawer1State.Value.ToString();
-            }
-
-            if (update.Drawer2State is not null)
-            {
-                entity.Drawer2State = update.Drawer2State.Value.ToString();
-            }
+            update.MapToEntity(entity);
         }
 
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    private static PrinterTargetState ParseTargetState(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return PrinterTargetState.Stopped;
-        }
-
-        return Enum.TryParse<PrinterTargetState>(value, true, out var parsed)
-            ? parsed
-            : PrinterTargetState.Stopped;
-    }
 }

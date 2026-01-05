@@ -67,7 +67,7 @@ public class EscPosPrintJobSession : PrintJobSession
     {
         // Drain before accounting for this element to reflect the printer buffer model.
         UpdateBufferState();
-        if (Printer.EmulateBufferCapacity && Printer.BufferMaxCapacity is > 0 && element.LengthInBytes > 0)
+        if (Settings.EmulateBufferCapacity && Settings.BufferMaxCapacity is > 0 && element.LengthInBytes > 0)
             bufferedBytes += element.LengthInBytes;
 
         ElementBuffer.Add(element);
@@ -75,12 +75,12 @@ public class EscPosPrintJobSession : PrintJobSession
 
     private int GetAvailableBytes()
     {
-        if (!Printer.EmulateBufferCapacity || Printer.BufferMaxCapacity is null or <= 0)
+        if (!Settings.EmulateBufferCapacity || Settings.BufferMaxCapacity is null or <= 0)
             return int.MaxValue;
 
         // Use drained value so available capacity matches the model at request time.
         UpdateBufferState();
-        return Math.Max(0, Printer.BufferMaxCapacity.Value - bufferedBytes);
+        return Math.Max(0, Settings.BufferMaxCapacity.Value - bufferedBytes);
     }
 
     private async Task IdleTimeoutAsync(CancellationToken ct)
@@ -124,9 +124,9 @@ public class EscPosPrintJobSession : PrintJobSession
             Printer.Id,
             Document.CurrentVersion,
             DateTimeOffset.UtcNow,
-            Printer.Protocol,
-            Printer.WidthInDots,
-            Printer.HeightInDots,
+            Settings.Protocol,
+            Settings.WidthInDots,
+            Settings.HeightInDots,
             Channel.ClientAddress,
             snapshot);
         SetDocument(document);

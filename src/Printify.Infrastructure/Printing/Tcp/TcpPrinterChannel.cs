@@ -20,8 +20,10 @@ public sealed class TcpPrinterChannel : IPrinterChannel
     public event Func<IPrinterChannel, PrinterChannelDataEventArgs, ValueTask>? DataReceived;
     public event Func<IPrinterChannel, PrinterChannelClosedEventArgs, ValueTask>? Closed;
 
-    public TcpPrinterChannel(Printer printer, TcpClient client)
+    public TcpPrinterChannel(Printer printer, PrinterSettings settings, TcpClient client)
     {
+        ArgumentNullException.ThrowIfNull(printer);
+        ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(client);
 
         if (!client.Connected)
@@ -31,6 +33,7 @@ public sealed class TcpPrinterChannel : IPrinterChannel
 
         this.client = client;
         Printer = printer;
+        Settings = settings;
         ClientAddress = client.Client.RemoteEndPoint?.ToString() ?? string.Empty;
         stream = client.GetStream();
         readLoopCts = new CancellationTokenSource();
@@ -108,6 +111,8 @@ public sealed class TcpPrinterChannel : IPrinterChannel
     }
 
     public Printer Printer { get; }
+
+    public PrinterSettings Settings { get; }
 
     public string ClientAddress { get; }
 

@@ -4,4 +4,4 @@ using Printify.Domain.Requests;
 
 namespace Printify.Application.Features.Printers.List;
 
-public sealed record ListPrintersQuery(RequestContext Context) : IRequest<IReadOnlyList<Printer>>;
+public sealed record ListPrintersQuery(RequestContext Context) : IRequest<IReadOnlyList<PrinterDetailsSnapshot>>;

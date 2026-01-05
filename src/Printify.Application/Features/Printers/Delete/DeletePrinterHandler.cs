@@ -22,9 +22,9 @@ public sealed class DeletePrinterHandler(
         if (printer is null)
             throw new PrinterNotFoundException(request.PrinterId);
 
-        var realtimeStatus = await printerRepository.GetRealtimeStatusAsync(printer.Id, ct).ConfigureAwait(false);
-        // Default to Stopped to avoid keeping listeners alive for deleted printers with no realtime status.
-        var targetState = realtimeStatus?.TargetState ?? PrinterTargetState.Stopped;
+        var operationalFlags = await printerRepository.GetOperationalFlagsAsync(printer.Id, ct).ConfigureAwait(false);
+        // Default to Stopped to avoid keeping listeners alive for deleted printers without operational flags.
+        var targetState = operationalFlags?.TargetState ?? PrinterTargetState.Stopped;
         await listenerOrchestrator.RemoveListenerAsync(printer, targetState, ct).ConfigureAwait(false);
         await printerRepository.DeleteAsync(printer, ct).ConfigureAwait(false);
 

@@ -8,11 +8,12 @@ namespace Printify.Infrastructure.Printing;
 
 public sealed class PrinterListenerFactory(ILoggerFactory loggerFactory) : IPrinterListenerFactory
 {
-    public IPrinterListener Create(Printer printer)
+    public IPrinterListener Create(Printer printer, PrinterSettings settings)
     {
         ArgumentNullException.ThrowIfNull(printer);
+        ArgumentNullException.ThrowIfNull(settings);
 
         var logger = loggerFactory.CreateLogger<TcpPrinterListener>();
-        return new TcpPrinterListener(printer, logger);
+        return new TcpPrinterListener(printer, settings, logger);
     }
 }

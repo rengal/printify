@@ -21,13 +21,19 @@ internal sealed class PrinterListenerBootstrapper(
                 continue;
             }
 
-            var realtimeStatus = await printerRepository.GetRealtimeStatusAsync(printer.Id, ct).ConfigureAwait(false);
-            // Default to Started to preserve legacy behavior when no realtime status exists yet.
-            var targetState = realtimeStatus?.TargetState ?? PrinterTargetState.Started;
+            var printerSettings = await printerRepository.GetSettingsAsync(printer.Id, ct).ConfigureAwait(false);
+            // Settings are persisted separately; missing settings indicate a data integrity issue.
+            if (printerSettings is null)
+            {
+                throw new InvalidOperationException($"Settings for printer {printer.Id} are missing.");
+            }
+            var operationalFlags = await printerRepository.GetOperationalFlagsAsync(printer.Id, ct).ConfigureAwait(false);
+            // Default to Started to preserve legacy behavior when no operational flags exist yet.
+            var targetState = operationalFlags?.TargetState ?? PrinterTargetState.Started;
             // Only start listeners for printers marked as Started.
             if (targetState == PrinterTargetState.Started)
             {
-                await orchestrator.AddListenerAsync(printer, targetState, ct).ConfigureAwait(false);
+                await orchestrator.AddListenerAsync(printer, printerSettings, targetState, ct).ConfigureAwait(false);
             }
             else
             {
@@ -48,9 +54,9 @@ internal sealed class PrinterListenerBootstrapper(
                 continue;
             }
 
-            var realtimeStatus = await printerRepository.GetRealtimeStatusAsync(printer.Id, ct).ConfigureAwait(false);
+            var operationalFlags = await printerRepository.GetOperationalFlagsAsync(printer.Id, ct).ConfigureAwait(false);
             // Default to Stopped to avoid re-starting listeners during shutdown.
-            var targetState = realtimeStatus?.TargetState ?? PrinterTargetState.Stopped;
+            var targetState = operationalFlags?.TargetState ?? PrinterTargetState.Stopped;
             await orchestrator.RemoveListenerAsync(printer, targetState, ct).ConfigureAwait(false);
         }
     }
