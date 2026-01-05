@@ -40,10 +40,13 @@ public sealed class UpdatePrinterHandler(
         // Listener port is assigned by the server; no port updates allowed from client.
 
         // Restart the listener if the printer is already started
-        if (printer.TargetState == PrinterTargetState.Started)
+        var realtimeStatus = await printerRepository.GetRealtimeStatusAsync(printer.Id, cancellationToken);
+        // Default to Started to preserve the legacy target-state behavior for missing records.
+        var targetState = realtimeStatus?.TargetState ?? PrinterTargetState.Started;
+        if (targetState == PrinterTargetState.Started)
         {
-            await listenerOrchestrator.RemoveListenerAsync(printer, cancellationToken).ConfigureAwait(false);
-            await listenerOrchestrator.AddListenerAsync(updated, cancellationToken).ConfigureAwait(false);
+            await listenerOrchestrator.RemoveListenerAsync(printer, targetState, cancellationToken).ConfigureAwait(false);
+            await listenerOrchestrator.AddListenerAsync(updated, targetState, cancellationToken).ConfigureAwait(false);
         }
 
         return updated;

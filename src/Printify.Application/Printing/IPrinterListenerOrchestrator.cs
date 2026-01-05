@@ -7,8 +7,8 @@ namespace Printify.Application.Printing;
 /// </summary>
 public interface IPrinterListenerOrchestrator
 {
-    Task AddListenerAsync(Printer printer, CancellationToken ct);
-    Task RemoveListenerAsync(Printer printer, CancellationToken ct);
+    Task AddListenerAsync(Printer printer, PrinterTargetState targetState, CancellationToken ct);
+    Task RemoveListenerAsync(Printer printer, PrinterTargetState targetState, CancellationToken ct);
     ListenerStatusSnapshot GetStatus(Printer printer);
     IReadOnlyCollection<IPrinterChannel> GetActiveChannels(Guid printerId);
 }

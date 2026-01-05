@@ -2,6 +2,7 @@ using MediatR;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
+using Printify.Domain.Printers;
 
 namespace Printify.Application.Features.Printers.Delete;
 
@@ -21,7 +22,10 @@ public sealed class DeletePrinterHandler(
         if (printer is null)
             throw new PrinterNotFoundException(request.PrinterId);
 
-        await listenerOrchestrator.RemoveListenerAsync(printer, ct).ConfigureAwait(false);
+        var realtimeStatus = await printerRepository.GetRealtimeStatusAsync(printer.Id, ct).ConfigureAwait(false);
+        // Default to Stopped to avoid keeping listeners alive for deleted printers with no realtime status.
+        var targetState = realtimeStatus?.TargetState ?? PrinterTargetState.Stopped;
+        await listenerOrchestrator.RemoveListenerAsync(printer, targetState, ct).ConfigureAwait(false);
         await printerRepository.DeleteAsync(printer, ct).ConfigureAwait(false);
 
         return Unit.Value;

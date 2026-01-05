@@ -13,6 +13,8 @@ public interface IPrinterRepository
     Task DeleteAsync(Printer printer, CancellationToken ct);
     Task SetPinnedAsync(Guid id, bool isPinned, CancellationToken ct);
     Task SetLastDocumentReceivedAtAsync(Guid id, DateTimeOffset timestamp, CancellationToken ct);
-    Task SetTargetStateAsync(Guid id, PrinterTargetState targetState, CancellationToken ct);
     ValueTask<int> GetFreeTcpPortNumber(CancellationToken ct);
+    ValueTask<PrinterRealtimeStatus?> GetRealtimeStatusAsync(Guid printerId, CancellationToken ct);
+    ValueTask<IReadOnlyDictionary<Guid, PrinterRealtimeStatus>> ListRealtimeStatusesAsync(Guid workspaceId, CancellationToken ct);
+    Task UpsertRealtimeStatusAsync(PrinterRealtimeStatusUpdate update, CancellationToken ct);
 }

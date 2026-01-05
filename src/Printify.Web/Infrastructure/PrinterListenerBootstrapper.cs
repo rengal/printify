@@ -21,14 +21,17 @@ internal sealed class PrinterListenerBootstrapper(
                 continue;
             }
 
+            var realtimeStatus = await printerRepository.GetRealtimeStatusAsync(printer.Id, ct).ConfigureAwait(false);
+            // Default to Started to preserve legacy behavior when no realtime status exists yet.
+            var targetState = realtimeStatus?.TargetState ?? PrinterTargetState.Started;
             // Only start listeners for printers marked as Started.
-            if (printer.TargetState == PrinterTargetState.Started)
+            if (targetState == PrinterTargetState.Started)
             {
-                await orchestrator.AddListenerAsync(printer, ct).ConfigureAwait(false);
+                await orchestrator.AddListenerAsync(printer, targetState, ct).ConfigureAwait(false);
             }
             else
             {
-                await orchestrator.RemoveListenerAsync(printer, ct).ConfigureAwait(false);
+                await orchestrator.RemoveListenerAsync(printer, targetState, ct).ConfigureAwait(false);
             }
         }
     }
@@ -45,7 +48,10 @@ internal sealed class PrinterListenerBootstrapper(
                 continue;
             }
 
-            await orchestrator.RemoveListenerAsync(printer, ct).ConfigureAwait(false);
+            var realtimeStatus = await printerRepository.GetRealtimeStatusAsync(printer.Id, ct).ConfigureAwait(false);
+            // Default to Stopped to avoid re-starting listeners during shutdown.
+            var targetState = realtimeStatus?.TargetState ?? PrinterTargetState.Stopped;
+            await orchestrator.RemoveListenerAsync(printer, targetState, ct).ConfigureAwait(false);
         }
     }
 }

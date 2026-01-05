@@ -20,29 +20,30 @@ public sealed class PrinterListenerOrchestrator(
     private readonly ConcurrentDictionary<Guid, IPrinterListener> listeners = new();
     private readonly ConcurrentDictionary<Guid, HashSet<IPrinterChannel>> printerChannels = new();
 
-    public async Task AddListenerAsync(Printer printer, CancellationToken ct)
+    public async Task AddListenerAsync(Printer printer, PrinterTargetState targetState, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(printer);
 
-        await RemoveListenerAsync(printer, ct).ConfigureAwait(false);
+        await RemoveListenerAsync(printer, targetState, ct).ConfigureAwait(false);
 
         var listener = listenerFactory.Create(printer);
         logger.LogInformation("Listener added for printer {PrinterId}", printer.Id);
         listeners[printer.Id] = listener;
         listener.ChannelAccepted += Listener_ChannelAccepted;
 
-        await UpdateRuntimeStatusAsync(printer, PrinterRuntimeStatus.Starting, null, ct).ConfigureAwait(false);
+        await UpdateRuntimeStatusAsync(printer, targetState, PrinterState.Starting, null, ct).ConfigureAwait(false);
         try
         {
             await listener.StartAsync(ct).ConfigureAwait(false);
-            await UpdateRuntimeStatusAsync(printer, MapRuntimeStatus(listener.Status), null, ct).ConfigureAwait(false);
+            await UpdateRuntimeStatusAsync(printer, targetState, MapState(listener.Status), null, ct).ConfigureAwait(false);
         }
         catch
         {
             listener.ChannelAccepted -= Listener_ChannelAccepted;
             listeners.TryRemove(printer.Id, out _);
             await listener.DisposeAsync().ConfigureAwait(false);
-            await UpdateRuntimeStatusAsync(printer, PrinterRuntimeStatus.Error, "Failed to start listener", ct).ConfigureAwait(false);
+            await UpdateRuntimeStatusAsync(printer, targetState, PrinterState.Error, "Failed to start listener", ct)
+                .ConfigureAwait(false);
             throw;
         }
     }
@@ -105,7 +106,7 @@ public sealed class PrinterListenerOrchestrator(
         }
     }
 
-    public async Task RemoveListenerAsync(Printer printer, CancellationToken ct)
+    public async Task RemoveListenerAsync(Printer printer, PrinterTargetState targetState, CancellationToken ct)
     {
         if (!listeners.TryRemove(printer.Id, out var listener))
             return;
@@ -126,7 +127,7 @@ public sealed class PrinterListenerOrchestrator(
         await listener.DisposeAsync().ConfigureAwait(false);
         logger.LogInformation("Listener removed for printer {PrinterId}", printer.Id);
         listener.ChannelAccepted -= Listener_ChannelAccepted;
-        await UpdateRuntimeStatusAsync(printer, PrinterRuntimeStatus.Stopped, null, ct).ConfigureAwait(false);
+        await UpdateRuntimeStatusAsync(printer, targetState, PrinterState.Stopped, null, ct).ConfigureAwait(false);
     }
 
     public ListenerStatusSnapshot GetStatus(Printer printer)
@@ -154,28 +155,41 @@ public sealed class PrinterListenerOrchestrator(
         };
     }
 
-    private Task UpdateRuntimeStatusAsync(Printer printer, PrinterRuntimeStatus status, string? error, CancellationToken ct)
+    private Task UpdateRuntimeStatusAsync(
+        Printer printer,
+        PrinterTargetState targetState,
+        PrinterState status,
+        string? error,
+        CancellationToken ct)
     {
         var timestamp = DateTimeOffset.UtcNow;
 
-        statusStream.Publish(new PrinterStatusEvent(
-            printer.OwnerWorkspaceId,
+        var realtimeStatus = new PrinterRealtimeStatus(
             printer.Id,
-            printer.TargetState,
+            targetState,
             status,
             timestamp,
-            error));
+            error,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+        statusStream.Publish(printer.OwnerWorkspaceId, realtimeStatus);
         return Task.CompletedTask;
     }
 
-    private static PrinterRuntimeStatus MapRuntimeStatus(PrinterListenerStatus status)
+    private static PrinterState MapState(PrinterListenerStatus status)
     {
         return status switch
         {
-            PrinterListenerStatus.Idle => PrinterRuntimeStatus.Stopped,
-            PrinterListenerStatus.OpeningPort => PrinterRuntimeStatus.Starting,
-            PrinterListenerStatus.Listening => PrinterRuntimeStatus.Started,
-            PrinterListenerStatus.Failed => PrinterRuntimeStatus.Error,
+            PrinterListenerStatus.Idle => PrinterState.Stopped,
+            PrinterListenerStatus.OpeningPort => PrinterState.Starting,
+            PrinterListenerStatus.Listening => PrinterState.Started,
+            PrinterListenerStatus.Failed => PrinterState.Error,
             _ => throw new InvalidOperationException("Unknown listener status")
         };
     }

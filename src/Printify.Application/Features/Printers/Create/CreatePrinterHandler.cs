@@ -41,7 +41,6 @@ public sealed class CreatePrinterHandler(
             request.EmulateBufferCapacity,
             request.BufferDrainRate,
             request.BufferMaxCapacity,
-            PrinterTargetState.Started,
             null,
             null,
             false,
@@ -51,7 +50,15 @@ public sealed class CreatePrinterHandler(
 
         await printerRepository.AddAsync(printer, ct).ConfigureAwait(false);
 
-        await listenerOrchestrator.AddListenerAsync(printer, ct).ConfigureAwait(false);
+        // Seed realtime status so target state is stored outside the printer aggregate.
+        var initialUpdate = new PrinterRealtimeStatusUpdate(
+            printer.Id,
+            DateTimeOffset.UtcNow,
+            TargetState: PrinterTargetState.Started,
+            State: PrinterState.Stopped);
+        await printerRepository.UpsertRealtimeStatusAsync(initialUpdate, ct).ConfigureAwait(false);
+
+        await listenerOrchestrator.AddListenerAsync(printer, PrinterTargetState.Started, ct).ConfigureAwait(false);
 
         return printer;
     }

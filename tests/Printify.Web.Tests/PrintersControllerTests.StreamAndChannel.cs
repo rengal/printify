@@ -17,7 +17,11 @@ public sealed partial class PrintersControllerTests
         await AuthHelper.CreateWorkspaceAndLogin(environment);
 
         // Step 1: Subscribe to status stream before creating printers to capture starting/started events.
-        var startStatusTask = ListenForStatusEventsAsync(client, expectedCount: n * 2, timeout: TimeSpan.FromSeconds(2), breakOnDistinct: false);
+        var startStatusTask = ListenForStatusEventsAsync(
+            client,
+            expectedCount: n * 2,
+            timeout: TimeSpan.FromSeconds(2),
+            breakOnDistinct: false);
 
         // Step 2: Create printers (server auto-starts listeners)
         var printerIds = new List<Guid>(n);
@@ -32,10 +36,12 @@ public sealed partial class PrintersControllerTests
 
         // Step 3: Wait for starting/started events
         var startEvents = await startStatusTask;
-        var startingCount = startEvents.Count(e => string.Equals(e.RuntimeStatus, "starting", StringComparison.OrdinalIgnoreCase));
-        var startedCount = startEvents.Count(e => string.Equals(e.RuntimeStatus, "started", StringComparison.OrdinalIgnoreCase));
+        var startingCount = startEvents.Count(
+            e => string.Equals(e.State, "starting", StringComparison.OrdinalIgnoreCase));
+        var startedCount = startEvents.Count(
+            e => string.Equals(e.State, "started", StringComparison.OrdinalIgnoreCase));
         var distinctStarted = startEvents
-            .Where(e => string.Equals(e.RuntimeStatus, "started", StringComparison.OrdinalIgnoreCase))
+            .Where(e => string.Equals(e.State, "started", StringComparison.OrdinalIgnoreCase))
             .Select(e => e.PrinterId)
             .Distinct()
             .ToHashSet();
@@ -53,16 +59,30 @@ public sealed partial class PrintersControllerTests
         }
 
         // Step 5: Stop all printers and wait for stopped events
-        var stopStatusTask = ListenForStatusEventsAsync(client, expectedCount: n, timeout: TimeSpan.FromSeconds(2), breakOnDistinct: true);
+        var stopStatusTask = ListenForStatusEventsAsync(
+            client,
+            expectedCount: n,
+            timeout: TimeSpan.FromSeconds(2),
+            breakOnDistinct: true);
         foreach (var printerId in printerIds)
         {
-            var stopResponse = await client.PostAsJsonAsync($"/api/printers/{printerId}/status", new SetPrinterStatusRequestDto { TargetStatus = "Stopped" });
+            var stopResponse = await client.PatchAsJsonAsync(
+                $"/api/printers/{printerId}/realtime-status",
+                new UpdatePrinterRealtimeStatusRequestDto(
+                    TargetStatus: "Stopped",
+                    IsCoverOpen: null,
+                    IsPaperOut: null,
+                    IsOffline: null,
+                    HasError: null,
+                    IsPaperNearEnd: null,
+                    Drawer1State: null,
+                    Drawer2State: null));
             stopResponse.EnsureSuccessStatusCode();
         }
 
         var stopEvents = await stopStatusTask;
         var stoppedIds = stopEvents
-            .Where(e => string.Equals(e.RuntimeStatus, "stopped", StringComparison.OrdinalIgnoreCase))
+            .Where(e => string.Equals(e.State, "stopped", StringComparison.OrdinalIgnoreCase))
             .Select(e => e.PrinterId)
             .Distinct()
             .ToHashSet();

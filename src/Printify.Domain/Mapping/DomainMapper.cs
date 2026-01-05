@@ -91,13 +91,13 @@ public static class DomainMapper
         return status.ToString();
     }
 
-    public static PrinterRuntimeStatus ParsePrinterRuntimeStatus(string status)
+    public static PrinterState ParsePrinterState(string status)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
-        return Enum.Parse<PrinterRuntimeStatus>(status, false);
+        return Enum.Parse<PrinterState>(status, false);
     }
 
-    public static string ToString(PrinterRuntimeStatus status)
+    public static string ToString(PrinterState status)
     {
         return status.ToString();
     }

@@ -17,6 +17,8 @@ public sealed class PrintifyDbContext : DbContext
 
     public DbSet<PrinterEntity> Printers => Set<PrinterEntity>();
 
+    public DbSet<PrinterRealtimeStatusEntity> PrinterRealtimeStatuses => Set<PrinterRealtimeStatusEntity>();
+
     public DbSet<PrintJobEntity> PrintJobs => Set<PrintJobEntity>();
 
     public DbSet<DocumentEntity> Documents => Set<DocumentEntity>();
@@ -33,6 +35,16 @@ public sealed class PrintifyDbContext : DbContext
         modelBuilder.Entity<PrinterEntity>()
             .HasIndex(printer => printer.ListenTcpPortNumber)
             .IsUnique();
+
+        modelBuilder.Entity<PrinterRealtimeStatusEntity>(entity =>
+        {
+            entity.HasKey(status => status.PrinterId);
+
+            entity.HasOne<PrinterEntity>()
+                .WithOne()
+                .HasForeignKey<PrinterRealtimeStatusEntity>(status => status.PrinterId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         modelBuilder.Entity<DocumentEntity>(entity =>
         {

@@ -7,28 +7,34 @@ namespace Printify.Web.Mapping;
 
 internal static class PrinterMapper
 {
-    internal static PrinterTargetState ToTargetState(this string targetState)
+    internal static PrinterState MapListenerState(PrinterListenerStatus status)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(targetState);
-        return targetState.Trim().ToLowerInvariant() switch
+        return status switch
         {
-            "started" or "start" => PrinterTargetState.Started,
-            "stopped" or "stop" => PrinterTargetState.Stopped,
-            _ => throw new ArgumentOutOfRangeException(nameof(targetState), targetState, "Unsupported target state.")
+            PrinterListenerStatus.OpeningPort => PrinterState.Starting,
+            PrinterListenerStatus.Listening => PrinterState.Started,
+            PrinterListenerStatus.Idle => PrinterState.Stopped,
+            PrinterListenerStatus.Failed => PrinterState.Error,
+            _ => throw new InvalidOperationException("unknown runtime status")
         };
     }
 
-    internal static PrinterResponseDto ToResponseDto(this Printer printer, ListenerStatusSnapshot runtime)
+    internal static PrinterResponseDto ToResponseDto(
+        this Printer printer,
+        ListenerStatusSnapshot runtime,
+        PrinterRealtimeStatus? realtimeStatus)
     {
         ArgumentNullException.ThrowIfNull(printer);
-        var runtimeStatus = runtime.Status switch
-        {
-            PrinterListenerStatus.OpeningPort => PrinterRuntimeStatus.Starting,
-            PrinterListenerStatus.Listening => PrinterRuntimeStatus.Started,
-            PrinterListenerStatus.Idle => PrinterRuntimeStatus.Stopped,
-            PrinterListenerStatus.Failed => PrinterRuntimeStatus.Error,
-            _ => throw new InvalidOperationException("unknown runtime status")
-        };
+        var state = MapListenerState(runtime.Status);
+        // Default to Started to preserve legacy target-state behavior when no snapshot exists.
+        var targetState = realtimeStatus?.TargetState ?? PrinterTargetState.Started;
+
+        var effectiveRealtimeStatus = realtimeStatus is null
+            ? null
+            : realtimeStatus with
+            {
+                State = state
+            };
 
         return new PrinterResponseDto(
             printer.Id,
@@ -40,23 +46,36 @@ internal static class PrinterMapper
             printer.EmulateBufferCapacity,
             printer.BufferDrainRate,
             printer.BufferMaxCapacity,
-            printer.TargetState.ToString(),
-            runtimeStatus.ToString(),
+            targetState.ToString(),
+            state.ToString(),
             runtime?.Status == null ? null : DateTimeOffset.UtcNow,
-            runtimeStatus == PrinterRuntimeStatus.Error ? runtime?.Status.ToString() : null,
+            state == PrinterState.Error ? runtime?.Status.ToString() : null,
+            ToRealtimeStatusDto(effectiveRealtimeStatus),
             printer.IsPinned,
             printer.LastViewedDocumentId,
             printer.LastDocumentReceivedAt);
     }
 
-    internal static PrinterStatusEventDto ToResponseDto(this PrinterStatusEvent statusEvent)
+    internal static PrinterRealtimeStatusDto? ToRealtimeStatusDto(PrinterRealtimeStatus? status)
     {
-        ArgumentNullException.ThrowIfNull(statusEvent);
-        return new PrinterStatusEventDto(
-            statusEvent.PrinterId,
-            statusEvent.TargetState.ToString(),
-            statusEvent.RuntimeStatus.ToString(),
-            statusEvent.UpdatedAt,
-            statusEvent.Error);
+        if (status is null)
+        {
+            return null;
+        }
+
+        return new PrinterRealtimeStatusDto(
+            status.PrinterId,
+            status.TargetState.ToString(),
+            status.State.ToString(),
+            status.UpdatedAt,
+            status.Error,
+            status.BufferedBytes,
+            status.IsCoverOpen,
+            status.IsPaperOut,
+            status.IsOffline,
+            status.HasError,
+            status.IsPaperNearEnd,
+            status.Drawer1State?.ToString(),
+            status.Drawer2State?.ToString());
     }
 }

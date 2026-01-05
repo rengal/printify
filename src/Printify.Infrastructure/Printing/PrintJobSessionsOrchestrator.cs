@@ -4,6 +4,7 @@ using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
 using Printify.Infrastructure.Cryptography;
@@ -16,7 +17,8 @@ namespace Printify.Infrastructure.Printing;
 public sealed class PrintJobSessionsOrchestrator(
     IPrintJobSessionFactory printJobSessionFactory,
     IServiceScopeFactory scopeFactory,
-    IPrinterDocumentStream documentStream)
+    IPrinterDocumentStream documentStream,
+    IPrinterStatusStream statusStream)
     : IPrintJobSessionsOrchestrator
 {
     private readonly ConcurrentDictionary<IPrinterChannel, IPrintJobSession> jobSessions = new();
@@ -75,6 +77,16 @@ public sealed class PrintJobSessionsOrchestrator(
             await documentRepository.AddAsync(finalizedDocument, ct).ConfigureAwait(false);
             await printerRepository.SetLastDocumentReceivedAtAsync(finalizedDocument.PrinterId, finalizedDocument.CreatedAt, ct)
                 .ConfigureAwait(false);
+            // Update cash drawers status, if needed
+            var drawerStatus = await TryUpdateDrawerStateFromElementsAsync(
+                channel.Printer,
+                finalizedDocument.Elements,
+                printerRepository,
+                ct).ConfigureAwait(false);
+            if (drawerStatus is not null)
+            {
+                statusStream.Publish(channel.Printer.OwnerWorkspaceId, drawerStatus);
+            }
             documentStream.Publish(new DocumentStreamEvent(finalizedDocument));
         }
     }
@@ -234,4 +246,76 @@ public sealed class PrintJobSessionsOrchestrator(
         QrModel Model = QrModel.Model2,
         int? ModuleSizeInDots = null,
         QrErrorCorrectionLevel? ErrorCorrectionLevel = null);
+
+    /// <summary>
+    /// Updates drawer state based on ESC/POS pulse elements and returns the new snapshot for publishing.
+    /// </summary>
+    private static async Task<PrinterRealtimeStatus?> TryUpdateDrawerStateFromElementsAsync(
+        Printer printer,
+        IReadOnlyCollection<Element> elements,
+        IPrinterRepository printerRepository,
+        CancellationToken ct)
+    {
+        var (drawer1, drawer2) = GetDrawerStateUpdates(elements);
+        if (drawer1 is null && drawer2 is null)
+        {
+            return null;
+        }
+
+        var existing = await printerRepository.GetRealtimeStatusAsync(printer.Id, ct).ConfigureAwait(false);
+        // Default to Started so drawer updates align with the default target state when no snapshot exists.
+        var targetState = existing?.TargetState ?? PrinterTargetState.Started;
+        var nextDrawer1 = drawer1 ?? existing?.Drawer1State ?? DrawerState.Closed;
+        var nextDrawer2 = drawer2 ?? existing?.Drawer2State ?? DrawerState.Closed;
+        if (nextDrawer1 == existing?.Drawer1State && nextDrawer2 == existing?.Drawer2State)
+        {
+            return null;
+        }
+
+        var updatedAt = DateTimeOffset.UtcNow;
+        // Only persist target state when there is no existing snapshot.
+        var update = new PrinterRealtimeStatusUpdate(
+            printer.Id,
+            updatedAt,
+            TargetState: existing is null ? targetState : null,
+            State: PrinterState.Started,
+            Drawer1State: nextDrawer1,
+            Drawer2State: nextDrawer2);
+        var baseStatus = existing ?? new PrinterRealtimeStatus(
+            printer.Id,
+            targetState,
+            PrinterState.Started,
+            updatedAt);
+        var updated = update.ApplyTo(baseStatus);
+
+        await printerRepository.UpsertRealtimeStatusAsync(update, ct).ConfigureAwait(false);
+        return updated;
+    }
+
+    private static (DrawerState? Drawer1State, DrawerState? Drawer2State) GetDrawerStateUpdates(
+        IReadOnlyCollection<Element> elements)
+    {
+        DrawerState? drawer1 = null;
+        DrawerState? drawer2 = null;
+
+        foreach (var element in elements)
+        {
+            if (element is not Pulse pulse)
+            {
+                continue;
+            }
+
+            // ESC/POS pin 0/1 maps to drawer 1/2 for emulated cash drawer pulses.
+            if (pulse.Pin == 0)
+            {
+                drawer1 = DrawerState.OpenedByCommand;
+            }
+            else if (pulse.Pin == 1)
+            {
+                drawer2 = DrawerState.OpenedByCommand;
+            }
+        }
+
+        return (drawer1, drawer2);
+    }
 }

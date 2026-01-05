@@ -2,22 +2,23 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Printify.Application.Printing;
+using Printify.Domain.Printers;
 
 namespace Printify.Infrastructure.Printing;
 
 /// <summary>
-/// In-memory pub/sub stream for printer runtime status updates per workspace.
+/// In-memory pub/sub stream for printer realtime status updates per workspace.
 /// </summary>
 public sealed class PrinterStatusStream : IPrinterStatusStream
 {
-    private readonly ConcurrentDictionary<Guid, ConcurrentDictionary<Guid, Channel<PrinterStatusEvent>>> subscriptions = new();
+    private readonly ConcurrentDictionary<Guid, ConcurrentDictionary<Guid, Channel<PrinterRealtimeStatus>>> subscriptions = new();
     private bool disposed;
 
-    public IAsyncEnumerable<PrinterStatusEvent> Subscribe(Guid workspaceId, CancellationToken ct)
+    public IAsyncEnumerable<PrinterRealtimeStatus> Subscribe(Guid workspaceId, CancellationToken ct)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
 
-        var channel = Channel.CreateUnbounded<PrinterStatusEvent>(new UnboundedChannelOptions
+        var channel = Channel.CreateUnbounded<PrinterRealtimeStatus>(new UnboundedChannelOptions
         {
             SingleReader = true,
             AllowSynchronousContinuations = true
@@ -25,15 +26,15 @@ public sealed class PrinterStatusStream : IPrinterStatusStream
 
         var subscriptionId = Guid.NewGuid();
         var bucket = subscriptions.GetOrAdd(workspaceId,
-            static _ => new ConcurrentDictionary<Guid, Channel<PrinterStatusEvent>>());
+            static _ => new ConcurrentDictionary<Guid, Channel<PrinterRealtimeStatus>>());
         bucket[subscriptionId] = channel;
 
         return ReadChannelAsync(workspaceId, subscriptionId, channel, ct);
     }
 
-    public void Publish(PrinterStatusEvent statusEvent)
+    public void Publish(Guid workspaceId, PrinterRealtimeStatus status)
     {
-        if (disposed || !subscriptions.TryGetValue(statusEvent.WorkspaceId, out var bucket))
+        if (disposed || !subscriptions.TryGetValue(workspaceId, out var bucket))
         {
             return;
         }
@@ -42,7 +43,7 @@ public sealed class PrinterStatusStream : IPrinterStatusStream
         {
             try
             {
-                channel.Writer.TryWrite(statusEvent);
+                channel.Writer.TryWrite(status);
             }
             catch (ChannelClosedException)
             {
@@ -51,10 +52,10 @@ public sealed class PrinterStatusStream : IPrinterStatusStream
         }
     }
 
-    private async IAsyncEnumerable<PrinterStatusEvent> ReadChannelAsync(
+    private async IAsyncEnumerable<PrinterRealtimeStatus> ReadChannelAsync(
         Guid workspaceId,
         Guid subscriptionId,
-        Channel<PrinterStatusEvent> channel,
+        Channel<PrinterRealtimeStatus> channel,
         [EnumeratorCancellation] CancellationToken ct)
     {
         try

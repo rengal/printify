@@ -21,7 +21,15 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
         await AuthHelper.CreateWorkspaceAndLogin(environment);
 
         var printerId = Guid.NewGuid();
-        var createRequest = new CreatePrinterRequestDto(printerId, "Listener Printer", "EscPos", 384, null, false, null, null);
+        var createRequest = new CreatePrinterRequestDto(
+            printerId,
+            "Listener Printer",
+            "EscPos",
+            384,
+            null,
+            false,
+            null,
+            null);
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -57,7 +65,15 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
 
         // Act: create first printer
         var firstId = Guid.NewGuid();
-        var firstRequest = new CreatePrinterRequestDto(firstId, "Port Printer 1", "EscPos", 512, null, false, null, null);
+        var firstRequest = new CreatePrinterRequestDto(
+            firstId,
+            "Port Printer 1",
+            "EscPos",
+            512,
+            null,
+            false,
+            null,
+            null);
         var firstResponse = await client.PostAsJsonAsync("/api/printers", firstRequest);
         firstResponse.EnsureSuccessStatusCode();
         var firstDto = await firstResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
@@ -65,7 +81,15 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
 
         // Act: create second printer
         var secondId = Guid.NewGuid();
-        var secondRequest = new CreatePrinterRequestDto(secondId, "Port Printer 2", "EscPos", 512, null, false, null, null);
+        var secondRequest = new CreatePrinterRequestDto(
+            secondId,
+            "Port Printer 2",
+            "EscPos",
+            512,
+            null,
+            false,
+            null,
+            null);
         var secondResponse = await client.PostAsJsonAsync("/api/printers", secondRequest);
         secondResponse.EnsureSuccessStatusCode();
         var secondDto = await secondResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
@@ -77,16 +101,22 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
         Assert.NotEqual(firstDto.TcpListenPort, secondDto.TcpListenPort);
     }
 
-    private static async Task<List<PrinterStatusEventDto>> ListenForStatusEventsAsync(
+    private static async Task<List<PrinterRealtimeStatusDto>> ListenForStatusEventsAsync(
         HttpClient client,
         int expectedCount,
         TimeSpan timeout,
-        bool breakOnDistinct = true)
+        bool breakOnDistinct = true,
+        string? url = null)
     {
+        const string defaultUrl = "/api/printers/status/stream?scope=state";
         using var cts = new CancellationTokenSource(timeout);
-        var events = new List<PrinterStatusEventDto>();
+        var events = new List<PrinterRealtimeStatusDto>();
 
-        using var response = await client.GetAsync("/api/printers/status/stream", HttpCompletionOption.ResponseHeadersRead, cts.Token);
+        var requestUrl = string.IsNullOrWhiteSpace(url) ? defaultUrl : url;
+        using var response = await client.GetAsync(
+            requestUrl,
+            HttpCompletionOption.ResponseHeadersRead,
+            cts.Token);
         response.EnsureSuccessStatusCode();
 
         await using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
@@ -94,8 +124,6 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
 
         string? currentEvent = null;
         string? currentData = null;
-
-        var start = DateTimeOffset.UtcNow;
 
         while (!cts.IsCancellationRequested)
         {
@@ -115,9 +143,9 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
             }
             else if (string.IsNullOrWhiteSpace(line))
             {
-                if (currentEvent == "status" && !string.IsNullOrEmpty(currentData))
+                if ((currentEvent == "status" || currentEvent == "state") && !string.IsNullOrEmpty(currentData))
                 {
-                    var ev = JsonSerializer.Deserialize<PrinterStatusEventDto>(currentData, new JsonSerializerOptions
+                    var ev = JsonSerializer.Deserialize<PrinterRealtimeStatusDto>(currentData, new JsonSerializerOptions
                     {
                         PropertyNameCaseInsensitive = true
                     });
@@ -138,6 +166,69 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
             }
 
             if (!breakOnDistinct && events.Count >= expectedCount)
+            {
+                break;
+            }
+        }
+
+        return events;
+    }
+
+    private static async Task<List<PrinterRealtimeStatusDto>> ListenForFullStatusEventsAsync(
+        HttpClient client,
+        Guid printerId,
+        int expectedCount,
+        TimeSpan timeout)
+    {
+        using var cts = new CancellationTokenSource(timeout);
+        var events = new List<PrinterRealtimeStatusDto>();
+
+        var url = $"/api/printers/status/stream?scope=full&printerId={printerId}";
+        using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
+        using var reader = new StreamReader(stream);
+
+        string? currentEvent = null;
+        string? currentData = null;
+
+        while (!cts.IsCancellationRequested)
+        {
+            var line = await reader.ReadLineAsync();
+            if (line is null)
+            {
+                break;
+            }
+
+            if (line.StartsWith("event:", StringComparison.OrdinalIgnoreCase))
+            {
+                currentEvent = line[6..].Trim();
+            }
+            else if (line.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                currentData = line[5..].Trim();
+            }
+            else if (string.IsNullOrWhiteSpace(line))
+            {
+                if (string.Equals(currentEvent, "full", StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrEmpty(currentData))
+                {
+                    var ev = JsonSerializer.Deserialize<PrinterRealtimeStatusDto>(currentData, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                    if (ev != null)
+                    {
+                        events.Add(ev);
+                    }
+                }
+
+                currentEvent = null;
+                currentData = null;
+            }
+
+            if (events.Count >= expectedCount)
             {
                 break;
             }

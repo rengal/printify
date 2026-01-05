@@ -1199,8 +1199,8 @@
             if (!printer) return;
 
             try {
-                await apiRequest(`/api/printers/${printerId}/status`, {
-                    method: 'POST',
+                await apiRequest(`/api/printers/${printerId}/realtime-status`, {
+                    method: 'PATCH',
                     body: JSON.stringify({ targetStatus })
                 });
                 await loadPrinters(printerId);
@@ -2096,7 +2096,7 @@
             statusStreamController = controller;
 
             try {
-                const response = await fetch('/api/printers/status/stream', {
+                const response = await fetch('/api/printers/status/stream?scope=state', {
                     method: 'GET',
                     headers: { ...authHeaders(), 'Accept': 'text/event-stream' },
                     signal: controller.signal
@@ -2133,7 +2133,7 @@
                             }
                         }
 
-                        if (eventName === 'status' && data) {
+                        if ((eventName === 'state' || eventName === 'status') && data) {
                             try {
                                 const payload = JSON.parse(data);
                                 handleStatusEvent(payload);
@@ -2164,7 +2164,7 @@
 
             const updated = { ...printers[idx] };
             updated.targetStatus = (payload.targetState || payload.targetStatus || updated.targetStatus || '').toLowerCase();
-            updated.runtimeStatus = (payload.runtimeStatus || updated.runtimeStatus || '').toLowerCase();
+            updated.runtimeStatus = (payload.state || payload.runtimeStatus || updated.runtimeStatus || '').toLowerCase();
             updated.runtimeStatusAt = payload.updatedAt ? new Date(payload.updatedAt) : updated.runtimeStatusAt;
             updated.runtimeStatusError = payload.error || null;
             printers[idx] = updated;

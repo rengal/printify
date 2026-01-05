@@ -1,4 +1,7 @@
-﻿using Printify.Application.Printing.Events;
+﻿using System.Net.Http.Json;
+using System.Text;
+using Printify.Application.Printing;
+using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
@@ -6,9 +9,6 @@ using Printify.Web.Contracts.Documents.Responses;
 using Printify.Web.Contracts.Documents.Responses.Elements;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
-using System.Net.Http.Json;
-using System.Text;
-using Printify.Application.Printing;
 
 namespace Printify.Web.Tests;
 
@@ -29,7 +29,15 @@ public sealed partial class PrintersControllerTests
         await AuthHelper.CreateWorkspaceAndLogin(environment);
 
         var printerId = Guid.NewGuid();
-        var createRequest = new CreatePrinterRequestDto(printerId, "Lifecycle Printer", "EscPos", 512, null, false, null, null);
+        var createRequest = new CreatePrinterRequestDto(
+            printerId,
+            "Lifecycle Printer",
+            "EscPos",
+            512,
+            null,
+            false,
+            null,
+            null);
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -48,19 +56,35 @@ public sealed partial class PrintersControllerTests
 
         for (var i = 1; i <= iterations; i++)
         {
-            var stopResponse = await client.PostAsJsonAsync(
-                $"/api/printers/{printerId}/status",
-                new SetPrinterStatusRequestDto { TargetStatus = "Stopped" });
+            var stopResponse = await client.PatchAsJsonAsync(
+                $"/api/printers/{printerId}/realtime-status",
+                new UpdatePrinterRealtimeStatusRequestDto(
+                    TargetStatus: "Stopped",
+                    IsCoverOpen: null,
+                    IsPaperOut: null,
+                    IsOffline: null,
+                    HasError: null,
+                    IsPaperNearEnd: null,
+                    Drawer1State: null,
+                    Drawer2State: null));
             stopResponse.EnsureSuccessStatusCode();
 
-            await WaitForPrinterRuntimeStatusAsync(client, printerId, PrinterRuntimeStatus.Stopped, CancellationToken.None);
+            await WaitForPrinterStateAsync(client, printerId, PrinterState.Stopped, CancellationToken.None);
 
-            var startResponse = await client.PostAsJsonAsync(
-                $"/api/printers/{printerId}/status",
-                new SetPrinterStatusRequestDto { TargetStatus = "Started" });
+            var startResponse = await client.PatchAsJsonAsync(
+                $"/api/printers/{printerId}/realtime-status",
+                new UpdatePrinterRealtimeStatusRequestDto(
+                    TargetStatus: "Started",
+                    IsCoverOpen: null,
+                    IsPaperOut: null,
+                    IsOffline: null,
+                    HasError: null,
+                    IsPaperNearEnd: null,
+                    Drawer1State: null,
+                    Drawer2State: null));
             startResponse.EnsureSuccessStatusCode();
 
-            await WaitForPrinterRuntimeStatusAsync(client, printerId, PrinterRuntimeStatus.Started, CancellationToken.None);
+            await WaitForPrinterStateAsync(client, printerId, PrinterState.Started, CancellationToken.None);
 
             var text = $"test document {i + 1}";
             await SendDocumentAndVerifyAsync(
@@ -74,10 +98,10 @@ public sealed partial class PrintersControllerTests
         }
     }
 
-    private static async Task WaitForPrinterRuntimeStatusAsync(
+    private static async Task WaitForPrinterStateAsync(
         HttpClient client,
         Guid printerId,
-        PrinterRuntimeStatus expectedStatus,
+        PrinterState expectedStatus,
         CancellationToken ct)
     {
         var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
@@ -96,7 +120,7 @@ public sealed partial class PrintersControllerTests
             await Task.Delay(100, ct);
         }
 
-        throw new TimeoutException($"Printer {printerId} did not reach RuntimeStatus={expectedStatus} within timeout");
+        throw new TimeoutException($"Printer {printerId} did not reach State={expectedStatus} within timeout");
     }
 
     private static async Task<DocumentDto> SendDocumentAndVerifyAsync(

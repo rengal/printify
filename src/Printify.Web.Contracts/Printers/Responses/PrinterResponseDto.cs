@@ -16,6 +16,7 @@ namespace Printify.Web.Contracts.Printers.Responses;
 /// <param name="RuntimeStatus">Last known runtime state reported by the listener.</param>
 /// <param name="RuntimeStatusUpdatedAt">Timestamp when <paramref name="RuntimeStatus"/> was captured.</param>
 /// <param name="RuntimeStatusError">Optional diagnostic message if <paramref name="RuntimeStatus"/> is Error.</param>
+/// <param name="RealtimeStatus">Optional realtime emulation status snapshot.</param>
 /// <param name="IsPinned">Indicates whether the printer is pinned for quick access.</param>
 /// <param name="LastViewedDocumentId">Identifier of the last viewed document</param>
 /// <param name="LastDocumentReceivedAt">Timestamp of the most recently persisted document for this printer.</param>
@@ -33,6 +34,7 @@ public sealed record PrinterResponseDto(
     string RuntimeStatus,
     DateTimeOffset? RuntimeStatusUpdatedAt,
     string? RuntimeStatusError,
+    PrinterRealtimeStatusDto? RealtimeStatus,
     bool IsPinned,
     Guid? LastViewedDocumentId,
     DateTimeOffset? LastDocumentReceivedAt);
