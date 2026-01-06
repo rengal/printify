@@ -354,7 +354,7 @@
         }
 
         // NEW: Render ViewDocument with absolute positioning
-        function renderViewDocument(elements, documentWidth, documentHeight, docId, errorMessages) {
+        function renderViewDocument(elements, documentWidth, documentHeight, docId, errorMessages, includeDebug) {
             const width = Math.max(documentWidth || 384, 200);
             const hasErrors = errorMessages && errorMessages.length > 0;
             const errorClass = hasErrors ? ' has-errors' : '';
@@ -363,12 +363,12 @@
                 const type = (el?.type || '').toLowerCase();
                 return type === 'text' || type === 'image';
             });
-            const shouldShowEmptyMessage = !hasVisualElements && !debugMode;
+            const shouldShowEmptyMessage = !hasVisualElements && !includeDebug;
 
             if (!hasElements || shouldShowEmptyMessage) {
                 const emptyClass = ' empty-document';
                 const message = shouldShowEmptyMessage
-                    ? '<div class="document-empty-message">No visual elements detected.<br>Turn on Debug to see details</div>'
+                    ? '<div class="document-empty-message">No visual elements detected.<br>Turn on Raw Data to see details</div>'
                     : '';
                 return `<div class="document-paper${errorClass}${emptyClass}">
                     <div class="document-content empty-document" style="width:${width}px; height: auto;">
@@ -406,20 +406,20 @@
                     ? ` @(${element.x},${element.y})`
                     : '';
                 console.log(`Render[${elementIndex-1}] type=${element.type}${coords}${visualText} | ${desc.substring(0, 50)}`);
-                return renderViewElement(element, id);
+                return renderViewElement(element, id, includeDebug);
             }).join('');
 
             const contentId = `doc-content-${docId}`;
 
             return `<div class="document-paper${errorClass}">
-                <div class="document-content" id="${contentId}" style="width:${width}px; height:${height}px;" data-debug="${debugMode}">
+                <div class="document-content" id="${contentId}" style="width:${width}px; height:${height}px;" data-debug="${includeDebug}">
                     ${elementsHtml}
                 </div>
             </div>`;
         }
 
         // Render individual ViewElement
-        function renderViewElement(element, id) {
+        function renderViewElement(element, id, includeDebug) {
             const elementType = (element?.type || '').toLowerCase();
 
             switch (elementType) {
@@ -430,7 +430,7 @@
                 case 'debug':
                 case 'none':
                     // Debug-only element - only render debug table if debug mode enabled
-                    return debugMode ? `<div id="${id}" data-element-type="debug" data-original-y="0">${renderDebugTable(element)}</div>` : '';
+                    return includeDebug ? `<div id="${id}" data-element-type="debug" data-original-y="0">${renderDebugTable(element)}</div>` : '';
                 default:
                     return '';
             }
@@ -617,8 +617,8 @@
         }
 
         // Adjust Y positions in debug mode to account for debug table heights
-        function adjustDebugYPositions(contentId) {
-            if (!debugMode) return;
+        function adjustDebugYPositions(contentId, includeDebug) {
+            if (!includeDebug) return;
 
             const container = document.getElementById(contentId);
             if (!container) return;
@@ -673,7 +673,8 @@
             const elements = dto.elements || [];
             const docId = dto.id || `doc-${Date.now()}`;
             const errorMessages = dto.errorMessages || null;
-            const previewHtml = renderViewDocument(elements, width, height, docId, errorMessages);
+            // Respect the global debug toggle for newly loaded documents.
+            const previewHtml = renderViewDocument(elements, width, height, docId, errorMessages, debugMode);
             const plainText = extractViewDocumentText(elements);
             return {
                 id: dto.id,
@@ -685,6 +686,7 @@
                 widthInDots: width,
                 heightInDots: height,
                 elements, // Store raw elements for re-rendering
+                debugEnabled: false,
                 previewHtml,
                 plainText
             };
@@ -1134,10 +1136,10 @@
                   </label>
                 </div>
 
-                <label class="flag-switch debug-switch">
-                  <input type="checkbox" ${debugMode ? 'checked' : ''} onchange="toggleDebugMode()">
-                  <span class="flag-label">Debug Info</span>
-                </label>
+                  <label class="flag-switch debug-switch">
+                    <input type="checkbox" ${debugMode ? 'checked' : ''} onchange="toggleDebugMode()">
+                    <span class="flag-label">Raw Data</span>
+                  </label>
 
                 <div class="section-divider"></div>
 
@@ -1205,53 +1207,67 @@
                 return;
             }
 
-            const documentsHtml = docs.map(doc => {
-                const dateTime = doc.timestamp.toLocaleString(undefined, {
-                    year: 'numeric', month: '2-digit', day: '2-digit',
-                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-                });
-                const relativeTime = formatRelativeTime(doc.timestamp);
+              const documentsHtml = docs.map(doc => {
+                  const dateTime = doc.timestamp.toLocaleString(undefined, {
+                      year: 'numeric', month: '2-digit', day: '2-digit',
+                      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+                  });
+                  const relativeTime = formatRelativeTime(doc.timestamp);
 
                 // Check if document has errors
-                const hasErrors = doc.errorMessages && doc.errorMessages.length > 0;
-                const errorTooltip = hasErrors ? doc.errorMessages.join('\n') : '';
-                const errorTooltipHtml = escapeHtml(errorTooltip).replace(/\n/g, '&#10;');
-                const errorIcon = hasErrors ? `
-                  <img class="document-error-icon" src="assets/icons/alert-triangle.svg" alt="Error" title="${errorTooltipHtml}">
-                ` : '';
+                  const hasErrors = doc.errorMessages && doc.errorMessages.length > 0;
+                  const errorTooltip = hasErrors ? doc.errorMessages.join('\n') : '';
+                  const errorTooltipHtml = escapeHtml(errorTooltip).replace(/\n/g, '&#10;');
+                  const errorIcon = hasErrors ? `
+                    <img class="document-error-icon" src="assets/icons/alert-triangle.svg" alt="Error" title="${errorTooltipHtml}">
+                  ` : '';
+                  const documentWidth = Math.max(doc.widthInDots || 384, 200);
+                  const borderWidth = hasErrors ? 4 : 2;
+                  const headerWidth = documentWidth + 24 + borderWidth;
 
-                return `
+                  return `
                 <div class="document-item">
-                  <div class="document-content">
-                    <div class="document-header">
-                      <span class="document-meta-text">${dateTime} · ${relativeTime}${errorIcon}</span>
-                      <button class="copy-icon-btn document-copy-btn" onclick="copyToClipboard(\`${doc.plainText.replace(/\`/g, '\\\\`')}\`)" title="Copy document content">
+                    <div class="document-gutter document-gutter-header">
+                      <button class="copy-icon-btn document-copy-btn" onclick="copyToClipboard(\`${doc.plainText.replace(/\`/g, '\\`')}\`)" title="Copy document content">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                         </svg>
                       </button>
                     </div>
-                    ${doc.previewHtml}
+                    <div class="document-header">
+                      <span class="document-meta-text">${dateTime} &middot; ${relativeTime}</span>
+                      <label class="flag-switch document-debug-switch" title="Show raw data for this document">
+                        <input type="checkbox" ${doc.debugEnabled ? 'checked' : ''} ${debugMode ? 'disabled' : ''}
+                          onchange="toggleDocumentDebug('${doc.id}', this.checked)">
+                        <span class="flag-label">Raw Data</span>
+                      </label>
+                    </div>
+                    <div class="document-gutter document-gutter-preview">
+                      ${errorIcon}
+                    </div>
+                    <div class="document-preview-wrap">
+                      ${doc.previewHtml}
+                    </div>
                   </div>
-                </div>
-              `;
-            }).join('');
+                `;
+              }).join('');
 
             documentsPanel.innerHTML = documentsHtml;
 
             // Adjust Y positions in debug mode after DOM insertion
-            if (debugMode) {
-                // Use requestAnimationFrame to ensure DOM is fully rendered
-                requestAnimationFrame(() => {
-                    docs.forEach(doc => {
-                        const contentId = `doc-content-${doc.id}`;
-                        console.log(`\n=== Adjusting debug positions for document ${doc.id} ===`);
-                        adjustDebugYPositions(contentId);
-                    });
-                });
-            }
-        }
+              const debugDocs = docs.filter(doc => isDocumentRawDataActive(doc));
+              if (debugDocs.length > 0) {
+                  // Use requestAnimationFrame to ensure DOM is fully rendered
+                  requestAnimationFrame(() => {
+                      debugDocs.forEach(doc => {
+                          const contentId = `doc-content-${doc.id}`;
+                          console.log(`\n=== Adjusting debug positions for document ${doc.id} ===`);
+                          adjustDebugYPositions(contentId, true);
+                      });
+                  });
+              }
+          }
 
         function showMenu(event, printerId, isPinned, isStarted) {
             event.stopPropagation();
@@ -2069,6 +2085,47 @@
         }
 
         // Theme Functions
+        function isDocumentRawDataActive(doc) {
+            // Global raw data overrides per-document selection.
+            return debugMode || !!doc.debugEnabled;
+        }
+
+        function toggleDocumentDebug(documentId, isEnabled) {
+            if (debugMode) {
+                // Prevent per-document changes while the global switch is active.
+                return;
+            }
+
+            const printerId = selectedPrinterId;
+            if (!printerId || !documents[printerId]) {
+                return;
+            }
+
+            const docIndex = documents[printerId].findIndex(doc => doc.id === documentId);
+            if (docIndex === -1) {
+                return;
+            }
+
+            const target = documents[printerId][docIndex];
+            const updated = {
+                ...target,
+                debugEnabled: !!isEnabled
+            };
+
+            // Only re-render the requested document for performance.
+            updated.previewHtml = renderViewDocument(
+                updated.elements || [],
+                updated.widthInDots,
+                updated.heightInDots,
+                updated.id,
+                updated.errorMessages,
+                isDocumentRawDataActive(updated)
+            );
+
+            documents[printerId][docIndex] = updated;
+            renderDocuments();
+        }
+
         function toggleDebugMode() {
             debugMode = !debugMode;
 
@@ -2079,7 +2136,15 @@
                 if (printer && docs) {
                     documents[printerId] = docs.map(doc => ({
                         ...doc,
-                        previewHtml: renderViewDocument(doc.elements || [], doc.widthInDots, doc.heightInDots, doc.id, doc.errorMessages)
+                        // Ensure global debug applies to every document, while preserving per-doc toggles.
+                        previewHtml: renderViewDocument(
+                            doc.elements || [],
+                            doc.widthInDots,
+                            doc.heightInDots,
+                            doc.id,
+                            doc.errorMessages,
+                            isDocumentRawDataActive(doc)
+                        )
                     }));
                 }
             }

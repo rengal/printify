@@ -111,7 +111,7 @@
 .document-error-icon {
     width: 16px;
     height: 16px;
-    margin-left: 6px;
+    margin: 0;
     vertical-align: middle;
 }
 
