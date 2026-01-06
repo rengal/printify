@@ -1,20 +1,17 @@
 ﻿using Printify.Application.Interfaces;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Media;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
+using SkiaSharp;
 using ZXing;
 using ZXing.Common;
 using ZXing.QrCode;
 using ZXing.QrCode.Internal;
+using ZXing.SkiaSharp;
 
 namespace Printify.Infrastructure.Media;
 
 /// <summary>
-/// Converts monochrome bitmaps to media upload format using ImageSharp.
+/// Converts monochrome bitmaps to media upload format using SkiaSharp.
 /// </summary>
 public sealed class MediaService : IMediaService
 {
@@ -24,14 +21,12 @@ public sealed class MediaService : IMediaService
         ArgumentNullException.ThrowIfNull(bitmap);
         ArgumentNullException.ThrowIfNull(format);
 
-        // Convert packed bits to ImageSharp RGBA image with transparency
-        using var image = new Image<Rgba32>(bitmap.Width, bitmap.Height);
+        // Convert packed bits to a SkiaSharp RGBA bitmap with transparency.
+        using var image = new SKBitmap(bitmap.Width, bitmap.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
 
         for (int y = 0; y < bitmap.Height; y++)
         {
             var rowOffset = y * bitmap.Stride;
-            Span<Rgba32> row = image.DangerousGetPixelRowMemory(y).Span;
-
             for (int x = 0; x < bitmap.Width; x++)
             {
                 var byteIndex = rowOffset + (x / 8);
@@ -39,21 +34,12 @@ public sealed class MediaService : IMediaService
                 var isSet = (bitmap.Data[byteIndex] & (1 << bitIndex)) != 0;
 
                 // Set bit (1) = black dot (printed), unset bit (0) = transparent (not printed)
-                row[x] = isSet
-                    ? new Rgba32(0, 0, 0, 255)      // Black opaque
-                    : new Rgba32(255, 255, 255, 0); // Transparent
+                image.SetPixel(x, y, isSet ? new SKColor(0, 0, 0, 255) : new SKColor(255, 255, 255, 0));
             }
         }
 
-        // Encode to PNG format (transparency requires PNG)
-        using var ms = new MemoryStream();
-        image.Save(ms, new PngEncoder());
-        var content = ms.ToArray();
-
-        return new MediaUpload(
-            ContentType: "image/png",
-            Content: content
-        );
+        var content = EncodePng(image);
+        return new MediaUpload("image/png", content);
     }
 
     public RasterImageUpload GenerateBarcodeMedia(PrintBarcodeUpload upload, BarcodeRenderOptions options)
@@ -66,7 +52,7 @@ public sealed class MediaService : IMediaService
         var printerWidth = options.PrinterWidthInDots.GetValueOrDefault(Math.Max(200, moduleWidth * upload.Data.Length * 8));
 
         var rawWidth = Math.Clamp(moduleWidth * upload.Data.Length * 8, 64, printerWidth);
-        var writer = new ZXing.ImageSharp.BarcodeWriter<Rgba32>
+        var writer = new BarcodeWriter
         {
             Format = MapSymbology(upload.Symbology),
             Options = new EncodingOptions
@@ -80,8 +66,8 @@ public sealed class MediaService : IMediaService
 
         using var image = writer.Write(upload.Data);
         ConvertWhiteToTransparent(image);
-        var aligned = AlignToPrinter(image, printerWidth, options.Justification);
-        var uploadMedia = EncodeImage(aligned);
+        using var aligned = AlignToPrinter(image, printerWidth, options.Justification);
+        var uploadMedia = EncodeMediaUpload(aligned);
 
         return new RasterImageUpload(aligned.Width, aligned.Height, uploadMedia);
     }
@@ -104,7 +90,7 @@ public sealed class MediaService : IMediaService
             CharacterSet = "UTF-8"
         };
 
-        var writer = new ZXing.ImageSharp.BarcodeWriter<Rgba32>
+        var writer = new BarcodeWriter
         {
             Format = BarcodeFormat.QR_CODE,
             Options = qrOptions
@@ -112,25 +98,30 @@ public sealed class MediaService : IMediaService
 
         using var image = writer.Write(data);
         ConvertWhiteToTransparent(image);
-        var aligned = AlignToPrinter(image, printerWidth, options.Justification);
-        var uploadMedia = EncodeImage(aligned);
+        using var aligned = AlignToPrinter(image, printerWidth, options.Justification);
+        var uploadMedia = EncodeMediaUpload(aligned);
 
         return new RasterImageUpload(aligned.Width, aligned.Height, uploadMedia);
     }
 
-    private static MediaUpload EncodeImage(Image<Rgba32> image)
+    private static MediaUpload EncodeMediaUpload(SKBitmap bitmap)
     {
-        using var ms = new MemoryStream();
-        image.Save(ms, new PngEncoder());
-        var bytes = ms.ToArray();
+        var bytes = EncodePng(bitmap);
         return new MediaUpload("image/png", bytes);
     }
 
-    private static Image<Rgba32> AlignToPrinter(Image<Rgba32> source, int printerWidth, TextJustification? justification)
+    private static byte[] EncodePng(SKBitmap bitmap)
+    {
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return data.ToArray();
+    }
+
+    private static SKBitmap AlignToPrinter(SKBitmap source, int printerWidth, TextJustification? justification)
     {
         if (printerWidth <= source.Width || justification is null)
         {
-            return source.Clone();
+            return source.Copy();
         }
 
         var offset = justification switch
@@ -140,13 +131,10 @@ public sealed class MediaService : IMediaService
             _ => 0
         };
 
-        var canvas = new Image<Rgba32>(printerWidth, source.Height, Color.Transparent);
-
-        canvas.Mutate(ctx =>
-        {
-            ctx.DrawImage(source, new Point(offset, 0), 1f);
-        });
-
+        var canvas = new SKBitmap(printerWidth, source.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
+        using var context = new SKCanvas(canvas);
+        context.Clear(SKColors.Transparent);
+        context.DrawBitmap(source, new SKPoint(offset, 0));
         return canvas;
     }
 
@@ -155,18 +143,17 @@ public sealed class MediaService : IMediaService
     /// Used to convert ZXing-generated images (black bars/modules on white background)
     /// to images with transparent background for thermal printing.
     /// </summary>
-    private static void ConvertWhiteToTransparent(Image<Rgba32> image)
+    private static void ConvertWhiteToTransparent(SKBitmap image)
     {
         for (int y = 0; y < image.Height; y++)
         {
-            var row = image.DangerousGetPixelRowMemory(y).Span;
             for (int x = 0; x < image.Width; x++)
             {
-                var pixel = row[x];
+                var pixel = image.GetPixel(x, y);
                 // Check if pixel is white or near-white (threshold: 200 for R, G, B)
-                if (pixel.R > 200 && pixel.G > 200 && pixel.B > 200)
+                if (pixel.Red > 200 && pixel.Green > 200 && pixel.Blue > 200)
                 {
-                    row[x] = new Rgba32(255, 255, 255, 0); // Transparent
+                    image.SetPixel(x, y, new SKColor(255, 255, 255, 0)); // Transparent
                 }
             }
         }

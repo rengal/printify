@@ -1615,31 +1615,22 @@
         }
 
         /* Buffer Status Section */
-        .buffer-status-inline {
+        .buffer-status-ascii {
             margin-bottom: 8px;
+            margin-top: 12px;
         }
 
-        .buffer-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-        }
-
-        .buffer-title {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--muted);
-            letter-spacing: 0.5px;
-        }
-
-        .buffer-values {
+        .buffer-header-ascii {
             font-size: 13px;
             color: var(--text);
-            font-family: 'Courier New', monospace;
+            margin-bottom: 4px;
         }
 
-        .buffer-progress-bar {
-            margin-top: 0;
+        .buffer-bar-ascii {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: var(--text);
+            letter-spacing: 0;
+            line-height: 1.2;
         }
 

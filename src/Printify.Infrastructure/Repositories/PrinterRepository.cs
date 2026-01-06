@@ -161,6 +161,22 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task ClearLastDocumentReceivedAtAsync(Guid id, CancellationToken ct)
+    {
+        var entity = await dbContext.Printers
+            .Where(p => p.Id == id && !p.IsDeleted)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
+        if (entity is null)
+        {
+            return;
+        }
+
+        entity.LastDocumentReceivedAt = null;
+        await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
     public ValueTask<int> GetFreeTcpPortNumber(CancellationToken ct)
     {
         // Choose next sequential port based on existing printers; fall back to 9101 when none exist.

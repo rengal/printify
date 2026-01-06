@@ -116,6 +116,6 @@ Runtime components used by the service:
 - Microsoft.Extensions.Options (8.0.0)
 - System.IdentityModel.Tokens.Jwt (8.14.0)
 - System.Text.Encoding.CodePages (10.0.0-rc.2.25502.107)
-- SixLabors.ImageSharp (3.1.11, 3.1.12)
+- SkiaSharp (2.88.8)
 - ZXing.Net (0.16.11)
-- ZXing.Net.Bindings.ImageSharp (0.16.11)
+- ZXing.Net.Bindings.SkiaSharp (0.16.12)

@@ -1165,14 +1165,9 @@
 
                 <!-- Buffer Status Section -->
                 ${printer.emulateBuffer && printer.bufferSize ? `
-                <div class="buffer-status-inline">
-                  <div class="buffer-header">
-                    <span class="buffer-title">BUFFER STATUS</span>
-                    <span class="buffer-values">${printer.bufferedBytes ?? 0} / ${printer.bufferSize}</span>
-                  </div>
-                  <div class="buffer-progress-bar">
-                    ${renderBufferProgress(printer.bufferedBytes, printer.bufferSize)}
-                  </div>
+                <div class="buffer-status-ascii">
+                  <div class="buffer-header-ascii">Buffer Usage (bytes)<span style="float: right;">${printer.bufferedBytes ?? 0}/${printer.bufferSize}</span></div>
+                  <div class="buffer-bar-ascii">${renderBufferProgress(printer.bufferedBytes, printer.bufferSize)}</div>
                 </div>
                 ` : ''}
 
@@ -1490,13 +1485,19 @@
             const isBusy = percentage > 75;
             const isFull = percentage >= 100;
 
-            const barColor = isFull ? '#ef4444' : (isBusy ? '#f59e0b' : '#10b981');
+            // ASCII progress bar with 30 characters
+            const barLength = 30;
+            const filled = Math.round((percentage / 100) * barLength);
+            const empty = barLength - filled;
 
-            return `
-              <div style="width: 100%; height: 24px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 4px; overflow: hidden;">
-                <div style="width: ${percentage}%; height: 100%; background: ${barColor}; transition: width 0.3s ease, background 0.3s ease;"></div>
-              </div>
-            `;
+            const filledChar = '█';
+            const emptyChar = '░';
+            const bar = filledChar.repeat(filled) + emptyChar.repeat(empty);
+
+            // Determine color
+            const barColor = isFull ? 'var(--danger)' : (isBusy ? 'var(--warn)' : 'var(--accent)');
+
+            return `[<span style="color: ${barColor};">${bar}</span>]`;
         }
 
         async function clearDocuments(printerId) {

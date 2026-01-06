@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Printify.Web.Contracts.Printers.Responses;
 
 /// <summary>
@@ -13,4 +15,5 @@ public sealed record PrinterDto(
     string DisplayName,
     bool IsPinned,
     Guid? LastViewedDocumentId,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     DateTimeOffset? LastDocumentReceivedAt);
