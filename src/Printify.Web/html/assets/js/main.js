@@ -16,6 +16,8 @@
         let statusStreamController = null;
         let documentStreamController = null;
         let documentStreamPrinterId = null;
+        let runtimeStreamController = null;
+        let runtimeStreamPrinterId = null;
         let debugMode = false;
 
         // Icon cache
@@ -120,7 +122,17 @@
                 runtimeStatusAt: dto.runtimeStatus?.updatedAt ? new Date(dto.runtimeStatus.updatedAt) : null,
                 lastDocumentAt: dto.printer.lastDocumentReceivedAt ? new Date(dto.printer.lastDocumentReceivedAt) : null,
                 newDocs: 0,
-                pinOrder: index
+                pinOrder: index,
+                // Operational flags
+                isCoverOpen: dto.operationalFlags?.isCoverOpen ?? false,
+                isPaperOut: dto.operationalFlags?.isPaperOut ?? false,
+                isOffline: dto.operationalFlags?.isOffline ?? false,
+                hasError: dto.operationalFlags?.hasError ?? false,
+                isPaperNearEnd: dto.operationalFlags?.isPaperNearEnd ?? false,
+                // Runtime status
+                bufferedBytes: dto.runtimeStatus?.bufferedBytes ?? null,
+                drawer1State: dto.runtimeStatus?.drawer1State ?? null,
+                drawer2State: dto.runtimeStatus?.drawer2State ?? null
             };
         }
 
@@ -332,6 +344,7 @@
                 try {
                     await ensureDocumentsLoaded(id);
                     startDocumentStream(id);
+                    startRuntimeStream(id);
                 } catch (err) {
                     console.error('Failed to load documents', err);
                     showToast('Unable to load documents', true);
@@ -792,6 +805,162 @@
             }
         }
 
+        async function startRuntimeStream(printerId) {
+            if (!accessToken || !workspaceToken || !printerId) {
+                stopRuntimeStream();
+                return;
+            }
+
+            if (runtimeStreamPrinterId === printerId && runtimeStreamController) {
+                return;
+            }
+
+            stopRuntimeStream();
+
+            const controller = new AbortController();
+            runtimeStreamController = controller;
+            runtimeStreamPrinterId = printerId;
+
+            try {
+                const response = await fetch(`/api/printers/${printerId}/runtime/stream`, {
+                    method: 'GET',
+                    headers: { ...authHeaders(), 'Accept': 'text/event-stream' },
+                    signal: controller.signal
+                });
+
+                if (!response.ok || !response.body) {
+                    throw new Error('Failed to start runtime stream');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+
+                    const parts = buffer.split('\n\n');
+                    buffer = parts.pop() || '';
+
+                    for (const part of parts) {
+                        if (!part.trim()) continue;
+
+                        const lines = part.split('\n');
+                        let eventName = 'message';
+                        let data = '';
+
+                        for (const line of lines) {
+                            if (line.startsWith('event:')) {
+                                eventName = line.substring(6).trim();
+                            } else if (line.startsWith('data:')) {
+                                data += line.substring(5).trim();
+                            }
+                        }
+
+                        if (eventName === 'status' && data) {
+                            handleRuntimeEvent(printerId, data);
+                        }
+                    }
+                }
+            } catch (err) {
+                if (!(err instanceof DOMException && err.name === 'AbortError')) {
+                    console.error('Runtime stream error', err);
+                }
+            }
+        }
+
+        function stopRuntimeStream() {
+            if (runtimeStreamController) {
+                runtimeStreamController.abort();
+                runtimeStreamController = null;
+                runtimeStreamPrinterId = null;
+            }
+        }
+
+        function handleRuntimeEvent(printerId, rawData) {
+            try {
+                const payload = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                console.debug('Runtime status event received', payload);
+
+                const printer = getPrinterById(printerId);
+                if (!printer) return;
+
+                // Update runtime status
+                if (payload.runtime) {
+                    if (payload.runtime.state !== undefined) {
+                        printer.runtimeStatus = payload.runtime.state.toLowerCase();
+                    }
+                    if (payload.runtime.updatedAt) {
+                        printer.runtimeStatusAt = new Date(payload.runtime.updatedAt);
+                    }
+                    if (payload.runtime.bufferedBytes !== undefined) {
+                        printer.bufferedBytes = payload.runtime.bufferedBytes;
+                    }
+                    if (payload.runtime.drawer1State !== undefined) {
+                        printer.drawer1State = payload.runtime.drawer1State;
+                    }
+                    if (payload.runtime.drawer2State !== undefined) {
+                        printer.drawer2State = payload.runtime.drawer2State;
+                    }
+                }
+
+                // Update operational flags
+                if (payload.operationalFlags) {
+                    if (payload.operationalFlags.targetState !== undefined) {
+                        printer.targetStatus = payload.operationalFlags.targetState.toLowerCase();
+                    }
+                    if (payload.operationalFlags.isCoverOpen !== undefined) {
+                        printer.isCoverOpen = payload.operationalFlags.isCoverOpen;
+                    }
+                    if (payload.operationalFlags.isPaperOut !== undefined) {
+                        printer.isPaperOut = payload.operationalFlags.isPaperOut;
+                    }
+                    if (payload.operationalFlags.isOffline !== undefined) {
+                        printer.isOffline = payload.operationalFlags.isOffline;
+                    }
+                    if (payload.operationalFlags.hasError !== undefined) {
+                        printer.hasError = payload.operationalFlags.hasError;
+                    }
+                    if (payload.operationalFlags.isPaperNearEnd !== undefined) {
+                        printer.isPaperNearEnd = payload.operationalFlags.isPaperNearEnd;
+                    }
+                }
+
+                // Update settings if provided
+                if (payload.settings) {
+                    printer.protocol = payload.settings.protocol;
+                    printer.width = payload.settings.widthInDots;
+                    printer.height = payload.settings.heightInDots;
+                    printer.port = payload.settings.tcpListenPort;
+                    printer.emulateBuffer = payload.settings.emulateBufferCapacity;
+                    printer.bufferSize = payload.settings.bufferMaxCapacity || 0;
+                    printer.drainRate = payload.settings.bufferDrainRate || 0;
+                }
+
+                // Update printer metadata if provided
+                if (payload.printer) {
+                    if (payload.printer.displayName !== undefined) {
+                        printer.name = payload.printer.displayName;
+                    }
+                    if (payload.printer.isPinned !== undefined) {
+                        printer.pinned = payload.printer.isPinned;
+                    }
+                    if (payload.printer.lastDocumentReceivedAt !== undefined) {
+                        printer.lastDocumentAt = payload.printer.lastDocumentReceivedAt
+                            ? new Date(payload.printer.lastDocumentReceivedAt)
+                            : null;
+                    }
+                }
+
+                renderDocuments();
+                renderSidebar();
+            } catch (e) {
+                console.error('Failed to parse runtime event', e);
+            }
+        }
+
         function renderDocuments() {
             const operationsPanel = document.getElementById('operationsPanel');
             const documentsPanel = document.getElementById('documentsPanel');
@@ -893,66 +1062,119 @@
 
             operationsPanel.innerHTML = `
               <div class="operations-header">
-                <span class="operations-printer-name">${escapeHtml(printer.name)}</span>
+                <div class="operations-title-row">
+                  <span class="operations-printer-name">${escapeHtml(printer.name)}</span>
+                  <span class="operations-separator">·</span>
+                  <span class="operations-protocol">${protocolFormatted}</span>
+                </div>
                 <button class="icon-btn" onclick="toggleOperations()" title="Close operations">
                   <img src="assets/icons/x.svg" width="18" height="18" alt="Close">
                 </button>
               </div>
               <div class="operations-info">
-                <div class="operations-info-item">
-                  <div class="operations-info-value">
-                    <span class="${statusClass}">${statusText}</span>
-                  </div>
+                <div class="info-row">
+                  <span class="${statusClass}">${statusText}</span>
+                  <span class="info-separator">·</span>
+                  <span>${printerAddress}</span>
+                  <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
+                    <img src="assets/icons/copy.svg" width="14" height="14" alt="Copy">
+                  </button>
                 </div>
-                <div class="operations-info-item">
-                  <div class="operations-info-value">
-                    <span>${printerAddress}</span>
-                    <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
-                      <img src="assets/icons/copy.svg" width="14" height="14" alt="Copy">
-                    </button>
-                  </div>
-                </div>
-                <div class="operations-info-item">
-                  <div class="operations-info-label">Protocol</div>
-                  <div class="operations-info-value">${protocolFormatted}</div>
-                </div>
-                <div class="operations-info-item">
-                  <div class="operations-info-label">Last document</div>
-                  <div class="operations-info-value">${hasLastDocument
-                    ? `${lastDocDateTime} (${lastDocRelative})`
-                    : `-`}</div>
+                <div class="info-row">
+                  <span class="info-label">LAST DOCUMENT:</span>
+                  <span>${hasLastDocument ? lastDocDateTime : 'never'}</span>
                 </div>
               </div>
               <div class="operations-actions">
-                <!-- All Operations -->
-                ${isRunning
-                  ? `<button class="btn btn-primary btn-sm" onclick="stopPrinter(event, '${printer.id}')">
-                      <img src="assets/icons/square.svg" width="14" height="14" alt="">
-                      Stop
-                    </button>`
-                  : `<button class="btn btn-primary btn-sm" onclick="startPrinter(event, '${printer.id}')">
-                      <img src="assets/icons/play.svg" width="14" height="14" alt="">
-                      Start
-                    </button>`
-                }
+                <!-- Primary Actions Row -->
+                <div class="operations-button-row">
+                  ${isRunning
+                    ? `<button class="btn btn-primary btn-sm" onclick="stopPrinter(event, '${printer.id}')">
+                        <img src="assets/icons/square.svg" width="14" height="14" alt="">
+                        Stop
+                      </button>`
+                    : `<button class="btn btn-primary btn-sm" onclick="startPrinter(event, '${printer.id}')">
+                        <img src="assets/icons/play.svg" width="14" height="14" alt="">
+                        Start
+                      </button>`
+                  }
 
-                <button class="btn btn-secondary btn-sm" onclick="editPrinter('${printer.id}')">
-                  <img src="assets/icons/edit-3.svg" width="14" height="14" alt="">
-                  Edit
-                </button>
+                  <button class="btn btn-secondary btn-sm" onclick="editPrinter('${printer.id}')">
+                    <img src="assets/icons/edit-3.svg" width="14" height="14" alt="">
+                    Edit
+                  </button>
 
-                <button class="btn btn-secondary btn-sm" onclick="togglePin('${printer.id}')">
-                  <img src="assets/icons/star.svg" width="14" height="14" alt="">
-                  ${printer.pinned ? 'Unpin' : 'Pin'}
-                </button>
+                  <button class="btn btn-secondary btn-sm" onclick="togglePin('${printer.id}')">
+                    <img src="assets/icons/star.svg" width="14" height="14" alt="">
+                    ${printer.pinned ? 'Unpin' : 'Pin'}
+                  </button>
+                </div>
 
-                <label class="debug-toggle">
-                  <span class="debug-toggle-label">
-                    <img src="assets/icons/eye.svg" width="14" height="14" alt="">
-                    Debug Mode
-                  </span>
+                <!-- Operational Flags -->
+                <div class="flags-grid">
+                  <label class="flag-switch flag-error">
+                    <input type="checkbox" ${printer.isCoverOpen ? 'checked' : ''}
+                      onchange="toggleOperationalFlag('${printer.id}', 'isCoverOpen', this.checked)">
+                    <span class="flag-label">Cover Open</span>
+                  </label>
+                  <label class="flag-switch flag-error">
+                    <input type="checkbox" ${printer.isPaperOut ? 'checked' : ''}
+                      onchange="toggleOperationalFlag('${printer.id}', 'isPaperOut', this.checked)">
+                    <span class="flag-label">Paper Out</span>
+                  </label>
+                  <label class="flag-switch flag-error">
+                    <input type="checkbox" ${printer.isOffline ? 'checked' : ''}
+                      onchange="toggleOperationalFlag('${printer.id}', 'isOffline', this.checked)">
+                    <span class="flag-label">Offline</span>
+                  </label>
+                  <label class="flag-switch flag-error">
+                    <input type="checkbox" ${printer.hasError ? 'checked' : ''}
+                      onchange="toggleOperationalFlag('${printer.id}', 'hasError', this.checked)">
+                    <span class="flag-label">Error</span>
+                  </label>
+                </div>
+
+                <label class="flag-switch debug-switch">
                   <input type="checkbox" ${debugMode ? 'checked' : ''} onchange="toggleDebugMode()">
+                  <span class="flag-label">Debug Info</span>
                 </label>
+
+                <div class="section-divider"></div>
+
+                <!-- Drawer Management -->
+                <div class="drawer-control">
+                  <span class="drawer-label">Drawer 1:</span>
+                  <span class="drawer-state">${
+                    !printer.drawer1State || printer.drawer1State === 'Closed' ? 'closed' : 'opened'
+                  }</span>
+                  ${printer.drawer1State === 'Closed' || !printer.drawer1State
+                    ? `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer1State', 'OpenedManually')">Open</button>`
+                    : `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer1State', 'Closed')">Close</button>`
+                  }
+                </div>
+                <div class="drawer-control">
+                  <span class="drawer-label">Drawer 2:</span>
+                  <span class="drawer-state">${
+                    !printer.drawer2State || printer.drawer2State === 'Closed' ? 'closed' : 'opened'
+                  }</span>
+                  ${printer.drawer2State === 'Closed' || !printer.drawer2State
+                    ? `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer2State', 'OpenedManually')">Open</button>`
+                    : `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer2State', 'Closed')">Close</button>`
+                  }
+                </div>
+
+                <!-- Buffer Status Section -->
+                ${printer.emulateBuffer && printer.bufferSize ? `
+                <div class="buffer-status-inline">
+                  <div class="buffer-header">
+                    <span class="buffer-title">BUFFER STATUS</span>
+                    <span class="buffer-values">${printer.bufferedBytes ?? 0} / ${printer.bufferSize}</span>
+                  </div>
+                  <div class="buffer-progress-bar">
+                    ${renderBufferProgress(printer.bufferedBytes, printer.bufferSize)}
+                  </div>
+                </div>
+                ` : ''}
 
                 <!-- Danger Zone -->
                 <div class="danger-zone">
@@ -1219,6 +1441,62 @@
         function stopPrinter(event, printerId) {
             event?.stopPropagation();
             setPrinterStatus(printerId, 'Stopped');
+        }
+
+        async function toggleOperationalFlag(printerId, flagName, value) {
+            const printer = getPrinterById(printerId);
+            if (!printer) return;
+
+            try {
+                const body = {};
+                body[flagName] = value;
+                await apiRequest(`/api/printers/${printerId}/operational-flags`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(body)
+                });
+                // Update will come via SSE stream
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || 'Failed to update flag', true);
+                // Revert checkbox on error
+                renderDocuments();
+            }
+        }
+
+        async function setDrawerState(printerId, drawerName, state) {
+            const printer = getPrinterById(printerId);
+            if (!printer) return;
+
+            try {
+                const body = {};
+                body[drawerName] = state;
+                await apiRequest(`/api/printers/${printerId}/drawers`, {
+                    method: 'PATCH',
+                    body: JSON.stringify(body)
+                });
+                // Update will come via SSE stream
+                showToast(`${drawerName} ${state}`);
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || 'Failed to update drawer state', true);
+            }
+        }
+
+        function renderBufferProgress(bufferedBytes, bufferSize) {
+            if (!bufferSize) return '';
+
+            const bytes = bufferedBytes ?? 0;
+            const percentage = Math.min((bytes / bufferSize) * 100, 100);
+            const isBusy = percentage > 75;
+            const isFull = percentage >= 100;
+
+            const barColor = isFull ? '#ef4444' : (isBusy ? '#f59e0b' : '#10b981');
+
+            return `
+              <div style="width: 100%; height: 24px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 4px; overflow: hidden;">
+                <div style="width: ${percentage}%; height: 100%; background: ${barColor}; transition: width 0.3s ease, background 0.3s ease;"></div>
+              </div>
+            `;
         }
 
         async function clearDocuments(printerId) {
@@ -1714,6 +1992,7 @@
             if (selectedPrinterId) {
                 await ensureDocumentsLoaded(selectedPrinterId);
                 startDocumentStream(selectedPrinterId);
+                startRuntimeStream(selectedPrinterId);
             }
             } catch (error) {
                 console.error('Auth error:', error);
@@ -1772,6 +2051,7 @@
             selectedPrinterId = null;
             stopStatusStream();
             stopDocumentStream();
+            stopRuntimeStream();
 
             localStorage.removeItem('workspaceToken');
             localStorage.removeItem('workspaceName');
@@ -1859,12 +2139,13 @@
             // Theme icons may not exist if topbar was removed
             if (!darkIcon || !lightIcon) return;
 
+            // Action-oriented: show the icon for the theme you'll switch TO
             if (theme === 'dark') {
-                darkIcon.style.display = 'block';
-                lightIcon.style.display = 'none';
-            } else {
                 darkIcon.style.display = 'none';
                 lightIcon.style.display = 'block';
+            } else {
+                darkIcon.style.display = 'block';
+                lightIcon.style.display = 'none';
             }
         }
 

@@ -94,3 +94,28 @@ We may modify these terms at any time. Continued use of the service after change
 ## Contact
 
 Questions about these terms? Email [support@virtual-printer.online](mailto:support@virtual-printer.online).
+
+## Third-Party Licenses
+
+Virtual Printer uses third-party components. Their licenses apply to those components and are provided in the
+respective package distributions and source repositories.
+
+Runtime components used by the service:
+- Markdig (0.38.0)
+- FluentValidation (12.0.0)
+- MediatR (13.0.0)
+- Microsoft.AspNetCore.Authentication.JwtBearer (8.0.*)
+- Microsoft.Data.Sqlite (8.0.10)
+- Microsoft.EntityFrameworkCore (8.0.10)
+- Microsoft.EntityFrameworkCore.Sqlite (8.0.10)
+- Microsoft.Extensions.Configuration (8.0.0)
+- Microsoft.Extensions.Configuration.Binder (8.0.0)
+- Microsoft.Extensions.Configuration.EnvironmentVariables (8.0.0)
+- Microsoft.Extensions.Configuration.Json (8.0.0)
+- Microsoft.Extensions.Hosting.Abstractions (8.0.0)
+- Microsoft.Extensions.Options (8.0.0)
+- System.IdentityModel.Tokens.Jwt (8.14.0)
+- System.Text.Encoding.CodePages (10.0.0-rc.2.25502.107)
+- SixLabors.ImageSharp (3.1.11, 3.1.12)
+- ZXing.Net (0.16.11)
+- ZXing.Net.Bindings.ImageSharp (0.16.11)

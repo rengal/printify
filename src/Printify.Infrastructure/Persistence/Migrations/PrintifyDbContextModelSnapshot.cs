@@ -211,6 +211,46 @@ namespace Printify.Infrastructure.Persistence.Migrations
                     b.ToTable("print_jobs");
                 });
 
+            modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.Printers.PrinterOperationalFlagsEntity", b =>
+                {
+                    b.Property<Guid>("PrinterId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("printer_id");
+
+                    b.Property<bool>("HasError")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("has_error");
+
+                    b.Property<bool>("IsCoverOpen")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("cover_open");
+
+                    b.Property<bool>("IsOffline")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("is_offline");
+
+                    b.Property<bool>("IsPaperNearEnd")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("paper_near_end");
+
+                    b.Property<bool>("IsPaperOut")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("paper_out");
+
+                    b.Property<string>("TargetState")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("target_state");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("PrinterId");
+
+                    b.ToTable("printer_operational_flags");
+                });
+
             modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.Printers.PrinterEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -365,6 +405,15 @@ namespace Printify.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.Documents.DocumentEntity", b =>
                 {
                     b.Navigation("Elements");
+                });
+
+            modelBuilder.Entity("Printify.Infrastructure.Persistence.Entities.Printers.PrinterOperationalFlagsEntity", b =>
+                {
+                    b.HasOne("Printify.Infrastructure.Persistence.Entities.Printers.PrinterEntity", null)
+                        .WithOne()
+                        .HasForeignKey("Printify.Infrastructure.Persistence.Entities.Printers.PrinterOperationalFlagsEntity", "PrinterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

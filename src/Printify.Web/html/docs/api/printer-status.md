@@ -72,10 +72,22 @@ type PrinterRuntimeStatusUpdateDto = {
   drawer2State?: DrawerState | null;
 };
 
+type PrinterOperationalFlagsUpdateDto = {
+  printerId: string;
+  updatedAt: string;
+  targetState?: PrinterTargetState;
+  isCoverOpen?: boolean;
+  isPaperOut?: boolean;
+  isOffline?: boolean;
+  hasError?: boolean;
+  isPaperNearEnd?: boolean;
+};
+
 type PrinterStatusUpdateDto = {
   printerId: string;
   updatedAt: string;
   runtime?: PrinterRuntimeStatusUpdateDto;
+  operationalFlags?: PrinterOperationalFlagsUpdateDto;
   settings?: PrinterSettingsDto;
   printer?: PrinterDto;
 };
@@ -149,7 +161,7 @@ Setting targetState starts or stops the printer listener.
 Response: PrinterOperationalFlagsDto
 
 ### PATCH /api/printers/{id}/drawers
-Manual drawer open/close.
+Manual drawer open/close (OpenedByCommand cannot be set via API).
 
 Response: PrinterRuntimeStatusDto
 
@@ -168,6 +180,7 @@ Payload: PrinterSidebarSnapshotDto
 
 ### GET /api/printers/{id}/runtime/stream
 Server-sent events for active printer updates.
+Payload is partial; only changed sections are present (runtime/operationalFlags/settings/printer).
 
 Event: status
 Payload: PrinterStatusUpdateDto

@@ -90,6 +90,30 @@ namespace Printify.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "printer_operational_flags",
+                columns: table => new
+                {
+                    printer_id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    target_state = table.Column<string>(type: "TEXT", nullable: false),
+                    updated_at = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    cover_open = table.Column<bool>(type: "INTEGER", nullable: false),
+                    paper_out = table.Column<bool>(type: "INTEGER", nullable: false),
+                    is_offline = table.Column<bool>(type: "INTEGER", nullable: false),
+                    has_error = table.Column<bool>(type: "INTEGER", nullable: false),
+                    paper_near_end = table.Column<bool>(type: "INTEGER", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_printer_operational_flags", x => x.printer_id);
+                    table.ForeignKey(
+                        name: "FK_printer_operational_flags_printers_printer_id",
+                        column: x => x.printer_id,
+                        principalTable: "printers",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "workspaces",
                 columns: table => new
                 {
@@ -168,6 +192,9 @@ namespace Printify.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "print_jobs");
+
+            migrationBuilder.DropTable(
+                name: "printer_operational_flags");
 
             migrationBuilder.DropTable(
                 name: "printers");

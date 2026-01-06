@@ -19,12 +19,13 @@ function updateThemeIcon(theme) {
 
     if (!darkIcon || !lightIcon) return;
 
+    // Action-oriented: show the icon for the theme you'll switch TO
     if (theme === 'dark') {
-        darkIcon.style.display = 'block';
-        lightIcon.style.display = 'none';
-    } else {
         darkIcon.style.display = 'none';
         lightIcon.style.display = 'block';
+    } else {
+        darkIcon.style.display = 'block';
+        lightIcon.style.display = 'none';
     }
 }
 
