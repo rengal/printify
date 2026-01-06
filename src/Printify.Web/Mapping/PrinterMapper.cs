@@ -142,7 +142,7 @@ internal static class PrinterMapper
 
         return new PrinterSidebarSnapshotDto(
             ToPrinterDto(snapshot.Printer),
-            ToStateOnlyRuntimeStatusDto(snapshot.RuntimeStatus));
+            ToRuntimeStatusDto(snapshot.RuntimeStatus));
     }
 
     internal static PrinterStatusUpdateDto ToStatusUpdateDto(this PrinterStatusUpdate update)
@@ -156,21 +156,5 @@ internal static class PrinterMapper
             ToOperationalFlagsUpdateDto(update.OperationalFlagsUpdate),
             update.Settings is null ? null : ToSettingsDto(update.Settings),
             update.Printer is null ? null : ToPrinterDto(update.Printer));
-    }
-
-    private static PrinterRuntimeStatusDto? ToStateOnlyRuntimeStatusDto(PrinterRuntimeStatus? status)
-    {
-        if (status is null)
-        {
-            return null;
-        }
-
-        return new PrinterRuntimeStatusDto(
-            status.PrinterId,
-            status.State.ToString(),
-            status.UpdatedAt,
-            null,
-            null,
-            null);
     }
 }

@@ -43,7 +43,7 @@ public sealed class StreamPrinterSidebarHandler(
                 "Sidebar stream received update for printer {PrinterId} in workspace {WorkspaceId}",
                 update.PrinterId,
                 workspaceId);
-            var hasStateChange = update.RuntimeUpdate?.State is not null;
+            var hasStateChange = update.RuntimeUpdate is not null;
             var hasPrinterChange = update.Printer is not null;
             if (!hasStateChange && !hasPrinterChange)
             {
