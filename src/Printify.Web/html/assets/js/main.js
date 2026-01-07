@@ -685,6 +685,8 @@
                 width,
                 widthInDots: width,
                 heightInDots: height,
+                bytesReceived: dto.bytesReceived ?? 0,
+                bytesSent: dto.bytesSent ?? 0,
                 elements, // Store raw elements for re-rendering
                 debugEnabled: false,
                 previewHtml,
@@ -1220,6 +1222,7 @@
                       hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
                   });
                   const relativeTime = formatRelativeTime(doc.timestamp);
+                  const byteCount = formatByteCount(doc.bytesReceived);
 
                 // Check if document has errors
                   const hasErrors = doc.errorMessages && doc.errorMessages.length > 0;
@@ -1231,12 +1234,6 @@
                   return `
                 <div class="document-item">
                     <div class="document-gutter document-gutter-header">
-                      <button class="copy-icon-btn document-copy-btn" onclick="copyToClipboard(\`${doc.plainText.replace(/\`/g, '\\`')}\`)" title="Copy document content">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                      </button>
                     </div>
                     <div class="document-header">
                       <span class="document-meta-text">${dateTime} &middot; ${relativeTime}</span>
@@ -1251,6 +1248,15 @@
                     </div>
                     <div class="document-preview-wrap">
                       ${doc.previewHtml}
+                    </div>
+                    <div class="document-footer">
+                      <span class="document-meta-text document-footer-text">Size: ${byteCount} bytes</span>
+                      <button class="copy-icon-btn document-copy-btn" onclick="copyToClipboard(\`${doc.plainText.replace(/\`/g, '\\`')}\`)" title="Copy document content">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </button>
                     </div>
                   </div>
                 `;
