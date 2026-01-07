@@ -1,4 +1,5 @@
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Printify.Application.Interfaces;
 using Printify.Domain.Workspaces;
 
@@ -6,8 +7,10 @@ namespace Printify.Application.Features.Workspaces.CreateWorkspace;
 
 public sealed class CreateWorkspaceHandler(IWorkspaceRepository workspaceRepository) : IRequestHandler<CreateWorkspaceCommand, Workspace>
 {
-    public async Task<Workspace> Handle(CreateWorkspaceCommand request, CancellationToken cancellationToken)
+    public async Task<Workspace> Handle(IReceiveContext<CreateWorkspaceCommand> context, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
         var existing = await workspaceRepository.GetByIdAsync(request.WorkspaceId, cancellationToken).ConfigureAwait(false);
@@ -85,3 +88,4 @@ public sealed class CreateWorkspaceHandler(IWorkspaceRepository workspaceReposit
         return $"{adjective}-{animal}-{number}";
     }
 }
+

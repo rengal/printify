@@ -1,5 +1,7 @@
 namespace Printify.Domain.Printers;
 
+using Mediator.Net.Contracts;
+
 /// <summary>
 /// Runtime-only printer state computed by the listener; never persisted.
 /// Add fields here only when they are derived from active runtime behavior.
@@ -10,4 +12,5 @@ public sealed record PrinterRuntimeStatus(
     DateTimeOffset UpdatedAt,
     int BufferedBytes,
     DrawerState Drawer1State,
-    DrawerState Drawer2State);
+    DrawerState Drawer2State) : IResponse;
+

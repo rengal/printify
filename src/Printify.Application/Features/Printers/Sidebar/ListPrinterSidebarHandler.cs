@@ -1,4 +1,5 @@
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -9,12 +10,14 @@ namespace Printify.Application.Features.Printers.Sidebar;
 public sealed class ListPrinterSidebarHandler(
     IPrinterRepository printerRepository,
     IPrinterRuntimeStatusStore runtimeStatusStore)
-    : IRequestHandler<ListPrinterSidebarQuery, IReadOnlyList<PrinterSidebarSnapshot>>
+    : IRequestHandler<ListPrinterSidebarQuery, PrinterSidebarListResponse>
 {
-    public async Task<IReadOnlyList<PrinterSidebarSnapshot>> Handle(
-        ListPrinterSidebarQuery request,
+    public async Task<PrinterSidebarListResponse> Handle(
+        IReceiveContext<ListPrinterSidebarQuery> context,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
         if (request.Context.WorkspaceId is null)
@@ -28,15 +31,18 @@ public sealed class ListPrinterSidebarHandler(
 
         if (snapshots.Count == 0)
         {
-            return snapshots;
+            return new PrinterSidebarListResponse(snapshots);
         }
 
-        return snapshots
+        var updatedSnapshots = snapshots
             .Select(snapshot =>
             {
                 var runtimeStatus = runtimeStatusStore.Get(snapshot.Printer.Id);
                 return snapshot with { RuntimeStatus = runtimeStatus };
             })
             .ToList();
+
+        return new PrinterSidebarListResponse(updatedSnapshots);
     }
 }
+

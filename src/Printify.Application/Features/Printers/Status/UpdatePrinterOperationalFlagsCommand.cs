@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator.Net.Contracts;
 using Printify.Domain.Printers;
 using Printify.Domain.Requests;
 
@@ -13,4 +13,5 @@ public sealed record UpdatePrinterOperationalFlagsCommand(
     bool? HasError,
     bool? IsPaperNearEnd,
     string? TargetState = null)
-    : IRequest<PrinterOperationalFlags>;
+    : IRequest;
+

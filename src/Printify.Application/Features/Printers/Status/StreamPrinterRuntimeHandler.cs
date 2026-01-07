@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -13,9 +14,11 @@ public sealed class StreamPrinterRuntimeHandler(
     : IRequestHandler<StreamPrinterRuntimeQuery, PrinterRuntimeStreamResult>
 {
     public async Task<PrinterRuntimeStreamResult> Handle(
-        StreamPrinterRuntimeQuery request,
+        IReceiveContext<StreamPrinterRuntimeQuery> context,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
         if (request.Context.WorkspaceId is null)
@@ -63,3 +66,4 @@ public sealed class StreamPrinterRuntimeHandler(
         }
     }
 }
+

@@ -1,4 +1,5 @@
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -12,8 +13,10 @@ public sealed class SetPrinterPinnedHandler(
     IPrinterRuntimeStatusStore runtimeStatusStore)
     : IRequestHandler<SetPrinterPinnedCommand, PrinterDetailsSnapshot>
 {
-    public async Task<PrinterDetailsSnapshot> Handle(SetPrinterPinnedCommand request, CancellationToken cancellationToken)
+    public async Task<PrinterDetailsSnapshot> Handle(IReceiveContext<SetPrinterPinnedCommand> context, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
         if (request.Context.WorkspaceId is null)
@@ -53,3 +56,4 @@ public sealed class SetPrinterPinnedHandler(
         return new PrinterDetailsSnapshot(updated, settings, flags, runtimeStatus);
     }
 }
+

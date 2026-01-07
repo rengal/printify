@@ -1,4 +1,5 @@
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -13,9 +14,11 @@ public sealed class CreatePrinterHandler(
     : IRequestHandler<CreatePrinterCommand, PrinterDetailsSnapshot>
 {
     public async Task<PrinterDetailsSnapshot> Handle(
-        CreatePrinterCommand request,
+        IReceiveContext<CreatePrinterCommand> context,
         CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         var existing = await printerRepository
             .GetByIdAsync(request.Printer.Id, request.Context.WorkspaceId, ct)
             .ConfigureAwait(false);
@@ -86,3 +89,4 @@ public sealed class CreatePrinterHandler(
         return new PrinterDetailsSnapshot(printer, settings, flags, runtimeStatus);
     }
 }
+

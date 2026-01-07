@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Mediator.Net.Contracts;
 using Printify.Domain.Printers;
 
 namespace Printify.Domain.Documents.View;
@@ -30,4 +31,4 @@ public sealed record ViewDocument(
     int BytesReceived,
     int BytesSent,
     IReadOnlyList<ViewElement> Elements,
-    string[]? ErrorMessages);
+    string[]? ErrorMessages) : IResponse;

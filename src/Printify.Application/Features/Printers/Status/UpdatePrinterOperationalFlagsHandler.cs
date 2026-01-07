@@ -1,4 +1,5 @@
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Microsoft.Extensions.Logging;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
@@ -15,9 +16,11 @@ public sealed class UpdatePrinterOperationalFlagsHandler(
     : IRequestHandler<UpdatePrinterOperationalFlagsCommand, PrinterOperationalFlags>
 {
     public async Task<PrinterOperationalFlags> Handle(
-        UpdatePrinterOperationalFlagsCommand request,
+        IReceiveContext<UpdatePrinterOperationalFlagsCommand> context,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
         if (request.Context.WorkspaceId is null)
@@ -145,3 +148,4 @@ public sealed class UpdatePrinterOperationalFlagsHandler(
                || !string.IsNullOrWhiteSpace(request.TargetState);
     }
 }
+

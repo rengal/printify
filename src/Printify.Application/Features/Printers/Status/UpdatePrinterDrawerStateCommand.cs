@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator.Net.Contracts;
 using Printify.Domain.Printers;
 using Printify.Domain.Requests;
 
@@ -9,4 +9,5 @@ public sealed record UpdatePrinterDrawerStateCommand(
     Guid PrinterId,
     string? Drawer1State,
     string? Drawer2State)
-    : IRequest<PrinterRuntimeStatus>;
+    : IRequest;
+

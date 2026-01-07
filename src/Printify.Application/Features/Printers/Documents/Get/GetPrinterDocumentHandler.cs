@@ -1,4 +1,5 @@
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents;
@@ -10,8 +11,10 @@ public sealed class GetPrinterDocumentHandler(
     IDocumentRepository documentRepository)
     : IRequestHandler<GetPrinterDocumentQuery, Document?>
 {
-    public async Task<Document?> Handle(GetPrinterDocumentQuery request, CancellationToken cancellationToken)
+    public async Task<Document?> Handle(IReceiveContext<GetPrinterDocumentQuery> context, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
         var printer = await printerRepository.GetByIdAsync(
@@ -28,3 +31,4 @@ public sealed class GetPrinterDocumentHandler(
             : null;
     }
 }
+

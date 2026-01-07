@@ -1,4 +1,5 @@
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -9,36 +10,38 @@ namespace Printify.Application.Features.Printers.List;
 public sealed class ListPrintersHandler(
     IPrinterRepository printerRepository,
     IPrinterRuntimeStatusStore runtimeStatusStore)
-    : IRequestHandler<ListPrintersQuery, IReadOnlyList<PrinterDetailsSnapshot>>
+    : IRequestHandler<ListPrintersQuery, PrinterListResponse>
 {
-    public async Task<IReadOnlyList<PrinterDetailsSnapshot>> Handle(
-        ListPrintersQuery request,
+    public async Task<PrinterListResponse> Handle(
+        IReceiveContext<ListPrintersQuery> context,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
-        var context = request.Context;
+        var requestContext = request.Context;
 
-        if (context.WorkspaceId is null)
+        if (requestContext.WorkspaceId is null)
             throw new BadRequestException("Workspace identifier must be provided.");
 
         var printers = await printerRepository
-            .ListOwnedAsync(context.WorkspaceId, cancellationToken)
+            .ListOwnedAsync(requestContext.WorkspaceId, cancellationToken)
             .ConfigureAwait(false);
 
         if (printers.Count == 0)
         {
-            return [];
+            return new PrinterListResponse([]);
         }
 
         var flags = await printerRepository
-            .ListOperationalFlagsAsync(context.WorkspaceId.Value, cancellationToken)
+            .ListOperationalFlagsAsync(requestContext.WorkspaceId.Value, cancellationToken)
             .ConfigureAwait(false);
         var settings = await printerRepository
-            .ListSettingsAsync(context.WorkspaceId.Value, cancellationToken)
+            .ListSettingsAsync(requestContext.WorkspaceId.Value, cancellationToken)
             .ConfigureAwait(false);
 
-        return printers
+        var snapshots = printers
             .Select(printer =>
             {
                 flags.TryGetValue(printer.Id, out var operationalFlags);
@@ -51,5 +54,8 @@ public sealed class ListPrintersHandler(
                 return new PrinterDetailsSnapshot(printer, printerSettings, operationalFlags, runtimeStatus);
             })
             .ToList();
+
+        return new PrinterListResponse(snapshots);
     }
 }
+

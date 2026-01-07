@@ -1,4 +1,5 @@
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Printify.Application.Interfaces;
 
 namespace Printify.Application.Features.Workspaces.GetWorkspaceSummary;
@@ -9,8 +10,10 @@ public sealed class GetWorkspaceSummaryHandler(
     IDocumentRepository documentRepository)
     : IRequestHandler<GetWorkspaceSummaryQuery, WorkspaceSummary>
 {
-    public async Task<WorkspaceSummary> Handle(GetWorkspaceSummaryQuery request, CancellationToken cancellationToken)
+    public async Task<WorkspaceSummary> Handle(IReceiveContext<GetWorkspaceSummaryQuery> context, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
         var workspaceId = request.Context.WorkspaceId;
@@ -48,3 +51,4 @@ public sealed class GetWorkspaceSummaryHandler(
             CreatedAt: workspace.CreatedAt);
     }
 }
+

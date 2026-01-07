@@ -1,4 +1,5 @@
-using MediatR;
+using Mediator.Net;
+using Mediator.Net.MicrosoftDependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Auth.Login;
@@ -43,9 +44,11 @@ public static class ServiceCollectionExtensions
         services.AddHttpContextAccessor();
         services.AddSingleton<IClockFactory, StopwatchClockFactory>();
         services.AddSingleton<HttpContextExtensions>();
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<LoginCommand>());
-        //builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(IdentityGuardBehavior<,>)); //todo debugnow
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
+        var mediatorBuilder = new MediatorBuilder()
+            .RegisterHandlers(typeof(LoginCommand).Assembly)
+            .ConfigureRequestPipe(pipe =>
+                pipe.AddPipeSpecification(new TransactionRequestSpecification(pipe.DependencyScope)));
+        services.RegisterMediator(mediatorBuilder);
 
         // Security
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();

@@ -1,6 +1,7 @@
 namespace Printify.Application.Features.Media.GetMedia;
 
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Printify.Application.Interfaces;
 using Printify.Domain.Services;
 
@@ -15,8 +16,10 @@ public sealed class GetMediaHandler : IRequestHandler<GetMediaQuery, MediaDownlo
         this.mediaStorage = mediaStorage ?? throw new ArgumentNullException(nameof(mediaStorage));
     }
 
-    public async Task<MediaDownloadResult?> Handle(GetMediaQuery request, CancellationToken cancellationToken)
+    public async Task<MediaDownloadResult?> Handle(IReceiveContext<GetMediaQuery> context, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
         // Media is workspace-scoped; do not allow anonymous downloads.
@@ -37,3 +40,4 @@ public sealed class GetMediaHandler : IRequestHandler<GetMediaQuery, MediaDownlo
         return new MediaDownloadResult(stream, media.ContentType, media.Sha256Checksum);
     }
 }
+

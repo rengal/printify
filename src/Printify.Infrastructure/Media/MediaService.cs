@@ -1,4 +1,4 @@
-﻿using Printify.Application.Interfaces;
+using Printify.Application.Interfaces;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Media;
 using SkiaSharp;

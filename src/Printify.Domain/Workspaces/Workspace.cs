@@ -1,4 +1,6 @@
-﻿namespace Printify.Domain.Workspaces;
+namespace Printify.Domain.Workspaces;
+
+using Mediator.Net.Contracts;
 
 /// <summary>
 /// Person interacting with the system. Acts as a logical owner for printers and documents.
@@ -16,4 +18,5 @@ public sealed record Workspace(
     DateTimeOffset CreatedAt,
     string CreatedFromIp,
     bool IsDeleted)
-    : BaseDomainEntity(Id, CreatedAt, IsDeleted);
+    : BaseDomainEntity(Id, CreatedAt, IsDeleted), IResponse;
+

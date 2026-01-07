@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator.Net.Contracts;
 using Printify.Domain.Documents.View;
 using Printify.Domain.Requests;
 
@@ -8,5 +8,6 @@ public sealed record ListPrinterViewDocumentsQuery(
     Guid PrinterId,
     RequestContext Context,
     Guid? BeforeId,
-    int Limit)
-    : IRequest<IReadOnlyList<ViewDocument>>;
+    int Limit) : IRequest;
+
+public sealed record PrinterViewDocumentListResponse(IReadOnlyList<ViewDocument> Documents) : IResponse;

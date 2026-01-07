@@ -1,6 +1,8 @@
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
+using Printify.Application.Mediation;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
 
@@ -11,8 +13,10 @@ public sealed class DeletePrinterHandler(
     IPrinterListenerOrchestrator listenerOrchestrator)
     : IRequestHandler<DeletePrinterCommand, Unit>
 {
-    public async Task<Unit> Handle(DeletePrinterCommand request, CancellationToken ct)
+    public async Task<Unit> Handle(IReceiveContext<DeletePrinterCommand> context, CancellationToken ct)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
         var printer = await printerRepository
@@ -31,3 +35,4 @@ public sealed class DeletePrinterHandler(
         return Unit.Value;
     }
 }
+

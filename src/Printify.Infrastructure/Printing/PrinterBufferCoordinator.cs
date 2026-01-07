@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
 using Microsoft.Extensions.Hosting;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;

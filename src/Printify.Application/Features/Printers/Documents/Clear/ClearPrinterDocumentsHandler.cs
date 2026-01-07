@@ -1,6 +1,8 @@
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
+using Printify.Application.Mediation;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
 
@@ -12,8 +14,10 @@ public sealed class ClearPrinterDocumentsHandler(
     IPrinterStatusStream statusStream)
     : IRequestHandler<ClearPrinterDocumentsCommand, Unit>
 {
-    public async Task<Unit> Handle(ClearPrinterDocumentsCommand request, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(IReceiveContext<ClearPrinterDocumentsCommand> context, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         // Validate input to avoid null reference errors in downstream logic.
         ArgumentNullException.ThrowIfNull(request);
 
@@ -37,7 +41,6 @@ public sealed class ClearPrinterDocumentsHandler(
             .ConfigureAwait(false);
         if (refreshedPrinter is not null)
         {
-            //refreshedPrinter.DisplayName = "NEw NAME!!!!";
             // Publish printer metadata changes so sidebar/active views refresh last document info.
             // The SSE update carries printer fields only, avoiding a full status snapshot.
             statusStream.Publish(
@@ -51,3 +54,4 @@ public sealed class ClearPrinterDocumentsHandler(
         return Unit.Value;
     }
 }
+

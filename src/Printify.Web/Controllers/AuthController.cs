@@ -1,10 +1,12 @@
-using MediatR;
+using Mediator.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Auth.GetCurrentWorkspace;
+using Printify.Application.Features.Auth.Login;
 using Printify.Application.Interfaces;
 using Printify.Domain.Config;
+using Printify.Domain.Workspaces;
 using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Contracts.Auth.Responses;
 using Printify.Web.Contracts.Workspaces.Responses;
@@ -25,7 +27,7 @@ public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator me
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var command = request.ToCommand(httpContext);
-        var workspace= await mediator.Send(command, ct);
+        var workspace = await mediator.RequestAsync<LoginCommand, Workspace>(command, ct);
 
         var token = jwt.GenerateToken(workspace.Id);
 
@@ -51,7 +53,7 @@ public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator me
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var command = new GetCurrentWorkspaceCommand(httpContext);
-        var workspace = await mediator.Send(command, ct);
+        var workspace = await mediator.RequestAsync<GetCurrentWorkspaceCommand, Workspace>(command, ct);
 
         return Ok(workspace.ToDto());
     }

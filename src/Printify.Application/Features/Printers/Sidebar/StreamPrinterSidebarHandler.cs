@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Microsoft.Extensions.Logging;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
@@ -16,9 +17,11 @@ public sealed class StreamPrinterSidebarHandler(
     : IRequestHandler<StreamPrinterSidebarQuery, PrinterSidebarStreamResult>
 {
     public async Task<PrinterSidebarStreamResult> Handle(
-        StreamPrinterSidebarQuery request,
+        IReceiveContext<StreamPrinterSidebarQuery> context,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
         if (request.Context.WorkspaceId is null)
@@ -73,3 +76,4 @@ public sealed class StreamPrinterSidebarHandler(
         }
     }
 }
+

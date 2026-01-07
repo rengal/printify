@@ -1,4 +1,5 @@
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Microsoft.Extensions.Logging;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
@@ -15,9 +16,11 @@ public sealed class UpdatePrinterDrawerStateHandler(
     : IRequestHandler<UpdatePrinterDrawerStateCommand, PrinterRuntimeStatus>
 {
     public async Task<PrinterRuntimeStatus> Handle(
-        UpdatePrinterDrawerStateCommand request,
+        IReceiveContext<UpdatePrinterDrawerStateCommand> context,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
         if (request.Context.WorkspaceId is null)
@@ -82,3 +85,4 @@ public sealed class UpdatePrinterDrawerStateHandler(
         return parsed;
     }
 }
+

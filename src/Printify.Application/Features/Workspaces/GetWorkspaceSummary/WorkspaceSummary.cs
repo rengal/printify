@@ -1,5 +1,7 @@
 namespace Printify.Application.Features.Workspaces.GetWorkspaceSummary;
 
+using Mediator.Net.Contracts;
+
 /// <summary>
 /// Workspace summary with document statistics.
 /// </summary>
@@ -13,4 +15,5 @@ public sealed record WorkspaceSummary(
     long TotalDocuments,
     long DocumentsLast24h,
     DateTimeOffset? LastDocumentAt,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt) : IResponse;
+

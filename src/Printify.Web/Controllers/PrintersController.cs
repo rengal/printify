@@ -1,10 +1,11 @@
 using System.Text;
 using System.Text.Json;
-using MediatR;
+using Mediator.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Printify.Application.Features.Printers.Create;
 using Printify.Application.Features.Printers.Delete;
 using Printify.Application.Features.Printers.Documents.Clear;
 using Printify.Application.Features.Printers.Documents.Get;
@@ -12,9 +13,14 @@ using Printify.Application.Features.Printers.Documents.List;
 using Printify.Application.Features.Printers.Documents.View;
 using Printify.Application.Features.Printers.Get;
 using Printify.Application.Features.Printers.List;
+using Printify.Application.Features.Printers.Pin;
 using Printify.Application.Features.Printers.Sidebar;
 using Printify.Application.Features.Printers.Status;
+using Printify.Application.Features.Printers.Update;
+using Printify.Application.Mediation;
 using Printify.Application.Printing;
+using Printify.Domain.Documents;
+using Printify.Domain.Documents.View;
 using Printify.Domain.Printers;
 using Printify.Web.Contracts.Common.Pagination;
 using Printify.Web.Contracts.Documents.Requests;
@@ -59,7 +65,9 @@ public sealed class PrintersController : ControllerBase
         ArgumentNullException.ThrowIfNull(request);
 
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var snapshot = await mediator.Send(request.ToCommand(httpContext), cancellationToken);
+        var snapshot = await mediator.RequestAsync<CreatePrinterCommand, PrinterDetailsSnapshot>(
+            request.ToCommand(httpContext),
+            cancellationToken);
         return Ok(snapshot.ToResponseDto());
     }
 
@@ -68,8 +76,10 @@ public sealed class PrintersController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<PrinterResponseDto>>> List(CancellationToken cancellationToken)
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var printers = await mediator.Send(new ListPrintersQuery(httpContext), cancellationToken);
-        var responses = printers
+        var printers = await mediator.RequestAsync<ListPrintersQuery, PrinterListResponse>(
+            new ListPrintersQuery(httpContext),
+            cancellationToken);
+        var responses = printers.Printers
             .Select(snapshot => snapshot.ToResponseDto())
             .ToList();
         return Ok(responses);
@@ -80,8 +90,10 @@ public sealed class PrintersController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<PrinterSidebarSnapshotDto>>> ListSidebar(CancellationToken cancellationToken)
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var snapshots = await mediator.Send(new ListPrinterSidebarQuery(httpContext), cancellationToken);
-        var response = snapshots.Select(snapshot => snapshot.ToSidebarSnapshotDto()).ToList();
+        var snapshots = await mediator.RequestAsync<ListPrinterSidebarQuery, PrinterSidebarListResponse>(
+            new ListPrinterSidebarQuery(httpContext),
+            cancellationToken);
+        var response = snapshots.Snapshots.Select(snapshot => snapshot.ToSidebarSnapshotDto()).ToList();
         return Ok(response);
     }
 
@@ -91,7 +103,9 @@ public sealed class PrintersController : ControllerBase
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         logger.LogInformation("Sidebar SSE starting for workspace {WorkspaceId}.", httpContext.WorkspaceId);
-        var streamResult = await mediator.Send(new StreamPrinterSidebarQuery(httpContext), cancellationToken);
+        var streamResult = await mediator.RequestAsync<StreamPrinterSidebarQuery, PrinterSidebarStreamResult>(
+            new StreamPrinterSidebarQuery(httpContext),
+            cancellationToken);
 
         Response.Headers.CacheControl = "no-store";
         Response.Headers["X-Accel-Buffering"] = "no";
@@ -122,7 +136,9 @@ public sealed class PrintersController : ControllerBase
     public async Task StreamRuntime(Guid id, CancellationToken cancellationToken)
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var streamResult = await mediator.Send(new StreamPrinterRuntimeQuery(httpContext, id), cancellationToken);
+        var streamResult = await mediator.RequestAsync<StreamPrinterRuntimeQuery, PrinterRuntimeStreamResult>(
+            new StreamPrinterRuntimeQuery(httpContext, id),
+            cancellationToken);
 
         Response.Headers.CacheControl = "no-store";
         Response.Headers["X-Accel-Buffering"] = "no";
@@ -140,7 +156,9 @@ public sealed class PrintersController : ControllerBase
     public async Task StreamDocuments(Guid id, CancellationToken cancellationToken)
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var printer = await mediator.Send(new GetPrinterQuery(id, httpContext), cancellationToken);
+        var printer = await mediator.RequestAsync<GetPrinterQuery, PrinterDetailsSnapshot?>(
+            new GetPrinterQuery(id, httpContext),
+            cancellationToken);
         if (printer is null)
         {
             Response.StatusCode = StatusCodes.Status404NotFound;
@@ -162,7 +180,9 @@ public sealed class PrintersController : ControllerBase
     public async Task StreamViewDocuments(Guid id, CancellationToken cancellationToken)
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var printer = await mediator.Send(new GetPrinterQuery(id, httpContext), cancellationToken);
+        var printer = await mediator.RequestAsync<GetPrinterQuery, PrinterDetailsSnapshot?>(
+            new GetPrinterQuery(id, httpContext),
+            cancellationToken);
         if (printer is null)
         {
             Response.StatusCode = StatusCodes.Status404NotFound;
@@ -175,7 +195,7 @@ public sealed class PrintersController : ControllerBase
 
         await foreach (var documentEvent in documentStream.Subscribe(id, cancellationToken))
         {
-            var viewDocument = await mediator.Send(
+            var viewDocument = await mediator.RequestAsync<GetPrinterViewDocumentQuery, ViewDocument?>(
                 new GetPrinterViewDocumentQuery(
                     id,
                     documentEvent.Document.Id,
@@ -200,18 +220,18 @@ public sealed class PrintersController : ControllerBase
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var effectiveLimit = request?.Limit ?? 20;
-        var documents = await mediator.Send(
+        var documents = await mediator.RequestAsync<ListPrinterDocumentsQuery, PrinterDocumentListResponse>(
             new ListPrinterDocumentsQuery(
                 id,
                 httpContext,
                 request?.BeforeId,
                 effectiveLimit),
             cancellationToken);
-        var items = documents
+        var items = documents.Documents
             .Select(DocumentMapper.ToResponseDto)
             .ToList();
-        var hasMore = effectiveLimit > 0 && documents.Count == effectiveLimit;
-        var nextBeforeId = hasMore ? documents.Last().Id : (Guid?)null;
+        var hasMore = effectiveLimit > 0 && documents.Documents.Count == effectiveLimit;
+        var nextBeforeId = hasMore ? documents.Documents.Last().Id : (Guid?)null;
         var response = new DocumentListResponseDto(
             new Contracts.Common.Pagination.PagedResult<DocumentDto>(
                 items,
@@ -230,18 +250,18 @@ public sealed class PrintersController : ControllerBase
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var effectiveLimit = request?.Limit ?? 20;
-        var documents = await mediator.Send(
+        var documents = await mediator.RequestAsync<ListPrinterViewDocumentsQuery, PrinterViewDocumentListResponse>(
             new ListPrinterViewDocumentsQuery(
                 id,
                 httpContext,
                 request?.BeforeId,
                 effectiveLimit),
             cancellationToken);
-        var items = documents
+        var items = documents.Documents
             .Select(ViewDocumentMapper.ToViewResponseDto)
             .ToList();
-        var hasMore = effectiveLimit > 0 && documents.Count == effectiveLimit;
-        var nextBeforeId = hasMore ? documents.Last().Id : (Guid?)null;
+        var hasMore = effectiveLimit > 0 && documents.Documents.Count == effectiveLimit;
+        var nextBeforeId = hasMore ? documents.Documents.Last().Id : (Guid?)null;
         var response = new ViewDocumentListResponseDto(
             new PagedResult<ViewDocumentDto>(
                 items,
@@ -257,7 +277,9 @@ public sealed class PrintersController : ControllerBase
     public async Task<IActionResult> ClearDocuments(Guid id, CancellationToken cancellationToken)
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        await mediator.Send(new ClearPrinterDocumentsCommand(httpContext, id), cancellationToken);
+        await mediator.RequestAsync<ClearPrinterDocumentsCommand, Unit>(
+            new ClearPrinterDocumentsCommand(httpContext, id),
+            cancellationToken);
         return NoContent();
     }
 
@@ -273,7 +295,9 @@ public sealed class PrintersController : ControllerBase
     public async Task<ActionResult<Domain.Documents.Document>> GetDocument(Guid printerId, Guid documentId, CancellationToken cancellationToken)
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var document = await mediator.Send(new GetPrinterDocumentQuery(printerId, documentId, httpContext), cancellationToken);
+        var document = await mediator.RequestAsync<GetPrinterDocumentQuery, Domain.Documents.Document?>(
+            new GetPrinterDocumentQuery(printerId, documentId, httpContext),
+            cancellationToken);
         if (document is null)
         {
             return NotFound();
@@ -287,7 +311,9 @@ public sealed class PrintersController : ControllerBase
     public async Task<ActionResult<PrinterResponseDto>> Get(Guid id, CancellationToken cancellationToken)
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var snapshot = await mediator.Send(new GetPrinterQuery(id, httpContext), cancellationToken);
+        var snapshot = await mediator.RequestAsync<GetPrinterQuery, PrinterDetailsSnapshot?>(
+            new GetPrinterQuery(id, httpContext),
+            cancellationToken);
 
         if (snapshot is null)
         {
@@ -307,7 +333,7 @@ public sealed class PrintersController : ControllerBase
         ArgumentNullException.ThrowIfNull(request);
 
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var updatedFlags = await mediator.Send(
+        var updatedFlags = await mediator.RequestAsync<UpdatePrinterOperationalFlagsCommand, PrinterOperationalFlags>(
             new UpdatePrinterOperationalFlagsCommand(
                 httpContext,
                 id,
@@ -331,7 +357,7 @@ public sealed class PrintersController : ControllerBase
         ArgumentNullException.ThrowIfNull(request);
 
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var runtimeStatus = await mediator.Send(
+        var runtimeStatus = await mediator.RequestAsync<UpdatePrinterDrawerStateCommand, PrinterRuntimeStatus>(
             new UpdatePrinterDrawerStateCommand(
                 httpContext,
                 id,
@@ -349,7 +375,7 @@ public sealed class PrintersController : ControllerBase
 
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var command = request.ToCommand(id, httpContext);
-        var snapshot = await mediator.Send(command, cancellationToken);
+        var snapshot = await mediator.RequestAsync<UpdatePrinterCommand, PrinterDetailsSnapshot>(command, cancellationToken);
         return Ok(snapshot.ToResponseDto());
     }
 
@@ -358,7 +384,7 @@ public sealed class PrintersController : ControllerBase
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        await mediator.Send(new DeletePrinterCommand(httpContext, id), cancellationToken);
+        await mediator.RequestAsync<DeletePrinterCommand, Unit>(new DeletePrinterCommand(httpContext, id), cancellationToken);
         return NoContent();
     }
 
@@ -370,7 +396,7 @@ public sealed class PrintersController : ControllerBase
 
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var command = request.ToCommand(id, httpContext);
-        var snapshot = await mediator.Send(command, cancellationToken);
+        var snapshot = await mediator.RequestAsync<SetPrinterPinnedCommand, PrinterDetailsSnapshot>(command, cancellationToken);
         return Ok(snapshot.ToResponseDto());
     }
 

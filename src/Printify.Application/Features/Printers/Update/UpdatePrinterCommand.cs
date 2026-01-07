@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator.Net.Contracts;
 using Printify.Domain.Printers;
 using Printify.Domain.Requests;
 
@@ -8,7 +8,7 @@ public sealed record UpdatePrinterCommand(
     RequestContext Context,
     Guid PrinterId,
     UpdatePrinterPayload Printer,
-    UpdatePrinterSettingsPayload Settings) : IRequest<PrinterDetailsSnapshot>;
+    UpdatePrinterSettingsPayload Settings) : IRequest;
 
 public sealed record UpdatePrinterPayload(
     string DisplayName);
@@ -20,3 +20,4 @@ public sealed record UpdatePrinterSettingsPayload(
     bool EmulateBufferCapacity,
     decimal? BufferDrainRate,
     int? BufferMaxCapacity);
+

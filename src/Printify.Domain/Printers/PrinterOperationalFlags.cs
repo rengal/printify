@@ -1,5 +1,7 @@
 namespace Printify.Domain.Printers;
 
+using Mediator.Net.Contracts;
+
 /// <summary>
 /// Persisted operational flags and desired lifecycle for a printer.
 /// Add fields here when they represent device conditions or operator intent that should survive restarts.
@@ -12,4 +14,5 @@ public sealed record PrinterOperationalFlags(
     bool IsPaperOut,
     bool IsOffline,
     bool HasError,
-    bool IsPaperNearEnd);
+    bool IsPaperNearEnd) : IResponse;
+

@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using MediatR;
+using Mediator.Net;
 using Microsoft.AspNetCore.Mvc;
 using Printify.Application.Features.Media.GetMedia;
 
@@ -13,7 +13,7 @@ public sealed class MediaController([NotNull] IMediator mediator) : ControllerBa
     public async Task<IActionResult> GetAsync(Guid mediaId, CancellationToken cancellationToken)
     {
         var result = await mediator
-            .Send(new GetMediaQuery(mediaId), cancellationToken)
+            .RequestAsync<GetMediaQuery, MediaDownloadResult?>(new GetMediaQuery(mediaId), cancellationToken)
             .ConfigureAwait(false);
         if (result is null)
         {

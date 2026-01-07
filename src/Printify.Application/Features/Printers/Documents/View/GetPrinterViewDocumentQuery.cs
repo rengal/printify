@@ -1,4 +1,4 @@
-using MediatR;
+using Mediator.Net.Contracts;
 using Printify.Domain.Documents.View;
 using Printify.Domain.Requests;
 
@@ -8,4 +8,5 @@ public sealed record GetPrinterViewDocumentQuery(
     Guid PrinterId,
     Guid DocumentId,
     RequestContext Context)
-    : IRequest<ViewDocument?>;
+    : IRequest;
+

@@ -1,3 +1,4 @@
+using Mediator.Net.Contracts;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
 
@@ -18,7 +19,8 @@ public sealed record Document(
     string? ClientAddress,
     int BytesReceived,
     int BytesSent,
-    IReadOnlyCollection<Element> Elements)
+    IReadOnlyCollection<Element> Elements) : IResponse
 {
     public const int CurrentVersion = 1;
 }
+

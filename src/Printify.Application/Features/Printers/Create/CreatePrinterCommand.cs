@@ -1,4 +1,4 @@
-﻿using MediatR;
+using Mediator.Net.Contracts;
 using Printify.Application.Interfaces;
 using Printify.Domain.Printers;
 using Printify.Domain.Requests;
@@ -9,7 +9,7 @@ public sealed record CreatePrinterCommand(
     RequestContext Context,
     CreatePrinterPayload Printer,
     CreatePrinterSettingsPayload Settings)
-    : IRequest<PrinterDetailsSnapshot>, ITransactionalRequest;
+    : IRequest, ITransactionalRequest;
 
 public sealed record CreatePrinterPayload(
     Guid Id,
@@ -22,3 +22,4 @@ public sealed record CreatePrinterSettingsPayload(
     bool EmulateBufferCapacity,
     decimal? BufferDrainRate,
     int? BufferMaxCapacity);
+

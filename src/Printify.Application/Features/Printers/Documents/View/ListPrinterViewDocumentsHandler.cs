@@ -1,4 +1,5 @@
-using MediatR;
+using Mediator.Net.Contracts;
+using Mediator.Net.Context;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents.View;
@@ -9,12 +10,14 @@ public sealed class ListPrinterViewDocumentsHandler(
     IPrinterRepository printerRepository,
     IDocumentRepository documentRepository,
     IViewDocumentConverter viewDocumentConverter)
-    : IRequestHandler<ListPrinterViewDocumentsQuery, IReadOnlyList<ViewDocument>>
+    : IRequestHandler<ListPrinterViewDocumentsQuery, PrinterViewDocumentListResponse>
 {
-    public async Task<IReadOnlyList<ViewDocument>> Handle(
-        ListPrinterViewDocumentsQuery request,
+    public async Task<PrinterViewDocumentListResponse> Handle(
+        IReceiveContext<ListPrinterViewDocumentsQuery> context,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(context);
+        var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
         var printer = await printerRepository.GetByIdAsync(
@@ -35,6 +38,7 @@ public sealed class ListPrinterViewDocumentsHandler(
             .Select(viewDocumentConverter.ToViewDocument)
             .ToList();
 
-        return viewDocuments.AsReadOnly();
+        return new PrinterViewDocumentListResponse(viewDocuments.AsReadOnly());
     }
 }
+
