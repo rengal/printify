@@ -1091,7 +1091,7 @@
                     const button = control.querySelector('button');
 
                     if (stateSpan) {
-                        stateSpan.textContent = (!state || state === 'Closed') ? 'closed' : 'opened';
+                        stateSpan.textContent = (!state || state === 'Closed') ? 'Closed' : 'Opened';
                     }
 
                     if (button) {
@@ -1320,7 +1320,7 @@
                     <div class="drawer-info">
                       <span class="drawer-label">Drawer 1:</span>
                       <span class="drawer-state">${
-                        !printer.drawer1State || printer.drawer1State === 'Closed' ? 'closed' : 'opened'
+                        !printer.drawer1State || printer.drawer1State === 'Closed' ? 'Closed' : 'Opened'
                       }</span>
                     </div>
                     ${printer.drawer1State === 'Closed' || !printer.drawer1State
@@ -1332,7 +1332,7 @@
                     <div class="drawer-info">
                       <span class="drawer-label">Drawer 2:</span>
                       <span class="drawer-state">${
-                        !printer.drawer2State || printer.drawer2State === 'Closed' ? 'closed' : 'opened'
+                        !printer.drawer2State || printer.drawer2State === 'Closed' ? 'Closed' : 'Opened'
                       }</span>
                     </div>
                     ${printer.drawer2State === 'Closed' || !printer.drawer2State
@@ -1680,8 +1680,8 @@
             const isBusy = percentage >= 75;
             const isFull = percentage >= 100;
 
-            // ASCII progress bar with 30 characters
-            const barLength = 30;
+            // ASCII progress bar with 35 characters
+            const barLength = 35;
             const filled = Math.round((percentage / 100) * barLength);
             const empty = barLength - filled;
 
