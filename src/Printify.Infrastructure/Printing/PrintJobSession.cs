@@ -1,4 +1,4 @@
-﻿using Printify.Application.Printing;
+using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;

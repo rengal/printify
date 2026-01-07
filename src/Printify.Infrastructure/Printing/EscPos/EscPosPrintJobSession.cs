@@ -124,6 +124,8 @@ public class EscPosPrintJobSession : PrintJobSession
             Settings.WidthInDots,
             Settings.HeightInDots,
             Channel.ClientAddress,
+            TotalBytesReceived,
+            TotalBytesSentToClient,
             snapshot);
         SetDocument(document);
 

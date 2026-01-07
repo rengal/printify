@@ -16,6 +16,8 @@ public sealed record Document(
     int WidthInDots,
     int? HeightInDots,
     string? ClientAddress,
+    int BytesReceived,
+    int BytesSent,
     IReadOnlyCollection<Element> Elements)
 {
     public const int CurrentVersion = 1;

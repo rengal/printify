@@ -14,6 +14,8 @@ namespace Printify.Domain.Documents.View;
 /// <param name="WidthInDots">Printer width in dots at the time of capture.</param>
 /// <param name="HeightInDots">Optional printer height in dots at the time of capture.</param>
 /// <param name="ClientAddress">Address observed for the producer of the document.</param>
+/// <param name="BytesReceived">Total bytes received from the client during the session.</param>
+/// <param name="BytesSent">Total bytes sent to the client during the session.</param>
 /// <param name="Elements">Ordered list of view elements, including non-visual state changes.</param>
 /// <param name="ErrorMessages">Collection of error messages from Error or PrinterError elements. Null if no errors present.</param>
 public sealed record ViewDocument(
@@ -25,5 +27,7 @@ public sealed record ViewDocument(
     int WidthInDots,
     int? HeightInDots,
     string? ClientAddress,
+    int BytesReceived,
+    int BytesSent,
     IReadOnlyList<ViewElement> Elements,
     string[]? ErrorMessages);

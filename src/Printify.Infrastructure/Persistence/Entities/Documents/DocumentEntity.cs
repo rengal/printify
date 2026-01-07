@@ -42,6 +42,12 @@ public sealed class DocumentEntity
     [Column("client_address")]
     public string? ClientAddress { get; set; }
 
+    [Column("bytes_received")]
+    public int BytesReceived { get; set; }
+
+    [Column("bytes_sent")]
+    public int BytesSent { get; set; }
+
     [InverseProperty(nameof(DocumentElementEntity.Document))]
     public List<DocumentElementEntity> Elements { get; set; } = new();
 

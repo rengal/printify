@@ -26,6 +26,8 @@ public sealed class EscPosViewDocumentConverterTests
             DefaultPrinterWidthInDots,
             DefaultPrinterHeightInDots,
             null,
+            0,
+            0,
             elements);
 
         var converter = new EscPosViewDocumentConverter();

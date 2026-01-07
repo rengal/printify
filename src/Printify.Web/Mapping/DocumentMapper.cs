@@ -44,6 +44,8 @@ public static class DocumentMapper
             document.WidthInDots,
             document.HeightInDots,
             document.ClientAddress,
+            document.BytesReceived,
+            document.BytesSent,
             responseElements.AsReadOnly(),
             errorMessages is { Length: > 0 } ? errorMessages : null);
     }

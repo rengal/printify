@@ -161,6 +161,8 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
             document.WidthInDots,
             document.HeightInDots,
             document.ClientAddress,
+            document.BytesReceived,
+            document.BytesSent,
             elements.AsReadOnly(),
             errorMessages is { Length: > 0 } ? errorMessages : null);
     }

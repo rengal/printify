@@ -24,7 +24,9 @@ internal static class DocumentEntityMapper
             Protocol = DomainMapper.ToString(document.Protocol),
             WidthInDots = document.WidthInDots,
             HeightInDots = document.HeightInDots,
-            ClientAddress = document.ClientAddress
+            ClientAddress = document.ClientAddress,
+            BytesReceived = document.BytesReceived,
+            BytesSent = document.BytesSent
         };
 
         var elementEntities = new List<DocumentElementEntity>();
@@ -99,6 +101,8 @@ internal static class DocumentEntityMapper
             entity.WidthInDots,
             entity.HeightInDots,
             entity.ClientAddress,
+            entity.BytesReceived,
+            entity.BytesSent,
             elements);
     }
 }

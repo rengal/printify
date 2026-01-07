@@ -25,6 +25,8 @@ internal static class ViewDocumentMapper
             document.WidthInDots,
             document.HeightInDots,
             document.ClientAddress,
+            document.BytesReceived,
+            document.BytesSent,
             viewElements.AsReadOnly(),
             document.ErrorMessages);
     }
