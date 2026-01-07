@@ -234,7 +234,7 @@ public static class EscPosGoldenCases
                             0,
                             0,
                             512,
-                            175) { LengthInBytes = 8 },
+                            225) { LengthInBytes = 8 },
                         new ViewDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new ViewDebugElementDto("pagecut", PagecutParameters(PagecutMode.Partial, 0)) { LengthInBytes = 4 }
                     ]),

@@ -50,16 +50,10 @@ The following Microsoft .NET packages are used under the **MIT License**:
 | Package | Version | Description | Link | License Text |
 |---------|---------|-------------|------|--------------|
 | **FluentValidation** | 12.0.0 | Small validation library for .NET | [GitHub](https://github.com/FluentValidation/FluentValidation) | [fluentvalidation-apache-2.0-license.txt](/assets/licenses/fluentvalidation-apache-2.0-license.txt) |
+| **Mediator.Net** | 4.9.0 | In-process mediator with CQRS support | [GitHub](https://github.com/mayuanyang/Mediator.Net) | [apache-2.0-license.txt](/assets/licenses/apache-2.0-license.txt) |
+| **Mediator.Net.MicrosoftDependencyInjection** | 4.9.0 | Mediator.Net DI integration for Microsoft.Extensions.DependencyInjection | [GitHub](https://github.com/mayuanyang/Mediator.Net) | [apache-2.0-license.txt](/assets/licenses/apache-2.0-license.txt) |
 | **ZXing.Net** | 0.16.11 | Barcode encoding/decoding library | [GitHub](https://github.com/micjahn/ZXing.Net) | [zxing-net-apache-2.0-license.txt](/assets/licenses/zxing-net-apache-2.0-license.txt) |
 | **ZXing.Net.Bindings.SkiaSharp** | 0.16.12 | SkiaSharp binding for ZXing.Net | [GitHub](https://github.com/micjahn/ZXing.Net) | [zxing-net-apache-2.0-license.txt](/assets/licenses/zxing-net-apache-2.0-license.txt) |
-
-### Reciprocal Public License 1.5 (RPL-1.5)
-
-| Package | Version | Description | Link | License Text |
-|---------|---------|-------------|------|--------------|
-| **MediatR** | 13.0.0 | Mediator pattern implementation for .NET | [GitHub](https://github.com/jbogard/MediatR) | [mediatr-rpl-1.5-license.txt](/assets/licenses/mediatr-rpl-1.5-license.txt) |
-
-MediatR also offers a separate license agreement: [luckypennysoftware.com/license](https://luckypennysoftware.com/license).
 
 ---
 

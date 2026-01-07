@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using Mediator.Net;
 using Mediator.Net.Context;
 using Mediator.Net.Contracts;
@@ -59,11 +60,12 @@ public sealed class TransactionRequestSpecification(IDependencyScope dependencyS
 
         if (context.Message is not ITransactionalRequest)
         {
-            return;
+            ExceptionDispatchInfo.Capture(exception).Throw();
         }
 
         // Cancellation token is unavailable here; rollback must not be skipped.
         var uow = dependencyScope.Resolve<IUnitOfWork>();
         await uow.RollbackAsync(CancellationToken.None).ConfigureAwait(false);
+        ExceptionDispatchInfo.Capture(exception).Throw();
     }
 }
