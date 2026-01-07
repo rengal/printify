@@ -109,6 +109,10 @@ public class DocsController : ControllerBase
                     <img class=""docs-nav-icon"" src=""/assets/icons/lock.svg"" alt="""" width=""20"" height=""20"">
                     <span>Privacy Policy</span>
                 </a>
+                <a href=""/docs/licenses"" class=""docs-nav-item list-item"">
+                    <img class=""docs-nav-icon"" src=""/assets/icons/file-minus.svg"" alt="""" width=""20"" height=""20"">
+                    <span>Third-Party Licenses</span>
+                </a>
             </nav>
         </aside>
         <!-- END NAVIGATION -->

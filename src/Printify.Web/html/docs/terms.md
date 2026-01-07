@@ -97,25 +97,6 @@ Questions about these terms? Email [support@virtual-printer.online](mailto:suppo
 
 ## Third-Party Licenses
 
-Virtual Printer uses third-party components. Their licenses apply to those components and are provided in the
-respective package distributions and source repositories.
+Virtual Printer uses third-party software components. Each component is licensed under the terms specified by its respective copyright holders.
 
-Runtime components used by the service:
-- Markdig (0.38.0)
-- FluentValidation (12.0.0)
-- MediatR (13.0.0)
-- Microsoft.AspNetCore.Authentication.JwtBearer (8.0.*)
-- Microsoft.Data.Sqlite (8.0.10)
-- Microsoft.EntityFrameworkCore (8.0.10)
-- Microsoft.EntityFrameworkCore.Sqlite (8.0.10)
-- Microsoft.Extensions.Configuration (8.0.0)
-- Microsoft.Extensions.Configuration.Binder (8.0.0)
-- Microsoft.Extensions.Configuration.EnvironmentVariables (8.0.0)
-- Microsoft.Extensions.Configuration.Json (8.0.0)
-- Microsoft.Extensions.Hosting.Abstractions (8.0.0)
-- Microsoft.Extensions.Options (8.0.0)
-- System.IdentityModel.Tokens.Jwt (8.14.0)
-- System.Text.Encoding.CodePages (10.0.0-rc.2.25502.107)
-- SkiaSharp (2.88.8)
-- ZXing.Net (0.16.11)
-- ZXing.Net.Bindings.SkiaSharp (0.16.12)
+For a complete list of third-party components and their licenses, see our [Third-Party Licenses](/docs/licenses) page.

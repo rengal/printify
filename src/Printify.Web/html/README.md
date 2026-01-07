@@ -17,3 +17,6 @@ This folder hosts the static UI served by the backend.
 
 ## Scripts
 - `main.js` contains state, API interactions, render functions, and event wiring. Keep new logic modular inside this file or split into additional modules under `assets/js/` as needed.
+
+## Licenses
+- Third-party license inventory: `docs/licenses.md` (local links to license texts).

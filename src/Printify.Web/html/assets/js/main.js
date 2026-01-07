@@ -2108,7 +2108,7 @@
 
                 closeModal();
                 showTokenDialog(workspaceToken);
-                updateUserDisplay();
+                updateWorkspaceDisplay();
                 renderSidebar();
                 renderDocuments();
             }
@@ -2139,7 +2139,7 @@
                 localStorage.setItem('workspaceToken', token);
 
                 closeModal();
-                updateUserDisplay();
+                updateWorkspaceDisplay();
                 renderSidebar();
                 renderDocuments();
                 showToast('Workspace accessed successfully');
@@ -2181,7 +2181,7 @@
                 if (userInfo && userInfo.name) {
                     workspaceName = userInfo.name;
                     localStorage.setItem('workspaceName', workspaceName);
-                    updateUserDisplay();
+                    updateWorkspaceDisplay();
                 }
             startStatusStream();
             await loadWorkspaceSummary();
@@ -2259,7 +2259,7 @@
             container.classList.add('operations-hidden');
             localStorage.setItem('operationsHidden', true);
 
-            updateUserDisplay();
+            updateWorkspaceDisplay();
             renderSidebar();
             renderDocuments();
         }
@@ -2472,28 +2472,28 @@
             return parts[0].substring(0, 2).toUpperCase();
         }
 
-        function updateUserDisplay() {
-            const avatar = document.getElementById('userAvatar');
-            const userName = document.getElementById('userName');
-            const userStatus = document.getElementById('userStatus');
+        function updateWorkspaceDisplay() {
+            const avatar = document.getElementById('workspaceAvatar');
+            const nameEl = document.getElementById('workspaceName');
+            const statusEl = document.getElementById('workspaceStatus');
 
             if (workspaceToken) {
                 if (workspaceName) {
                     avatar.textContent = getInitials(workspaceName);
-                    userName.textContent = workspaceName;
+                    nameEl.textContent = workspaceName;
                 } else {
                     avatar.textContent = workspaceToken.substring(0, 2).toUpperCase();
-                    userName.textContent = workspaceToken;
+                    nameEl.textContent = workspaceToken;
                 }
-                userStatus.textContent = 'Workspace active';
+                statusEl.textContent = 'Workspace active';
             } else {
                 avatar.textContent = '?';
-                userName.textContent = 'No workspace';
-                userStatus.textContent = '';
+                nameEl.textContent = 'No workspace';
+                statusEl.textContent = '';
             }
         }
 
-        function showUserMenu(event) {
+        function showWorkspaceMenu(event) {
             event.stopPropagation();
 
             const existingMenu = document.querySelector('.menu');
@@ -2540,6 +2540,10 @@
                   <div class="menu-item" onclick="window.open('/docs/privacy', '_blank')">
                     <img class="themed-icon menu-item-icon" src="assets/icons/lock.svg" alt="">
                     Privacy Policy
+                  </div>
+                  <div class="menu-item" onclick="window.open('/docs/licenses', '_blank')">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/file-minus.svg" alt="">
+                    Third-Party Licenses
                   </div>
                 </div>
               </div>
@@ -2591,6 +2595,10 @@
                   <div class="menu-item" onclick="window.open('/docs/privacy', '_blank')">
                     <img class="themed-icon menu-item-icon" src="assets/icons/lock.svg" alt="">
                     Privacy Policy
+                  </div>
+                  <div class="menu-item" onclick="window.open('/docs/licenses', '_blank')">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/file-minus.svg" alt="">
+                    Third-Party Licenses
                   </div>
                 </div>
               </div>
@@ -2746,7 +2754,7 @@
                     if (userInfo && userInfo.name) {
                         workspaceName = userInfo.name;
                         localStorage.setItem('workspaceName', workspaceName);
-                        updateUserDisplay();
+                        updateWorkspaceDisplay();
                     }
                     startStatusStream();
                     loadWorkspaceSummary();
@@ -2760,7 +2768,7 @@
             console.warn('Cannot restore workspace - missing tokens');
         }
 
-        updateUserDisplay();
+        updateWorkspaceDisplay();
         renderSidebar();
         renderDocuments();
 
