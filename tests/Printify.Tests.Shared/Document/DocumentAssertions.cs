@@ -201,6 +201,30 @@ public static class DocumentAssertions
         EqualView(expectedElements, expectedProtocol, dto, expectedWidthInDots, expectedHeightInDots);
     }
 
+    public static void EqualBytes(
+        int expectedBytesReceived,
+        int expectedBytesSent,
+        Domain.Documents.Document? actual)
+    {
+        Assert.NotNull(actual);
+        Assert.Equal(expectedBytesReceived, actual.BytesReceived);
+        Assert.Equal(expectedBytesSent, actual.BytesSent);
+    }
+
+    public static void EqualBytes(int expectedBytesReceived, int expectedBytesSent, DocumentDto? actual)
+    {
+        Assert.NotNull(actual);
+        Assert.Equal(expectedBytesReceived, actual.BytesReceived);
+        Assert.Equal(expectedBytesSent, actual.BytesSent);
+    }
+
+    public static void EqualBytes(int expectedBytesReceived, int expectedBytesSent, ViewDocumentDto? actual)
+    {
+        Assert.NotNull(actual);
+        Assert.Equal(expectedBytesReceived, actual.BytesReceived);
+        Assert.Equal(expectedBytesSent, actual.BytesSent);
+    }
+
     public static void EqualViewElements(
         IReadOnlyList<ViewElementDto> expectedElements,
         IReadOnlyList<ViewElementDto> actualElements)

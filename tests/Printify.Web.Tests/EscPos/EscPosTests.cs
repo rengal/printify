@@ -55,6 +55,9 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
             .GetAsyncEnumerator();
         var nextEventTask = streamEnumerator.MoveNextAsync().AsTask();
 
+        var bytesSent = 0;
+        channel.OnResponse(data => bytesSent += data.Length);
+
         await channel.SendToServerAsync(new byte[] { 0x07 }, CancellationToken.None);
 
         var clockFactory = Assert.IsType<TestClockFactory>(environment.ClockFactory);
@@ -81,6 +84,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
             documentEvent.Document,
             DefaultPrinterWidthInDots,
             DefaultPrinterHeightInDots);
+        DocumentAssertions.EqualBytes(expectedElements.Sum(element => element.LengthInBytes), bytesSent, documentEvent.Document);
     }
 
     protected async Task RunScenarioAsync(EscPosScenario scenario)
@@ -119,6 +123,9 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
                 DefaultPrinterWidthInDots,
                 DefaultPrinterHeightInDots);
 
+        var bytesSent = 0;
+        channel.OnResponse(data => bytesSent += data.Length);
+
         var streamEnumerator = environment.DocumentStream
             .Subscribe(printerId, CancellationToken.None)
             .GetAsyncEnumerator();
@@ -146,6 +153,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
             documentEvent.Document,
             DefaultPrinterWidthInDots,
             DefaultPrinterHeightInDots);
+        DocumentAssertions.EqualBytes(scenario.Input.Length, bytesSent, documentEvent.Document);
 
         // Request document via web call and verify
         var documentId = documentEvent.Document.Id;
@@ -170,6 +178,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
             retrievedDocument,
             DefaultPrinterWidthInDots,
             DefaultPrinterHeightInDots);
+        DocumentAssertions.EqualBytes(scenario.Input.Length, bytesSent, retrievedDocument);
 
         // Verify RasterImage elements have accessible Media URLs
         foreach (var element in retrievedDocument.Elements)
@@ -229,6 +238,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
             viewDocument,
             DefaultPrinterWidthInDots,
             DefaultPrinterHeightInDots);
+        DocumentAssertions.EqualBytes(scenario.Input.Length, bytesSent, viewDocument);
 
     }
 
