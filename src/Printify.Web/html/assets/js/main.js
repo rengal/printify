@@ -1677,23 +1677,23 @@
 
             const bytes = bufferedBytes ?? 0;
             const percentage = Math.min((bytes / bufferSize) * 100, 100);
-            const isBusy = percentage >= 75;
-            const isFull = percentage >= 100;
 
-            // ASCII progress bar with 35 characters
-            const barLength = 35;
-            const filled = Math.round((percentage / 100) * barLength);
-            const empty = barLength - filled;
+            // Determine fill color based on percentage
+            let fillColor;
+            if (percentage < 10) {
+                fillColor = 'var(--accent)';
+            } else if (percentage < 50) {
+                fillColor = 'var(--warn)';
+            } else {
+                fillColor = 'var(--danger)';
+            }
 
-            const filledChar = '#';
-            const emptyChar = '-';
-            const filledBar = filledChar.repeat(filled);
-            const emptyBar = emptyChar.repeat(empty);
+            // Build graphical progress bar
+            const fillStyle = percentage > 0 ? `width: ${percentage}%; background-color: ${fillColor};` : 'width: 0;';
 
-            // Determine color for occupied portion
-            const barColor = isFull || isBusy ? 'var(--warn)' : 'var(--accent)';
-
-            return `[<span style="color: ${barColor};">${filledBar}</span><span style="color: var(--text);">${emptyBar}</span>]`;
+            return `<div class="buffer-progress-bar">
+                <div class="buffer-progress-fill" style="${fillStyle}"></div>
+            </div>`;
         }
 
         async function clearDocuments(printerId) {

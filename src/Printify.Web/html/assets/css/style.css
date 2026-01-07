@@ -1741,3 +1741,16 @@
             line-height: 1.2;
         }
 
+        .buffer-progress-bar {
+            width: 100%;
+            height: 6px;
+            border: 1px solid var(--border);
+            background: transparent;
+            overflow: hidden;
+        }
+
+        .buffer-progress-fill {
+            height: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
