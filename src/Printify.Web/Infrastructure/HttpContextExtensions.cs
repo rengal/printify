@@ -11,21 +11,6 @@ public class HttpContextExtensions(IServiceProvider serviceProvider)
         var user = httpContext.User;
         Guid? workspaceId = null;
 
-        //todo debugnow
-        System.Diagnostics.Debug.WriteLine($"User Identity: {user?.Identity?.Name}");
-        System.Diagnostics.Debug.WriteLine($"Is Authenticated: {user?.Identity?.IsAuthenticated}");
-        System.Diagnostics.Debug.WriteLine($"Authentication Type: {user?.Identity?.AuthenticationType}");
-        System.Diagnostics.Debug.WriteLine($"Claims Count: {user?.Claims?.Count()}");
-
-        // Log all claims to see what's actually there
-        if (user?.Claims != null)
-        {
-            foreach (var claim in user.Claims)
-            {
-                System.Diagnostics.Debug.WriteLine($"  Claim Type: '{claim.Type}' = Value: '{claim.Value}'");
-            }
-        }
-
         // 1. Try JWT claims (if authenticated)
         if (user?.Identity?.IsAuthenticated == true)
         {

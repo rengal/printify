@@ -1144,33 +1144,40 @@
                 <div class="section-divider"></div>
 
                 <!-- Drawer Management -->
-                <div class="drawer-control">
-                  <span class="drawer-label">Drawer 1:</span>
-                  <span class="drawer-state">${
-                    !printer.drawer1State || printer.drawer1State === 'Closed' ? 'closed' : 'opened'
-                  }</span>
-                  ${printer.drawer1State === 'Closed' || !printer.drawer1State
-                    ? `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer1State', 'OpenedManually')">Open</button>`
-                    : `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer1State', 'Closed')">Close</button>`
-                  }
-                </div>
-                <div class="drawer-control">
-                  <span class="drawer-label">Drawer 2:</span>
-                  <span class="drawer-state">${
-                    !printer.drawer2State || printer.drawer2State === 'Closed' ? 'closed' : 'opened'
-                  }</span>
-                  ${printer.drawer2State === 'Closed' || !printer.drawer2State
-                    ? `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer2State', 'OpenedManually')">Open</button>`
-                    : `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer2State', 'Closed')">Close</button>`
-                  }
-                </div>
+                  <div class="drawer-control">
+                    <div class="drawer-info">
+                      <span class="drawer-label">Drawer 1:</span>
+                      <span class="drawer-state">${
+                        !printer.drawer1State || printer.drawer1State === 'Closed' ? 'closed' : 'opened'
+                      }</span>
+                    </div>
+                    ${printer.drawer1State === 'Closed' || !printer.drawer1State
+                      ? `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer1State', 'OpenedManually')">Open</button>`
+                      : `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer1State', 'Closed')">Close</button>`
+                    }
+                  </div>
+                  <div class="drawer-control">
+                    <div class="drawer-info">
+                      <span class="drawer-label">Drawer 2:</span>
+                      <span class="drawer-state">${
+                        !printer.drawer2State || printer.drawer2State === 'Closed' ? 'closed' : 'opened'
+                      }</span>
+                    </div>
+                    ${printer.drawer2State === 'Closed' || !printer.drawer2State
+                      ? `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer2State', 'OpenedManually')">Open</button>`
+                      : `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer2State', 'Closed')">Close</button>`
+                    }
+                  </div>
 
                 <!-- Buffer Status Section -->
                 ${printer.emulateBuffer && printer.bufferSize ? `
-                <div class="buffer-status-ascii">
-                  <div class="buffer-header-ascii">Buffer Usage (bytes)<span style="float: right;">${printer.bufferedBytes ?? 0}/${printer.bufferSize}</span></div>
-                  <div class="buffer-bar-ascii">${renderBufferProgress(printer.bufferedBytes, printer.bufferSize)}</div>
-                </div>
+                  <div class="buffer-status-ascii">
+                    <div class="buffer-header-ascii">
+                      <span>Buffer Usage (bytes)</span>
+                      <span class="buffer-header-value">${printer.bufferedBytes ?? 0}/${printer.bufferSize}</span>
+                    </div>
+                    <div class="buffer-bar-ascii">${renderBufferProgress(printer.bufferedBytes, printer.bufferSize)}</div>
+                  </div>
                 ` : ''}
 
                 <!-- Danger Zone -->
@@ -1221,10 +1228,6 @@
                   const errorIcon = hasErrors ? `
                     <img class="document-error-icon" src="assets/icons/alert-triangle.svg" alt="Error" title="${errorTooltipHtml}">
                   ` : '';
-                  const documentWidth = Math.max(doc.widthInDots || 384, 200);
-                  const borderWidth = hasErrors ? 4 : 2;
-                  const headerWidth = documentWidth + 24 + borderWidth;
-
                   return `
                 <div class="document-item">
                     <div class="document-gutter document-gutter-header">
@@ -1498,7 +1501,7 @@
 
             const bytes = bufferedBytes ?? 0;
             const percentage = Math.min((bytes / bufferSize) * 100, 100);
-            const isBusy = percentage > 75;
+            const isBusy = percentage >= 75;
             const isFull = percentage >= 100;
 
             // ASCII progress bar with 30 characters
@@ -1506,14 +1509,15 @@
             const filled = Math.round((percentage / 100) * barLength);
             const empty = barLength - filled;
 
-            const filledChar = '█';
-            const emptyChar = '░';
-            const bar = filledChar.repeat(filled) + emptyChar.repeat(empty);
+            const filledChar = '#';
+            const emptyChar = '-';
+            const filledBar = filledChar.repeat(filled);
+            const emptyBar = emptyChar.repeat(empty);
 
-            // Determine color
-            const barColor = isFull ? 'var(--danger)' : (isBusy ? 'var(--warn)' : 'var(--accent)');
+            // Determine color for occupied portion
+            const barColor = isFull || isBusy ? 'var(--warn)' : 'var(--accent)';
 
-            return `[<span style="color: ${barColor};">${bar}</span>]`;
+            return `[<span style="color: ${barColor};">${filledBar}</span><span style="color: var(--text);">${emptyBar}</span>]`;
         }
 
         async function clearDocuments(printerId) {

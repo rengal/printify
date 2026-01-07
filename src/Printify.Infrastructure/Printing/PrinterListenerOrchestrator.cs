@@ -33,7 +33,6 @@ public sealed class PrinterListenerOrchestrator(
         await RemoveListenerAsync(printer, targetState, ct).ConfigureAwait(false);
 
         var listener = listenerFactory.Create(printer, settings);
-        logger.LogInformation("Listener added for printer {PrinterId}", printer.Id);
         listeners[printer.Id] = listener;
         listener.ChannelAccepted += Listener_ChannelAccepted;
 

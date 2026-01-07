@@ -10,6 +10,7 @@ public class EscPosGoldenTests(WebApplicationFactory<Program> factory) : EscPosT
     {
         Assert.True(EscPosGoldenCases.Expectations.TryGetValue(caseId, out var value));
         var scenario = new EscPosScenario(
+            id: 250001,
             payload,
             value.expectedRequestElement,
             value.expectedPersistedElements,

@@ -18,6 +18,7 @@ public sealed class PrintJobSessionsOrchestrator(
     IPrintJobSessionFactory printJobSessionFactory,
     IServiceScopeFactory scopeFactory,
     IPrinterDocumentStream documentStream,
+    IPrinterBufferCoordinator bufferCoordinator,
     IPrinterStatusStream statusStream,
     IPrinterRuntimeStatusStore runtimeStatusStore)
     : IPrintJobSessionsOrchestrator
@@ -72,6 +73,8 @@ public sealed class PrintJobSessionsOrchestrator(
         if (!jobSessions.TryRemove(channel, out var session))
             return;
         await session.Complete(reason).ConfigureAwait(false);
+        // Emit a final buffer update so subscribers see the latest drained state.
+        bufferCoordinator.ForcePublish(channel.Printer, channel.Settings);
 
         var document = session.Document;
         if (document is not null)

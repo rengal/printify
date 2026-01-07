@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Core;
@@ -28,18 +28,22 @@ public class EscPosPrintJobSession : PrintJobSession
     private IList<Element> ElementBuffer => MutableElements;
     private readonly IClock idleClock;
     private readonly EscPosParser parser;
+    private readonly IPrinterBufferCoordinator bufferCoordinator;
 
     public EscPosPrintJobSession(
+        IPrinterBufferCoordinator bufferCoordinator,
         IClockFactory clockFactory,
         PrintJob job,
         IPrinterChannel channel,
         IEscPosCommandTrieProvider trieProvider)
-        : base(clockFactory, job, channel)
+        : base(bufferCoordinator, job, channel)
     {
+        ArgumentNullException.ThrowIfNull(bufferCoordinator);
         ArgumentNullException.ThrowIfNull(clockFactory);
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(trieProvider);
+        this.bufferCoordinator = bufferCoordinator;
         idleClock = clockFactory.Create();
         parser = new EscPosParser(trieProvider, GetAvailableBytes, OnElement, OnResponse);
     }
@@ -65,22 +69,17 @@ public class EscPosPrintJobSession : PrintJobSession
 
     private void OnElement(Element element)
     {
-        // Drain before accounting for this element to reflect the printer buffer model.
-        UpdateBufferState();
-        if (Settings.EmulateBufferCapacity && Settings.BufferMaxCapacity is > 0 && element.LengthInBytes > 0)
-            bufferedBytes += element.LengthInBytes;
+        if (element.LengthInBytes > 0)
+        {
+            bufferCoordinator.AddBytes(Printer, Settings, element.LengthInBytes);
+        }
 
         ElementBuffer.Add(element);
     }
 
     private int GetAvailableBytes()
     {
-        if (!Settings.EmulateBufferCapacity || Settings.BufferMaxCapacity is null or <= 0)
-            return int.MaxValue;
-
-        // Use drained value so available capacity matches the model at request time.
-        UpdateBufferState();
-        return Math.Max(0, Settings.BufferMaxCapacity.Value - bufferedBytes);
+        return bufferCoordinator.GetAvailableBytes(Printer, Settings);
     }
 
     private async Task IdleTimeoutAsync(CancellationToken ct)
@@ -110,9 +109,6 @@ public class EscPosPrintJobSession : PrintJobSession
         if (IsCompleted)
             return Task.CompletedTask;
 
-        // Drain the buffer to capture the latest busy state before finalizing.
-        UpdateBufferState();
-        
         parser.Complete();
 
 

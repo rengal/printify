@@ -1,11 +1,9 @@
 ﻿using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
-using Printify.Domain.Core;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
-using Printify.Domain.Services;
 
 namespace Printify.Infrastructure.Printing;
 
@@ -29,9 +27,8 @@ public abstract class PrintJobSession : IPrintJobSession
     {
         get
         {
-            UpdateBufferState();
-
-            return Settings is { EmulateBufferCapacity: true, BufferDrainRate: > 0 } && bufferedBytes >= busyThreshold;
+            var snapshot = bufferCoordinator.GetSnapshot(Printer, Settings);
+            return snapshot.IsBusy;
         }
     }
 
@@ -39,8 +36,8 @@ public abstract class PrintJobSession : IPrintJobSession
     {
         get
         {
-            UpdateBufferState();
-            return Settings is { EmulateBufferCapacity: true } && bufferedBytes >= overflowThreshold;
+            var snapshot = bufferCoordinator.GetSnapshot(Printer, Settings);
+            return snapshot.IsFull;
         }
     }
 
@@ -56,6 +53,7 @@ public abstract class PrintJobSession : IPrintJobSession
     protected IPrinterChannel Channel { get; }
     protected Printer Printer => Job.Printer;
     protected PrinterSettings Settings => Job.Settings;
+    private readonly IPrinterBufferCoordinator bufferCoordinator;
     public virtual Task Feed(ReadOnlyMemory<byte> data, CancellationToken ct)
     {
         if (IsCompleted || data.Length == 0)
@@ -84,60 +82,17 @@ public abstract class PrintJobSession : IPrintJobSession
 
     #endregion
 
-    #region Private Members
-
-    protected int bufferedBytes;
-    private readonly IClock drainClock;
-    private readonly int busyThreshold;
-    private readonly int overflowThreshold;
-    private const double BusyThresholdRatio = 0.5;
-
-    #endregion
-
     #region Constructor
 
-    protected PrintJobSession(IClockFactory clockFactory, PrintJob job, IPrinterChannel channel)
+    protected PrintJobSession(IPrinterBufferCoordinator bufferCoordinator, PrintJob job, IPrinterChannel channel)
     {
+        ArgumentNullException.ThrowIfNull(bufferCoordinator);
         Job = job;
         Channel = channel;
-        busyThreshold = (int)(Settings.BufferMaxCapacity.GetValueOrDefault() * BusyThresholdRatio);
-        overflowThreshold = Settings.BufferMaxCapacity.GetValueOrDefault();
-        drainClock = clockFactory.Create();
-        drainClock.Restart();
-        bufferedBytes = Settings.BufferMaxCapacity.GetValueOrDefault() * 2; //todo debugnow
+        this.bufferCoordinator = bufferCoordinator;
     }
 
     #endregion
-
-    #region Protected Methods
-
-    protected void UpdateBufferState()
-    {
-        if (!Settings.EmulateBufferCapacity || Settings.BufferDrainRate == 0)
-        {
-            bufferedBytes = 0;
-            return;
-        }
-
-        var elapsedMs = drainClock.ElapsedMs;
-        drainClock.Restart();
-
-        if (elapsedMs <= 0)
-            return;
-
-        if (!Settings.BufferDrainRate.HasValue)
-        {
-            bufferedBytes = 0;
-            return;
-        }
-
-        if (Settings.BufferDrainRate.Value <= 0)
-            return;
-
-        var drainedBytes = Settings.BufferDrainRate.Value * (elapsedMs / 1000.0m);
-        if (drainedBytes > 0)
-            bufferedBytes = Math.Max(0, (int)(bufferedBytes - drainedBytes));
-    }
 
     /// <summary>
     /// Sends response data back to the client (e.g., status bytes).
@@ -158,6 +113,4 @@ public abstract class PrintJobSession : IPrintJobSession
     {
         // Base implementation does nothing; derived classes override to raise their event
     }
-
-    #endregion
 }

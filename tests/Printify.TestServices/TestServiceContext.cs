@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Printify.Application.Interfaces;
@@ -54,6 +55,7 @@ public sealed class TestServiceContext(ServiceProvider provider)
                 services.RemoveAll<DbContextOptions<PrintifyDbContext>>();
                 services.RemoveAll<IUnitOfWork>();
                 services.RemoveAll<IClockFactory>();
+                //services.RemoveAll<IPrinterBufferCoordinator>();
                 services.RemoveAll<IPrinterListenerFactory>();
                 services.RemoveAll<ITestPortRegistry>();
                 // Avoid starting printer listeners in test environment.

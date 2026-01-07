@@ -71,6 +71,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMediaService, MediaService>();
         services.AddSingleton<IMediaStorage, FileSystemMediaStorage>();
         services.AddSingleton<IEscPosCommandTrieProvider, EscPosCommandTrieProvider>();
+        services.AddSingleton<IPrinterBufferCoordinator, PrinterBufferCoordinator>();
         services.AddSingleton<IPrinterStatusStream, PrinterStatusStream>();
         services.AddSingleton<IPrinterRuntimeStatusStore, PrinterRuntimeStatusStore>();
 
@@ -88,6 +89,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPrinterDocumentStream, PrinterDocumentStream>();
         services.AddSingleton<IViewDocumentConverter, EscPosViewDocumentConverter>();
 
+        services.AddHostedService(provider =>
+            (PrinterBufferCoordinator)provider.GetRequiredService<IPrinterBufferCoordinator>());
         services.AddHostedService<PrinterListenerBootstrapper>();
 
         return services;

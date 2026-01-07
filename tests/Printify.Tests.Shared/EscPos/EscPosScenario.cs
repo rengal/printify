@@ -7,24 +7,28 @@ using Printify.Web.Contracts.Documents.Responses.View.Elements;
 /// Represents a deterministic ESC/POS parser scenario consisting of an input payload
 /// and the elements that must be produced after parsing it.
 /// </summary>
-/// <param name="Input">Raw ESC/POS byte sequence to parse.</param>
-/// <param name="ExpectedRequestElements">Expected elements containing upload-stage media (RasterImageUpload, MediaUpload) for internal service testing.</param>
-/// <param name="ExpectedPersistedElements">Expected elements containing finalized, persisted media (RasterImage, Media) for public API testing.</param>
-/// <param name="ExpectedViewElements">Expected view elements derived from persisted elements.</param>
 public sealed record EscPosScenario
 {
     public EscPosScenario(
+        int id,
         byte[] input,
         IReadOnlyList<Element> expectedRequestElements,
         IReadOnlyList<Element>? expectedPersistedElements = null,
         IReadOnlyList<ViewElementDto>? expectedViewElements = null)
     {
+        Id = id;
         Input = input;
         ExpectedRequestElements = expectedRequestElements;
         ExpectedPersistedElements = expectedPersistedElements;
-        ExpectedViewElements = expectedViewElements ?? Array.Empty<ViewElementDto>();
+        ExpectedViewElements = expectedViewElements ?? [];
     }
 
+    public override string ToString()
+    {
+        return $"Id={Id}";
+    }
+
+    public int Id { get; }
     public byte[] Input { get; }
     public IReadOnlyList<Element> ExpectedRequestElements { get; }
     public IReadOnlyList<Element>? ExpectedPersistedElements { get; }

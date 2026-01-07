@@ -7,7 +7,10 @@ using Printify.Infrastructure.Printing.EscPos;
 
 namespace Printify.Infrastructure.Printing.Factories;
 
-public class PrintJobSessionFactory(IClockFactory clockFactory, IEscPosCommandTrieProvider commandTrieProvider)
+public class PrintJobSessionFactory(
+    IPrinterBufferCoordinator bufferCoordinator,
+    IClockFactory clockFactory,
+    IEscPosCommandTrieProvider commandTrieProvider)
     : IPrintJobSessionFactory
 {
     public Task<IPrintJobSession> Create(PrintJob job, IPrinterChannel channel, CancellationToken ct)
@@ -16,7 +19,7 @@ public class PrintJobSessionFactory(IClockFactory clockFactory, IEscPosCommandTr
         if (protocol == Protocol.EscPos)
         {
             return Task.FromResult<IPrintJobSession>(
-                new EscPosPrintJobSession(clockFactory, job, channel, commandTrieProvider));
+                new EscPosPrintJobSession(bufferCoordinator, clockFactory, job, channel, commandTrieProvider));
         }
 
         throw new ArgumentOutOfRangeException(nameof(protocol));

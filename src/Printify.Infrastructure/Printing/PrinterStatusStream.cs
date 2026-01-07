@@ -43,21 +43,7 @@ public sealed class PrinterStatusStream : IPrinterStatusStream
     public void Publish(Guid workspaceId, PrinterStatusUpdate update)
     {
         if (disposed || !subscriptions.TryGetValue(workspaceId, out var bucket))
-        {
-            // Diagnostic log to confirm publish attempts even without subscribers.
-            logger.LogInformation("Printer status publish skipped (workspace {WorkspaceId}, printer {PrinterId}).",
-                workspaceId, update.PrinterId);
             return;
-        }
-
-        // Diagnostic log for publish attempts to active subscribers.
-        logger.LogInformation(
-            "Printer status publish (workspace {WorkspaceId}, printer {PrinterId}, runtime {HasRuntime}, settings {HasSettings}, printer {HasPrinter}).",
-            workspaceId,
-            update.PrinterId,
-            update.RuntimeUpdate is not null,
-            update.Settings is not null,
-            update.Printer is not null);
 
         foreach (var channel in bucket.Values)
         {

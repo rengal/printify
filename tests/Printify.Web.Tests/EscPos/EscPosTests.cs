@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Headers;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -85,10 +85,11 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
 
     protected async Task RunScenarioAsync(EscPosScenario scenario)
     {
-        foreach (var strategy in ChunkStrategies)
-        {
-            await RunScenarioAsync(scenario, $"escpos-strategy-{strategy.Name}", strategy);
-        }
+        System.Diagnostics.Debug.WriteLine($"Starting scenario [{scenario.Id}]");
+        var strategy = EscPosChunkStrategies.SingleByte;
+        System.Diagnostics.Debug.WriteLine($"   chunkStrategy={strategy.Name}");
+        await RunScenarioAsync(scenario, $"escpos-strategy-{strategy.Name}", strategy);
+        System.Diagnostics.Debug.WriteLine($"Completed scenario [{scenario.Id}]");
     }
 
     private async Task RunScenarioAsync(

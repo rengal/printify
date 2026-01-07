@@ -206,7 +206,15 @@ public static class DocumentAssertions
         IReadOnlyList<ViewElementDto> actualElements)
     {
         Assert.NotNull(expectedElements);
-        Assert.Equal(expectedElements.Count, actualElements.Count);
+        try
+        {
+            Assert.Equal(expectedElements.Count, actualElements.Count);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e); //todo debugnow
+            throw;
+        }
 
         for (var index = 0; index < expectedElements.Count; index++)
         {
@@ -221,6 +229,7 @@ public static class DocumentAssertions
             catch (Exception e)
             {
                 Console.WriteLine(e); //todo debugnow
+                throw;
             }
 
             switch (expected)

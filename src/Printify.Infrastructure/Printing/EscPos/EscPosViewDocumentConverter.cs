@@ -44,7 +44,8 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                     AddDebugElement(elements, legacyCarriageReturn, "legacyCarriageReturn", new Dictionary<string, string>());
                     break;
                 case RasterImage raster:
-                    FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
+                    // Images reset the text buffer without emitting a line.
+                    lineBuffer.Reset();
                     AddDebugElement(elements, raster, "rasterImage", new Dictionary<string, string>());
                     ValidateImageBounds(document, state.CurrentY, raster.Width, raster.Height, elements);
                     AddImageElement(raster, state, elements);
@@ -52,13 +53,11 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                 case RasterImageUpload:
                     throw new InvalidOperationException("Upload requests must not be emitted");
                 case PrintBarcode barcode:
-                    FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
                     AddDebugElement(elements, barcode, "printBarcode", new Dictionary<string, string>());
                     ValidateImageBounds(document, state.CurrentY, barcode.Width, barcode.Height, elements);
                     AddImageElement(barcode, state, elements);
                     break;
                 case PrintQrCode qrCode:
-                    FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
                     AddDebugElement(elements, qrCode, "printQrCode", new Dictionary<string, string>());
                     ValidateImageBounds(document, state.CurrentY, qrCode.Width, qrCode.Height, elements);
                     AddImageElement(qrCode, state, elements);
@@ -139,8 +138,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
             }
         }
 
-        FlushLine(document, state, lineBuffer, elements, includeFlushState: false, null);
-
+        // Do not flush residual text; only explicit LF commands emit view text elements.
         // Collect error messages from Error and PrinterError elements
         var errorMessages = document.Elements
             .Where(e => e is Error or PrinterError)

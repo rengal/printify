@@ -48,6 +48,8 @@ public static class EscPosScenarioChunker
         var offset = 0;
         var iteration = 0;
 
+        Console.WriteLine(strategy.Name); //todo debugow
+
         while (offset < payload.Length)
         {
             var desiredChunk = chunkPattern.Length == 0
