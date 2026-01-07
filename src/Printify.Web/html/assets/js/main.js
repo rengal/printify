@@ -891,49 +891,71 @@
                 const printer = getPrinterById(printerId);
                 if (!printer) return;
 
-                // Update runtime status
+                // Track which fields were present in the SSE payload (server only sends changed fields)
+                const changedFields = {
+                    runtimeStatus: false,
+                    targetStatus: false,
+                    operationalFlags: [],
+                    bufferedBytes: false,
+                    drawerStates: [],
+                    lastDocumentAt: false,
+                    settings: false
+                };
+
+                // Update runtime status - if field is present, it changed
                 if (payload.runtime) {
                     if (payload.runtime.state !== undefined) {
                         printer.runtimeStatus = payload.runtime.state.toLowerCase();
+                        changedFields.runtimeStatus = true;
                     }
                     if (payload.runtime.updatedAt) {
                         printer.runtimeStatusAt = new Date(payload.runtime.updatedAt);
                     }
                     if (payload.runtime.bufferedBytes !== undefined) {
                         printer.bufferedBytes = payload.runtime.bufferedBytes;
+                        changedFields.bufferedBytes = true;
                     }
                     if (payload.runtime.drawer1State !== undefined) {
                         printer.drawer1State = payload.runtime.drawer1State;
+                        changedFields.drawerStates.push('drawer1State');
                     }
                     if (payload.runtime.drawer2State !== undefined) {
                         printer.drawer2State = payload.runtime.drawer2State;
+                        changedFields.drawerStates.push('drawer2State');
                     }
                 }
 
-                // Update operational flags
+                // Update operational flags - if field is present, it changed
                 if (payload.operationalFlags) {
                     if (payload.operationalFlags.targetState !== undefined) {
                         printer.targetStatus = payload.operationalFlags.targetState.toLowerCase();
+                        changedFields.targetStatus = true;
                     }
                     if (payload.operationalFlags.isCoverOpen !== undefined) {
                         printer.isCoverOpen = payload.operationalFlags.isCoverOpen;
+                        changedFields.operationalFlags.push('isCoverOpen');
                     }
                     if (payload.operationalFlags.isPaperOut !== undefined) {
                         printer.isPaperOut = payload.operationalFlags.isPaperOut;
+                        changedFields.operationalFlags.push('isPaperOut');
                     }
                     if (payload.operationalFlags.isOffline !== undefined) {
                         printer.isOffline = payload.operationalFlags.isOffline;
+                        changedFields.operationalFlags.push('isOffline');
                     }
                     if (payload.operationalFlags.hasError !== undefined) {
                         printer.hasError = payload.operationalFlags.hasError;
+                        changedFields.operationalFlags.push('hasError');
                     }
                     if (payload.operationalFlags.isPaperNearEnd !== undefined) {
                         printer.isPaperNearEnd = payload.operationalFlags.isPaperNearEnd;
+                        changedFields.operationalFlags.push('isPaperNearEnd');
                     }
                 }
 
-                // Update settings if provided
+                // Update settings if provided (settings changes require full re-render)
                 if (payload.settings) {
+                    changedFields.settings = true;
                     printer.protocol = payload.settings.protocol;
                     printer.width = payload.settings.widthInDots;
                     printer.height = payload.settings.heightInDots;
@@ -946,6 +968,7 @@
                 // Update printer metadata if provided
                 if (payload.printer) {
                     if (payload.printer.displayName !== undefined) {
+                        changedFields.settings = true; // Name change requires full re-render
                         printer.name = payload.printer.displayName;
                     }
                     if (payload.printer.isPinned !== undefined) {
@@ -955,13 +978,160 @@
                         printer.lastDocumentAt = payload.printer.lastDocumentReceivedAt
                             ? new Date(payload.printer.lastDocumentReceivedAt)
                             : null;
+                        changedFields.lastDocumentAt = true;
                     }
                 }
 
-                renderDocuments();
+                // Always update sidebar (for all printers)
                 renderSidebar();
+
+                // Only update operations panel if this is the currently selected printer
+                if (printerId === selectedPrinterId) {
+                    if (changedFields.settings) {
+                        // Settings changes require full re-render
+                        renderDocuments();
+                    } else {
+                        // Partial update for runtime/flags changes
+                        updateOperationsPanelPartial(printer, changedFields);
+                    }
+                }
             } catch (e) {
                 console.error('Failed to parse runtime event', e);
+            }
+        }
+
+        function updateOperationsPanelPartial(printer, changedFields) {
+            const operationsPanel = document.getElementById('operationsPanel');
+            if (!operationsPanel) return;
+
+            // Check if panel exists and is for this printer
+            const headerName = operationsPanel.querySelector('.operations-printer-name');
+            if (!headerName || !selectedPrinterId) {
+                // Panel not initialized or different printer, fall back to full render
+                renderDocuments();
+                return;
+            }
+
+            // Update status badge and start/stop button
+            if (changedFields.runtimeStatus || changedFields.targetStatus) {
+                const isRunning = printer.runtimeStatus === 'started' || printer.runtimeStatus === 'starting';
+                const statusClass = runtimeStatusClass(printer.runtimeStatus);
+                const statusText = formatRuntimeStatus(printer.runtimeStatus);
+
+                // Update status badge in info row
+                const infoRow = operationsPanel.querySelector('.info-row');
+                if (infoRow) {
+                    const statusSpan = infoRow.querySelector('span:first-child');
+                    if (statusSpan) {
+                        statusSpan.className = statusClass;
+                        statusSpan.textContent = statusText;
+                    }
+                }
+
+                // Update primary action button
+                const buttonRow = operationsPanel.querySelector('.operations-button-row');
+                if (buttonRow) {
+                    // Replace just the first button (Start/Stop)
+                    const startStopBtn = buttonRow.querySelector('.btn-primary');
+                    if (startStopBtn) {
+                        const newBtn = document.createElement('button');
+                        newBtn.className = 'btn btn-primary btn-sm';
+                        newBtn.onclick = (event) => isRunning ? stopPrinter(event, printer.id) : startPrinter(event, printer.id);
+                        newBtn.innerHTML = isRunning
+                            ? `<img class="themed-icon" src="assets/icons/square.svg" width="14" height="14" alt="">Stop`
+                            : `<img class="themed-icon" src="assets/icons/play.svg" width="14" height="14" alt="">Start`;
+                        startStopBtn.replaceWith(newBtn);
+                    }
+                }
+            }
+
+            // Update operational flag checkboxes
+            if (changedFields.operationalFlags.length > 0) {
+                const flagsGrid = operationsPanel.querySelector('.flags-grid');
+                if (flagsGrid) {
+                    const flagMap = {
+                        'isCoverOpen': 'Cover Open',
+                        'isPaperOut': 'Paper Out',
+                        'isOffline': 'Offline',
+                        'hasError': 'Error'
+                    };
+
+                    changedFields.operationalFlags.forEach(flagName => {
+                        const label = flagMap[flagName];
+                        if (label) {
+                            const switches = flagsGrid.querySelectorAll('.flag-switch');
+                            switches.forEach(sw => {
+                                const labelSpan = sw.querySelector('.flag-label');
+                                if (labelSpan && labelSpan.textContent === label) {
+                                    const checkbox = sw.querySelector('input[type="checkbox"]');
+                                    if (checkbox) {
+                                        const isChecked = flagName === 'isCoverOpen' ? printer.isCoverOpen
+                                            : flagName === 'isPaperOut' ? printer.isPaperOut
+                                            : flagName === 'isOffline' ? printer.isOffline
+                                            : printer.hasError;
+                                        checkbox.checked = isChecked;
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+
+            // Update drawer states
+            if (changedFields.drawerStates.length > 0) {
+                const drawerControls = operationsPanel.querySelectorAll('.drawer-control');
+                drawerControls.forEach(control => {
+                    const labelSpan = control.querySelector('.drawer-label');
+                    if (!labelSpan) return;
+
+                    const isDrawer1 = labelSpan.textContent === 'Drawer 1:';
+                    const state = isDrawer1 ? printer.drawer1State : printer.drawer2State;
+                    const stateSpan = control.querySelector('.drawer-state');
+                    const button = control.querySelector('button');
+
+                    if (stateSpan) {
+                        stateSpan.textContent = (!state || state === 'Closed') ? 'closed' : 'opened';
+                    }
+
+                    if (button) {
+                        const newState = (state === 'Closed' || !state) ? 'OpenedManually' : 'Closed';
+                        const drawerProp = isDrawer1 ? 'drawer1State' : 'drawer2State';
+                        button.onclick = () => setDrawerState(printer.id, drawerProp, newState);
+                        button.textContent = (state === 'Closed' || !state) ? 'Open' : 'Close';
+                    }
+                });
+            }
+
+            // Update buffer progress bar
+            if (changedFields.bufferedBytes) {
+                const bufferStatus = operationsPanel.querySelector('.buffer-status-ascii');
+                if (bufferStatus) {
+                    const headerValue = bufferStatus.querySelector('.buffer-header-value');
+                    if (headerValue) {
+                        headerValue.textContent = `${printer.bufferedBytes ?? 0}/${printer.bufferSize}`;
+                    }
+                    const bufferBar = bufferStatus.querySelector('.buffer-bar-ascii');
+                    if (bufferBar) {
+                        bufferBar.innerHTML = renderBufferProgress(printer.bufferedBytes, printer.bufferSize);
+                    }
+                }
+            }
+
+            // Update last document time
+            if (changedFields.lastDocumentAt) {
+                const infoRows = operationsPanel.querySelectorAll('.info-row');
+                if (infoRows.length >= 2) {
+                    const lastDocRow = infoRows[1];
+                    const dateTimeSpan = lastDocRow.querySelectorAll('span')[1];
+                    if (dateTimeSpan && printer.lastDocumentAt) {
+                        const dateTime = printer.lastDocumentAt.toLocaleString(undefined, {
+                            year: 'numeric', month: '2-digit', day: '2-digit',
+                            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+                        });
+                        dateTimeSpan.textContent = dateTime;
+                    }
+                }
             }
         }
 
@@ -1094,22 +1264,22 @@
                 <div class="operations-button-row">
                   ${isRunning
                     ? `<button class="btn btn-primary btn-sm" onclick="stopPrinter(event, '${printer.id}')">
-                        <img src="assets/icons/square.svg" width="14" height="14" alt="">
+                        <img class="themed-icon" src="assets/icons/square.svg" width="14" height="14" alt="">
                         Stop
                       </button>`
                     : `<button class="btn btn-primary btn-sm" onclick="startPrinter(event, '${printer.id}')">
-                        <img src="assets/icons/play.svg" width="14" height="14" alt="">
+                        <img class="themed-icon" src="assets/icons/play.svg" width="14" height="14" alt="">
                         Start
                       </button>`
                   }
 
                   <button class="btn btn-secondary btn-sm" onclick="editPrinter('${printer.id}')">
-                    <img src="assets/icons/edit-3.svg" width="14" height="14" alt="">
+                    <img class="themed-icon" src="assets/icons/edit-3.svg" width="14" height="14" alt="">
                     Edit
                   </button>
 
                   <button class="btn btn-secondary btn-sm" onclick="togglePin('${printer.id}')">
-                    <img src="assets/icons/star.svg" width="14" height="14" alt="">
+                    <img class="themed-icon" src="assets/icons/star.svg" width="14" height="14" alt="">
                     ${printer.pinned ? 'Unpin' : 'Pin'}
                   </button>
                 </div>
@@ -1193,11 +1363,11 @@
                   </div>
                   <div class="danger-zone-content collapsed">
                     <button class="btn btn-sm" onclick="clearDocuments('${printer.id}')">
-                      <img src="assets/icons/file-minus.svg" width="14" height="14" alt="">
-                      Clear all Documents
+                      <img class="themed-icon" src="assets/icons/trash-2.svg" width="14" height="14" alt="">
+                      Delete all documents
                     </button>
                     <button class="btn btn-sm" onclick="deletePrinter('${printer.id}')">
-                      <img src="assets/icons/trash-2.svg" width="14" height="14" alt="">
+                      <img class="themed-icon" src="assets/icons/trash.svg" width="14" height="14" alt="">
                       Delete Printer
                     </button>
                   </div>
@@ -1534,17 +1704,17 @@
             let message;
 
             if (docCount === 0) {
-                message = `Clear document history for "<strong>${escapeHtml(printer.name)}</strong>"?`;
+                message = `Delete document history for "<strong>${escapeHtml(printer.name)}</strong>"?`;
             } else if (docCount === 1) {
-                message = `Clear <strong>1</strong> document from "<strong>${escapeHtml(printer.name)}</strong>"?<br><br>This cannot be undone.`;
+                message = `Delete <strong>1</strong> document from "<strong>${escapeHtml(printer.name)}</strong>"?<br><br>This cannot be undone.`;
             } else {
-                message = `Clear all <strong>${docCount}</strong> documents from "<strong>${escapeHtml(printer.name)}</strong>"?<br><br>This cannot be undone.`;
+                message = `Delete all <strong>${docCount}</strong> documents from "<strong>${escapeHtml(printer.name)}</strong>"?<br><br>This cannot be undone.`;
             }
 
             await showConfirmDialog(
-                escapeHtml('Clear Documents'),
+                escapeHtml('Delete Documents'),
                 message,
-                escapeHtml('Clear Documents'),
+                escapeHtml('Delete Documents'),
                 async () => {
                     try {
                         // Delete server-side documents so the printer history is cleared.
@@ -1556,11 +1726,11 @@
                             renderDocuments();
                         }
 
-                        showToast('Documents cleared');
+                        showToast('Documents deleted');
                     }
                     catch (err) {
                         console.error(err);
-                        showToast(err.message || 'Failed to clear documents', true);
+                        showToast(err.message || 'Failed to delete documents', true);
                     }
                 },
                 true
@@ -2339,98 +2509,98 @@
             if (workspaceToken) {
                 menu.innerHTML = `
               <div class="menu-item" onclick="window.open('/docs/about', '_blank')">
-                <img class="menu-item-icon" src="assets/icons/info.svg" alt="">
+                <img class="themed-icon menu-item-icon" src="assets/icons/info.svg" alt="">
                 About Virtual Printer
               </div>
               <div class="menu-help">
                 <div class="menu-item menu-item-submenu-toggle" onclick="toggleHelpMenu(event)">
                   <span class="menu-item-text">
-                    <img class="menu-item-icon" src="assets/icons/book-open.svg" alt="">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/book-open.svg" alt="">
                     Help
                   </span>
-                  <img class="menu-item-chevron" src="assets/icons/chevron-right.svg" width="14" height="14" alt="">
+                  <img class="themed-icon menu-item-chevron" src="assets/icons/chevron-right.svg" width="14" height="14" alt="">
                 </div>
                 <div class="menu-submenu">
                   <div class="menu-item" onclick="window.open('/docs/guide', '_blank')">
-                    <img class="menu-item-icon" src="assets/icons/book.svg" alt="">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/book.svg" alt="">
                     Getting Started
                   </div>
                   <div class="menu-item" onclick="window.open('/docs/faq', '_blank')">
-                    <img class="menu-item-icon" src="assets/icons/help-circle.svg" alt="">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/help-circle.svg" alt="">
                     FAQ & Troubleshooting
                   </div>
                   <div class="menu-item" onclick="window.open('/docs/security', '_blank')">
-                    <img class="menu-item-icon" src="assets/icons/shield.svg" alt="">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/shield.svg" alt="">
                     Security Guidelines
                   </div>
                   <div class="menu-item" onclick="window.open('/docs/terms', '_blank')">
-                    <img class="menu-item-icon" src="assets/icons/file-text.svg" alt="">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/file-text.svg" alt="">
                     Terms of Service
                   </div>
                   <div class="menu-item" onclick="window.open('/docs/privacy', '_blank')">
-                    <img class="menu-item-icon" src="assets/icons/lock.svg" alt="">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/lock.svg" alt="">
                     Privacy Policy
                   </div>
                 </div>
               </div>
               <div class="menu-divider"></div>
               <div class="menu-item" onclick="showWorkspaceDialog('create')">
-                <img class="menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
+                <img class="themed-icon menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
                 New Workspace
               </div>
               <div class="menu-item" onclick="showWorkspaceDialog('join')">
-                <img class="menu-item-icon" src="assets/icons/refresh.svg" alt="">
+                <img class="themed-icon menu-item-icon" src="assets/icons/refresh.svg" alt="">
                 Switch Workspace
               </div>
               <div class="menu-item" onclick="logOut()">
-                <img class="menu-item-icon" src="assets/icons/log-out.svg" alt="">
+                <img class="themed-icon menu-item-icon" src="assets/icons/log-out.svg" alt="">
                 Exit Workspace
               </div>
             `;
             } else {
                 menu.innerHTML = `
               <div class="menu-item" onclick="window.open('/docs/about', '_blank')">
-                <img class="menu-item-icon" src="assets/icons/info.svg" alt="">
+                <img class="themed-icon menu-item-icon" src="assets/icons/info.svg" alt="">
                 About Virtual Printer
               </div>
               <div class="menu-help">
                 <div class="menu-item menu-item-submenu-toggle" onclick="toggleHelpMenu(event)">
                   <span class="menu-item-text">
-                    <img class="menu-item-icon" src="assets/icons/book-open.svg" alt="">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/book-open.svg" alt="">
                     Help
                   </span>
-                  <img class="menu-item-chevron" src="assets/icons/chevron-right.svg" width="14" height="14" alt="">
+                  <img class="themed-icon menu-item-chevron" src="assets/icons/chevron-right.svg" width="14" height="14" alt="">
                 </div>
                 <div class="menu-submenu">
                   <div class="menu-item" onclick="window.open('/docs/guide', '_blank')">
-                    <img class="menu-item-icon" src="assets/icons/book.svg" alt="">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/book.svg" alt="">
                     Getting Started
                   </div>
                   <div class="menu-item" onclick="window.open('/docs/faq', '_blank')">
-                    <img class="menu-item-icon" src="assets/icons/help-circle.svg" alt="">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/help-circle.svg" alt="">
                     FAQ & Troubleshooting
                   </div>
                   <div class="menu-item" onclick="window.open('/docs/security', '_blank')">
-                    <img class="menu-item-icon" src="assets/icons/shield.svg" alt="">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/shield.svg" alt="">
                     Security Guidelines
                   </div>
                   <div class="menu-item" onclick="window.open('/docs/terms', '_blank')">
-                    <img class="menu-item-icon" src="assets/icons/file-text.svg" alt="">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/file-text.svg" alt="">
                     Terms of Service
                   </div>
                   <div class="menu-item" onclick="window.open('/docs/privacy', '_blank')">
-                    <img class="menu-item-icon" src="assets/icons/lock.svg" alt="">
+                    <img class="themed-icon menu-item-icon" src="assets/icons/lock.svg" alt="">
                     Privacy Policy
                   </div>
                 </div>
               </div>
               <div class="menu-divider"></div>
               <div class="menu-item" onclick="showWorkspaceDialog('create')">
-                <img class="menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
+                <img class="themed-icon menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
                 Create Workspace
               </div>
               <div class="menu-item" onclick="showWorkspaceDialog('join')">
-                <img class="menu-item-icon" src="assets/icons/refresh.svg" alt="">
+                <img class="themed-icon menu-item-icon" src="assets/icons/refresh.svg" alt="">
                 Access Workspace
               </div>
             `;

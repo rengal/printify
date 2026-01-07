@@ -13,7 +13,7 @@
             --ok: #22c55e;
             --focus: #60a5fa;
             --hover-bg: rgba(255,255,255,0.08);
-            --icon-filter: invert(1) brightness(0.9);
+            --icon-filter: brightness(0) invert(1);
         }
 
             :root[data-theme="light"] {
@@ -27,6 +27,11 @@
                 --hover-bg: rgba(0,0,0,0.05);
                 --icon-filter: none;
             }
+
+        /* -------------- ICONS -------------- */
+        .themed-icon {
+            filter: var(--icon-filter);
+        }
 
         /* -------------- BASE & TYPOGRAPHY -------------- */
         html, body {
@@ -1456,7 +1461,6 @@
             justify-content: center;
         }
 
-
         .operations-actions .btn {
             width: 100%;
             justify-content: center;
@@ -1489,7 +1493,7 @@
             cursor: pointer;
             user-select: none;
             transition: all 0.2s ease;
-            margin-bottom: 8px;
+            margin-bottom: 0;
         }
 
         .danger-zone-header:hover {
@@ -1526,8 +1530,9 @@
 
         .danger-zone-content {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 8px;
+            padding: 12px;
             overflow: hidden;
             transition: max-height 0.3s ease, opacity 0.2s ease;
         }
@@ -1538,7 +1543,7 @@
         }
 
         .danger-zone-content.expanded {
-            max-height: 200px;
+            max-height: 140px;
             opacity: 1;
         }
 
@@ -1551,6 +1556,10 @@
         .danger-zone-content .btn:hover {
             background: rgba(239, 68, 68, 0.15);
             border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .danger-zone-chevron {
+            filter: var(--icon-filter);
         }
 
         .danger-zone.expanded {
