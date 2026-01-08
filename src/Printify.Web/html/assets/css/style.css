@@ -979,38 +979,6 @@
             margin: 6px 6px;
         }
 
-        /* -------------- MODE TOGGLE -------------- */
-        .mode-toggle {
-            display: flex;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 4px;
-            margin-bottom: 20px;
-        }
-
-        .mode-toggle-btn {
-            flex: 1;
-            padding: 8px 16px;
-            border-radius: 8px;
-            background: transparent;
-            border: none;
-            color: var(--text);
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: background-color 0.2s ease;
-        }
-
-            .mode-toggle-btn.active {
-                background: var(--accent);
-                color: white;
-            }
-
-            .mode-toggle-btn:hover:not(.active) {
-                background: var(--hover-bg);
-            }
-
         /* -------------- TOKEN DISPLAY -------------- */
         .token-display {
             background: var(--bg);

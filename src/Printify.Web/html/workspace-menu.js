@@ -67,7 +67,7 @@ export function showMenu(event) {
     // If menu is already open, close it and return
     const existingMenu = document.querySelector('.menu');
     if (existingMenu) {
-        existingMenu.remove();
+        closeMenu(existingMenu);
         return;
     }
 
@@ -83,13 +83,12 @@ export function showMenu(event) {
     menu.innerHTML = buildMenuHtml(hasToken);
     document.body.appendChild(menu);
 
-    // Auto-close on next click
+    // Auto-close on click outside menu
+    const closeMenu = () => menu.remove();
     setTimeout(() => {
-        document.addEventListener('click', function closeMenu() {
-            menu.remove();
-            document.removeEventListener('click', closeMenu);
-        });
+        document.addEventListener('click', closeMenu);
     }, 0);
+    menu.closeMenuHandler = closeMenu;
 
     // Setup event listeners for menu items
     setupMenuListeners(menu);
@@ -146,7 +145,7 @@ function buildMenuHtml(hasToken) {
         <img class="themed-icon menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
         New Workspace
       </div>
-      <div class="menu-item" data-action="show-workspace-dialog" data-mode="join">
+      <div class="menu-item" data-action="show-workspace-dialog" data-mode="access">
         <img class="themed-icon menu-item-icon" src="assets/icons/refresh.svg" alt="">
         Switch Workspace
       </div>
@@ -201,7 +200,7 @@ function buildMenuHtml(hasToken) {
         <img class="themed-icon menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
         Create Workspace
       </div>
-      <div class="menu-item" data-action="show-workspace-dialog" data-mode="join">
+      <div class="menu-item" data-action="show-workspace-dialog" data-mode="access">
         <img class="themed-icon menu-item-icon" src="assets/icons/log-in.svg" alt="">
         Access Workspace
       </div>
@@ -236,6 +235,8 @@ function setupMenuListeners(menu) {
                 break;
 
             case 'show-workspace-dialog':
+                // Close menu first
+                closeMenu(menu);
                 const mode = item.dataset.mode || 'create';
                 if (callbacks.onShowWorkspaceDialog) {
                     callbacks.onShowWorkspaceDialog(mode);
@@ -243,6 +244,8 @@ function setupMenuListeners(menu) {
                 break;
 
             case 'logout':
+                // Close menu first
+                closeMenu(menu);
                 const workspaceName = callbacks.workspaceName?.();
                 const message = workspaceName
                     ? `Are you sure you want to exit "<strong>${escapeHtml(workspaceName)}</strong>"?<br><br>To re-enter, you will need to enter your workspace token.`
@@ -286,6 +289,16 @@ function toggleHelpMenu(menuItem) {
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+/**
+ * Close a menu and clean up its event listener
+ */
+function closeMenu(menu) {
+    if (menu.closeMenuHandler) {
+        document.removeEventListener('click', menu.closeMenuHandler);
+    }
+    menu.remove();
+}
 
 /**
  * Escape HTML to prevent XSS

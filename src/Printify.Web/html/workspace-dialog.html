@@ -1,0 +1,40 @@
+<template id="workspace-dialog-template">
+    <div class="modal-overlay" data-workspace-dialog-overlay>
+        <div class="modal">
+            <div class="modal-header">Workspace Access</div>
+            <div class="modal-body">
+                <div class="mode-toggle">
+                    <button class="mode-toggle-btn" data-workspace-mode-create>Create New</button>
+                    <button class="mode-toggle-btn" data-workspace-mode-access>Access Existing</button>
+                </div>
+
+                <div data-workspace-create-mode>
+                    <div class="field">
+                        <label class="label">Workspace name</label>
+                        <input class="input" data-workspace-name-input placeholder="e.g., Demo Room" />
+                        <div class="field-error" data-workspace-name-error>Workspace name is required</div>
+                        <div class="field-hint">Used only for display purposes</div>
+                    </div>
+
+                    <p style="color: var(--muted); font-size: 14px; margin: 16px 0;">
+                        A unique workspace token will be generated for you. Save it to access your printers from other devices.
+                    </p>
+                </div>
+
+                <div data-workspace-access-mode>
+                    <div class="field">
+                        <label class="label">Workspace Token</label>
+                        <input class="input" data-workspace-token-input placeholder="e.g., brave-tiger-1234" style="font-family: 'Courier New', monospace;" />
+                        <div class="field-error" data-workspace-token-error>Please enter a valid token</div>
+                        <div class="field-hint">Format: word-word-1234</div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-secondary" data-workspace-cancel>Cancel</button>
+                    <button class="btn btn-primary" data-workspace-submit>Create Workspace</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

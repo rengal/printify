@@ -1095,7 +1095,7 @@
                   <p style="color: var(--muted); margin-bottom: 16px;">
                     Create a new workspace or access an existing one
                   </p>
-                  <button class="btn btn-primary" onclick="showWorkspaceDialog()">Create or Access Workspace</button>
+                  <button class="btn btn-primary" onclick="WorkspaceDialog.show()">Create or Access Workspace</button>
                 </div>
               </div>
             `;
@@ -1445,7 +1445,7 @@
 
         function openNewPrinterDialog() {
             if (!workspaceToken) {
-                showWorkspaceDialog();
+                WorkspaceDialog.show();
                 return;
             }
 
@@ -1716,148 +1716,6 @@
         }
 
         // Workspace Management
-        function showWorkspaceDialog(mode = 'create') {
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.innerHTML = `
-            <div class="modal">
-              <div class="modal-header">Workspace Access</div>
-              <div class="modal-body">
-                <div class="mode-toggle">
-                  <button class="mode-toggle-btn ${mode === 'create' ? 'active' : ''}" onclick="switchWorkspaceMode('create')">Create New</button>
-                  <button class="mode-toggle-btn ${mode === 'join' ? 'active' : ''}" onclick="switchWorkspaceMode('join')">Access Existing</button>
-                </div>
-
-                <div id="createMode" style="display: ${mode === 'create' ? 'block' : 'none'};">
-                  <div class="field">
-                    <label class="label">Your name (optional)</label>
-                    <input class="input" id="workspaceNameInput" placeholder="e.g., John Smith" />
-                    <div class="field-hint">Used only for display purposes</div>
-                  </div>
-
-                  <p style="color: var(--muted); font-size: 14px; margin: 16px 0;">
-                    A unique workspace token will be generated for you. Save it to access your printers from other devices.
-                  </p>
-                </div>
-
-                <div id="joinMode" style="display: ${mode === 'join' ? 'block' : 'none'};">
-                  <div class="field">
-                    <label class="label required">Workspace Token</label>
-                    <input class="input" id="workspaceTokenInput" placeholder="e.g., brave-tiger-1234" style="font-family: 'Courier New', monospace;" />
-                    <div class="field-error" id="tokenError">Please enter a valid token</div>
-                    <div class="field-hint">Format: word-word-1234</div>
-                  </div>
-                </div>
-
-                <div class="form-actions">
-                  <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                  <button class="btn btn-primary" onclick="${mode === 'create' ? 'createWorkspace()' : 'accessWorkspace()'}">
-                    ${mode === 'create' ? 'Create Workspace' : 'Access Workspace'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          `;
-            document.getElementById('modalContainer').appendChild(modal);
-
-            if (mode === 'create') {
-                setTimeout(() => document.getElementById('workspaceNameInput')?.focus(), 100);
-            } else {
-                setTimeout(() => document.getElementById('workspaceTokenInput')?.focus(), 100);
-            }
-        }
-
-        function switchWorkspaceMode(mode) {
-            const createMode = document.getElementById('createMode');
-            const joinMode = document.getElementById('joinMode');
-            const buttons = document.querySelectorAll('.mode-toggle-btn');
-            const primaryBtn = document.querySelector('.form-actions .btn-primary');
-
-            buttons[0].classList.toggle('active', mode === 'create');
-            buttons[1].classList.toggle('active', mode === 'join');
-
-            createMode.style.display = mode === 'create' ? 'block' : 'none';
-            joinMode.style.display = mode === 'join' ? 'block' : 'none';
-
-            primaryBtn.textContent = mode === 'create' ? 'Create Workspace' : 'Access Workspace';
-            primaryBtn.onclick = mode === 'create' ? createWorkspace : accessWorkspace;
-        }
-
-        async function createWorkspace() {
-            const name = document.getElementById('workspaceNameInput').value.trim();
-            if (!name) {
-                showToast('Please enter a workspace owner name', true);
-                return;
-            }
-
-            try {
-                const request = {
-                    id: crypto.randomUUID(),
-                    ownerName: name
-                };
-
-                const workspace = await apiRequest('/api/workspaces', {
-                    method: 'POST',
-                    body: JSON.stringify(request)
-                });
-
-                if (!workspace?.token) {
-                    throw new Error('Workspace token missing from response');
-                }
-
-                workspaceToken = workspace.token;
-                workspaceName = workspace.ownerName;
-                localStorage.setItem('workspaceToken', workspaceToken);
-                localStorage.setItem('workspaceName', workspaceName);
-
-                await loginWithToken(workspaceToken);
-
-                closeModal();
-                showTokenDialog(workspaceToken);
-                WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
-                renderSidebar();
-                renderDocuments();
-            }
-            catch (err) {
-                console.error(err);
-                showToast(err.message || 'Failed to create workspace', true);
-            }
-        }
-
-        async function accessWorkspace() {
-            const token = document.getElementById('workspaceTokenInput').value.trim();
-            const tokenInput = document.getElementById('workspaceTokenInput');
-            const tokenError = document.getElementById('tokenError');
-
-            tokenInput.classList.remove('invalid');
-            tokenError.classList.remove('show');
-
-            if (!token) {
-                tokenInput.classList.add('invalid');
-                tokenError.classList.add('show');
-                tokenInput.focus();
-                return;
-            }
-
-            try {
-                await loginWithToken(token);
-                workspaceToken = token;
-                localStorage.setItem('workspaceToken', token);
-
-                closeModal();
-                WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
-                renderSidebar();
-                renderDocuments();
-                showToast('Workspace accessed successfully');
-            }
-            catch (err) {
-                console.error(err);
-                tokenInput.classList.add('invalid');
-                tokenError.classList.add('show');
-                tokenError.textContent = 'Workspace not found or token is invalid';
-            }
-        }
-
         async function loginWithToken(token) {
             const loginResponse = await apiRequest('/api/auth/login', {
                 method: 'POST',
@@ -2277,8 +2135,32 @@
                 workspaceToken: () => workspaceToken,
                 workspaceName: () => workspaceName,
                 onLogOut: () => logOut(),
-                onShowWorkspaceDialog: (mode) => showWorkspaceDialog(mode),
+                onShowWorkspaceDialog: (mode) => WorkspaceDialog.show(mode),
                 onOpenDocs: (doc) => window.open(`/docs/${doc}`, '_blank')
+            });
+        }
+
+        // Initialize Workspace Dialog module
+        if (window.WorkspaceDialog) {
+            WorkspaceDialog.init({
+                apiRequest: (path, options) => apiRequest(path, options),
+                loginWithToken: (token) => loginWithToken(token),
+                closeModal: () => closeModal(),
+                showTokenDialog: (token) => showTokenDialog(token),
+                showToast: (msg, isError) => showToast(msg, isError),
+                onWorkspaceCreated: (token, name) => {
+                    workspaceToken = token;
+                    workspaceName = name;
+                    WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
+                    renderSidebar();
+                    renderDocuments();
+                },
+                onWorkspaceAccessed: (token) => {
+                    // workspaceName is already set by loginWithToken
+                    WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
+                    renderSidebar();
+                    renderDocuments();
+                }
             });
         }
 
