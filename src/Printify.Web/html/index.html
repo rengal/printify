@@ -12,6 +12,9 @@
 
     <!-- Operations Panel Styles -->
     <link rel="stylesheet" href="panels/operation-panel.css">
+
+    <!-- Workspace Menu Styles -->
+    <link rel="stylesheet" href="workspace-menu.css">
 </head>
 <body>
 
@@ -44,7 +47,7 @@
             <nav class="list" id="otherList"></nav>
 
             <div class="sidebar-footer">
-                <div class="workspace-menu" onclick="showWorkspaceMenu(event)">
+                <div class="workspace-menu" onclick="WorkspaceMenu.showMenu(event)">
                     <div class="workspace-avatar" id="workspaceAvatar">?</div>
                     <div class="workspace-info">
                         <div class="workspace-name" id="workspaceName">Not signed in</div>
@@ -81,6 +84,7 @@
     <script src="assets/js/format.js" defer></script>
     <script src="assets/js/greetings.js" defer></script>
     <script type="module" src="panels/operation-panel.js" defer></script>
+    <script type="module" src="workspace-menu.js" defer></script>
     <script src="assets/js/main.js?v=2" defer></script>
 
 </body>

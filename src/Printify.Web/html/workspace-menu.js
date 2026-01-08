@@ -1,0 +1,290 @@
+/**
+ * Workspace Menu Module
+ *
+ * Manages the workspace menu and dropdown:
+ * - Updates workspace display (avatar, name, status)
+ * - Shows dropdown menu with options
+ * - Handles create/access/exit workspace
+ */
+
+// ============================================================================
+// STATE
+// ============================================================================
+
+// Callbacks for actions (set by main.js)
+const callbacks = {
+    onLogOut: null,
+    onShowWorkspaceDialog: null,
+    onOpenDocs: null,
+    apiRequest: null,
+    closeModal: null,
+    copyToClipboard: null
+};
+
+// ============================================================================
+// PUBLIC API
+// ============================================================================
+
+/**
+ * Initialize the workspace menu module with action callbacks
+ */
+export function init(actionCallbacks) {
+    Object.assign(callbacks, actionCallbacks);
+}
+
+/**
+ * Update the workspace display (avatar, name, status)
+ */
+export function updateDisplay(workspaceToken, workspaceName) {
+    const avatar = document.getElementById('workspaceAvatar');
+    const nameEl = document.getElementById('workspaceName');
+    const statusEl = document.getElementById('workspaceStatus');
+
+    if (!avatar || !nameEl || !statusEl) return;
+
+    if (workspaceToken) {
+        if (workspaceName) {
+            avatar.textContent = getInitials(workspaceName);
+            nameEl.textContent = workspaceName;
+        } else {
+            avatar.textContent = workspaceToken.substring(0, 2).toUpperCase();
+            nameEl.textContent = workspaceToken;
+        }
+        statusEl.textContent = 'Workspace active';
+    } else {
+        avatar.textContent = '?';
+        nameEl.textContent = 'No workspace';
+        statusEl.textContent = '';
+    }
+}
+
+/**
+ * Show the workspace dropdown menu
+ */
+export function showMenu(event) {
+    event.stopPropagation();
+
+    // If menu is already open, close it and return
+    const existingMenu = document.querySelector('.menu');
+    if (existingMenu) {
+        existingMenu.remove();
+        return;
+    }
+
+    const menu = document.createElement('div');
+    menu.className = 'menu';
+    menu.style.position = 'fixed';
+    menu.style.left = event.currentTarget.getBoundingClientRect().left + 'px';
+    menu.style.bottom = (window.innerHeight - event.currentTarget.getBoundingClientRect().top) + 'px';
+    menu.style.minWidth = '200px';
+
+    const hasToken = !!callbacks.workspaceToken?.();
+
+    menu.innerHTML = buildMenuHtml(hasToken);
+    document.body.appendChild(menu);
+
+    // Auto-close on next click
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu() {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        });
+    }, 0);
+
+    // Setup event listeners for menu items
+    setupMenuListeners(menu);
+}
+
+// ============================================================================
+// MENU HTML GENERATION
+// ============================================================================
+
+function buildMenuHtml(hasToken) {
+    if (hasToken) {
+        return `
+      <div class="menu-item" data-action="open-docs" data-doc="about">
+        <img class="themed-icon menu-item-icon" src="assets/icons/info.svg" alt="">
+        About Virtual Printer
+      </div>
+      <div class="menu-help">
+        <div class="menu-item menu-item-submenu-toggle" data-action="toggle-help">
+          <span class="menu-item-text">
+            <img class="themed-icon menu-item-icon" src="assets/icons/book-open.svg" alt="">
+            Help
+          </span>
+          <img class="themed-icon menu-item-chevron" src="assets/icons/chevron-right.svg" width="14" height="14" alt="">
+        </div>
+        <div class="menu-submenu">
+          <div class="menu-item" data-action="open-docs" data-doc="guide">
+            <img class="themed-icon menu-item-icon" src="assets/icons/book.svg" alt="">
+            Getting Started
+          </div>
+          <div class="menu-item" data-action="open-docs" data-doc="faq">
+            <img class="themed-icon menu-item-icon" src="assets/icons/help-circle.svg" alt="">
+            FAQ & Troubleshooting
+          </div>
+          <div class="menu-item" data-action="open-docs" data-doc="security">
+            <img class="themed-icon menu-item-icon" src="assets/icons/shield.svg" alt="">
+            Security Guidelines
+          </div>
+          <div class="menu-item" data-action="open-docs" data-doc="terms">
+            <img class="themed-icon menu-item-icon" src="assets/icons/file-text.svg" alt="">
+            Terms of Service
+          </div>
+          <div class="menu-item" data-action="open-docs" data-doc="privacy">
+            <img class="themed-icon menu-item-icon" src="assets/icons/lock.svg" alt="">
+            Privacy Policy
+          </div>
+          <div class="menu-item" data-action="open-docs" data-doc="licenses">
+            <img class="themed-icon menu-item-icon" src="assets/icons/file-minus.svg" alt="">
+            Third-Party Licenses
+          </div>
+        </div>
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" data-action="show-workspace-dialog" data-mode="create">
+        <img class="themed-icon menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
+        New Workspace
+      </div>
+      <div class="menu-item" data-action="show-workspace-dialog" data-mode="join">
+        <img class="themed-icon menu-item-icon" src="assets/icons/refresh.svg" alt="">
+        Switch Workspace
+      </div>
+      <div class="menu-item" data-action="logout">
+        <img class="themed-icon menu-item-icon" src="assets/icons/log-out.svg" alt="">
+        Exit Workspace
+      </div>
+    `;
+    } else {
+        return `
+      <div class="menu-item" data-action="open-docs" data-doc="about">
+        <img class="themed-icon menu-item-icon" src="assets/icons/info.svg" alt="">
+        About Virtual Printer
+      </div>
+      <div class="menu-help">
+        <div class="menu-item menu-item-submenu-toggle" data-action="toggle-help">
+          <span class="menu-item-text">
+            <img class="themed-icon menu-item-icon" src="assets/icons/book-open.svg" alt="">
+            Help
+          </span>
+          <img class="themed-icon menu-item-chevron" src="assets/icons/chevron-right.svg" width="14" height="14" alt="">
+        </div>
+        <div class="menu-submenu">
+          <div class="menu-item" data-action="open-docs" data-doc="guide">
+            <img class="themed-icon menu-item-icon" src="assets/icons/book.svg" alt="">
+            Getting Started
+          </div>
+          <div class="menu-item" data-action="open-docs" data-doc="faq">
+            <img class="themed-icon menu-item-icon" src="assets/icons/help-circle.svg" alt="">
+            FAQ & Troubleshooting
+          </div>
+          <div class="menu-item" data-action="open-docs" data-doc="security">
+            <img class="themed-icon menu-item-icon" src="assets/icons/shield.svg" alt="">
+            Security Guidelines
+          </div>
+          <div class="menu-item" data-action="open-docs" data-doc="terms">
+            <img class="themed-icon menu-item-icon" src="assets/icons/file-text.svg" alt="">
+            Terms of Service
+          </div>
+          <div class="menu-item" data-action="open-docs" data-doc="privacy">
+            <img class="themed-icon menu-item-icon" src="assets/icons/lock.svg" alt="">
+            Privacy Policy
+          </div>
+          <div class="menu-item" data-action="open-docs" data-doc="licenses">
+            <img class="themed-icon menu-item-icon" src="assets/icons/file-minus.svg" alt="">
+            Third-Party Licenses
+          </div>
+        </div>
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" data-action="show-workspace-dialog" data-mode="create">
+        <img class="themed-icon menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
+        Create Workspace
+      </div>
+      <div class="menu-item" data-action="show-workspace-dialog" data-mode="join">
+        <img class="themed-icon menu-item-icon" src="assets/icons/log-in.svg" alt="">
+        Access Workspace
+      </div>
+    `;
+    }
+}
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+
+function setupMenuListeners(menu) {
+    menu.addEventListener('click', (e) => {
+        const item = e.target.closest('.menu-item');
+        if (!item) return;
+
+        const action = item.dataset.action;
+        if (!action) return;
+
+        e.stopPropagation();
+
+        switch (action) {
+            case 'open-docs':
+                const doc = item.dataset.doc;
+                if (doc && callbacks.onOpenDocs) {
+                    window.open(`/docs/${doc}`, '_blank');
+                }
+                break;
+
+            case 'toggle-help':
+                toggleHelpMenu(item);
+                break;
+
+            case 'show-workspace-dialog':
+                const mode = item.dataset.mode || 'create';
+                if (callbacks.onShowWorkspaceDialog) {
+                    callbacks.onShowWorkspaceDialog(mode);
+                }
+                break;
+
+            case 'logout':
+                if (callbacks.onLogOut) {
+                    callbacks.onLogOut();
+                }
+                break;
+        }
+    });
+}
+
+function toggleHelpMenu(menuItem) {
+    const helpMenu = menuItem.closest('.menu-help');
+    if (!helpMenu) return;
+
+    const submenu = helpMenu.querySelector('.menu-submenu');
+    const chevron = helpMenu.querySelector('.menu-item-chevron');
+    if (!submenu || !chevron) return;
+
+    const isOpen = submenu.classList.toggle('open');
+    chevron.src = isOpen ? 'assets/icons/chevron-down.svg' : 'assets/icons/chevron-right.svg';
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Get initials from a name
+ */
+function getInitials(name) {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, 2).toUpperCase();
+}
+
+// ============================================================================
+// WINDOW EXPORTS (for non-module scripts like main.js)
+// ============================================================================
+
+window.WorkspaceMenu = {
+    init,
+    updateDisplay,
+    showMenu
+};

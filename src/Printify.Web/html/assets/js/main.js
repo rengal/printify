@@ -1867,7 +1867,7 @@
 
                 closeModal();
                 showTokenDialog(workspaceToken);
-                updateWorkspaceDisplay();
+                WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
                 renderSidebar();
                 renderDocuments();
             }
@@ -1898,7 +1898,7 @@
                 localStorage.setItem('workspaceToken', token);
 
                 closeModal();
-                updateWorkspaceDisplay();
+                WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
                 renderSidebar();
                 renderDocuments();
                 showToast('Workspace accessed successfully');
@@ -1940,7 +1940,7 @@
                 if (userInfo && userInfo.name) {
                     workspaceName = userInfo.name;
                     localStorage.setItem('workspaceName', workspaceName);
-                    updateWorkspaceDisplay();
+                    WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
                 }
             startStatusStream();
             await loadWorkspaceSummary();
@@ -2018,7 +2018,7 @@
             container.classList.add('operations-hidden');
             localStorage.setItem('operationsHidden', true);
 
-            updateWorkspaceDisplay();
+            WorkspaceMenu.updateDisplay(null, null);
             renderSidebar();
             renderDocuments();
         }
@@ -2089,19 +2089,6 @@
             }
 
             renderDocuments();
-        }
-
-        function toggleHelpMenu(event) {
-            event.stopPropagation();
-            const helpMenu = event.currentTarget.closest('.menu-help');
-            if (!helpMenu) return;
-
-            const submenu = helpMenu.querySelector('.menu-submenu');
-            const chevron = helpMenu.querySelector('.menu-item-chevron');
-            if (!submenu || !chevron) return;
-
-            const isOpen = submenu.classList.toggle('open');
-            chevron.src = isOpen ? 'assets/icons/chevron-down.svg' : 'assets/icons/chevron-right.svg';
         }
 
         function toggleTheme() {
@@ -2195,167 +2182,6 @@
                     localStorage.setItem('operationsHidden', false);
                 }
             }
-        }
-
-        function getInitials(name) {
-            if (!name) return '?';
-            const parts = name.trim().split(' ');
-            if (parts.length >= 2) {
-                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-            }
-            return parts[0].substring(0, 2).toUpperCase();
-        }
-
-        function updateWorkspaceDisplay() {
-            const avatar = document.getElementById('workspaceAvatar');
-            const nameEl = document.getElementById('workspaceName');
-            const statusEl = document.getElementById('workspaceStatus');
-
-            if (workspaceToken) {
-                if (workspaceName) {
-                    avatar.textContent = getInitials(workspaceName);
-                    nameEl.textContent = workspaceName;
-                } else {
-                    avatar.textContent = workspaceToken.substring(0, 2).toUpperCase();
-                    nameEl.textContent = workspaceToken;
-                }
-                statusEl.textContent = 'Workspace active';
-            } else {
-                avatar.textContent = '?';
-                nameEl.textContent = 'No workspace';
-                statusEl.textContent = '';
-            }
-        }
-
-        function showWorkspaceMenu(event) {
-            event.stopPropagation();
-
-            const existingMenu = document.querySelector('.menu');
-            if (existingMenu) existingMenu.remove();
-
-            const menu = document.createElement('div');
-            menu.className = 'menu';
-            menu.style.position = 'fixed';
-            menu.style.left = event.currentTarget.getBoundingClientRect().left + 'px';
-            menu.style.bottom = (window.innerHeight - event.currentTarget.getBoundingClientRect().top) + 'px';
-            menu.style.minWidth = '200px';
-
-            if (workspaceToken) {
-                menu.innerHTML = `
-              <div class="menu-item" onclick="window.open('/docs/about', '_blank')">
-                <img class="themed-icon menu-item-icon" src="assets/icons/info.svg" alt="">
-                About Virtual Printer
-              </div>
-              <div class="menu-help">
-                <div class="menu-item menu-item-submenu-toggle" onclick="toggleHelpMenu(event)">
-                  <span class="menu-item-text">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/book-open.svg" alt="">
-                    Help
-                  </span>
-                  <img class="themed-icon menu-item-chevron" src="assets/icons/chevron-right.svg" width="14" height="14" alt="">
-                </div>
-                <div class="menu-submenu">
-                  <div class="menu-item" onclick="window.open('/docs/guide', '_blank')">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/book.svg" alt="">
-                    Getting Started
-                  </div>
-                  <div class="menu-item" onclick="window.open('/docs/faq', '_blank')">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/help-circle.svg" alt="">
-                    FAQ & Troubleshooting
-                  </div>
-                  <div class="menu-item" onclick="window.open('/docs/security', '_blank')">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/shield.svg" alt="">
-                    Security Guidelines
-                  </div>
-                  <div class="menu-item" onclick="window.open('/docs/terms', '_blank')">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/file-text.svg" alt="">
-                    Terms of Service
-                  </div>
-                  <div class="menu-item" onclick="window.open('/docs/privacy', '_blank')">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/lock.svg" alt="">
-                    Privacy Policy
-                  </div>
-                  <div class="menu-item" onclick="window.open('/docs/licenses', '_blank')">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/file-minus.svg" alt="">
-                    Third-Party Licenses
-                  </div>
-                </div>
-              </div>
-              <div class="menu-divider"></div>
-              <div class="menu-item" onclick="showWorkspaceDialog('create')">
-                <img class="themed-icon menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
-                New Workspace
-              </div>
-              <div class="menu-item" onclick="showWorkspaceDialog('join')">
-                <img class="themed-icon menu-item-icon" src="assets/icons/refresh.svg" alt="">
-                Switch Workspace
-              </div>
-              <div class="menu-item" onclick="logOut()">
-                <img class="themed-icon menu-item-icon" src="assets/icons/log-out.svg" alt="">
-                Exit Workspace
-              </div>
-            `;
-            } else {
-                menu.innerHTML = `
-              <div class="menu-item" onclick="window.open('/docs/about', '_blank')">
-                <img class="themed-icon menu-item-icon" src="assets/icons/info.svg" alt="">
-                About Virtual Printer
-              </div>
-              <div class="menu-help">
-                <div class="menu-item menu-item-submenu-toggle" onclick="toggleHelpMenu(event)">
-                  <span class="menu-item-text">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/book-open.svg" alt="">
-                    Help
-                  </span>
-                  <img class="themed-icon menu-item-chevron" src="assets/icons/chevron-right.svg" width="14" height="14" alt="">
-                </div>
-                <div class="menu-submenu">
-                  <div class="menu-item" onclick="window.open('/docs/guide', '_blank')">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/book.svg" alt="">
-                    Getting Started
-                  </div>
-                  <div class="menu-item" onclick="window.open('/docs/faq', '_blank')">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/help-circle.svg" alt="">
-                    FAQ & Troubleshooting
-                  </div>
-                  <div class="menu-item" onclick="window.open('/docs/security', '_blank')">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/shield.svg" alt="">
-                    Security Guidelines
-                  </div>
-                  <div class="menu-item" onclick="window.open('/docs/terms', '_blank')">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/file-text.svg" alt="">
-                    Terms of Service
-                  </div>
-                  <div class="menu-item" onclick="window.open('/docs/privacy', '_blank')">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/lock.svg" alt="">
-                    Privacy Policy
-                  </div>
-                  <div class="menu-item" onclick="window.open('/docs/licenses', '_blank')">
-                    <img class="themed-icon menu-item-icon" src="assets/icons/file-minus.svg" alt="">
-                    Third-Party Licenses
-                  </div>
-                </div>
-              </div>
-              <div class="menu-divider"></div>
-              <div class="menu-item" onclick="showWorkspaceDialog('create')">
-                <img class="themed-icon menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
-                Create Workspace
-              </div>
-              <div class="menu-item" onclick="showWorkspaceDialog('join')">
-                <img class="themed-icon menu-item-icon" src="assets/icons/refresh.svg" alt="">
-                Access Workspace
-              </div>
-            `;
-            }
-
-            document.body.appendChild(menu);
-
-            setTimeout(() => {
-                document.addEventListener('click', function closeMenu() {
-                    menu.remove();
-                    document.removeEventListener('click', closeMenu);
-                });
-            }, 0);
         }
 
 
@@ -2498,6 +2324,17 @@
             });
         }
 
+        // Initialize Workspace Menu module
+        if (window.WorkspaceMenu) {
+            WorkspaceMenu.init({
+                workspaceToken: () => workspaceToken,
+                workspaceName: () => workspaceName,
+                onLogOut: () => logOut(),
+                onShowWorkspaceDialog: (mode) => showWorkspaceDialog(mode),
+                onOpenDocs: (doc) => window.open(`/docs/${doc}`, '_blank')
+            });
+        }
+
         // Restore workspace
         const savedToken = localStorage.getItem('workspaceToken');
         const savedName = localStorage.getItem('workspaceName');
@@ -2524,7 +2361,7 @@
                     if (userInfo && userInfo.name) {
                         workspaceName = userInfo.name;
                         localStorage.setItem('workspaceName', workspaceName);
-                        updateWorkspaceDisplay();
+                        WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
                     }
                     startStatusStream();
                     loadWorkspaceSummary();
@@ -2538,7 +2375,7 @@
             console.warn('Cannot restore workspace - missing tokens');
         }
 
-        updateWorkspaceDisplay();
+        WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
         renderSidebar();
         renderDocuments();
 
