@@ -1,0 +1,361 @@
+/* Operations Panel Styles */
+
+.operations-panel {
+    grid-area: operations;
+    background: var(--bg-elev);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.operations-hidden .operations-panel {
+    opacity: 0;
+    pointer-events: none;
+    padding: 16px 0;
+}
+
+/* Header */
+.operations-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 0;
+    min-height: 32px;
+}
+
+.operations-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.ops-printer-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 32px;
+}
+
+.ops-separator {
+    color: var(--muted);
+    user-select: none;
+    font-size: 14px;
+}
+
+.ops-protocol {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+/* Info Section */
+.operations-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+    font-size: 15px;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.info-label {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.info-separator {
+    color: var(--muted);
+    user-select: none;
+}
+
+/* Actions Section */
+.operations-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.operations-button-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.operations-button-row .btn {
+    justify-content: center;
+}
+
+.operations-actions .btn {
+    width: 100%;
+    justify-content: center;
+}
+
+/* Section Divider */
+.section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 12px 0;
+}
+
+/* Danger Zone */
+.danger-zone {
+    margin-top: 16px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0px;
+    background: transparent;
+}
+
+.danger-zone-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    margin-bottom: 0;
+}
+
+.danger-zone-header:hover {
+    background: var(--bg);
+    border-color: var(--border);
+}
+
+.danger-zone-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.danger-zone-icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+}
+
+.danger-zone-chevron {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.2s ease;
+}
+
+.danger-zone-chevron.expanded {
+    transform: rotate(180deg);
+}
+
+.danger-zone-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+
+.danger-zone-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+}
+
+.danger-zone-content.expanded {
+    max-height: 140px;
+    opacity: 1;
+}
+
+.danger-zone-content .btn {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.danger-zone-content .btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.danger-zone-chevron {
+    filter: var(--icon-filter);
+}
+
+.danger-zone.expanded {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.35);
+}
+
+.danger-zone.expanded .danger-zone-header {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.35);
+}
+
+.danger-zone.expanded .danger-zone-title {
+    color: #ef4444;
+}
+
+.danger-zone.expanded .danger-zone-icon {
+    opacity: 1;
+}
+
+/* Flags Grid */
+.flags-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+    margin-top: 16px;
+}
+
+.flag-switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    margin-bottom: 0;
+}
+
+.debug-switch {
+    margin-top: 16px;
+}
+
+.operations-actions > .flag-switch {
+    margin-bottom: 8px;
+}
+
+.flag-switch input[type="checkbox"] {
+    width: 36px;
+    height: 20px;
+    margin: 0;
+    appearance: none;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+}
+
+.flag-switch input[type="checkbox"]::before {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--muted);
+    left: 2px;
+    top: 2px;
+    transition: left 0.2s, background 0.2s;
+}
+
+.flag-switch input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.flag-switch input[type="checkbox"]:checked::before {
+    background: white;
+    left: calc(100% - 16px);
+}
+
+/* Danger color for error flags when checked */
+.flag-switch.flag-error input[type="checkbox"]:checked {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* Red text for error flag labels when checked */
+.flag-switch.flag-error input[type="checkbox"]:checked ~ .flag-label {
+    color: var(--danger);
+}
+
+.flag-label {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text);
+}
+
+/* Drawer Management */
+.drawer-control {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.drawer-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0;
+}
+
+.drawer-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    width: auto;
+}
+
+.drawer-state {
+    font-size: 14px;
+    color: var(--text);
+    width: auto;
+}
+
+.drawer-control .btn {
+    width: 100%;
+}
+
+/* Buffer Status */
+.buffer-status-ascii {
+    margin-bottom: 8px;
+    margin-top: 12px;
+}
+
+.buffer-header-ascii {
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.buffer-header-value {
+    color: var(--muted);
+    padding-right: 4px;
+}
+
+.buffer-bar-ascii {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: var(--text);
+    white-space: pre;
+    overflow-x: auto;
+    line-height: 1.2;
+}

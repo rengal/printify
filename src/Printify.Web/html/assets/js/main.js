@@ -340,7 +340,22 @@
             if (printer) {
                 printer.newDocs = 0;
                 renderSidebar();
-                renderDocuments();
+
+                // Load operations panel using the module
+                if (window.OperationsPanel && accessToken) {
+                    try {
+                        const panelElement = await OperationsPanel.loadPanel(id, accessToken);
+                        const container = document.getElementById('operationsPanel');
+                        container.innerHTML = '';
+                        container.appendChild(panelElement);
+
+                        // Restore danger zone state
+                        OperationsPanel.restoreDangerZoneState();
+                    } catch (err) {
+                        console.error('Failed to load operations panel', err);
+                    }
+                }
+
                 try {
                     await ensureDocumentsLoaded(id);
                     startDocumentStream(id);
@@ -986,152 +1001,64 @@
                 renderSidebar();
 
                 // Only update operations panel if this is the currently selected printer
-                if (printerId === selectedPrinterId) {
+                if (printerId === selectedPrinterId && window.OperationsPanel) {
                     if (changedFields.settings) {
-                        // Settings changes require full re-render
-                        renderDocuments();
+                        // Settings changes require full re-render - reload panel
+                        OperationsPanel.loadPanel(printerId, accessToken).then(panelElement => {
+                            const container = document.getElementById('operationsPanel');
+                            container.innerHTML = '';
+                            container.appendChild(panelElement);
+                            OperationsPanel.restoreDangerZoneState();
+                        }).catch(err => {
+                            console.error('Failed to reload operations panel', err);
+                        });
                     } else {
-                        // Partial update for runtime/flags changes
-                        updateOperationsPanelPartial(printer, changedFields);
+                        // Partial update for runtime/flags/drawers/buffer changes
+                        const partialData = {};
+                        if (changedFields.runtimeStatus || changedFields.targetStatus) {
+                            partialData.runtimeStatus = {
+                                state: printer.runtimeStatus,
+                                updatedAt: printer.runtimeStatusAt
+                            };
+                        }
+                        if (changedFields.bufferedBytes || changedFields.drawerStates.length > 0) {
+                            partialData.runtimeStatus = partialData.runtimeStatus || {};
+                            if (changedFields.bufferedBytes) {
+                                partialData.runtimeStatus.bufferedBytes = printer.bufferedBytes;
+                            }
+                            if (changedFields.drawerStates.includes('drawer1State')) {
+                                partialData.runtimeStatus.drawer1State = printer.drawer1State;
+                            }
+                            if (changedFields.drawerStates.includes('drawer2State')) {
+                                partialData.runtimeStatus.drawer2State = printer.drawer2State;
+                            }
+                        }
+                        if (changedFields.operationalFlags.length > 0) {
+                            partialData.operationalFlags = {};
+                            if (changedFields.operationalFlags.includes('isCoverOpen')) {
+                                partialData.operationalFlags.isCoverOpen = printer.isCoverOpen;
+                            }
+                            if (changedFields.operationalFlags.includes('isPaperOut')) {
+                                partialData.operationalFlags.isPaperOut = printer.isPaperOut;
+                            }
+                            if (changedFields.operationalFlags.includes('isOffline')) {
+                                partialData.operationalFlags.isOffline = printer.isOffline;
+                            }
+                            if (changedFields.operationalFlags.includes('hasError')) {
+                                partialData.operationalFlags.hasError = printer.hasError;
+                            }
+                        }
+                        if (changedFields.lastDocumentAt) {
+                            partialData.printer = {
+                                lastDocumentAt: printer.lastDocumentAt
+                            };
+                        }
+
+                        OperationsPanel.applyPartialUpdate(partialData, printerId);
                     }
                 }
             } catch (e) {
                 console.error('Failed to parse runtime event', e);
-            }
-        }
-
-        function updateOperationsPanelPartial(printer, changedFields) {
-            const operationsPanel = document.getElementById('operationsPanel');
-            if (!operationsPanel) return;
-
-            // Check if panel exists and is for this printer
-            const headerName = operationsPanel.querySelector('.operations-printer-name');
-            if (!headerName || !selectedPrinterId) {
-                // Panel not initialized or different printer, fall back to full render
-                renderDocuments();
-                return;
-            }
-
-            // Update status badge and start/stop button
-            if (changedFields.runtimeStatus || changedFields.targetStatus) {
-                const isRunning = printer.runtimeStatus === 'started' || printer.runtimeStatus === 'starting';
-                const statusClass = runtimeStatusClass(printer.runtimeStatus);
-                const statusText = formatRuntimeStatus(printer.runtimeStatus);
-
-                // Update status badge in info row
-                const infoRow = operationsPanel.querySelector('.info-row');
-                if (infoRow) {
-                    const statusSpan = infoRow.querySelector('span:first-child');
-                    if (statusSpan) {
-                        statusSpan.className = statusClass;
-                        statusSpan.textContent = statusText;
-                    }
-                }
-
-                // Update primary action button
-                const buttonRow = operationsPanel.querySelector('.operations-button-row');
-                if (buttonRow) {
-                    // Replace just the first button (Start/Stop)
-                    const startStopBtn = buttonRow.querySelector('.btn-primary');
-                    if (startStopBtn) {
-                        const newBtn = document.createElement('button');
-                        newBtn.className = 'btn btn-primary btn-sm';
-                        newBtn.onclick = (event) => isRunning ? stopPrinter(event, printer.id) : startPrinter(event, printer.id);
-                        newBtn.innerHTML = isRunning
-                            ? `<img class="themed-icon" src="assets/icons/square.svg" width="14" height="14" alt="">Stop`
-                            : `<img class="themed-icon" src="assets/icons/play.svg" width="14" height="14" alt="">Start`;
-                        startStopBtn.replaceWith(newBtn);
-                    }
-                }
-            }
-
-            // Update operational flag checkboxes
-            if (changedFields.operationalFlags.length > 0) {
-                const flagsGrid = operationsPanel.querySelector('.flags-grid');
-                if (flagsGrid) {
-                    const flagMap = {
-                        'isCoverOpen': 'Cover Open',
-                        'isPaperOut': 'Paper Out',
-                        'isOffline': 'Offline',
-                        'hasError': 'Error'
-                    };
-
-                    changedFields.operationalFlags.forEach(flagName => {
-                        const label = flagMap[flagName];
-                        if (label) {
-                            const switches = flagsGrid.querySelectorAll('.flag-switch');
-                            switches.forEach(sw => {
-                                const labelSpan = sw.querySelector('.flag-label');
-                                if (labelSpan && labelSpan.textContent === label) {
-                                    const checkbox = sw.querySelector('input[type="checkbox"]');
-                                    if (checkbox) {
-                                        const isChecked = flagName === 'isCoverOpen' ? printer.isCoverOpen
-                                            : flagName === 'isPaperOut' ? printer.isPaperOut
-                                            : flagName === 'isOffline' ? printer.isOffline
-                                            : printer.hasError;
-                                        checkbox.checked = isChecked;
-                                    }
-                                }
-                            });
-                        }
-                    });
-                }
-            }
-
-            // Update drawer states
-            if (changedFields.drawerStates.length > 0) {
-                const drawerControls = operationsPanel.querySelectorAll('.drawer-control');
-                drawerControls.forEach(control => {
-                    const labelSpan = control.querySelector('.drawer-label');
-                    if (!labelSpan) return;
-
-                    const isDrawer1 = labelSpan.textContent === 'Drawer 1:';
-                    const state = isDrawer1 ? printer.drawer1State : printer.drawer2State;
-                    const stateSpan = control.querySelector('.drawer-state');
-                    const button = control.querySelector('button');
-
-                    if (stateSpan) {
-                        stateSpan.textContent = (!state || state === 'Closed') ? 'Closed' : 'Open';
-                    }
-
-                    if (button) {
-                        const newState = (state === 'Closed' || !state) ? 'OpenedManually' : 'Closed';
-                        const drawerProp = isDrawer1 ? 'drawer1State' : 'drawer2State';
-                        button.onclick = () => setDrawerState(printer.id, drawerProp, newState);
-                        button.textContent = (state === 'Closed' || !state) ? 'Open' : 'Close';
-                    }
-                });
-            }
-
-            // Update buffer progress bar
-            if (changedFields.bufferedBytes) {
-                const bufferStatus = operationsPanel.querySelector('.buffer-status-ascii');
-                if (bufferStatus) {
-                    const headerValue = bufferStatus.querySelector('.buffer-header-value');
-                    if (headerValue) {
-                        headerValue.textContent = `${printer.bufferedBytes ?? 0}/${printer.bufferSize}`;
-                    }
-                    const bufferBar = bufferStatus.querySelector('.buffer-bar-ascii');
-                    if (bufferBar) {
-                        bufferBar.innerHTML = renderBufferProgress(printer.bufferedBytes, printer.bufferSize);
-                    }
-                }
-            }
-
-            // Update last document time
-            if (changedFields.lastDocumentAt) {
-                const infoRows = operationsPanel.querySelectorAll('.info-row');
-                if (infoRows.length >= 2) {
-                    const lastDocRow = infoRows[1];
-                    const dateTimeSpan = lastDocRow.querySelectorAll('span')[1];
-                    if (dateTimeSpan && printer.lastDocumentAt) {
-                        const dateTime = printer.lastDocumentAt.toLocaleString(undefined, {
-                            year: 'numeric', month: '2-digit', day: '2-digit',
-                            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-                        });
-                        dateTimeSpan.textContent = dateTime;
-                    }
-                }
             }
         }
 
@@ -1204,176 +1131,8 @@
                 return;
             }
 
-            // Render printer info in properties panel
-            // Use runtimeStatus to determine button state (not targetStatus)
-            // If printer is actually running (started/starting), show Stop button
-            // If printer is stopped/error, show Start button
-            const isRunning = printer.runtimeStatus === 'started' || printer.runtimeStatus === 'starting';
-            const statusClass = runtimeStatusClass(printer.runtimeStatus);
-            const statusText = formatRuntimeStatus(printer.runtimeStatus);
-            const lastDocText = printer.lastDocumentAt ? formatRelativeTime(printer.lastDocumentAt) : 'Never';
-            const printerAddress = formatPrinterAddress(printer);
-            const protocolFormatted = printer.protocol.toLowerCase() === 'escpos' ? 'ESC/POS' : printer.protocol.toUpperCase();
-
-            // Debug logging
-            console.log('Printer status debug:', {
-                printerName: printer.name,
-                targetStatus: printer.targetStatus,
-                runtimeStatus: printer.runtimeStatus,
-                isRunning: isRunning,
-                buttonToShow: isRunning ? 'Stop' : 'Start',
-                displayedStatus: statusText
-            });
-
-            const hasLastDocument = !!printer.lastDocumentAt;
-            const lastDocDateTime = hasLastDocument
-                ? printer.lastDocumentAt.toLocaleString(undefined, {
-                    year: 'numeric', month: '2-digit', day: '2-digit',
-                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-                  })
-                : '';
-            const lastDocRelative = hasLastDocument ? lastDocText : '';
-
-            operationsPanel.innerHTML = `
-              <div class="operations-header">
-                <div class="operations-title-row">
-                  <span class="operations-printer-name">${escapeHtml(printer.name)}</span>
-                  <span class="operations-separator">·</span>
-                  <span class="operations-protocol">${protocolFormatted}</span>
-                </div>
-                <button class="icon-btn" onclick="toggleOperations()" title="Close operations">
-                  <img src="assets/icons/x.svg" width="18" height="18" alt="Close">
-                </button>
-              </div>
-              <div class="operations-info">
-                <div class="info-row">
-                  <span class="${statusClass}">${statusText}</span>
-                  <span class="info-separator">·</span>
-                  <span>${printerAddress}</span>
-                  <button class="copy-icon-btn" onclick="copyToClipboard('${printerAddress}')" title="Copy address">
-                    <img src="assets/icons/copy.svg" width="14" height="14" alt="Copy">
-                  </button>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">LAST DOCUMENT:</span>
-                  <span>${hasLastDocument ? lastDocDateTime : 'never'}</span>
-                </div>
-              </div>
-              <div class="operations-actions">
-                <!-- Primary Actions Row -->
-                <div class="operations-button-row">
-                  ${isRunning
-                    ? `<button class="btn btn-primary btn-sm" onclick="stopPrinter(event, '${printer.id}')">
-                        <img class="themed-icon" src="assets/icons/square.svg" width="14" height="14" alt="">
-                        Stop
-                      </button>`
-                    : `<button class="btn btn-primary btn-sm" onclick="startPrinter(event, '${printer.id}')">
-                        <img class="themed-icon" src="assets/icons/play.svg" width="14" height="14" alt="">
-                        Start
-                      </button>`
-                  }
-
-                  <button class="btn btn-secondary btn-sm" onclick="editPrinter('${printer.id}')">
-                    <img class="themed-icon" src="assets/icons/edit-3.svg" width="14" height="14" alt="">
-                    Edit
-                  </button>
-
-                  <button class="btn btn-secondary btn-sm" onclick="togglePin('${printer.id}')">
-                    <img class="themed-icon" src="assets/icons/star.svg" width="14" height="14" alt="">
-                    ${printer.pinned ? 'Unpin' : 'Pin'}
-                  </button>
-                </div>
-
-                <!-- Operational Flags -->
-                <div class="flags-grid">
-                  <label class="flag-switch flag-error">
-                    <input type="checkbox" ${printer.isCoverOpen ? 'checked' : ''}
-                      onchange="toggleOperationalFlag('${printer.id}', 'isCoverOpen', this.checked)">
-                    <span class="flag-label">Cover Open</span>
-                  </label>
-                  <label class="flag-switch flag-error">
-                    <input type="checkbox" ${printer.isPaperOut ? 'checked' : ''}
-                      onchange="toggleOperationalFlag('${printer.id}', 'isPaperOut', this.checked)">
-                    <span class="flag-label">Paper Out</span>
-                  </label>
-                  <label class="flag-switch flag-error">
-                    <input type="checkbox" ${printer.isOffline ? 'checked' : ''}
-                      onchange="toggleOperationalFlag('${printer.id}', 'isOffline', this.checked)">
-                    <span class="flag-label">Offline</span>
-                  </label>
-                  <label class="flag-switch flag-error">
-                    <input type="checkbox" ${printer.hasError ? 'checked' : ''}
-                      onchange="toggleOperationalFlag('${printer.id}', 'hasError', this.checked)">
-                    <span class="flag-label">Error</span>
-                  </label>
-                </div>
-
-                  <label class="flag-switch debug-switch">
-                    <input type="checkbox" ${debugMode ? 'checked' : ''} onchange="toggleDebugMode()">
-                    <span class="flag-label">Raw Data</span>
-                  </label>
-
-                <div class="section-divider"></div>
-
-                <!-- Drawer Management -->
-                  <div class="drawer-control">
-                    <div class="drawer-info">
-                      <span class="drawer-label">Drawer 1:</span>
-                      <span class="drawer-state">${
-                        !printer.drawer1State || printer.drawer1State === 'Closed' ? 'Closed' : 'Open'
-                      }</span>
-                    </div>
-                    ${printer.drawer1State === 'Closed' || !printer.drawer1State
-                      ? `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer1State', 'OpenedManually')">Open</button>`
-                      : `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer1State', 'Closed')">Close</button>`
-                    }
-                  </div>
-                  <div class="drawer-control">
-                    <div class="drawer-info">
-                      <span class="drawer-label">Drawer 2:</span>
-                      <span class="drawer-state">${
-                        !printer.drawer2State || printer.drawer2State === 'Closed' ? 'Closed' : 'Open'
-                      }</span>
-                    </div>
-                    ${printer.drawer2State === 'Closed' || !printer.drawer2State
-                      ? `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer2State', 'OpenedManually')">Open</button>`
-                      : `<button class="btn btn-secondary btn-sm" onclick="setDrawerState('${printer.id}', 'drawer2State', 'Closed')">Close</button>`
-                    }
-                  </div>
-
-                <!-- Buffer Status Section -->
-                ${printer.emulateBuffer && printer.bufferSize ? `
-                  <div class="buffer-status-ascii">
-                    <div class="buffer-header-ascii">
-                      <span>Buffer Usage (bytes)</span>
-                      <span class="buffer-header-value">${printer.bufferedBytes ?? 0}/${printer.bufferSize}</span>
-                    </div>
-                    <div class="buffer-bar-ascii">${renderBufferProgress(printer.bufferedBytes, printer.bufferSize)}</div>
-                  </div>
-                ` : ''}
-
-                <!-- Danger Zone -->
-                <div class="danger-zone">
-                  <div class="danger-zone-header" onclick="toggleDangerZone()">
-                    <div class="danger-zone-title">
-                      <img class="danger-zone-icon" src="assets/icons/alert-triangle.svg" width="16" height="16" alt="">
-                      Danger Zone
-                    </div>
-                    <img class="danger-zone-chevron collapsed" src="assets/icons/chevron-down.svg" width="16" height="16" alt="">
-                  </div>
-                  <div class="danger-zone-content collapsed">
-                    <button class="btn btn-sm" onclick="clearDocuments('${printer.id}')">
-                      <img class="themed-icon" src="assets/icons/trash-2.svg" width="14" height="14" alt="">
-                      Delete all documents
-                    </button>
-                    <button class="btn btn-sm" onclick="deletePrinter('${printer.id}')">
-                      <img class="themed-icon" src="assets/icons/trash.svg" width="14" height="14" alt="">
-                      Delete Printer
-                    </button>
-                  </div>
-                </div>
-              </div>
-            `;
+            // Note: Operations panel is now rendered by OperationsPanel module
+            // This function only handles the documents panel rendering
 
             // Render documents in documents panel
             if (docs.length === 0) {
@@ -2334,26 +2093,31 @@
 
         // Danger Zone Toggle
         function toggleDangerZone() {
-            const content = document.querySelector('.danger-zone-content');
-            const chevron = document.querySelector('.danger-zone-chevron');
-            const container = document.querySelector('.danger-zone');
-
-            if (!content || !chevron || !container) return;
-
-            const isExpanded = content.classList.contains('expanded');
-
-            if (isExpanded) {
-                content.classList.remove('expanded');
-                content.classList.add('collapsed');
-                chevron.classList.remove('expanded');
-                container.classList.remove('expanded');
-                localStorage.setItem('dangerZoneExpanded', 'false');
+            if (window.OperationsPanel) {
+                OperationsPanel.toggleDangerZone();
             } else {
-                content.classList.remove('collapsed');
-                content.classList.add('expanded');
-                chevron.classList.add('expanded');
-                container.classList.add('expanded');
-                localStorage.setItem('dangerZoneExpanded', 'true');
+                // Fallback for old behavior
+                const content = document.querySelector('.danger-zone-content');
+                const chevron = document.querySelector('.danger-zone-chevron');
+                const container = document.querySelector('.danger-zone');
+
+                if (!content || !chevron || !container) return;
+
+                const isExpanded = content.classList.contains('expanded');
+
+                if (isExpanded) {
+                    content.classList.remove('expanded');
+                    content.classList.add('collapsed');
+                    chevron.classList.remove('expanded');
+                    container.classList.remove('expanded');
+                    localStorage.setItem('dangerZoneExpanded', 'false');
+                } else {
+                    content.classList.remove('collapsed');
+                    content.classList.add('expanded');
+                    chevron.classList.add('expanded');
+                    container.classList.add('expanded');
+                    localStorage.setItem('dangerZoneExpanded', 'true');
+                }
             }
         }
 
@@ -2727,6 +2491,43 @@
 
         // Initialize
         initTheme();
+
+        // Initialize Operations Panel module
+        if (window.OperationsPanel) {
+            OperationsPanel.init({
+                onClose: () => toggleOperations(),
+                onTogglePin: () => togglePin(selectedPrinterId),
+                onEdit: () => editPrinter(selectedPrinterId),
+                onStartStop: () => {
+                    const printer = getPrinterById(selectedPrinterId);
+                    if (printer) {
+                        const isRunning = printer.runtimeStatus === 'started' || printer.runtimeStatus === 'starting';
+                        if (isRunning) {
+                            stopPrinter(event, selectedPrinterId);
+                        } else {
+                            startPrinter(event, selectedPrinterId);
+                        }
+                    }
+                },
+                onToggleFlag: (flag, value) => toggleOperationalFlag(selectedPrinterId, flag, value),
+                onToggleDebug: (value) => {
+                    debugMode = value;
+                    renderDocuments();
+                },
+                onToggleDrawer: (drawerNumber) => {
+                    const state = drawerNumber === 1
+                        ? (getPrinterById(selectedPrinterId)?.drawer1State)
+                        : (getPrinterById(selectedPrinterId)?.drawer2State);
+                    const newState = (state === 'Closed' || !state) ? 'OpenedManually' : 'Closed';
+                    const drawerProp = `drawer${drawerNumber}State`;
+                    setDrawerState(selectedPrinterId, drawerProp, newState);
+                },
+                onToggleDangerZone: () => toggleDangerZone(),
+                onClearDocuments: () => clearDocuments(selectedPrinterId),
+                onDeletePrinter: () => deletePrinter(selectedPrinterId),
+                onCopyAddress: (address) => copyToClipboard(address)
+            });
+        }
 
         // Restore workspace
         const savedToken = localStorage.getItem('workspaceToken');
