@@ -57,6 +57,9 @@
     font-size: 15px;
     transition: background-color 0.2s ease;
     margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .docs-back-link img {
@@ -102,6 +105,9 @@
     font-size: 15px;
     font-weight: 500;
     transition: background-color 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .docs-nav-item:hover {

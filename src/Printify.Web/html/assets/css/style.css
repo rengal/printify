@@ -890,6 +890,9 @@
             font-size: 15px;
             color: var(--text);
             user-select: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
             .menu-item:hover {
@@ -912,6 +915,9 @@
             display: inline-flex;
             align-items: center;
             gap: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .menu-item-submenu-toggle {
