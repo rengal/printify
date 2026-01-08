@@ -243,8 +243,28 @@ function setupMenuListeners(menu) {
                 break;
 
             case 'logout':
-                if (callbacks.onLogOut) {
-                    callbacks.onLogOut();
+                const workspaceName = callbacks.workspaceName?.();
+                const message = workspaceName
+                    ? `Are you sure you want to exit "<strong>${escapeHtml(workspaceName)}</strong>"?<br><br>To re-enter, you will need to enter your workspace token.`
+                    : 'Are you sure you want to exit this workspace?<br><br>To re-enter, you will need to enter your workspace token.';
+
+                if (window.ConfirmDialog) {
+                    window.ConfirmDialog.show(
+                        'Exit Workspace',
+                        message,
+                        'Exit Workspace',
+                        () => {
+                            if (callbacks.onLogOut) {
+                                callbacks.onLogOut();
+                            }
+                        },
+                        true
+                    );
+                } else {
+                    // Fallback if ConfirmDialog not loaded
+                    if (callbacks.onLogOut) {
+                        callbacks.onLogOut();
+                    }
                 }
                 break;
         }
@@ -266,6 +286,22 @@ function toggleHelpMenu(menuItem) {
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
 /**
  * Get initials from a name

@@ -1,0 +1,17 @@
+<template id="confirm-dialog-template">
+    <div class="modal-overlay" data-confirm-dialog-overlay>
+        <div class="modal" style="max-width: 420px;">
+            <div class="modal-header" style="display: flex; align-items: center; gap: 12px;">
+                <span data-confirm-dialog-icon></span>
+                <span data-confirm-dialog-title></span>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text); margin: 0; font-size: 15px; line-height: 1.6;" data-confirm-dialog-message></p>
+                <div class="form-actions">
+                    <button class="btn btn-secondary" data-confirm-dialog-cancel>Cancel</button>
+                    <button class="btn btn-primary" data-confirm-dialog-confirm></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>

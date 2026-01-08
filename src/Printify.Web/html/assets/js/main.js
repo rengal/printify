@@ -1276,59 +1276,6 @@
             }
         }
 
-        async function showConfirmDialog(title, message, confirmText, onConfirm, isDanger = false) {
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            const iconColor = isDanger ? '#ef4444' : '#3b82f6';
-
-            // Load icon from cache (or fetch if not cached)
-            const iconName = isDanger ? 'alert-triangle' : 'alert-circle';
-            await loadIcon(iconName);
-
-            const icon = getIcon(iconName, {
-                width: '28',
-                height: '28',
-                stroke: iconColor
-            }).replace('<svg', '<svg style="flex-shrink: 0;"');
-
-            modal.innerHTML = `
-            <div class="modal" style="max-width: 420px;">
-              <div class="modal-header" style="display: flex; align-items: center; gap: 12px;">
-                ${icon}
-                <span>${title}</span>
-              </div>
-              <div class="modal-body">
-                <p style="color: var(--text); margin: 0; font-size: 15px; line-height: 1.6;">${message}</p>
-                <div class="form-actions">
-                  <button class="btn btn-secondary" onclick="closeConfirmDialog()">Cancel</button>
-                  <button class="btn ${isDanger ? 'btn-danger' : 'btn-primary'}" onclick="confirmDialogAction()">${confirmText}</button>
-                </div>
-              </div>
-            </div>
-          `;
-
-            window.closeConfirmDialog = () => {
-                modal.remove();
-                delete window.closeConfirmDialog;
-                delete window.confirmDialogAction;
-            };
-
-            window.confirmDialogAction = () => {
-                modal.remove();
-                delete window.closeConfirmDialog;
-                delete window.confirmDialogAction;
-                onConfirm();
-            };
-
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    window.closeConfirmDialog();
-                }
-            });
-
-            document.body.appendChild(modal);
-        }
-
         async function deletePrinter(printerId) {
             const printer = printers.find(p => p.id === printerId);
             if (!printer) return;
@@ -1342,10 +1289,10 @@
 
             message += '<br><br>This action cannot be undone.';
 
-            await showConfirmDialog(
-                escapeHtml('Delete Printer'),
+            await ConfirmDialog.show(
+                'Delete Printer',
                 message,
-                escapeHtml('Delete Printer'),
+                'Delete Printer',
                 async () => {
                     try {
                         await apiRequest(`/api/printers/${printerId}`, { method: 'DELETE' });
@@ -1470,10 +1417,10 @@
                 message = `Delete all <strong>${docCount}</strong> documents from "<strong>${escapeHtml(printer.name)}</strong>"?<br><br>This cannot be undone.`;
             }
 
-            await showConfirmDialog(
-                escapeHtml('Delete Documents'),
+            await ConfirmDialog.show(
+                'Delete Documents',
                 message,
-                escapeHtml('Delete Documents'),
+                'Delete Documents',
                 async () => {
                     try {
                         // Delete server-side documents so the printer history is cleared.
