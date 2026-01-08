@@ -7,10 +7,11 @@ using Printify.Application.Interfaces;
 
 namespace Printify.Application.Pipeline;
 
-public sealed class TransactionRequestSpecification(IDependencyScope dependencyScope)
+public sealed class TransactionRequestSpecification(
+    IDependencyScope dependencyScope)
     : IPipeSpecification<IReceiveContext<IRequest>>
 {
-    private readonly IDependencyScope dependencyScope = dependencyScope
+    private readonly IUnitOfWork uow = dependencyScope.Resolve<IUnitOfWork>()
         ?? throw new ArgumentNullException(nameof(dependencyScope));
 
     public bool ShouldExecute(IReceiveContext<IRequest> context, CancellationToken cancellationToken)
@@ -31,7 +32,6 @@ public sealed class TransactionRequestSpecification(IDependencyScope dependencyS
         }
 
         // Start a database transaction before the handler runs.
-        var uow = dependencyScope.Resolve<IUnitOfWork>();
         await uow.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -50,7 +50,6 @@ public sealed class TransactionRequestSpecification(IDependencyScope dependencyS
         }
 
         // Commit only after the handler completes successfully.
-        var uow = dependencyScope.Resolve<IUnitOfWork>();
         await uow.CommitAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -64,7 +63,6 @@ public sealed class TransactionRequestSpecification(IDependencyScope dependencyS
         }
 
         // Cancellation token is unavailable here; rollback must not be skipped.
-        var uow = dependencyScope.Resolve<IUnitOfWork>();
         await uow.RollbackAsync(CancellationToken.None).ConfigureAwait(false);
         ExceptionDispatchInfo.Capture(exception).Throw();
     }

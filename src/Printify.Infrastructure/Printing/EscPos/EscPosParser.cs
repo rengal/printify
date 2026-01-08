@@ -8,7 +8,7 @@ public sealed class EscPosParser
 {
     private readonly EscPosCommandTrieNode root;
     private readonly ParserState state;
-    private readonly Func<int>? getAvailableBytes;
+    private readonly Func<int?>? getAvailableBytes;
     private readonly Action<Element> onElement;
     private readonly Action<ReadOnlyMemory<byte>>? onResponse;
     private bool bufferOverflowEmitted;
@@ -31,7 +31,7 @@ public sealed class EscPosParser
 
     public EscPosParser(
         IEscPosCommandTrieProvider trieProvider,
-        Func<int> getAvailableBytes,
+        Func<int?> getAvailableBytes,
         Action<Element> onElement,
         Action<ReadOnlyMemory<byte>>? onResponse = null)
     {

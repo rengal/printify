@@ -9,13 +9,13 @@ namespace Printify.Infrastructure.Printing;
 /// </summary>
 public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBufferCoordinator
 {
-    private const int MaxDrainEventsPerFullBuffer = 20;
+    private const int MaxDrainEventsPerFullBuffer = 25;
+    private static readonly TimeSpan MinPublishInterval = TimeSpan.FromMilliseconds(200);
     private static readonly TimeSpan MaxPublishInterval = TimeSpan.FromMilliseconds(1000);
-    private static readonly TimeSpan DrainTickInterval = TimeSpan.FromMilliseconds(1000);
+    private static readonly TimeSpan DrainTickInterval = TimeSpan.FromMilliseconds(200);
 
     private readonly object gate = new();
     private readonly Dictionary<Guid, PrinterBufferState> states = new();
-    private readonly SemaphoreSlim activeSignal = new(0, 1);
     private readonly IPrinterRuntimeStatusStore runtimeStatusStore;
     private readonly IPrinterStatusStream statusStream;
 
@@ -34,8 +34,18 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
 
         lock (gate)
         {
+            if (!states.TryGetValue(printer.Id, out var state))
+            {
+                // Return default empty state without adding to dictionary
+                return new PrinterBufferSnapshot(
+                    BufferedBytes: 0,
+                    IsBusy: false,
+                    IsFull: false,
+                    IsEmpty: true);
+            }
+
             var now = DateTimeOffset.UtcNow;
-            var state = GetOrCreateState(printer, settings, now);
+            UpdateSettings(state, settings);
             ApplyDrain(state, now);
             UpdateActiveState(state);
 
@@ -47,20 +57,26 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
         }
     }
 
-    public int GetAvailableBytes(Printer printer, PrinterSettings settings)
+    public int? GetAvailableBytes(Printer printer, PrinterSettings settings)
     {
         ArgumentNullException.ThrowIfNull(printer);
         ArgumentNullException.ThrowIfNull(settings);
 
         if (!IsBufferSimulationEnabled(settings))
         {
-            return int.MaxValue;
+            return null;
         }
 
         lock (gate)
         {
+            if (!states.TryGetValue(printer.Id, out var state))
+            {
+                // No state exists yet, return full capacity available
+                return settings.BufferMaxCapacity;
+            }
+
             var now = DateTimeOffset.UtcNow;
-            var state = GetOrCreateState(printer, settings, now);
+            UpdateSettings(state, settings);
             ApplyDrain(state, now);
             UpdateActiveState(state);
             var maxCapacity = state.BufferMaxCapacity.GetValueOrDefault();
@@ -78,8 +94,8 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
             return;
         }
 
-        PrinterStatusUpdate? update = null;
-        Guid workspaceId = Guid.Empty;
+        PrinterStatusUpdate? update;
+        Guid workspaceId;
 
         lock (gate)
         {
@@ -99,7 +115,7 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
             }
             else
             {
-                state.BufferedBytes += byteCount;
+                state.BufferedBytes = Math.Min(state.BufferedBytes + byteCount, state.BufferMaxCapacity.GetValueOrDefault());
             }
 
             UpdateFlags(state);
@@ -119,8 +135,8 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
         ArgumentNullException.ThrowIfNull(printer);
         ArgumentNullException.ThrowIfNull(settings);
 
-        PrinterStatusUpdate? update = null;
-        Guid workspaceId = Guid.Empty;
+        PrinterStatusUpdate? update;
+        Guid workspaceId;
 
         lock (gate)
         {
@@ -140,32 +156,17 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        using var timer = new PeriodicTimer(DrainTickInterval);
         while (!stoppingToken.IsCancellationRequested)
         {
-            // Sleep until at least one printer becomes active to avoid idle ticks.
-            await activeSignal.WaitAsync(stoppingToken).ConfigureAwait(false);
-
-            if (stoppingToken.IsCancellationRequested)
+            var result = DrainAndCollectUpdates();
+            foreach (var pending in result.Updates)
             {
-                break;
+                statusStream.Publish(pending.WorkspaceId, pending.Update);
             }
 
-            using var timer = new PeriodicTimer(DrainTickInterval);
-            while (!stoppingToken.IsCancellationRequested)
-            {
-                var result = DrainAndCollectUpdates();
-                foreach (var pending in result.Updates)
-                {
-                    statusStream.Publish(pending.WorkspaceId, pending.Update);
-                }
-
-                if (result.ActiveCount == 0)
-                {
-                    break;
-                }
-
-                await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false);
-            }
+            // Sleep until next tick (idle ticks are cheap - just iterates empty dictionary)
+            await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false);
         }
     }
 
@@ -173,23 +174,13 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
     {
         var now = DateTimeOffset.UtcNow;
         var pending = new List<PendingPublish>();
-        var activeCount = 0;
 
         lock (gate)
         {
             foreach (var state in states.Values)
             {
-                if (!state.IsActive)
-                {
-                    continue;
-                }
-
                 ApplyDrain(state, now);
                 UpdateActiveState(state);
-                if (state.IsActive)
-                {
-                    activeCount++;
-                }
 
                 var update = TryBuildUpdate(state, now, forcePublish: false);
                 if (update is not null)
@@ -199,7 +190,7 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
             }
         }
 
-        return new DrainResult(pending, activeCount);
+        return new DrainResult(pending);
     }
 
     private PrinterBufferState GetOrCreateState(
@@ -284,25 +275,10 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
 
     private void UpdateActiveState(PrinterBufferState state)
     {
-        var wasActive = state.IsActive;
-        // Only tick printers with pending buffer bytes.
-        state.IsActive = IsBufferSimulationEnabled(state) && state.BufferedBytes > 0;
-
-        if (!wasActive && state.IsActive)
+        // Remove from dictionary when buffer empties (printer is resting >99% of the time)
+        if (!IsBufferSimulationEnabled(state) || state.BufferedBytes <= 0)
         {
-            SignalActive();
-        }
-    }
-
-    private void SignalActive()
-    {
-        try
-        {
-            activeSignal.Release();
-        }
-        catch (SemaphoreFullException)
-        {
-            // Signal already pending.
+            states.Remove(state.PrinterId);
         }
     }
 
@@ -329,11 +305,16 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
         var crossedBusy = state.IsBusy != state.LastPublishedIsBusy;
         var crossedThreshold = crossedEmpty || crossedFull || crossedBusy;
         var reachedDelta = state.MinDeltaBytes > 0 && delta >= state.MinDeltaBytes;
-        var reachedInterval = elapsed >= MaxPublishInterval;
+        var reachedMinInterval = elapsed >= MinPublishInterval;
+        var reachedMaxInterval = elapsed >= MaxPublishInterval;
+
+        // Fast-changing: publish at MinPublishInterval (200ms) when delta is reached
+        // Slow-changing: publish at MaxPublishInterval (1000ms)
+        var reachedInterval = reachedDelta ? reachedMinInterval : reachedMaxInterval;
 
         // Publish on threshold crossings, forced flushes, or when delta/interval limits are hit.
         var shouldPublish = bufferedBytes != state.LastPublishedBytes
-            && (crossedThreshold || forcePublish || reachedDelta || reachedInterval);
+            && (crossedThreshold || forcePublish || reachedInterval);
 
         if (!shouldPublish)
         {
@@ -381,7 +362,6 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
         public int? BufferMaxCapacity { get; set; }
         public int MinDeltaBytes { get; set; }
         public int BusyThresholdBytes { get; set; }
-        public bool IsActive { get; set; }
         public bool IsEmpty { get; set; }
         public bool IsFull { get; set; }
         public bool IsBusy { get; set; }
@@ -393,5 +373,5 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
 
     private sealed record PendingPublish(Guid WorkspaceId, PrinterStatusUpdate Update);
 
-    private sealed record DrainResult(IReadOnlyList<PendingPublish> Updates, int ActiveCount);
+    private sealed record DrainResult(IReadOnlyList<PendingPublish> Updates);
 }

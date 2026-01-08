@@ -31,12 +31,12 @@ public sealed class PrinterRuntimeStatusStore : IPrinterRuntimeStatusStore
             {
                 // Seed a baseline so partial updates do not erase runtime defaults.
                 baseline = new PrinterRuntimeStatus(
-                    update.PrinterId,
-                    update.State ?? PrinterState.Stopped,
-                    update.UpdatedAt,
-                    update.BufferedBytes ?? 0,
-                    update.Drawer1State ?? DrawerState.Closed,
-                    update.Drawer2State ?? DrawerState.Closed);
+                    PrinterId: update.PrinterId,
+                    State: update.State ?? PrinterState.Stopped,
+                    UpdatedAt: update.UpdatedAt,
+                    BufferedBytes: update.BufferedBytes ?? 0,
+                    Drawer1State: update.Drawer1State ?? DrawerState.Closed,
+                    Drawer2State: update.Drawer2State ?? DrawerState.Closed);
             }
 
             var updated = update.ApplyTo(baseline);

@@ -1091,7 +1091,7 @@
                     const button = control.querySelector('button');
 
                     if (stateSpan) {
-                        stateSpan.textContent = (!state || state === 'Closed') ? 'Closed' : 'Opened';
+                        stateSpan.textContent = (!state || state === 'Closed') ? 'Closed' : 'Open';
                     }
 
                     if (button) {
@@ -1320,7 +1320,7 @@
                     <div class="drawer-info">
                       <span class="drawer-label">Drawer 1:</span>
                       <span class="drawer-state">${
-                        !printer.drawer1State || printer.drawer1State === 'Closed' ? 'Closed' : 'Opened'
+                        !printer.drawer1State || printer.drawer1State === 'Closed' ? 'Closed' : 'Open'
                       }</span>
                     </div>
                     ${printer.drawer1State === 'Closed' || !printer.drawer1State
@@ -1332,7 +1332,7 @@
                     <div class="drawer-info">
                       <span class="drawer-label">Drawer 2:</span>
                       <span class="drawer-state">${
-                        !printer.drawer2State || printer.drawer2State === 'Closed' ? 'Closed' : 'Opened'
+                        !printer.drawer2State || printer.drawer2State === 'Closed' ? 'Closed' : 'Open'
                       }</span>
                     </div>
                     ${printer.drawer2State === 'Closed' || !printer.drawer2State

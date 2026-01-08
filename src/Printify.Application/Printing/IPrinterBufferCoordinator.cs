@@ -8,7 +8,7 @@ namespace Printify.Application.Printing;
 public interface IPrinterBufferCoordinator
 {
     PrinterBufferSnapshot GetSnapshot(Printer printer, PrinterSettings settings);
-    int GetAvailableBytes(Printer printer, PrinterSettings settings);
+    int? GetAvailableBytes(Printer printer, PrinterSettings settings);
     void AddBytes(Printer printer, PrinterSettings settings, int byteCount);
     void ForcePublish(Printer printer, PrinterSettings settings);
 }

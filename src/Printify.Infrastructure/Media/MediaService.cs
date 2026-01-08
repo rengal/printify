@@ -78,8 +78,13 @@ public sealed class MediaService : IMediaService
 
         var data = options.Data ?? string.Empty;
         var moduleSize = Math.Max(2, options.ModuleSizeInDots.GetValueOrDefault(4));
-        var targetSide = moduleSize * 25; // heuristic for typical QR version sizing
+        var targetSide = (moduleSize + 2) * 25; // heuristic for typical QR version sizing
         var printerWidth = options.PrinterWidthInDots.GetValueOrDefault(targetSide);
+
+        var minTargetSide = 0.1 * printerWidth;
+        var maxTargetSide = 0.7 * printerWidth;
+
+        targetSide = (int)Math.Clamp(targetSide, minTargetSide, maxTargetSide);
 
         var qrOptions = new QrCodeEncodingOptions
         {

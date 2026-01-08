@@ -17,6 +17,7 @@ public static class PrinterRuntimeStatusUpdateExtensions
 {
     /// <summary>
     /// Applies a partial runtime update to a baseline snapshot.
+    /// Null fields in the update retain the baseline value.
     /// </summary>
     public static PrinterRuntimeStatus ApplyTo(this PrinterRuntimeStatusUpdate update, PrinterRuntimeStatus baseline)
     {

@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using Mediator.Net.Contracts;
 using Mediator.Net.Context;
-using Microsoft.Extensions.Logging;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -12,8 +11,7 @@ namespace Printify.Application.Features.Printers.Sidebar;
 public sealed class StreamPrinterSidebarHandler(
     IPrinterRepository printerRepository,
     IPrinterRuntimeStatusStore runtimeStatusStore,
-    IPrinterStatusStream statusStream,
-    ILogger<StreamPrinterSidebarHandler> logger)
+    IPrinterStatusStream statusStream)
     : IRequestHandler<StreamPrinterSidebarQuery, PrinterSidebarStreamResult>
 {
     public async Task<PrinterSidebarStreamResult> Handle(
@@ -40,19 +38,15 @@ public sealed class StreamPrinterSidebarHandler(
         Guid workspaceId,
         [EnumeratorCancellation] CancellationToken ct)
     {
+        // Track last sent runtime status per printer
+        var lastSentByPrinter = new Dictionary<Guid, PrinterRuntimeStatus>();
+
         await foreach (var update in statusStream.Subscribe(workspaceId, ct))
         {
-            logger.LogInformation(
-                "Sidebar stream received update for printer {PrinterId} in workspace {WorkspaceId}",
-                update.PrinterId,
-                workspaceId);
             var hasStateChange = update.RuntimeUpdate is not null;
             var hasPrinterChange = update.Printer is not null;
             if (!hasStateChange && !hasPrinterChange)
             {
-                logger.LogInformation(
-                    "Sidebar stream skipped update for printer {PrinterId} (no state/printer changes)",
-                    update.PrinterId);
                 continue;
             }
 
@@ -61,19 +55,56 @@ public sealed class StreamPrinterSidebarHandler(
                 .ConfigureAwait(false);
             if (printer is null)
             {
-                logger.LogWarning(
-                    "Sidebar stream skipped update for printer {PrinterId} (printer not found)",
-                    update.PrinterId);
                 continue;
             }
 
-            var runtimeStatus = runtimeStatusStore.Get(printer.Id);
-            logger.LogInformation(
-                "Sidebar stream emitting snapshot for printer {PrinterId} with state {State}",
-                printer.Id,
-                runtimeStatus?.State);
-            yield return new PrinterSidebarSnapshot(printer, runtimeStatus);
+            var currentStatus = runtimeStatusStore.Get(printer.Id);
+
+            // Build partial runtime update based on what changed since last send
+            var lastSent = lastSentByPrinter.GetValueOrDefault(printer.Id);
+            var runtimeUpdate = hasStateChange && update.RuntimeUpdate is not null
+                ? BuildPartialRuntimeUpdate(lastSent, currentStatus)
+                : null;
+
+            // Skip if no actual changes to emit
+            if (runtimeUpdate is null && !hasPrinterChange)
+            {
+                continue;
+            }
+
+            // Update last sent tracker
+            if (currentStatus is not null)
+            {
+                lastSentByPrinter[printer.Id] = currentStatus;
+            }
+
+            yield return new PrinterSidebarSnapshot(printer, runtimeUpdate);
         }
+    }
+
+    private static PrinterRuntimeStatus? BuildPartialRuntimeUpdate(
+        PrinterRuntimeStatus? lastSent,
+        PrinterRuntimeStatus? current)
+    {
+        if (current is null)
+        {
+            return null;
+        }
+
+        // First time or no previous status - send all fields
+        if (lastSent is null)
+        {
+            return current;
+        }
+
+        // Build partial update with only changed fields (null for unchanged)
+        return new PrinterRuntimeStatus(
+            current.PrinterId,
+            State: current.State != lastSent.State ? current.State : null,
+            UpdatedAt: current.UpdatedAt,
+            BufferedBytes: current.BufferedBytes != lastSent.BufferedBytes ? current.BufferedBytes : null,
+            Drawer1State: current.Drawer1State != lastSent.Drawer1State ? current.Drawer1State : null,
+            Drawer2State: current.Drawer2State != lastSent.Drawer2State ? current.Drawer2State : null);
     }
 }
 

@@ -77,7 +77,7 @@ public class EscPosPrintJobSession : PrintJobSession
         ElementBuffer.Add(element);
     }
 
-    private int GetAvailableBytes()
+    private int? GetAvailableBytes()
     {
         return bufferCoordinator.GetAvailableBytes(Printer, Settings);
     }

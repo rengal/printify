@@ -91,13 +91,19 @@ internal static class PrinterMapper
             return null;
         }
 
+        // State and UpdatedAt are required for full status; if null, this is a partial update
+        if (status.State is null || status.UpdatedAt is null)
+        {
+            return null;
+        }
+
         return new PrinterRuntimeStatusDto(
             status.PrinterId,
-            status.State.ToString(),
-            status.UpdatedAt,
+            status.State.Value.ToString(),
+            status.UpdatedAt.Value,
             status.BufferedBytes,
-            status.Drawer1State.ToString(),
-            status.Drawer2State.ToString());
+            status.Drawer1State?.ToString(),
+            status.Drawer2State?.ToString());
     }
 
     internal static PrinterRuntimeStatusUpdateDto? ToRuntimeStatusUpdateDto(
