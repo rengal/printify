@@ -38,14 +38,13 @@ public sealed class StreamPrinterSidebarHandler(
         Guid workspaceId,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        // Track last sent runtime status per printer
-        var lastSentByPrinter = new Dictionary<Guid, PrinterRuntimeStatus>();
+        // Baseline snapshots sent to the stream (keyed by printer ID)
+        var baselines = new Dictionary<Guid, PrinterSidebarSnapshot>();
 
         await foreach (var update in statusStream.Subscribe(workspaceId, ct))
         {
-            var hasStateChange = update.RuntimeUpdate is not null;
-            var hasPrinterChange = update.Printer is not null;
-            if (!hasStateChange && !hasPrinterChange)
+            // Only process updates with runtime changes or printer metadata changes
+            if (update.RuntimeUpdate is null && update.Printer is null)
             {
                 continue;
             }
@@ -60,51 +59,74 @@ public sealed class StreamPrinterSidebarHandler(
 
             var currentStatus = runtimeStatusStore.Get(printer.Id);
 
-            // Build partial runtime update based on what changed since last send
-            var lastSent = lastSentByPrinter.GetValueOrDefault(printer.Id);
-            var runtimeUpdate = hasStateChange && update.RuntimeUpdate is not null
-                ? BuildPartialRuntimeUpdate(lastSent, currentStatus)
+            // Get or create baseline for this printer
+            if (!baselines.TryGetValue(printer.Id, out var baseline))
+            {
+                baseline = new PrinterSidebarSnapshot(printer, currentStatus);
+            }
+
+            // Check for printer changes (sidebar only shows name and pin status)
+            var printerChanged = printer.DisplayName != baseline.Printer.DisplayName ||
+                printer.IsPinned != baseline.Printer.IsPinned;
+
+            // Try to build partial runtime update
+            var runtimeUpdate = update.RuntimeUpdate is not null
+                ? TryBuildPartialRuntimeUpdate(currentStatus, baseline.RuntimeStatus, out var partialUpdate)
+                    ? partialUpdate
+                    : null
                 : null;
 
-            // Skip if no actual changes to emit
-            if (runtimeUpdate is null && !hasPrinterChange)
+            // Skip if nothing changed
+            if (!printerChanged && runtimeUpdate is null)
             {
                 continue;
             }
 
-            // Update last sent tracker
-            if (currentStatus is not null)
-            {
-                lastSentByPrinter[printer.Id] = currentStatus;
-            }
+            // Update baseline with current state
+            baselines[printer.Id] = new PrinterSidebarSnapshot(printer, currentStatus);
 
             yield return new PrinterSidebarSnapshot(printer, runtimeUpdate);
         }
     }
 
-    private static PrinterRuntimeStatus? BuildPartialRuntimeUpdate(
-        PrinterRuntimeStatus? lastSent,
-        PrinterRuntimeStatus? current)
+    private static bool TryBuildPartialRuntimeUpdate(
+        PrinterRuntimeStatus? current,
+        PrinterRuntimeStatus? baseline,
+        out PrinterRuntimeStatus? partialUpdate)
     {
+        partialUpdate = null;
+
         if (current is null)
         {
-            return null;
+            return false;
         }
 
-        // First time or no previous status - send all fields
-        if (lastSent is null)
+        // First time - send all fields
+        if (baseline is null)
         {
-            return current;
+            partialUpdate = current;
+            return true;
         }
 
-        // Build partial update with only changed fields (null for unchanged)
-        return new PrinterRuntimeStatus(
+        // Sidebar only cares about State (Started/Stopped), ignore buffer/drawers
+        var stateChanged = current.State != baseline.State;
+
+        // If nothing changed, return false
+        if (!stateChanged)
+        {
+            return false;
+        }
+
+        // Build partial update with only State
+        partialUpdate = new PrinterRuntimeStatus(
             current.PrinterId,
-            State: current.State != lastSent.State ? current.State : null,
+            State: current.State,
             UpdatedAt: current.UpdatedAt,
-            BufferedBytes: current.BufferedBytes != lastSent.BufferedBytes ? current.BufferedBytes : null,
-            Drawer1State: current.Drawer1State != lastSent.Drawer1State ? current.Drawer1State : null,
-            Drawer2State: current.Drawer2State != lastSent.Drawer2State ? current.Drawer2State : null);
+            BufferedBytes: null,
+            Drawer1State: null,
+            Drawer2State: null);
+
+        return true;
     }
 }
 
