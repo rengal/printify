@@ -10,6 +10,7 @@ public sealed record PrinterRuntimeStatusUpdate(
     PrinterTargetState? TargetState = null,
     PrinterState? State = null,
     int? BufferedBytes = null,
+    int? BufferedBytesDeltaBps = null,
     DrawerState? Drawer1State = null,
     DrawerState? Drawer2State = null);
 
@@ -29,6 +30,7 @@ public static class PrinterRuntimeStatusUpdateExtensions
             State = update.State ?? baseline.State,
             UpdatedAt = update.UpdatedAt,
             BufferedBytes = update.BufferedBytes ?? baseline.BufferedBytes,
+            BufferedBytesDeltaBps = update.BufferedBytesDeltaBps ?? baseline.BufferedBytesDeltaBps,
             Drawer1State = update.Drawer1State ?? baseline.Drawer1State,
             Drawer2State = update.Drawer2State ?? baseline.Drawer2State
         };

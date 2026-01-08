@@ -131,6 +131,7 @@
                 isPaperNearEnd: dto.operationalFlags?.isPaperNearEnd ?? false,
                 // Runtime status
                 bufferedBytes: dto.runtimeStatus?.bufferedBytes ?? null,
+                bufferedBytesDeltaBps: dto.runtimeStatus?.bufferedBytesDeltaBps ?? null,
                 drawer1State: dto.runtimeStatus?.drawer1State ?? null,
                 drawer2State: dto.runtimeStatus?.drawer2State ?? null
             };
@@ -926,6 +927,9 @@
                         printer.bufferedBytes = payload.runtime.bufferedBytes;
                         changedFields.bufferedBytes = true;
                     }
+                    if (payload.runtime.bufferedBytesDeltaBps !== undefined) {
+                        printer.bufferedBytesDeltaBps = payload.runtime.bufferedBytesDeltaBps;
+                    }
                     if (payload.runtime.drawer1State !== undefined) {
                         printer.drawer1State = payload.runtime.drawer1State;
                         changedFields.drawerStates.push('drawer1State');
@@ -1019,6 +1023,9 @@
                             partialData.runtimeStatus = partialData.runtimeStatus || {};
                             if (changedFields.bufferedBytes) {
                                 partialData.runtimeStatus.bufferedBytes = printer.bufferedBytes;
+                                if (printer.bufferedBytesDeltaBps !== undefined) {
+                                    partialData.runtimeStatus.bufferedBytesDeltaBps = printer.bufferedBytesDeltaBps;
+                                }
                             }
                             if (changedFields.drawerStates.includes('drawer1State')) {
                                 partialData.runtimeStatus.drawer1State = printer.drawer1State;

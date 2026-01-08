@@ -18,6 +18,18 @@ let template = null;
 let elements = {};
 let cachedBufferMaxCapacity = 0;
 
+// Buffer animation state
+let bufferAnimation = {
+    lastKnownBytes: 0,
+    bytesPerSecond: 0,
+    lastUpdateTime: 0,
+    animationFrame: null,
+    isAnimating: false,
+    lastAnimationTime: 0
+};
+
+const ANIMATION_INTERVAL_MS = 100; // 10 fps
+
 // Callbacks for actions (set by main.js)
 const callbacks = {
     onClose: null,
@@ -108,9 +120,9 @@ function cacheElementReferences(panelElement) {
 
         // Drawers
         drawer1State: panelElement.querySelector('[data-drawer-state="1"]'),
-        drawer1Btn: panelElement.querySelector('[data-drawer="1"] [data-action="toggle-drawer"]'),
+        drawer1Btn: panelElement.querySelector('[data-action="toggle-drawer"][data-drawer="1"]'),
         drawer2State: panelElement.querySelector('[data-drawer-state="2"]'),
-        drawer2Btn: panelElement.querySelector('[data-drawer="2"] [data-action="toggle-drawer"]'),
+        drawer2Btn: panelElement.querySelector('[data-action="toggle-drawer"][data-drawer="2"]'),
 
         // Buffer
         bufferSection: panelElement.querySelector('[data-section="buffer"]'),
@@ -289,6 +301,7 @@ export function clearPanel() {
     currentPrinterId = null;
     dangerZoneExpanded = false;
     cachedBufferMaxCapacity = 0;
+    cancelBufferAnimation();
 }
 
 // ============================================================================
@@ -348,10 +361,10 @@ function applyData(elements, data, printerId) {
             const bufferBytes = rt.bufferedBytes ?? 0;
             // Use bufferMaxCapacity from data if available, otherwise use cached value
             const bufferMax = data.settings?.bufferMaxCapacity ?? cachedBufferMaxCapacity ?? 0;
-            elements.bufferValue.textContent = `${bufferBytes}/${bufferMax}`;
+            const bytesPerSecond = rt.bufferedBytesDeltaBps ?? 0;
 
-            // Update progress bar - just modify styles, no HTML manipulation
-            updateBufferProgress(elements.bufferFill, bufferBytes, bufferMax);
+            // Start smooth animation with rate-of-change
+            startBufferAnimation(bufferBytes, bytesPerSecond);
 
             // Only modify buffer section visibility during full updates (when settings are present)
             // For partial SSE updates, preserve current visibility state
@@ -446,6 +459,7 @@ async function fetchPrinterData(printerId, accessToken) {
         runtimeStatus: printer.runtimeStatus ? {
             state: printer.runtimeStatus.state?.toLowerCase(),
             bufferedBytes: printer.runtimeStatus.bufferedBytes,
+            bufferedBytesDeltaBps: printer.runtimeStatus.bufferedBytesDeltaBps,
             drawer1State: printer.runtimeStatus.drawer1State,
             drawer2State: printer.runtimeStatus.drawer2State
         } : null,
@@ -521,6 +535,117 @@ function updateBufferProgress(fillElement, bufferedBytes, maxSize) {
     // Update the fill element's style directly
     fillElement.style.width = percentage > 0 ? `${percentage}%` : '0';
     fillElement.style.backgroundColor = fillColor;
+}
+
+// ============================================================================
+// BUFFER ANIMATION
+// ============================================================================
+
+/**
+ * Start buffer animation loop based on rate-of-change
+ * @param {number} currentBytes - Current buffered bytes from SSE
+ * @param {number} bytesPerSecond - Rate of change (can be negative for draining)
+ */
+function startBufferAnimation(currentBytes, bytesPerSecond) {
+    const now = Date.now();
+
+    // Store actual values from SSE
+    bufferAnimation.lastKnownBytes = currentBytes;
+    bufferAnimation.bytesPerSecond = bytesPerSecond || 0;
+    bufferAnimation.lastUpdateTime = now;
+    bufferAnimation.lastAnimationTime = now;
+    bufferAnimation.isAnimating = true;
+
+    // Cancel any existing animation
+    if (bufferAnimation.animationFrame) {
+        cancelAnimationFrame(bufferAnimation.animationFrame);
+    }
+
+    // Start animation loop
+    bufferAnimation.animationFrame = requestAnimationFrame(animateBuffer);
+}
+
+/**
+ * Animation loop for smooth buffer interpolation
+ * Runs at 5fps (200ms intervals) via requestAnimationFrame
+ */
+function animateBuffer() {
+    const now = Date.now();
+    const elapsedSeconds = (now - bufferAnimation.lastUpdateTime) / 1000;
+
+    // Stop animation after 2 seconds without update
+    if (elapsedSeconds > 2.0) {
+        stopBufferAnimation();
+        return;
+    }
+
+    // Only update UI at 5fps intervals (every 200ms)
+    const timeSinceLastAnimation = now - bufferAnimation.lastAnimationTime;
+    const shouldUpdateUI = timeSinceLastAnimation >= ANIMATION_INTERVAL_MS;
+
+    // Only interpolate for the first 1 second
+    if (elapsedSeconds <= 1.0 && bufferAnimation.bytesPerSecond !== 0) {
+        // Project current value based on rate
+        const projectedBytes = bufferAnimation.lastKnownBytes + (bufferAnimation.bytesPerSecond * elapsedSeconds);
+
+        // Clamp to valid bounds [0, maxCapacity]
+        const clampedBytes = Math.max(0, Math.min(projectedBytes, cachedBufferMaxCapacity));
+
+        // Update UI only at interval
+        if (shouldUpdateUI) {
+            bufferAnimation.lastAnimationTime = now;
+            if (currentPanel?.elements) {
+                currentPanel.elements.bufferValue.textContent = `${Math.round(clampedBytes)}/${cachedBufferMaxCapacity}`;
+                updateBufferProgress(currentPanel.elements.bufferFill, clampedBytes, cachedBufferMaxCapacity);
+            }
+        }
+
+        // Continue animation (still runs rAF loop for timing, but UI updates at 5fps)
+        bufferAnimation.animationFrame = requestAnimationFrame(animateBuffer);
+    } else {
+        // After 1 second or rate is 0, show last known value
+        if (shouldUpdateUI) {
+            bufferAnimation.lastAnimationTime = now;
+            if (currentPanel?.elements) {
+                currentPanel.elements.bufferValue.textContent = `${bufferAnimation.lastKnownBytes}/${cachedBufferMaxCapacity}`;
+                updateBufferProgress(currentPanel.elements.bufferFill, bufferAnimation.lastKnownBytes, cachedBufferMaxCapacity);
+            }
+        }
+        // Keep checking for 2-second timeout
+        bufferAnimation.animationFrame = requestAnimationFrame(animateBuffer);
+    }
+}
+
+/**
+ * Stop buffer animation and restore last known value
+ */
+function stopBufferAnimation() {
+    if (bufferAnimation.animationFrame) {
+        cancelAnimationFrame(bufferAnimation.animationFrame);
+        bufferAnimation.animationFrame = null;
+    }
+    bufferAnimation.isAnimating = false;
+
+    // Restore last known value
+    if (currentPanel?.elements) {
+        currentPanel.elements.bufferValue.textContent = `${bufferAnimation.lastKnownBytes}/${cachedBufferMaxCapacity}`;
+        updateBufferProgress(currentPanel.elements.bufferFill, bufferAnimation.lastKnownBytes, cachedBufferMaxCapacity);
+    }
+}
+
+/**
+ * Cancel buffer animation (e.g., when switching printers)
+ */
+function cancelBufferAnimation() {
+    if (bufferAnimation.animationFrame) {
+        cancelAnimationFrame(bufferAnimation.animationFrame);
+        bufferAnimation.animationFrame = null;
+    }
+    bufferAnimation.isAnimating = false;
+    bufferAnimation.lastKnownBytes = 0;
+    bufferAnimation.bytesPerSecond = 0;
+    bufferAnimation.lastUpdateTime = 0;
+    bufferAnimation.lastAnimationTime = 0;
 }
 
 // ============================================================================

@@ -102,6 +102,7 @@ internal static class PrinterMapper
             status.State.Value.ToString(),
             status.UpdatedAt.Value,
             status.BufferedBytes,
+            status.BufferedBytesDeltaBps,
             status.Drawer1State?.ToString(),
             status.Drawer2State?.ToString());
     }
@@ -118,6 +119,7 @@ internal static class PrinterMapper
             status.State?.ToString(),
             status.UpdatedAt,
             status.BufferedBytes,
+            status.BufferedBytesDeltaBps,
             status.Drawer1State?.ToString(),
             status.Drawer2State?.ToString());
     }

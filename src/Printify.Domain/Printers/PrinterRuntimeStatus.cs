@@ -12,6 +12,7 @@ public sealed record PrinterRuntimeStatus(
     PrinterState? State = null,
     DateTimeOffset? UpdatedAt = null,
     int? BufferedBytes = null,
+    int? BufferedBytesDeltaBps = null,
     DrawerState? Drawer1State = null,
     DrawerState? Drawer2State = null) : IResponse;
 

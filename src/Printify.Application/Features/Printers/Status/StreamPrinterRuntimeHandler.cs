@@ -101,22 +101,21 @@ public sealed class StreamPrinterRuntimeHandler(
         }
 
         // Build partial update with only fields that differ from last sent
-        return new PrinterRuntimeStatusUpdate(
-            incoming.PrinterId,
-            incoming.UpdatedAt,
-            incoming.TargetState,
-            State: incoming.State.HasValue && incoming.State.Value != lastSent.State
+        return incoming with
+        {
+            State = incoming.State.HasValue && incoming.State.Value != lastSent.State
                 ? incoming.State.Value
                 : null,
-            BufferedBytes: incoming.BufferedBytes.HasValue && incoming.BufferedBytes.Value != lastSent.BufferedBytes
+            BufferedBytes = incoming.BufferedBytes.HasValue && incoming.BufferedBytes.Value != lastSent.BufferedBytes
                 ? incoming.BufferedBytes.Value
                 : null,
-            Drawer1State: incoming.Drawer1State.HasValue && incoming.Drawer1State.Value != lastSent.Drawer1State
+            Drawer1State = incoming.Drawer1State.HasValue && incoming.Drawer1State.Value != lastSent.Drawer1State
                 ? incoming.Drawer1State.Value
                 : null,
-            Drawer2State: incoming.Drawer2State.HasValue && incoming.Drawer2State.Value != lastSent.Drawer2State
+            Drawer2State = incoming.Drawer2State.HasValue && incoming.Drawer2State.Value != lastSent.Drawer2State
                 ? incoming.Drawer2State.Value
-                : null);
+                : null
+        };
     }
 }
 

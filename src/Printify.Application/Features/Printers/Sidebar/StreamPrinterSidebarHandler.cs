@@ -123,6 +123,7 @@ public sealed class StreamPrinterSidebarHandler(
             State: current.State,
             UpdatedAt: current.UpdatedAt,
             BufferedBytes: null,
+            BufferedBytesDeltaBps: null,
             Drawer1State: null,
             Drawer2State: null);
 

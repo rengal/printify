@@ -10,8 +10,7 @@ namespace Printify.Infrastructure.Printing;
 public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBufferCoordinator
 {
     private const int MaxDrainEventsPerFullBuffer = 25;
-    private static readonly TimeSpan MinPublishInterval = TimeSpan.FromMilliseconds(200);
-    private static readonly TimeSpan MaxPublishInterval = TimeSpan.FromMilliseconds(1000);
+    private static readonly TimeSpan PublishInterval = TimeSpan.FromMilliseconds(1000);
     private static readonly TimeSpan DrainTickInterval = TimeSpan.FromMilliseconds(200);
 
     private readonly object gate = new();
@@ -297,22 +296,15 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
         bool forcePublish)
     {
         var bufferedBytes = state.BufferedBytes;
-        var delta = Math.Abs(bufferedBytes - state.LastPublishedBytes);
         var elapsed = now - state.LastPublishedAt;
 
         var crossedEmpty = state.IsEmpty != state.LastPublishedIsEmpty;
         var crossedFull = state.IsFull != state.LastPublishedIsFull;
         var crossedBusy = state.IsBusy != state.LastPublishedIsBusy;
         var crossedThreshold = crossedEmpty || crossedFull || crossedBusy;
-        var reachedDelta = state.MinDeltaBytes > 0 && delta >= state.MinDeltaBytes;
-        var reachedMinInterval = elapsed >= MinPublishInterval;
-        var reachedMaxInterval = elapsed >= MaxPublishInterval;
+        var reachedInterval = elapsed >= PublishInterval;
 
-        // Fast-changing: publish at MinPublishInterval (200ms) when delta is reached
-        // Slow-changing: publish at MaxPublishInterval (1000ms)
-        var reachedInterval = reachedDelta ? reachedMinInterval : reachedMaxInterval;
-
-        // Publish on threshold crossings, forced flushes, or when delta/interval limits are hit.
+        // Publish on threshold crossings, forced flushes, or at fixed interval (1 second)
         var shouldPublish = bufferedBytes != state.LastPublishedBytes
             && (crossedThreshold || forcePublish || reachedInterval);
 
@@ -327,10 +319,16 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
         state.LastPublishedIsFull = state.IsFull;
         state.LastPublishedIsBusy = state.IsBusy;
 
+        // Calculate drain rate: negative if buffer is draining, zero if empty
+        var bufferedBytesDeltaBps = state.IsEmpty
+            ? 0
+            : -(int?)state.BufferDrainRate ?? 0;
+
         var runtimeUpdate = new PrinterRuntimeStatusUpdate(
             state.PrinterId,
             now,
-            BufferedBytes: bufferedBytes);
+            BufferedBytes: bufferedBytes,
+            BufferedBytesDeltaBps: bufferedBytesDeltaBps);
         runtimeStatusStore.Update(runtimeUpdate);
 
         return new PrinterStatusUpdate(

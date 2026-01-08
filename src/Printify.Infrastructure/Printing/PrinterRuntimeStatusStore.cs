@@ -35,6 +35,7 @@ public sealed class PrinterRuntimeStatusStore : IPrinterRuntimeStatusStore
                     State: update.State ?? PrinterState.Stopped,
                     UpdatedAt: update.UpdatedAt,
                     BufferedBytes: update.BufferedBytes ?? 0,
+                    BufferedBytesDeltaBps: 0,
                     Drawer1State: update.Drawer1State ?? DrawerState.Closed,
                     Drawer2State: update.Drawer2State ?? DrawerState.Closed);
             }

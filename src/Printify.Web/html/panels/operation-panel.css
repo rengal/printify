@@ -226,7 +226,7 @@
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     margin-bottom: 8px;
-    margin-top: 16px;
+    margin-top: 0;
 }
 
 .flag-switch {
@@ -300,35 +300,28 @@
 }
 
 /* Drawer Management */
-.drawer-control {
+.drawer-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    gap: 8px;
     align-items: center;
-    margin-bottom: 4px;
 }
 
 .drawer-info {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 0;
 }
 
 .drawer-label {
     font-size: 14px;
     font-weight: 600;
     color: var(--text);
-    width: auto;
 }
 
 .drawer-state {
     font-size: 14px;
     color: var(--text);
-    width: auto;
-}
-
-.drawer-control .btn {
-    width: 100%;
 }
 
 /* Buffer Status */
