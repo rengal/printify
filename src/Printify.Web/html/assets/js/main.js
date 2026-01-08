@@ -2091,36 +2091,6 @@
             renderDocuments();
         }
 
-        // Danger Zone Toggle
-        function toggleDangerZone() {
-            if (window.OperationsPanel) {
-                OperationsPanel.toggleDangerZone();
-            } else {
-                // Fallback for old behavior
-                const content = document.querySelector('.danger-zone-content');
-                const chevron = document.querySelector('.danger-zone-chevron');
-                const container = document.querySelector('.danger-zone');
-
-                if (!content || !chevron || !container) return;
-
-                const isExpanded = content.classList.contains('expanded');
-
-                if (isExpanded) {
-                    content.classList.remove('expanded');
-                    content.classList.add('collapsed');
-                    chevron.classList.remove('expanded');
-                    container.classList.remove('expanded');
-                    localStorage.setItem('dangerZoneExpanded', 'false');
-                } else {
-                    content.classList.remove('collapsed');
-                    content.classList.add('expanded');
-                    chevron.classList.add('expanded');
-                    container.classList.add('expanded');
-                    localStorage.setItem('dangerZoneExpanded', 'true');
-                }
-            }
-        }
-
         function toggleHelpMenu(event) {
             event.stopPropagation();
             const helpMenu = event.currentTarget.closest('.menu-help');
@@ -2522,7 +2492,6 @@
                     const drawerProp = `drawer${drawerNumber}State`;
                     setDrawerState(selectedPrinterId, drawerProp, newState);
                 },
-                onToggleDangerZone: () => toggleDangerZone(),
                 onClearDocuments: () => clearDocuments(selectedPrinterId),
                 onDeletePrinter: () => deletePrinter(selectedPrinterId),
                 onCopyAddress: (address) => copyToClipboard(address)

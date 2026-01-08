@@ -58,7 +58,7 @@ export function isPanelReady(printerId) {
 /**
  * Load and render operations panel for a printer
  * 1. Fetch full status via GET
- * 2. Render panel off-DOM (or reuse existing)
+ * 2. Create fresh panel structure (DocumentFragment is consumed on append)
  * 3. Apply full data
  * 4. Return panel element for atomic attachment
  *
@@ -70,18 +70,16 @@ export async function loadPanel(printerId, accessToken) {
     // 1. Fetch full data
     const data = await fetchPrinterData(printerId, accessToken);
 
-    // 2. Create or reuse panel structure
-    if (!currentPanel) {
-        currentPanel = createPanelStructure();
-    }
-
+    // 2. Create fresh panel structure (DocumentFragment is consumed when appended, so always recreate)
+    const panel = createPanelStructure();
+    currentPanel = panel;
     currentPrinterId = printerId;
 
     // 3. Apply all data (full update)
-    applyData(currentPanel.elements, data, printerId);
+    applyData(panel.elements, data, printerId);
 
     // 4. Return element for DOM attachment
-    return currentPanel.element;
+    return panel.element;
 }
 
 /**
@@ -106,20 +104,20 @@ export function toggleDangerZone() {
     dangerZoneExpanded = !dangerZoneExpanded;
 
     if (currentPanel) {
-        const { dangerZoneContent, dangerZone, dangerZoneChevron } = currentPanel.elements;
+        const { dangerContent, dangerZone, dangerChevron } = currentPanel.elements;
 
         if (dangerZoneExpanded) {
-            dangerZoneContent.classList.remove('collapsed');
-            dangerZoneContent.classList.add('expanded');
+            dangerContent.classList.remove('collapsed');
+            dangerContent.classList.add('expanded');
             dangerZone.classList.add('expanded');
-            dangerZoneChevron.classList.remove('collapsed');
-            dangerZoneChevron.classList.add('expanded');
+            dangerChevron.classList.remove('collapsed');
+            dangerChevron.classList.add('expanded');
         } else {
-            dangerZoneContent.classList.remove('expanded');
-            dangerZoneContent.classList.add('collapsed');
+            dangerContent.classList.remove('expanded');
+            dangerContent.classList.add('collapsed');
             dangerZone.classList.remove('expanded');
-            dangerZoneChevron.classList.remove('expanded');
-            dangerZoneChevron.classList.add('collapsed');
+            dangerChevron.classList.remove('expanded');
+            dangerChevron.classList.add('collapsed');
         }
     }
 
@@ -155,8 +153,9 @@ export function clearPanel() {
  * Returns object with element and direct references to all interactive elements
  */
 function createPanelStructure() {
-    const panel = document.createElement('div');
-    panel.className = 'operations-panel';
+    const panel = document.createDocumentFragment();
+    // Using DocumentFragment so appendChild(container) moves all children directly
+    // without creating a wrapper div
 
     // Header
     const header = panel.appendChild(document.createElement('div'));
@@ -295,7 +294,7 @@ function createPanelStructure() {
 
     const dangerHeader = dangerZone.appendChild(document.createElement('div'));
     dangerHeader.className = 'danger-zone-header';
-    dangerHeader.onclick = () => toggleDangerZone();
+    dangerHeader.addEventListener('click', toggleDangerZone);
 
     const dangerTitle = dangerHeader.appendChild(document.createElement('div'));
     dangerTitle.className = 'danger-zone-title';
@@ -447,7 +446,7 @@ function applyData(elements, data, printerId) {
         if (rt.state) {
             const statusClass = getStatusClass(rt.state);
             const statusText = formatStatus(rt.state);
-            elements.statusBadge.className = `ops-status-badge ${statusClass}`;
+            elements.statusBadge.className = `status-pill ${statusClass}`;
             elements.statusBadge.textContent = statusText;
 
             // Update start/stop button
@@ -463,8 +462,8 @@ function applyData(elements, data, printerId) {
             elements.bufferValue.textContent = `${bufferBytes}/${bufferMax}`;
             elements.bufferBar.innerHTML = renderBufferProgress(bufferBytes, bufferMax);
 
-            // Show/hide buffer section
-            if (data.settings?.emulateBuffer) {
+            // Show/hide buffer section - check if emulateBufferCapacity is greater than 0
+            if (data.settings?.emulateBuffer && data.settings.emulateBuffer > 0) {
                 elements.bufferSection.style.display = '';
             } else {
                 elements.bufferSection.style.display = 'none';
@@ -533,13 +532,18 @@ async function fetchPrinterData(printerId, accessToken) {
     const printer = await response.json();
 
     // Transform to internal format
+    // The API returns PrinterResponseDto with this structure:
+    // { printer: { displayName, isPinned, ... },
+    //   settings: { protocol, tcpListenPort, ... },
+    //   operationalFlags: { targetState, ... },
+    //   runtimeStatus: { state, ... } }
     return {
         printer: {
-            displayName: printer.displayName,
-            protocol: printer.protocol,
-            isPinned: printer.isPinned,
+            displayName: printer.printer?.displayName,
+            protocol: printer.settings?.protocol,
+            isPinned: printer.printer?.isPinned,
             address: formatPrinterAddress(printer),
-            lastDocumentAt: printer.lastDocumentReceivedAt ? new Date(printer.lastDocumentReceivedAt) : null
+            lastDocumentAt: printer.printer?.lastDocumentReceivedAt ? new Date(printer.printer.lastDocumentReceivedAt) : null
         },
         runtimeStatus: printer.runtimeStatus ? {
             state: printer.runtimeStatus.state?.toLowerCase(),
@@ -548,33 +552,33 @@ async function fetchPrinterData(printerId, accessToken) {
             drawer2State: printer.runtimeStatus.drawer2State
         } : null,
         operationalFlags: {
-            targetState: printer.targetState?.toLowerCase(),
-            isCoverOpen: printer.isCoverOpen,
-            isPaperOut: printer.isPaperOut,
-            isOffline: printer.isOffline,
-            hasError: printer.hasError,
-            isPaperNearEnd: printer.isPaperNearEnd
+            targetState: printer.operationalFlags?.targetState?.toLowerCase(),
+            isCoverOpen: printer.operationalFlags?.isCoverOpen,
+            isPaperOut: printer.operationalFlags?.isPaperOut,
+            isOffline: printer.operationalFlags?.isOffline,
+            hasError: printer.operationalFlags?.hasError,
+            isPaperNearEnd: printer.operationalFlags?.isPaperNearEnd
         },
         settings: {
-            bufferSize: printer.bufferMaxCapacity || 0,
-            emulateBuffer: printer.emulateBufferCapacity,
-            bufferMaxCapacity: printer.bufferMaxCapacity || 0,
+            bufferSize: printer.settings?.bufferMaxCapacity || 0,
+            emulateBuffer: printer.settings?.emulateBufferCapacity,
+            bufferMaxCapacity: printer.settings?.bufferMaxCapacity || 0,
             debugMode: false // Will be set from global state
         }
     };
 }
 
 function formatPrinterAddress(printer) {
-    const host = printer.hostname || 'localhost';
-    const port = printer.tcpListenPort || 9100;
+    const host = 'localhost';
+    const port = printer.settings?.tcpListenPort || 9100;
     return `${host}:${port}`;
 }
 
 function getStatusClass(state) {
     if (!state) return '';
     switch (state.toLowerCase()) {
-        case 'started': return 'status-running';
-        case 'starting': return 'status-running';
+        case 'started': return 'status-started';
+        case 'starting': return 'status-starting';
         case 'stopped': return 'status-stopped';
         case 'stopping': return 'status-stopping';
         case 'error': return 'status-error';
@@ -586,7 +590,7 @@ function formatStatus(state) {
     if (!state) return 'Unknown';
     const s = state.toLowerCase();
     switch (s) {
-        case 'started': return 'Running';
+        case 'started': return 'Listening';
         case 'starting': return 'Starting...';
         case 'stopped': return 'Stopped';
         case 'stopping': return 'Stopping...';
@@ -600,11 +604,25 @@ function renderBufferProgress(bufferedBytes, maxSize) {
         return '';
     }
 
-    const width = 30; // characters
-    const filled = Math.round((bufferedBytes / maxSize) * width);
-    const empty = width - filled;
+    const bytes = bufferedBytes ?? 0;
+    const percentage = Math.min((bytes / maxSize) * 100, 100);
 
-    return '█'.repeat(filled) + '░'.repeat(empty);
+    // Determine fill color based on percentage
+    let fillColor;
+    if (percentage < 10) {
+        fillColor = 'var(--accent)';
+    } else if (percentage < 50) {
+        fillColor = 'var(--warn)';
+    } else {
+        fillColor = 'var(--danger)';
+    }
+
+    // Build graphical progress bar
+    const fillStyle = percentage > 0 ? `width: ${percentage}%; background-color: ${fillColor};` : 'width: 0;';
+
+    return `<div class="buffer-progress-bar">
+        <div class="buffer-progress-fill" style="${fillStyle}"></div>
+    </div>`;
 }
 
 // ============================================================================

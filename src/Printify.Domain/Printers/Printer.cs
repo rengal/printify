@@ -21,7 +21,7 @@ public sealed record Printer(
     string DisplayName,
     DateTimeOffset CreatedAt,
     string CreatedFromIp,
-    DateTimeOffset? RuntimeStatusUpdatedAt,
+    DateTimeOffset? RuntimeStatusUpdatedAt, //todo debugnow remove
     bool IsPinned,
     bool IsDeleted,
     Guid? LastViewedDocumentId,
