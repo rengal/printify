@@ -14,6 +14,9 @@
 let currentPanel = null;
 let currentPrinterId = null;
 let dangerZoneExpanded = false;
+let template = null;
+let elements = {};
+let cachedBufferMaxCapacity = 0;
 
 // Callbacks for actions (set by main.js)
 const callbacks = {
@@ -48,6 +51,131 @@ export function getPanelElement() {
     return currentPanel?.element || null;
 }
 
+// ============================================================================
+// TEMPLATE LOADING
+// ============================================================================
+
+/**
+ * Load template once and cache it
+ */
+async function loadTemplate() {
+    if (template) return template;
+
+    const response = await fetch('panels/operation-panel.html');
+    const html = await response.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    template = doc.querySelector('#operations-panel-template');
+    return template;
+}
+
+// ============================================================================
+// ELEMENT CACHING
+// ============================================================================
+
+/**
+ * Cache element references from template using data-* attributes
+ * Returns object with direct references to all interactive elements
+ */
+function cacheElementReferences(panelElement) {
+    return {
+        // Header elements
+        printerName: panelElement.querySelector('[data-ops-printer-name]'),
+        protocol: panelElement.querySelector('[data-ops-protocol]'),
+        closeBtn: panelElement.querySelector('[data-action="close"]'),
+
+        // Info elements
+        statusBadge: panelElement.querySelector('[data-ops-status-badge]'),
+        address: panelElement.querySelector('[data-ops-address]'),
+        copyBtn: panelElement.querySelector('[data-action="copy-address"]'),
+        lastDoc: panelElement.querySelector('[data-ops-last-document]'),
+
+        // Button elements
+        startStopBtn: panelElement.querySelector('[data-action="start-stop"]'),
+        startStopText: panelElement.querySelector('[data-ops-start-stop-text]'),
+        editBtn: panelElement.querySelector('[data-action="edit"]'),
+        pinBtn: panelElement.querySelector('[data-action="toggle-pin"]'),
+        pinText: panelElement.querySelector('[data-ops-pin-text]'),
+
+        // Flag checkboxes
+        flagCoverOpen: panelElement.querySelector('[data-flag="isCoverOpen"]'),
+        flagPaperOut: panelElement.querySelector('[data-flag="isPaperOut"]'),
+        flagOffline: panelElement.querySelector('[data-flag="isOffline"]'),
+        flagError: panelElement.querySelector('[data-flag="hasError"]'),
+
+        // Debug mode
+        debugCheckbox: panelElement.querySelector('[data-action="toggle-debug"]'),
+
+        // Drawers
+        drawer1State: panelElement.querySelector('[data-drawer-state="1"]'),
+        drawer1Btn: panelElement.querySelector('[data-drawer="1"] [data-action="toggle-drawer"]'),
+        drawer2State: panelElement.querySelector('[data-drawer-state="2"]'),
+        drawer2Btn: panelElement.querySelector('[data-drawer="2"] [data-action="toggle-drawer"]'),
+
+        // Buffer
+        bufferSection: panelElement.querySelector('[data-section="buffer"]'),
+        bufferValue: panelElement.querySelector('[data-ops-buffer-value]'),
+        bufferBar: panelElement.querySelector('[data-ops-buffer-bar]'),
+        bufferFill: panelElement.querySelector('[data-ops-buffer-fill]'),
+
+        // Danger zone
+        dangerZone: panelElement.querySelector('[data-danger-zone]'),
+        dangerHeader: panelElement.querySelector('[data-action="toggle-danger"]'),
+        dangerContent: panelElement.querySelector('[data-danger-content]'),
+        dangerChevron: panelElement.querySelector('[data-action="toggle-danger"] .danger-zone-chevron')
+    };
+}
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+
+/**
+ * Attach event handlers to cached elements
+ */
+function attachEventHandlers(elements) {
+    // Header actions
+    elements.closeBtn.addEventListener('click', () => callbacks.onClose?.());
+
+    // Info actions
+    elements.copyBtn.addEventListener('click', () =>
+        callbacks.onCopyAddress?.(elements.address.textContent));
+
+    // Button actions
+    elements.startStopBtn.addEventListener('click', () => callbacks.onStartStop?.());
+    elements.editBtn.addEventListener('click', () => callbacks.onEdit?.());
+    elements.pinBtn.addEventListener('click', () => callbacks.onTogglePin?.());
+
+    // Flag toggles
+    elements.flagCoverOpen.addEventListener('change', (e) =>
+        callbacks.onToggleFlag?.('isCoverOpen', e.target.checked));
+    elements.flagPaperOut.addEventListener('change', (e) =>
+        callbacks.onToggleFlag?.('isPaperOut', e.target.checked));
+    elements.flagOffline.addEventListener('change', (e) =>
+        callbacks.onToggleFlag?.('isOffline', e.target.checked));
+    elements.flagError.addEventListener('change', (e) =>
+        callbacks.onToggleFlag?.('hasError', e.target.checked));
+
+    // Debug toggle
+    elements.debugCheckbox.addEventListener('change', (e) =>
+        callbacks.onToggleDebug?.(e.target.checked));
+
+    // Drawer toggles
+    elements.drawer1Btn.addEventListener('click', () => callbacks.onToggleDrawer?.(1));
+    elements.drawer2Btn.addEventListener('click', () => callbacks.onToggleDrawer?.(2));
+
+    // Danger zone
+    elements.dangerHeader.addEventListener('click', toggleDangerZone);
+
+    // Clear documents
+    const clearDocsBtn = elements.dangerContent.querySelector('[data-action="clear-documents"]');
+    clearDocsBtn.addEventListener('click', () => callbacks.onClearDocuments?.());
+
+    // Delete printer
+    const deletePrinterBtn = elements.dangerContent.querySelector('[data-action="delete-printer"]');
+    deletePrinterBtn.addEventListener('click', () => callbacks.onDeletePrinter?.());
+}
+
 /**
  * Check if panel is ready for the given printer
  */
@@ -66,20 +194,38 @@ export function isPanelReady(printerId) {
  * @param {string} accessToken - Access token for API calls
  * @returns {Promise<Element>} The panel element to attach to DOM
  */
-export async function loadPanel(printerId, accessToken) {
-    // 1. Fetch full data
+export async function loadPanel(printerId, accessToken, targetContainer) {
+    // 1. Load template if not already loaded
+    if (!template) {
+        await loadTemplate();
+    }
+
+    // 2. Fetch full data
     const data = await fetchPrinterData(printerId, accessToken);
 
-    // 2. Create fresh panel structure (DocumentFragment is consumed when appended, so always recreate)
-    const panel = createPanelStructure();
-    currentPanel = panel;
+    // 3. Get target container and clear it
+    const panelElement = targetContainer || document.getElementById('operationsPanel');
+    panelElement.innerHTML = '';
+
+    // 4. Clone template and append children to container
+    const fragment = template.content.cloneNode(true);
+    panelElement.appendChild(fragment);
+
+    // 5. Cache element references from container
+    const cachedElements = cacheElementReferences(panelElement);
+
+    // 6. Attach event handlers
+    attachEventHandlers(cachedElements);
+
+    // 7. Store panel reference
+    currentPanel = { element: panelElement, elements: cachedElements };
     currentPrinterId = printerId;
 
-    // 3. Apply all data (full update)
-    applyData(panel.elements, data, printerId);
+    // 8. Apply all data (full update)
+    applyData(cachedElements, data, printerId);
 
-    // 4. Return element for DOM attachment
-    return panel.element;
+    // 9. Return element (already in DOM)
+    return panelElement;
 }
 
 /**
@@ -142,268 +288,12 @@ export function clearPanel() {
     currentPanel = null;
     currentPrinterId = null;
     dangerZoneExpanded = false;
+    cachedBufferMaxCapacity = 0;
 }
 
 // ============================================================================
 // PANEL CREATION
 // ============================================================================
-
-/**
- * Create the panel structure using DOM API
- * Returns object with element and direct references to all interactive elements
- */
-function createPanelStructure() {
-    const panel = document.createDocumentFragment();
-    // Using DocumentFragment so appendChild(container) moves all children directly
-    // without creating a wrapper div
-
-    // Header
-    const header = panel.appendChild(document.createElement('div'));
-    header.className = 'operations-header';
-
-    const titleRow = header.appendChild(document.createElement('div'));
-    titleRow.className = 'operations-title-row';
-
-    const printerName = titleRow.appendChild(document.createElement('span'));
-    printerName.className = 'ops-printer-name';
-
-    const separator = titleRow.appendChild(document.createElement('span'));
-    separator.className = 'ops-separator';
-    separator.textContent = '·';
-
-    const protocol = titleRow.appendChild(document.createElement('span'));
-    protocol.className = 'ops-protocol';
-
-    const closeBtn = header.appendChild(document.createElement('button'));
-    closeBtn.className = 'icon-btn';
-    closeBtn.onclick = () => callbacks.onClose?.();
-    closeBtn.innerHTML = '<img src="assets/icons/x.svg" width="18" height="18" alt="Close">';
-
-    // Info section
-    const info = panel.appendChild(document.createElement('div'));
-    info.className = 'operations-info';
-
-    // Info row 1: status + address
-    const infoRow1 = info.appendChild(document.createElement('div'));
-    infoRow1.className = 'info-row';
-
-    const statusBadge = infoRow1.appendChild(document.createElement('span'));
-    statusBadge.className = 'ops-status-badge';
-
-    const row1Separator = infoRow1.appendChild(document.createElement('span'));
-    row1Separator.className = 'info-separator';
-    row1Separator.textContent = '·';
-
-    const address = infoRow1.appendChild(document.createElement('span'));
-    address.className = 'ops-address';
-
-    const copyBtn = infoRow1.appendChild(document.createElement('button'));
-    copyBtn.className = 'copy-icon-btn';
-    copyBtn.onclick = () => callbacks.onCopyAddress?.(address.textContent);
-    copyBtn.innerHTML = '<img src="assets/icons/copy.svg" width="14" height="14" alt="Copy">';
-
-    // Info row 2: last document
-    const infoRow2 = info.appendChild(document.createElement('div'));
-    infoRow2.className = 'info-row';
-
-    const lastDocLabel = infoRow2.appendChild(document.createElement('span'));
-    lastDocLabel.className = 'info-label';
-    lastDocLabel.textContent = 'LAST DOCUMENT:';
-
-    const lastDoc = infoRow2.appendChild(document.createElement('span'));
-    lastDoc.className = 'ops-last-document';
-
-    // Actions section
-    const actions = panel.appendChild(document.createElement('div'));
-    actions.className = 'operations-actions';
-
-    // Button row
-    const buttonRow = actions.appendChild(document.createElement('div'));
-    buttonRow.className = 'operations-button-row';
-
-    const startStopBtn = buttonRow.appendChild(document.createElement('button'));
-    startStopBtn.className = 'btn btn-primary btn-sm';
-    startStopBtn.onclick = () => callbacks.onStartStop?.();
-
-    const editBtn = buttonRow.appendChild(document.createElement('button'));
-    editBtn.className = 'btn btn-secondary btn-sm';
-    editBtn.onclick = () => callbacks.onEdit?.();
-    editBtn.innerHTML = '<img class="themed-icon" src="assets/icons/edit-3.svg" width="14" height="14" alt="">Edit';
-
-    const pinBtn = buttonRow.appendChild(document.createElement('button'));
-    pinBtn.className = 'btn btn-secondary btn-sm';
-    pinBtn.onclick = () => callbacks.onTogglePin?.();
-    const pinText = pinBtn.appendChild(document.createElement('span'));
-    pinText.className = 'ops-pin-text';
-    const pinIcon = document.createElement('img');
-    pinIcon.className = 'themed-icon';
-    pinIcon.src = 'assets/icons/star.svg';
-    pinIcon.width = 14;
-    pinIcon.height = 14;
-    pinBtn.prepend(pinIcon);
-
-    // Flags grid
-    const flagsGrid = actions.appendChild(document.createElement('div'));
-    flagsGrid.className = 'flags-grid';
-
-    const flagCoverOpen = createFlagSwitch(flagsGrid, 'isCoverOpen', 'Cover Open', 'flag-error');
-    const flagPaperOut = createFlagSwitch(flagsGrid, 'isPaperOut', 'Paper Out', 'flag-error');
-    const flagOffline = createFlagSwitch(flagsGrid, 'isOffline', 'Offline', 'flag-error');
-    const flagError = createFlagSwitch(flagsGrid, 'hasError', 'Error', 'flag-error');
-
-    // Debug mode switch
-    const debugSwitch = actions.appendChild(document.createElement('label'));
-    debugSwitch.className = 'flag-switch debug-switch';
-    const debugCheckbox = debugSwitch.appendChild(document.createElement('input'));
-    debugCheckbox.type = 'checkbox';
-    debugCheckbox.className = 'ops-debug-mode';
-    debugCheckbox.onchange = () => callbacks.onToggleDebug?.(debugCheckbox.checked);
-    const debugLabel = debugSwitch.appendChild(document.createElement('span'));
-    debugLabel.className = 'flag-label';
-    debugLabel.textContent = 'Raw Data';
-
-    // Section divider
-    const divider1 = actions.appendChild(document.createElement('div'));
-    divider1.className = 'section-divider';
-
-    // Drawer 1
-    const drawer1 = createDrawerControl(actions, 1);
-
-    // Drawer 2
-    const drawer2 = createDrawerControl(actions, 2);
-
-    // Buffer status
-    const bufferSection = actions.appendChild(document.createElement('div'));
-    bufferSection.className = 'buffer-status-ascii';
-
-    const bufferHeader = bufferSection.appendChild(document.createElement('div'));
-    bufferHeader.className = 'buffer-header-ascii';
-
-    const bufferLabel = bufferHeader.appendChild(document.createElement('span'));
-    bufferLabel.textContent = 'Buffer Usage (bytes)';
-
-    const bufferValue = bufferHeader.appendChild(document.createElement('span'));
-    bufferValue.className = 'ops-buffer-value buffer-header-value';
-
-    const bufferBar = bufferSection.appendChild(document.createElement('div'));
-    bufferBar.className = 'ops-buffer-bar buffer-bar-ascii';
-
-    // Danger zone
-    const dangerZone = panel.appendChild(document.createElement('div'));
-    dangerZone.className = 'danger-zone';
-
-    const dangerHeader = dangerZone.appendChild(document.createElement('div'));
-    dangerHeader.className = 'danger-zone-header';
-    dangerHeader.addEventListener('click', toggleDangerZone);
-
-    const dangerTitle = dangerHeader.appendChild(document.createElement('div'));
-    dangerTitle.className = 'danger-zone-title';
-    dangerTitle.innerHTML = '<img class="danger-zone-icon" src="assets/icons/alert-triangle.svg" width="16" height="16" alt="">Danger Zone';
-
-    const dangerChevron = dangerHeader.appendChild(document.createElement('img'));
-    dangerChevron.className = 'danger-zone-chevron collapsed';
-    dangerChevron.src = 'assets/icons/chevron-down.svg';
-    dangerChevron.width = 16;
-    dangerChevron.height = 16;
-
-    const dangerContent = dangerZone.appendChild(document.createElement('div'));
-    dangerContent.className = 'danger-zone-content collapsed';
-
-    const clearDocsBtn = dangerContent.appendChild(document.createElement('button'));
-    clearDocsBtn.className = 'btn btn-sm';
-    clearDocsBtn.onclick = () => callbacks.onClearDocuments?.();
-    clearDocsBtn.innerHTML = '<img class="themed-icon" src="assets/icons/trash-2.svg" width="14" height="14" alt="">Delete all documents';
-
-    const deletePrinterBtn = dangerContent.appendChild(document.createElement('button'));
-    deletePrinterBtn.className = 'btn btn-sm';
-    deletePrinterBtn.onclick = () => callbacks.onDeletePrinter?.();
-    deletePrinterBtn.innerHTML = '<img class="themed-icon" src="assets/icons/trash.svg" width="14" height="14" alt="">Delete Printer';
-
-    return {
-        element: panel,
-        elements: {
-            // Header
-            printerName,
-            protocol,
-            closeBtn,
-
-            // Info
-            statusBadge,
-            address,
-            copyBtn,
-            lastDoc,
-
-            // Buttons
-            startStopBtn,
-            editBtn,
-            pinBtn,
-            pinText,
-
-            // Flags
-            flagCoverOpen,
-            flagPaperOut,
-            flagOffline,
-            flagError,
-            debugCheckbox,
-
-            // Drawers
-            drawer1State: drawer1.state,
-            drawer1Btn: drawer1.button,
-            drawer2State: drawer2.state,
-            drawer2Btn: drawer2.button,
-
-            // Buffer
-            bufferSection,
-            bufferValue,
-            bufferBar,
-
-            // Danger zone
-            dangerZone,
-            dangerHeader,
-            dangerContent,
-            dangerChevron
-        }
-    };
-}
-
-function createFlagSwitch(container, flagName, labelText, extraClass) {
-    const label = container.appendChild(document.createElement('label'));
-    label.className = `flag-switch ${extraClass || ''}`;
-
-    const checkbox = label.appendChild(document.createElement('input'));
-    checkbox.type = 'checkbox';
-    checkbox.dataset.flag = flagName;
-    checkbox.onchange = () => callbacks.onToggleFlag?.(flagName, checkbox.checked);
-
-    const span = label.appendChild(document.createElement('span'));
-    span.className = 'flag-label';
-    span.textContent = labelText;
-
-    return checkbox;
-}
-
-function createDrawerControl(container, drawerNumber) {
-    const div = container.appendChild(document.createElement('div'));
-    div.className = 'drawer-control';
-    div.dataset.drawer = drawerNumber;
-
-    const info = div.appendChild(document.createElement('div'));
-    info.className = 'drawer-info';
-
-    const label = info.appendChild(document.createElement('span'));
-    label.className = 'drawer-label';
-    label.textContent = `Drawer ${drawerNumber}:`;
-
-    const state = info.appendChild(document.createElement('span'));
-    state.className = 'drawer-state';
-
-    const button = div.appendChild(document.createElement('button'));
-    button.className = 'btn btn-secondary btn-sm';
-    button.dataset.drawer = drawerNumber;
-    button.onclick = () => callbacks.onToggleDrawer?.(drawerNumber);
-
-    return { state, button };
-}
 
 // ============================================================================
 // DATA APPLICATION
@@ -451,22 +341,26 @@ function applyData(elements, data, printerId) {
 
             // Update start/stop button
             const isRunning = rt.state === 'started' || rt.state === 'starting';
-            elements.startStopBtn.innerHTML = isRunning
-                ? '<img class="themed-icon" src="assets/icons/square.svg" width="14" height="14" alt="">Stop'
-                : '<img class="themed-icon" src="assets/icons/play.svg" width="14" height="14" alt="">Start';
+            elements.startStopText.textContent = isRunning ? 'Stop' : 'Start';
         }
 
         if (rt.bufferedBytes !== undefined) {
             const bufferBytes = rt.bufferedBytes ?? 0;
-            const bufferMax = data.settings?.bufferMaxCapacity || 0;
+            // Use bufferMaxCapacity from data if available, otherwise use cached value
+            const bufferMax = data.settings?.bufferMaxCapacity ?? cachedBufferMaxCapacity ?? 0;
             elements.bufferValue.textContent = `${bufferBytes}/${bufferMax}`;
-            elements.bufferBar.innerHTML = renderBufferProgress(bufferBytes, bufferMax);
 
-            // Show/hide buffer section - check if emulateBufferCapacity is greater than 0
-            if (data.settings?.emulateBuffer && data.settings.emulateBuffer > 0) {
-                elements.bufferSection.style.display = '';
-            } else {
-                elements.bufferSection.style.display = 'none';
+            // Update progress bar - just modify styles, no HTML manipulation
+            updateBufferProgress(elements.bufferFill, bufferBytes, bufferMax);
+
+            // Only modify buffer section visibility during full updates (when settings are present)
+            // For partial SSE updates, preserve current visibility state
+            if (data.settings?.emulateBuffer !== undefined) {
+                if (data.settings.emulateBuffer > 0) {
+                    elements.bufferSection.style.display = '';
+                } else {
+                    elements.bufferSection.style.display = 'none';
+                }
             }
         }
 
@@ -506,6 +400,10 @@ function applyData(elements, data, printerId) {
     if (data.settings) {
         if (data.settings.debugMode !== undefined) {
             elements.debugCheckbox.checked = data.settings.debugMode;
+        }
+        // Cache bufferMaxCapacity for use in partial updates
+        if (data.settings.bufferMaxCapacity !== undefined) {
+            cachedBufferMaxCapacity = data.settings.bufferMaxCapacity || 0;
         }
     }
 }
@@ -599,9 +497,12 @@ function formatStatus(state) {
     }
 }
 
-function renderBufferProgress(bufferedBytes, maxSize) {
-    if (!maxSize || maxSize <= 0) {
-        return '';
+function updateBufferProgress(fillElement, bufferedBytes, maxSize) {
+    if (!fillElement || !maxSize || maxSize <= 0) {
+        if (fillElement) {
+            fillElement.style.width = '0';
+        }
+        return;
     }
 
     const bytes = bufferedBytes ?? 0;
@@ -617,12 +518,9 @@ function renderBufferProgress(bufferedBytes, maxSize) {
         fillColor = 'var(--danger)';
     }
 
-    // Build graphical progress bar
-    const fillStyle = percentage > 0 ? `width: ${percentage}%; background-color: ${fillColor};` : 'width: 0;';
-
-    return `<div class="buffer-progress-bar">
-        <div class="buffer-progress-fill" style="${fillStyle}"></div>
-    </div>`;
+    // Update the fill element's style directly
+    fillElement.style.width = percentage > 0 ? `${percentage}%` : '0';
+    fillElement.style.backgroundColor = fillColor;
 }
 
 // ============================================================================

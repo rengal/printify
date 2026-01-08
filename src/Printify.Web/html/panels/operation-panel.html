@@ -1,118 +1,125 @@
 <!-- Operations Panel Template -->
-<!-- This template will be used to create the panel structure off-DOM -->
 <template id="operations-panel-template">
-  <div class="operations-panel">
-    <div class="operations-header">
-      <div class="operations-title-row">
-        <span class="ops-printer-name"></span>
-        <span class="ops-separator">·</span>
-        <span class="ops-protocol"></span>
-      </div>
-      <button class="ops-close-btn icon-btn" data-action="close" title="Close operations">
-        <img src="assets/icons/x.svg" width="18" height="18" alt="Close">
+  <div class="operations-header">
+    <div class="operations-title-row">
+      <span class="ops-printer-name" data-ops-printer-name></span>
+      <span class="ops-separator">·</span>
+      <span class="ops-protocol" data-ops-protocol></span>
+    </div>
+    <button class="icon-btn" data-action="close" title="Close operations">
+      <img src="assets/icons/x.svg" width="18" height="18" alt="Close">
+    </button>
+  </div>
+
+  <div class="operations-info">
+    <div class="info-row">
+      <span class="ops-status-badge" data-ops-status-badge></span>
+      <span class="info-separator">·</span>
+      <span class="ops-address" data-ops-address></span>
+      <button class="copy-icon-btn" data-action="copy-address" title="Copy address">
+        <img src="assets/icons/copy.svg" width="14" height="14" alt="Copy">
+      </button>
+    </div>
+    <div class="info-row">
+      <span class="info-label">LAST DOCUMENT:</span>
+      <span class="ops-last-document" data-ops-last-document></span>
+    </div>
+  </div>
+
+  <div class="operations-actions">
+    <!-- Primary Actions Row -->
+    <div class="operations-button-row">
+      <button class="btn btn-primary btn-sm" data-action="start-stop">
+        <span data-ops-start-stop-text>Start</span>
+      </button>
+      <button class="btn btn-secondary btn-sm" data-action="edit">
+        <img class="themed-icon" src="assets/icons/edit-3.svg" width="14" height="14" alt="">
+        Edit
+      </button>
+      <button class="btn btn-secondary btn-sm" data-action="toggle-pin">
+        <img class="themed-icon" src="assets/icons/star.svg" width="14" height="14" alt="">
+        <span class="ops-pin-text" data-ops-pin-text>Pin</span>
       </button>
     </div>
 
-    <div class="operations-info">
-      <div class="info-row">
-        <span class="ops-status-badge"></span>
-        <span class="info-separator">·</span>
-        <span class="ops-address"></span>
-        <button class="ops-copy-address-btn copy-icon-btn" data-action="copy-address" title="Copy address">
-          <img src="assets/icons/copy.svg" width="14" height="14" alt="Copy">
-        </button>
+    <!-- Operational Flags -->
+    <div class="flags-grid">
+      <label class="flag-switch flag-error">
+        <input type="checkbox" data-flag="isCoverOpen">
+        <span class="flag-label">Cover Open</span>
+      </label>
+      <label class="flag-switch flag-error">
+        <input type="checkbox" data-flag="isPaperOut">
+        <span class="flag-label">Paper Out</span>
+      </label>
+      <label class="flag-switch flag-error">
+        <input type="checkbox" data-flag="isOffline">
+        <span class="flag-label">Offline</span>
+      </label>
+      <label class="flag-switch flag-error">
+        <input type="checkbox" data-flag="hasError">
+        <span class="flag-label">Error</span>
+      </label>
+    </div>
+
+    <label class="flag-switch debug-switch">
+      <input type="checkbox" class="ops-debug-mode" data-action="toggle-debug">
+      <span class="flag-label">Raw Data</span>
+    </label>
+
+    <div class="section-divider"></div>
+
+    <!-- Drawer Management -->
+    <div class="drawer-control" data-drawer="1">
+      <div class="drawer-info">
+        <span class="drawer-label">Drawer 1:</span>
+        <span class="drawer-state" data-drawer-state="1">Closed</span>
       </div>
-      <div class="info-row">
-        <span class="info-label">LAST DOCUMENT:</span>
-        <span class="ops-last-document"></span>
+      <button class="icon-btn drawer-btn" data-action="toggle-drawer" data-drawer="1">
+        <img src="assets/icons/refresh-cw.svg" width="14" height="14" alt="Toggle">
+      </button>
+    </div>
+    <div class="drawer-control" data-drawer="2">
+      <div class="drawer-info">
+        <span class="drawer-label">Drawer 2:</span>
+        <span class="drawer-state" data-drawer-state="2">Closed</span>
+      </div>
+      <button class="icon-btn drawer-btn" data-action="toggle-drawer" data-drawer="2">
+        <img src="assets/icons/refresh-cw.svg" width="14" height="14" alt="Toggle">
+      </button>
+    </div>
+
+    <!-- Buffer Status Section -->
+    <div class="buffer-status" data-section="buffer">
+      <div class="buffer-header">
+        <span>Buffer Usage (bytes)</span>
+        <span class="ops-buffer-value buffer-header-value" data-ops-buffer-value></span>
+      </div>
+      <div class="ops-buffer-bar" data-ops-buffer-bar>
+        <div class="buffer-progress-bar">
+          <div class="buffer-progress-fill" data-ops-buffer-fill></div>
+        </div>
       </div>
     </div>
 
-    <div class="operations-actions">
-      <!-- Primary Actions Row -->
-      <div class="operations-button-row">
-        <button class="ops-start-stop-btn btn btn-primary btn-sm" data-action="start-stop"></button>
-        <button class="ops-edit-btn btn btn-secondary btn-sm" data-action="edit">
-          <img class="themed-icon" src="assets/icons/edit-3.svg" width="14" height="14" alt="">
-          Edit
+    <!-- Danger Zone -->
+    <div class="danger-zone" data-danger-zone>
+      <div class="danger-zone-header" data-action="toggle-danger">
+        <div class="danger-zone-title">
+          <img class="danger-zone-icon" src="assets/icons/alert-triangle.svg" width="16" height="16" alt="">
+          Danger Zone
+        </div>
+        <img class="danger-zone-chevron collapsed" src="assets/icons/chevron-down.svg" width="16" height="16" alt="">
+      </div>
+      <div class="danger-zone-content collapsed" data-danger-content>
+        <button class="btn btn-sm" data-action="clear-documents">
+          <img class="themed-icon" src="assets/icons/trash-2.svg" width="14" height="14" alt="">
+          Delete all documents
         </button>
-        <button class="ops-pin-btn btn btn-secondary btn-sm" data-action="toggle-pin">
-          <img class="themed-icon" src="assets/icons/star.svg" width="14" height="14" alt="">
-          <span class="ops-pin-text"></span>
+        <button class="btn btn-sm" data-action="delete-printer">
+          <img class="themed-icon" src="assets/icons/trash.svg" width="14" height="14" alt="">
+          Delete Printer
         </button>
-      </div>
-
-      <!-- Operational Flags -->
-      <div class="flags-grid">
-        <label class="flag-switch flag-error">
-          <input type="checkbox" class="ops-flag-cover-open" data-flag="isCoverOpen">
-          <span class="flag-label">Cover Open</span>
-        </label>
-        <label class="flag-switch flag-error">
-          <input type="checkbox" class="ops-flag-paper-out" data-flag="isPaperOut">
-          <span class="flag-label">Paper Out</span>
-        </label>
-        <label class="flag-switch flag-error">
-          <input type="checkbox" class="ops-flag-offline" data-flag="isOffline">
-          <span class="flag-label">Offline</span>
-        </label>
-        <label class="flag-switch flag-error">
-          <input type="checkbox" class="ops-flag-error" data-flag="hasError">
-          <span class="flag-label">Error</span>
-        </label>
-      </div>
-
-      <label class="flag-switch debug-switch">
-        <input type="checkbox" class="ops-debug-mode" data-action="toggle-debug">
-        <span class="flag-label">Raw Data</span>
-      </label>
-
-      <div class="section-divider"></div>
-
-      <!-- Drawer Management -->
-      <div class="drawer-control" data-drawer="1">
-        <div class="drawer-info">
-          <span class="drawer-label">Drawer 1:</span>
-          <span class="ops-drawer1-state drawer-state"></span>
-        </div>
-        <button class="ops-drawer1-btn btn btn-secondary btn-sm" data-action="toggle-drawer" data-drawer="1"></button>
-      </div>
-      <div class="drawer-control" data-drawer="2">
-        <div class="drawer-info">
-          <span class="drawer-label">Drawer 2:</span>
-          <span class="ops-drawer2-state drawer-state"></span>
-        </div>
-        <button class="ops-drawer2-btn btn btn-secondary btn-sm" data-action="toggle-drawer" data-drawer="2"></button>
-      </div>
-
-      <!-- Buffer Status Section -->
-      <div class="buffer-status-ascii" data-section="buffer">
-        <div class="buffer-header-ascii">
-          <span>Buffer Usage (bytes)</span>
-          <span class="ops-buffer-value buffer-header-value">0/0</span>
-        </div>
-        <div class="ops-buffer-bar buffer-bar-ascii"></div>
-      </div>
-
-      <!-- Danger Zone -->
-      <div class="danger-zone">
-        <div class="danger-zone-header" data-action="toggle-danger-zone">
-          <div class="danger-zone-title">
-            <img class="danger-zone-icon" src="assets/icons/alert-triangle.svg" width="16" height="16" alt="">
-            Danger Zone
-          </div>
-          <img class="danger-zone-chevron collapsed" src="assets/icons/chevron-down.svg" width="16" height="16" alt="">
-        </div>
-        <div class="danger-zone-content collapsed">
-          <button class="btn btn-sm" data-action="clear-documents">
-            <img class="themed-icon" src="assets/icons/trash-2.svg" width="14" height="14" alt="">
-            Delete all documents
-          </button>
-          <button class="btn btn-sm" data-action="delete-printer">
-            <img class="themed-icon" src="assets/icons/trash.svg" width="14" height="14" alt="">
-            Delete Printer
-          </button>
-        </div>
       </div>
     </div>
   </div>

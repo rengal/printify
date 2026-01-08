@@ -332,30 +332,33 @@
 }
 
 /* Buffer Status */
-.buffer-status-ascii {
+.buffer-status {
     margin-bottom: 8px;
     margin-top: 12px;
+    box-sizing: border-box;
+    width: 100%;
 }
 
-.buffer-header-ascii {
+.buffer-header {
     font-size: 13px;
     color: var(--text);
     margin-bottom: 4px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    padding-right: 0;
 }
 
 .buffer-header-value {
     color: var(--muted);
-    padding-right: 4px;
+    padding-right: 0;
+    flex-shrink: 0;
 }
 
-.buffer-bar-ascii {
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    color: var(--text);
-    white-space: pre;
-    overflow-x: auto;
-    line-height: 1.2;
+.ops-buffer-bar {
+    width: 100%;
+    overflow: hidden;
+    box-sizing: border-box;
 }

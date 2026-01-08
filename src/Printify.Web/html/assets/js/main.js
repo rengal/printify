@@ -344,10 +344,8 @@
                 // Load operations panel using the module
                 if (window.OperationsPanel && accessToken) {
                     try {
-                        const panelElement = await OperationsPanel.loadPanel(id, accessToken);
                         const container = document.getElementById('operationsPanel');
-                        container.innerHTML = '';
-                        container.appendChild(panelElement);
+                        await OperationsPanel.loadPanel(id, accessToken, container);
 
                         // Restore danger zone state
                         OperationsPanel.restoreDangerZoneState();
@@ -409,7 +407,6 @@
             }
 
             // Render elements in original order (don't sort - backend order is correct)
-            console.log(`\n=== Rendering document ${docId} with ${elements.length} elements ===`);
             let elementIndex = 0;
             const elementsHtml = elements.map(element => {
                 const id = `el-${docId}-${elementIndex++}`;
@@ -420,7 +417,6 @@
                 const coords = element.type === 'text' || element.type === 'image'
                     ? ` @(${element.x},${element.y})`
                     : '';
-                console.log(`Render[${elementIndex-1}] type=${element.type}${coords}${visualText} | ${desc.substring(0, 50)}`);
                 return renderViewElement(element, id, includeDebug);
             }).join('');
 
@@ -1004,10 +1000,8 @@
                 if (printerId === selectedPrinterId && window.OperationsPanel) {
                     if (changedFields.settings) {
                         // Settings changes require full re-render - reload panel
-                        OperationsPanel.loadPanel(printerId, accessToken).then(panelElement => {
-                            const container = document.getElementById('operationsPanel');
-                            container.innerHTML = '';
-                            container.appendChild(panelElement);
+                        const container = document.getElementById('operationsPanel');
+                        OperationsPanel.loadPanel(printerId, accessToken, container).then(() => {
                             OperationsPanel.restoreDangerZoneState();
                         }).catch(err => {
                             console.error('Failed to reload operations panel', err);
