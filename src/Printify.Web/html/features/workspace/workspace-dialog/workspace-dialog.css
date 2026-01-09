@@ -1,32 +1,6 @@
 /* Workspace Dialog Styles */
+/* This file contains only workspace-dialog specific styles */
+/* All modal, form, button, and toggle styles are imported from main.css */
 
-.mode-toggle {
-    display: flex;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 4px;
-    margin-bottom: 20px;
-}
-
-.mode-toggle-btn {
-    flex: 1;
-    padding: 8px 16px;
-    border-radius: 8px;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    transition: background-color 0.2s ease;
-}
-
-.mode-toggle-btn.active {
-    background: var(--accent);
-    color: white;
-}
-
-.mode-toggle-btn:hover:not(.active) {
-    background: var(--hover-bg);
-}
+/* Workspace dialog specific - mode toggle is now shared in toggles.css */
+/* (None currently - mode toggle moved to shared/toggles.css) */

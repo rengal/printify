@@ -1,8 +1,8 @@
 /* Printer Dialogue Styles */
+/* This file contains only printer-dialog specific styles */
+/* All modal, form, button, and layout styles are imported from main.css */
 
-/* The modal overlay and base modal styles are inherited from confirm-dialog.css */
-/* This file contains only printer-dialogue specific styles */
-
+/* Printer dialog specific overrides */
 .field-group {
     display: flex;
     gap: 12px;
@@ -14,46 +14,14 @@
 }
 
 .checkbox-field {
-    display: flex;
-    align-items: center;
-    gap: 8px;
     margin: 16px 0;
 }
 
 .checkbox-field input[type="checkbox"] {
     width: 16px;
     height: 16px;
-    cursor: pointer;
-}
-
-.checkbox-field label {
-    cursor: pointer;
-    user-select: none;
 }
 
 .indent {
     margin-left: 20px;
-}
-
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    margin-top: 20px;
-}
-
-/* Validation states */
-.input.invalid {
-    border-color: var(--danger) !important;
-}
-
-.field-error {
-    display: none;
-    color: var(--danger);
-    font-size: 13px;
-    margin-top: 4px;
-}
-
-.field-error.show {
-    display: block;
 }

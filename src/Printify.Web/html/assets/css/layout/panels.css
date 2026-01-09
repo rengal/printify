@@ -1,0 +1,63 @@
+/* ============================================
+   PANELS LAYOUT
+   Operations panel and documents panel layout
+   ============================================ */
+
+.operations-panel {
+    grid-area: operations;
+    background: var(--bg-elev);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.operations-hidden .operations-panel {
+    opacity: 0;
+    pointer-events: none;
+    padding: 16px 0;
+}
+
+.documents-panel {
+    grid-area: documents;
+    padding: 24px;
+    overflow-y: auto;
+    position: relative;
+}
+
+.theme-toggle-btn {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 100;
+}
+
+#documentsPanel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.main {
+    grid-area: main;
+    padding: 24px;
+    overflow-y: auto;
+    position: relative;
+}
+
+.main-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Floating toggle button - shown when sidebar is hidden */
+.container.sidebar-minimized .main-inner {
+    padding-top: 48px;
+}

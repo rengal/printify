@@ -1,0 +1,58 @@
+/* ============================================
+   BADGES & STATUS PILLS
+   Status indicators and badges
+   ============================================ */
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    background: rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+    width: fit-content;
+}
+
+.status-started,
+.status-listening {
+    color: var(--accent);
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.status-starting {
+    color: var(--warn);
+    background: rgba(245, 158, 11, 0.12);
+}
+
+.status-stopped {
+    color: var(--danger);
+    background: transparent;
+}
+
+.status-error {
+    color: var(--danger);
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.status-unknown {
+    color: var(--muted);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.list-item-badge {
+    background: var(--accent);
+    color: white;
+    border-radius: 6px;
+    padding: 0 5px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 16px;
+    min-width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}

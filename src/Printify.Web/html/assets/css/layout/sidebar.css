@@ -1,0 +1,122 @@
+/* ============================================
+   SIDEBAR LAYOUT
+   Main grid layout and sidebar structure
+   ============================================ */
+
+.container {
+    display: grid;
+    grid-template-columns: 280px 350px 1fr;
+    grid-template-rows: 1fr;
+    grid-template-areas: "sidebar operations documents";
+    height: 100dvh;
+    transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.sidebar-minimized {
+    grid-template-columns: 60px 350px 1fr;
+}
+
+.container.operations-hidden {
+    grid-template-columns: 280px 0px 1fr;
+}
+
+.container.sidebar-minimized.operations-hidden {
+    grid-template-columns: 60px 0px 1fr;
+}
+
+.sidebar {
+    grid-area: sidebar;
+    background: var(--bg-elev);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.container.sidebar-minimized .sidebar {
+    padding: 16px 8px;
+    align-items: center;
+}
+
+/* Hide text content when sidebar is minimized */
+.container.sidebar-minimized .sidebar-title,
+.container.sidebar-minimized .list-item-name,
+.container.sidebar-minimized .list-item-new span,
+.container.sidebar-minimized #pinnedList,
+.container.sidebar-minimized #otherList {
+    display: none;
+}
+
+/* Adjust elements for minimized state */
+.container.sidebar-minimized .sidebar-header {
+    justify-content: center;
+}
+
+.container.sidebar-minimized .list-item {
+    padding: 12px 12px;
+    justify-content: center;
+    min-height: 44px;
+}
+
+.container.sidebar-minimized .list-item-new {
+    padding: 6px 12px;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding: 0;
+    min-height: 32px;
+}
+
+.sidebar-title {
+    font-weight: 600;
+    font-size: 20px;
+    flex: 1;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.floating-sidebar-toggle {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    border-radius: 6px;
+    z-index: 10;
+    transition: all 0.2s ease;
+}
+
+.floating-sidebar-toggle:hover {
+    background: rgba(255,255,255,0.08);
+    color: var(--accent);
+}
+
+/* Show toggle when sidebar is hidden */
+.container.sidebar-minimized .floating-sidebar-toggle {
+    display: flex !important;
+}
+
+/* Hide toggle when sidebar is visible */
+.container:not(.sidebar-minimized) .floating-sidebar-toggle {
+    display: none !important;
+}

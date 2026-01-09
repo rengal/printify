@@ -1,0 +1,98 @@
+/* ============================================
+   TOGGLES & SEGMENTED CONTROLS
+   Toggle switches, segmented controls, mode toggles
+   ============================================ */
+
+/* Mode toggle / Segmented control */
+.mode-toggle {
+    display: flex;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 20px;
+}
+
+.mode-toggle-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.mode-toggle-btn.active {
+    background: var(--accent);
+    color: white;
+}
+
+.mode-toggle-btn:hover:not(.active) {
+    background: var(--hover-bg);
+}
+
+/* Toggle switch (checkbox-based) */
+.flag-switch {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    margin-bottom: 0;
+}
+
+.flag-switch input[type="checkbox"] {
+    width: 36px;
+    height: 20px;
+    margin: 0;
+    appearance: none;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+}
+
+.flag-switch input[type="checkbox"]::before {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--muted);
+    left: 2px;
+    top: 2px;
+    transition: left 0.2s, background 0.2s;
+}
+
+.flag-switch input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.flag-switch input[type="checkbox"]:checked::before {
+    background: white;
+    left: calc(100% - 16px);
+}
+
+.flag-label {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text);
+}
+
+/* Danger color for error flags when checked */
+.flag-switch.flag-error input[type="checkbox"]:checked {
+    background: rgba(239, 68, 68, 0.25);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.flag-switch.flag-error input[type="checkbox"]:checked ~ .flag-label {
+    color: var(--danger);
+}

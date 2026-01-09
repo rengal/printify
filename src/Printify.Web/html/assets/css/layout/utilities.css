@@ -1,0 +1,28 @@
+/* ============================================
+   UTILITY CLASSES
+   Common utility classes for quick styling
+   ============================================ */
+
+.w100 {
+    width: 100%;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.hidden {
+    display: none;
+}

@@ -1,0 +1,32 @@
+/* ============================================
+   CSS TOKENS / DESIGN TOKENS
+   Color variables, spacing, and design tokens
+   ============================================ */
+
+:root {
+    --bg: #0e0f12;
+    --bg-elev: #15171c;
+    --text: #e9eaee;
+    --muted: #b3b7c0;
+    --border: #2a2d34;
+    --accent: #10b981;
+    --accent-hover: #0ea372;
+    --danger: #ef4444;
+    --warn: #f59e0b;
+    --ok: #22c55e;
+    --focus: #60a5fa;
+    --hover-bg: rgba(255,255,255,0.08);
+    --icon-filter: brightness(0) invert(1);
+}
+
+:root[data-theme="light"] {
+    --bg: #f7f8fa;
+    --bg-elev: #ffffff;
+    --text: #0f1115;
+    --muted: #585f6b;
+    --border: #e5e7eb;
+    --accent: #0ea372;
+    --accent-hover: #0a8b61;
+    --hover-bg: rgba(0,0,0,0.05);
+    --icon-filter: none;
+}
