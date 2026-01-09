@@ -376,7 +376,7 @@ function normalizeProtocol(protocol) {
  * Load the HTML template
  */
 async function loadTemplate() {
-    const response = await fetch('printer-dialogue.html');
+    const response = await fetch('features/printers/printer-dialog/printer-dialog.html');
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');

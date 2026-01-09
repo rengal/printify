@@ -301,7 +301,7 @@ async function handleAccess() {
 }
 
 async function loadTemplate() {
-    const response = await fetch('workspace-dialog.html');
+    const response = await fetch('features/workspace/workspace-dialog/workspace-dialog.html');
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');

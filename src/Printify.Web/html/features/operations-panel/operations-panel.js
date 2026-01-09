@@ -73,7 +73,7 @@ export function getPanelElement() {
 async function loadTemplate() {
     if (template) return template;
 
-    const response = await fetch('panels/operation-panel.html');
+    const response = await fetch('features/operations-panel/operations-panel.html');
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');

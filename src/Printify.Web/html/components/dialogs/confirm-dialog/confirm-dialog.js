@@ -102,7 +102,7 @@ export function close() {
  * Load the HTML template
  */
 async function loadTemplate() {
-    const response = await fetch('confirm-dialog.html');
+    const response = await fetch('components/dialogs/confirm-dialog/confirm-dialog.html');
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
