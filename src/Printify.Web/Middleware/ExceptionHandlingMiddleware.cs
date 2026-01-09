@@ -27,6 +27,13 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
             return;
         }
 
+        // Stream disconnection is expected during SSE - not an error
+        if (ex is StreamDisconnectedException)
+        {
+            logger.LogDebug("SSE stream disconnected: {Message}", ex.Message);
+            return;
+        }
+
         logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
 
         var status = ex switch

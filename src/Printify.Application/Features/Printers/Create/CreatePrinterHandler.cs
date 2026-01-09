@@ -72,9 +72,6 @@ public sealed class CreatePrinterHandler(
             TargetState: PrinterTargetState.Started);
         await printerRepository.UpsertOperationalFlagsAsync(initialUpdate, ct).ConfigureAwait(false);
 
-        await listenerOrchestrator.AddListenerAsync(printer, settings, PrinterTargetState.Started, ct)
-            .ConfigureAwait(false);
-
         var runtimeStatus = runtimeStatusStore.Get(printer.Id);
         var flags = new PrinterOperationalFlags(
             printer.Id,
@@ -85,6 +82,23 @@ public sealed class CreatePrinterHandler(
             false,
             false,
             false);
+
+        // Start the printer listener asynchronously without blocking the response
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await listenerOrchestrator.AddListenerAsync(printer, settings, PrinterTargetState.Started, ct)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception or handle it appropriately
+                // Since this is fire-and-forget, we can't propagate the exception
+                System.Diagnostics.Debug.WriteLine($"Failed to add printer listener: {ex}");
+            }
+        }, ct);
+
 
         return new PrinterDetailsSnapshot(printer, settings, flags, runtimeStatus);
     }

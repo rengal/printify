@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
+using Printify.Application.Exceptions;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
 
@@ -89,6 +90,12 @@ public sealed class PrinterStatusStream : IPrinterStatusStream
                 {
                     subscriptions.TryRemove(workspaceId, out _);
                 }
+            }
+
+            // Throw stream disconnected exception if cancellation was requested
+            if (ct.IsCancellationRequested)
+            {
+                throw new StreamDisconnectedException("SSE stream client disconnected");
             }
         }
     }
