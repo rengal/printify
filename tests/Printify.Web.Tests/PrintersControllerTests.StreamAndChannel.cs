@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using Printify.TestServices;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
@@ -12,6 +12,7 @@ public sealed partial class PrintersControllerTests
     [Fact]
     public async Task StartStopPrinters_StatusEventsAndApiReflectState()
     {
+        // Number of printers to create and test
         const int n = 10;
 
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
@@ -102,5 +103,4 @@ public sealed partial class PrintersControllerTests
             Assert.Equal("stopped", printer.RuntimeStatus?.State?.ToLowerInvariant());
         }
     }
-
 }
