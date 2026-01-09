@@ -1143,11 +1143,20 @@
                 <div style="text-align: left; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
                   <h3 style="margin-top: 0; margin-bottom: 12px;">Features</h3>
                   <ul style="color: var(--muted); line-height: 1.6; padding-left: 24px; margin: 0;">
-                    <li>Configure multiple printers with ESC/POS and ZPL protocols</li>
-                    <li>Monitor print jobs in real-time with document preview</li>
-                    <li>Replay and download previously printed documents</li>
-                    <li>Share printers across devices with your workspace token</li>
+                    <li>Real-time document preview with accurate rendering</li>
+                    <li>ESC/POS emulator with text formatting, images, and barcode support</li>
+                    <li>Multi-printer management (up to 10 per workspace)</li>
+                    <li>Workspace sharing across devices with secure tokens</li>
+                    <li>Buffer emulation for realistic printer behavior</li>
                   </ul>
+                </div>
+
+                <div style="text-align: left; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                  <h3 style="margin-top: 0; margin-bottom: 12px;">Learn More</h3>
+                  <p style="color: var(--muted); line-height: 1.6; margin: 0;">
+                    <a href="docs/about" style="color: var(--accent);">About Virtual Printer</a> •
+                    <a href="docs/guide" style="color: var(--accent);">Getting Started Guide</a>
+                  </p>
                 </div>
 
                 <div style="background: rgba(16,185,129,0.1); border: 1px solid var(--accent); border-radius: 12px; padding: 20px;">
@@ -1155,7 +1164,16 @@
                   <p style="color: var(--muted); margin-bottom: 16px;">
                     Create a new workspace or access an existing one
                   </p>
-                  <button class="btn btn-primary" onclick="WorkspaceDialog.show()">Create or Access Workspace</button>
+                  <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-secondary" onclick="WorkspaceDialog.show('create')" style="flex: 1; justify-content: center;">
+                      <img src="assets/icons/plus-circle.svg" width="18" height="18" alt="" style="flex-shrink: 0;">
+                      Create New Workspace
+                    </button>
+                    <button class="btn btn-secondary" onclick="WorkspaceDialog.show('access')" style="flex: 1; justify-content: center;">
+                      <img src="assets/icons/log-in.svg" width="18" height="18" alt="" style="flex-shrink: 0;">
+                      Access Existing
+                    </button>
+                  </div>
                 </div>
               </div>
             `;
@@ -2043,6 +2061,8 @@
 
         // Preload icons
         loadIcon('alert-triangle');
+        loadIcon('plus-circle');
+        loadIcon('log-in');
 
         // Restore sidebar state
         const sidebarMinimized = localStorage.getItem('sidebarMinimized') === 'true';

@@ -215,6 +215,16 @@ async function handleCreate() {
         return;
     }
 
+    // Validate that name doesn't look like a workspace token (format: word-word-1234)
+    const tokenPattern = /^[a-z]+-[a-z]+-\d+$/i;
+    if (tokenPattern.test(name)) {
+        nameInput.classList.add('invalid');
+        nameError.textContent = 'This looks like a workspace token, not a name. Enter a friendly name like "My Office" or "Demo Room".';
+        nameError.classList.add('show');
+        nameInput.focus();
+        return;
+    }
+
     try {
         const request = {
             id: crypto.randomUUID(),

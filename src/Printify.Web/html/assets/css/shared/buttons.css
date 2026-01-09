@@ -97,3 +97,14 @@
 .btn-outline-danger:hover {
     background: rgba(239, 68, 68, 0.1);
 }
+
+/* Icon inside button */
+.btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon svg {
+    display: block;
+}
