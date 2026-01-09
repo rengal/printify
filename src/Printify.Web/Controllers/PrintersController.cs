@@ -19,6 +19,7 @@ using Printify.Application.Features.Printers.Status;
 using Printify.Application.Features.Printers.Update;
 using Printify.Application.Mediation;
 using Printify.Application.Printing;
+using Printify.Domain.Config;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.View;
 using Printify.Domain.Printers;
@@ -42,12 +43,14 @@ public sealed class PrintersController : ControllerBase
     private readonly HttpContextExtensions httpExtensions;
     private readonly JsonSerializerOptions jsonOptions;
     private readonly ILogger<PrintersController> logger;
+    private readonly ListenerOptions listenerOptions;
 
     public PrintersController(
         IMediator mediator,
         IPrinterDocumentStream documentStream,
         HttpContextExtensions httpExtensions,
         IOptions<JsonOptions> jsonOptions,
+        IOptions<ListenerOptions> listenerOptions,
         ILogger<PrintersController> logger)
     {
         this.mediator = mediator ?? throw new ArgumentNullException(nameof(mediator));
@@ -55,6 +58,8 @@ public sealed class PrintersController : ControllerBase
         this.httpExtensions = httpExtensions;
         ArgumentNullException.ThrowIfNull(jsonOptions);
         this.jsonOptions = jsonOptions.Value.JsonSerializerOptions;
+        ArgumentNullException.ThrowIfNull(listenerOptions);
+        this.listenerOptions = listenerOptions.Value;
         this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -68,7 +73,7 @@ public sealed class PrintersController : ControllerBase
         var snapshot = await mediator.RequestAsync<CreatePrinterCommand, PrinterDetailsSnapshot>(
             request.ToCommand(httpContext),
             cancellationToken);
-        return Ok(snapshot.ToResponseDto());
+        return Ok(snapshot.ToResponseDto(listenerOptions.PublicHost));
     }
 
     [Authorize]
@@ -80,7 +85,7 @@ public sealed class PrintersController : ControllerBase
             new ListPrintersQuery(httpContext),
             cancellationToken);
         var responses = printers.Printers
-            .Select(snapshot => snapshot.ToResponseDto())
+            .Select(snapshot => snapshot.ToResponseDto(listenerOptions.PublicHost))
             .ToList();
         return Ok(responses);
     }
@@ -146,7 +151,7 @@ public sealed class PrintersController : ControllerBase
 
         await foreach (var statusUpdate in streamResult.Updates.WithCancellation(cancellationToken))
         {
-            var payload = statusUpdate.ToStatusUpdateDto();
+            var payload = statusUpdate.ToStatusUpdateDto(listenerOptions.PublicHost);
             await WriteSseAsync(streamResult.EventName, payload, cancellationToken);
         }
     }
@@ -320,7 +325,7 @@ public sealed class PrintersController : ControllerBase
             return NotFound();
         }
 
-        return Ok(snapshot.ToResponseDto());
+        return Ok(snapshot.ToResponseDto(listenerOptions.PublicHost));
     }
 
     [Authorize]
@@ -376,7 +381,7 @@ public sealed class PrintersController : ControllerBase
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var command = request.ToCommand(id, httpContext);
         var snapshot = await mediator.RequestAsync<UpdatePrinterCommand, PrinterDetailsSnapshot>(command, cancellationToken);
-        return Ok(snapshot.ToResponseDto());
+        return Ok(snapshot.ToResponseDto(listenerOptions.PublicHost));
     }
 
     [Authorize]
@@ -397,7 +402,7 @@ public sealed class PrintersController : ControllerBase
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var command = request.ToCommand(id, httpContext);
         var snapshot = await mediator.RequestAsync<SetPrinterPinnedCommand, PrinterDetailsSnapshot>(command, cancellationToken);
-        return Ok(snapshot.ToResponseDto());
+        return Ok(snapshot.ToResponseDto(listenerOptions.PublicHost));
     }
 
     private async Task WriteSseAsync(string eventName, object payload, CancellationToken cancellationToken)

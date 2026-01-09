@@ -10,6 +10,7 @@ namespace Printify.Web.Contracts.Printers.Responses;
 /// <param name="EmulateBufferCapacity">Indicates whether buffer simulation is enabled.</param>
 /// <param name="BufferDrainRate">Drain rate for the simulated buffer.</param>
 /// <param name="BufferMaxCapacity">Maximum capacity of the simulated buffer.</param>
+/// <param name="PublicHost">Public hostname for accessing the printer listener.</param>
 public sealed record PrinterSettingsDto(
     string Protocol,
     int WidthInDots,
@@ -17,4 +18,5 @@ public sealed record PrinterSettingsDto(
     int TcpListenPort,
     bool EmulateBufferCapacity,
     decimal? BufferDrainRate,
-    int? BufferMaxCapacity);
+    int? BufferMaxCapacity,
+    string PublicHost);

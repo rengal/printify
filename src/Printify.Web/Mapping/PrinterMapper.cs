@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Options;
 using Printify.Application.Printing;
+using Printify.Domain.Config;
 using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
 using Printify.Web.Contracts.Printers.Responses;
@@ -23,21 +25,22 @@ internal static class PrinterMapper
         this Printer printer,
         PrinterSettings settings,
         PrinterOperationalFlags? operationalFlags,
-        PrinterRuntimeStatus? runtimeStatus)
+        PrinterRuntimeStatus? runtimeStatus,
+        string publicHost)
     {
         ArgumentNullException.ThrowIfNull(printer);
         return new PrinterResponseDto(
             ToPrinterDto(printer),
-            ToSettingsDto(settings),
+            ToSettingsDto(settings, publicHost),
             ToOperationalFlagsDto(operationalFlags),
             ToRuntimeStatusDto(runtimeStatus));
     }
 
-    internal static PrinterResponseDto ToResponseDto(this PrinterDetailsSnapshot snapshot)
+    internal static PrinterResponseDto ToResponseDto(this PrinterDetailsSnapshot snapshot, string publicHost)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
-        return snapshot.Printer.ToResponseDto(snapshot.Settings, snapshot.OperationalFlags, snapshot.RuntimeStatus);
+        return snapshot.Printer.ToResponseDto(snapshot.Settings, snapshot.OperationalFlags, snapshot.RuntimeStatus, publicHost);
     }
 
     internal static PrinterDto ToPrinterDto(this Printer printer)
@@ -52,7 +55,7 @@ internal static class PrinterMapper
             printer.LastDocumentReceivedAt);
     }
 
-    internal static PrinterSettingsDto ToSettingsDto(this PrinterSettings settings)
+    internal static PrinterSettingsDto ToSettingsDto(this PrinterSettings settings, string publicHost)
     {
         ArgumentNullException.ThrowIfNull(settings);
 
@@ -63,7 +66,16 @@ internal static class PrinterMapper
             settings.ListenTcpPortNumber,
             settings.EmulateBufferCapacity,
             settings.BufferDrainRate,
-            settings.BufferMaxCapacity);
+            settings.BufferMaxCapacity,
+            publicHost);
+    }
+
+    internal static PrinterSettingsDto ToSettingsDto(this PrinterSettings settings, IOptions<ListenerOptions> listenerOptions)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(listenerOptions);
+
+        return ToSettingsDto(settings, listenerOptions.Value.PublicHost);
     }
 
     internal static PrinterOperationalFlagsDto? ToOperationalFlagsDto(PrinterOperationalFlags? flags)
@@ -153,7 +165,7 @@ internal static class PrinterMapper
             ToRuntimeStatusDto(snapshot.RuntimeStatus));
     }
 
-    internal static PrinterStatusUpdateDto ToStatusUpdateDto(this PrinterStatusUpdate update)
+    internal static PrinterStatusUpdateDto ToStatusUpdateDto(this PrinterStatusUpdate update, string publicHost)
     {
         ArgumentNullException.ThrowIfNull(update);
 
@@ -162,7 +174,7 @@ internal static class PrinterMapper
             update.UpdatedAt,
             ToRuntimeStatusUpdateDto(update.RuntimeUpdate),
             ToOperationalFlagsUpdateDto(update.OperationalFlagsUpdate),
-            update.Settings is null ? null : ToSettingsDto(update.Settings),
+            update.Settings is null ? null : ToSettingsDto(update.Settings, publicHost),
             update.Printer is null ? null : ToPrinterDto(update.Printer));
     }
 }

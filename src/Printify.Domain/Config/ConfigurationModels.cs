@@ -1,5 +1,3 @@
-﻿using Microsoft.Extensions.Configuration;
-
 namespace Printify.Domain.Config;
 
 /// <summary>
@@ -7,8 +5,9 @@ namespace Printify.Domain.Config;
 /// </summary>
 public sealed class ListenerOptions
 {
-    [ConfigurationKeyName("idle_timeout")]
-    public int IdleTimeoutInMs { get; init; } = 2000;
+    //[ConfigurationKeyName("idle_timeout")]
+    //public int IdleTimeoutInMs { get; init; } = 2000;
+    public string PublicHost { get; init; } = "localhost";
 }
 
 /// <summary>

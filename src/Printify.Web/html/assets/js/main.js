@@ -175,6 +175,7 @@
                 emulateBuffer: dto.settings.emulateBufferCapacity,
                 bufferSize: dto.settings.bufferMaxCapacity || 0,
                 drainRate: dto.settings.bufferDrainRate || 0,
+                publicHost: dto.settings.publicHost,
                 pinned: dto.printer.isPinned,
                 targetStatus,
                 runtimeStatus,
@@ -270,7 +271,8 @@
 
         function formatPrinterAddress(printer) {
             if (printer.port) {
-                return `localhost:${printer.port}`;
+                const host = printer.publicHost || 'localhost';
+                return `${host}:${printer.port}`;
             }
 
             return 'Listener not configured';
@@ -1037,6 +1039,7 @@
                     printer.emulateBuffer = payload.settings.emulateBufferCapacity;
                     printer.bufferSize = payload.settings.bufferMaxCapacity || 0;
                     printer.drainRate = payload.settings.bufferDrainRate || 0;
+                    printer.publicHost = payload.settings.publicHost;
                 }
 
                 // Update printer metadata if provided
@@ -1188,10 +1191,13 @@
               </div>
             `;
                 const greeting = await getWelcomeMessage();
+                const noPrintersMsg = printers.length === 0
+                    ? 'No printers available. Add a printer to view documents.'
+                    : 'Select a printer to view documents';
                 documentsPanel.innerHTML = `
               <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
                 <h2>${greeting}</h2>
-                <p>Select a printer to view documents</p>
+                <p>${noPrintersMsg}</p>
               </div>
             `;
                 return;
@@ -1215,10 +1221,25 @@
 
             // Render documents in documents panel
             if (docs.length === 0) {
+                const protocolName = printer.protocol || 'ESC/POS';
+
                 documentsPanel.innerHTML = `
               <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
                 <h3>No documents yet</h3>
                 <p>Documents will appear here when they are printed</p>
+
+                <div style="text-align: left; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 30px auto; max-width: 500px;">
+                  <h4 style="margin-top: 0; margin-bottom: 16px;">Start Printing</h4>
+                  <p style="margin-bottom: 16px;">Configure your POS application to connect to this printer:</p>
+                  <div style="background: var(--bg); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 14px; line-height: 1.8;">
+                    <div><strong>Host:</strong> ${printer.publicHost || 'localhost'}</div>
+                    <div><strong>Port:</strong> ${printer.port || 'not configured'}</div>
+                    <div><strong>Protocol:</strong> ${protocolName} emulation</div>
+                  </div>
+                  <p style="margin: 16px 0 0 0;">
+                    <a href="docs/guide" style="color: var(--accent);">View Getting Started Guide</a> for code examples
+                  </p>
+                </div>
               </div>
             `;
                 return;

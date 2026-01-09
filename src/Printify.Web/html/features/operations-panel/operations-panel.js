@@ -482,7 +482,7 @@ async function fetchPrinterData(printerId, accessToken) {
 }
 
 function formatPrinterAddress(printer) {
-    const host = 'localhost';
+    const host = printer.settings?.publicHost || 'localhost';
     const port = printer.settings?.tcpListenPort || 9100;
     return `${host}:${port}`;
 }
