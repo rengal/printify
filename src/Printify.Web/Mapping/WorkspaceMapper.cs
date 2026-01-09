@@ -1,4 +1,5 @@
 using Printify.Application.Features.Workspaces.GetWorkspaceSummary;
+using Printify.Application.Services;
 using Printify.Domain.Workspaces;
 using Printify.Web.Contracts.Workspaces.Responses;
 
@@ -27,5 +28,15 @@ internal static class WorkspaceMapper
             summary.DocumentsLast24h,
             summary.LastDocumentAt,
             summary.CreatedAt);
+    }
+
+    internal static GreetingResponseDto ToDto(this GreetingResponse response)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        return new GreetingResponseDto(
+            response.Morning,
+            response.Afternoon,
+            response.Evening,
+            response.General);
     }
 }

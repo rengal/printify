@@ -38,6 +38,65 @@
             }
         }
 
+        // Strong daytime intervals (server and client must agree)
+        const TIME_INTERVALS = {
+            morning: { start: 6, end: 11 },   // 06:00 - 11:00
+            afternoon: { start: 12.5, end: 15.5 }, // 12:30 - 15:30
+            evening: { start: 18.5, end: 22 }  // 18:30 - 22:00
+        };
+
+        function selectTimeBasedGreeting(data) {
+            const now = new Date();
+            const hour = now.getHours() + now.getMinutes() / 60;
+
+            // Check if within morning interval
+            if (data.morning && hour >= TIME_INTERVALS.morning.start && hour < TIME_INTERVALS.morning.end) {
+                return data.morning;
+            }
+
+            // Check if within afternoon interval
+            if (data.afternoon && hour >= TIME_INTERVALS.afternoon.start && hour < TIME_INTERVALS.afternoon.end) {
+                return data.afternoon;
+            }
+
+            // Check if within evening interval
+            if (data.evening && hour >= TIME_INTERVALS.evening.start && hour < TIME_INTERVALS.evening.end) {
+                return data.evening;
+            }
+
+            // Fallback to general greeting
+            return data.general;
+        }
+
+        // Cache buster - increments on workspace changes to bypass browser HTTP cache
+        let greetingCacheBuster = 0;
+
+        async function getWelcomeMessage() {
+            try {
+                // Add cache-busting parameter to bypass browser HTTP cache when workspace changes
+                const cacheParam = greetingCacheBuster > 0 ? `?_cb=${greetingCacheBuster}` : '';
+                const data = await apiRequest(`/api/workspaces/greeting${cacheParam}`);
+                // Select appropriate greeting based on client time
+                return selectTimeBasedGreeting(data);
+            } catch (err) {
+                console.error('[Greeting] Failed to fetch greeting:', err);
+                return 'Welcome to Printify!';
+            }
+        }
+
+        function invalidateGreetingCache() {
+            greetingCacheBuster++;
+        }
+
+        function updateWorkspaceToken(newToken) {
+            if (newToken !== workspaceToken) {
+                workspaceToken = newToken;
+                invalidateGreetingCache();
+            } else {
+                workspaceToken = newToken;
+            }
+        }
+
         function getIcon(name, options = {}) {
             const svg = iconCache[name] || '';
             if (!svg) return '';
@@ -1063,7 +1122,7 @@
             }
         }
 
-        function renderDocuments() {
+        async function renderDocuments() {
             const operationsPanel = document.getElementById('operationsPanel');
             const documentsPanel = document.getElementById('documentsPanel');
 
@@ -1110,9 +1169,10 @@
                 <p>Select a printer from the list</p>
               </div>
             `;
+                const greeting = await getWelcomeMessage();
                 documentsPanel.innerHTML = `
               <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
-                <h2>${getWelcomeMessage(workspaceName, workspaceSummary)}</h2>
+                <h2>${greeting}</h2>
                 <p>Select a printer to view documents</p>
               </div>
             `;
@@ -1484,7 +1544,7 @@
             });
 
             accessToken = loginResponse.accessToken;
-            workspaceToken = token;
+            updateWorkspaceToken(token); // This will invalidate cache if token changed
             const workspace = loginResponse.workspace;
             workspaceName = workspace?.ownerName || null;
             workspaceCreatedAt = workspace?.createdAt ? new Date(workspace.createdAt) : new Date();
@@ -1574,6 +1634,8 @@
             stopStatusStream();
             stopDocumentStream();
             stopRuntimeStream();
+
+            invalidateGreetingCache();
 
             localStorage.removeItem('workspaceToken');
             localStorage.removeItem('workspaceName');
@@ -1910,14 +1972,13 @@
                 showTokenDialog: (token) => showTokenDialog(token),
                 showToast: (msg, isError) => showToast(msg, isError),
                 onWorkspaceCreated: (token, name) => {
-                    workspaceToken = token;
+                    updateWorkspaceToken(token);
                     workspaceName = name;
                     WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
                     renderSidebar();
                     renderDocuments();
                 },
                 onWorkspaceAccessed: (token) => {
-                    // workspaceName is already set by loginWithToken
                     WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
                     renderSidebar();
                     renderDocuments();

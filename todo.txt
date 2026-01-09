@@ -1,6 +1,8 @@
 todo
 - It might be worth moving BuildCommandDescription from src/Printify.Web/Mapping/DocumentMapper.cs into the ESC/POS command descriptors (see src/Printify.Infrastructure/Printing/EscPos/CommandDescriptors/ICommandDescriptor.cs) so command metadata lives with parsing.
 - add hint when hovering over icons (stopped warning, toggle operatinops)
+- workspace name must not be the same format as token (disallow names
+like frozen-dragon-1234)
 
 document view refactor
 - Define view-oriented DTOs in Printify.Web.Contracts (base debug fields, element types incl. type=none).

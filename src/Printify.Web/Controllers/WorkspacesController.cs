@@ -2,7 +2,9 @@ using Mediator.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Printify.Application.Features.Workspaces.CreateWorkspace;
+using Printify.Application.Features.Workspaces.GetGreeting;
 using Printify.Application.Features.Workspaces.GetWorkspaceSummary;
+using Printify.Application.Services;
 using Printify.Domain.Workspaces;
 using Printify.Web.Contracts.Workspaces.Requests;
 using Printify.Web.Contracts.Workspaces.Responses;
@@ -42,5 +44,19 @@ public sealed class WorkspacesController(IMediator mediator, HttpContextExtensio
         var summaryDto = summary.ToDto();
 
         return Ok(summaryDto);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("greeting")]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Client, NoStore = false)]
+    public async Task<ActionResult<GreetingResponseDto>> GetGreeting(CancellationToken ct)
+    {
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        var query = new GetGreetingQuery(httpContext);
+
+        var greeting = await mediator.RequestAsync<GetGreetingQuery, GreetingResponse>(query, ct).ConfigureAwait(false);
+        var greetingDto = greeting.ToDto();
+
+        return Ok(greetingDto);
     }
 }

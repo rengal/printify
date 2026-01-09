@@ -1,12 +1,14 @@
 using Mediator.Net;
 using Mediator.Net.MicrosoftDependencyInjection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Auth.Login;
 using Printify.Application.Features.Printers.Documents.View;
 using Printify.Application.Interfaces;
 using Printify.Application.Pipeline;
 using Printify.Application.Printing;
+using Printify.Application.Services;
 using Printify.Domain.Config;
 using Printify.Domain.Services;
 using Printify.Infrastructure.Clock;
@@ -42,6 +44,7 @@ public static class ServiceCollectionExtensions
 
         // Application services
         services.AddHttpContextAccessor();
+        services.AddMemoryCache();
         services.AddSingleton<IClockFactory, StopwatchClockFactory>();
         services.AddSingleton<HttpContextExtensions>();
         var mediatorBuilder = new MediatorBuilder()
@@ -52,6 +55,9 @@ public static class ServiceCollectionExtensions
 
         // Security
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
+
+        // Services
+        services.AddSingleton<IGreetingService, GreetingService>();
 
         // Database
         services.AddDbContext<PrintifyDbContext>((serviceProvider, options) =>
