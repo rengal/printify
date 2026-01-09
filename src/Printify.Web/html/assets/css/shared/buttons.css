@@ -40,7 +40,7 @@
 .btn-primary {
     background: var(--accent);
     border-color: transparent;
-    color: #fff;
+    color: white;
 }
 
 .btn-primary:hover {
@@ -70,7 +70,7 @@
 .btn-danger {
     background: var(--danger);
     border-color: transparent;
-    color: #fff;
+    color: white;
 }
 
 .btn-sm {
