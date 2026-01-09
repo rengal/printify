@@ -25,7 +25,8 @@ let bufferAnimation = {
     lastUpdateTime: 0,
     animationFrame: null,
     isAnimating: false,
-    lastAnimationTime: 0
+    lastAnimationTime: 0,
+    lastDisplayedBytes: null  // Track the last interpolated value we showed
 };
 
 const ANIMATION_INTERVAL_MS = 100; // 10 fps
@@ -541,6 +542,9 @@ function updateBufferProgress(fillElement, bufferedBytes, maxSize) {
 // BUFFER ANIMATION
 // ============================================================================
 
+const INTERPOLATION_DURATION_MS = 2000;  // Interpolate for 2 seconds (longer than SSE interval)
+const TIMEOUT_DURATION_MS = 4000;        // Stop animation after 4 seconds without update
+
 /**
  * Start buffer animation loop based on rate-of-change
  * @param {number} currentBytes - Current buffered bytes from SSE
@@ -554,6 +558,7 @@ function startBufferAnimation(currentBytes, bytesPerSecond) {
     bufferAnimation.bytesPerSecond = bytesPerSecond || 0;
     bufferAnimation.lastUpdateTime = now;
     bufferAnimation.lastAnimationTime = now;
+    bufferAnimation.lastDisplayedBytes = null;  // Reset, will be set during interpolation
     bufferAnimation.isAnimating = true;
 
     // Cancel any existing animation
@@ -571,10 +576,10 @@ function startBufferAnimation(currentBytes, bytesPerSecond) {
  */
 function animateBuffer() {
     const now = Date.now();
-    const elapsedSeconds = (now - bufferAnimation.lastUpdateTime) / 1000;
+    const elapsedMs = now - bufferAnimation.lastUpdateTime;
 
-    // Stop animation after 2 seconds without update
-    if (elapsedSeconds > 2.0) {
+    // Stop animation after timeout without update
+    if (elapsedMs > TIMEOUT_DURATION_MS) {
         stopBufferAnimation();
         return;
     }
@@ -583,17 +588,27 @@ function animateBuffer() {
     const timeSinceLastAnimation = now - bufferAnimation.lastAnimationTime;
     const shouldUpdateUI = timeSinceLastAnimation >= ANIMATION_INTERVAL_MS;
 
-    // Only interpolate for the first 1 second
-    if (elapsedSeconds <= 1.0 && bufferAnimation.bytesPerSecond !== 0) {
+    // Only interpolate for the configured duration
+    if (elapsedMs <= INTERPOLATION_DURATION_MS && bufferAnimation.bytesPerSecond !== 0) {
+        const elapsedSeconds = elapsedMs / 1000;
         // Project current value based on rate
         const projectedBytes = bufferAnimation.lastKnownBytes + (bufferAnimation.bytesPerSecond * elapsedSeconds);
 
         // Clamp to valid bounds [0, maxCapacity]
         const clampedBytes = Math.max(0, Math.min(projectedBytes, cachedBufferMaxCapacity));
 
+        // Stop animation if buffer is empty - nothing more to animate
+        if (clampedBytes <= 0) {
+            stopBufferAnimation();
+            return;
+        }
+
         // Update UI only at interval
         if (shouldUpdateUI) {
             bufferAnimation.lastAnimationTime = now;
+            // Track the last value we displayed
+            bufferAnimation.lastDisplayedBytes = clampedBytes;
+
             if (currentPanel?.elements) {
                 currentPanel.elements.bufferValue.textContent = `${Math.round(clampedBytes)}/${cachedBufferMaxCapacity}`;
                 updateBufferProgress(currentPanel.elements.bufferFill, clampedBytes, cachedBufferMaxCapacity);
@@ -603,15 +618,24 @@ function animateBuffer() {
         // Continue animation (still runs rAF loop for timing, but UI updates at 5fps)
         bufferAnimation.animationFrame = requestAnimationFrame(animateBuffer);
     } else {
-        // After 1 second or rate is 0, show last known value
+        // After interpolation duration or rate is 0, show last displayed interpolated value (not lastKnownBytes!)
+        // Use lastKnownBytes if we never interpolated (e.g., rate was 0 from start)
+        const holdingValue = bufferAnimation.lastDisplayedBytes ?? bufferAnimation.lastKnownBytes;
+
+        // Stop animation if buffer is empty - nothing more to animate
+        if (holdingValue <= 0) {
+            stopBufferAnimation();
+            return;
+        }
+
         if (shouldUpdateUI) {
             bufferAnimation.lastAnimationTime = now;
             if (currentPanel?.elements) {
-                currentPanel.elements.bufferValue.textContent = `${bufferAnimation.lastKnownBytes}/${cachedBufferMaxCapacity}`;
-                updateBufferProgress(currentPanel.elements.bufferFill, bufferAnimation.lastKnownBytes, cachedBufferMaxCapacity);
+                currentPanel.elements.bufferValue.textContent = `${Math.round(holdingValue)}/${cachedBufferMaxCapacity}`;
+                updateBufferProgress(currentPanel.elements.bufferFill, holdingValue, cachedBufferMaxCapacity);
             }
         }
-        // Keep checking for 2-second timeout
+        // Keep checking for timeout
         bufferAnimation.animationFrame = requestAnimationFrame(animateBuffer);
     }
 }
@@ -646,6 +670,7 @@ function cancelBufferAnimation() {
     bufferAnimation.bytesPerSecond = 0;
     bufferAnimation.lastUpdateTime = 0;
     bufferAnimation.lastAnimationTime = 0;
+    bufferAnimation.lastDisplayedBytes = null;
 }
 
 // ============================================================================
