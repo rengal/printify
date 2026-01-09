@@ -1450,257 +1450,17 @@
                 return;
             }
 
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.innerHTML = `
-            <div class="modal">
-              <div class="modal-header">New Printer</div>
-              <div class="modal-body">
-                <div class="field">
-                  <label class="label required">Name</label>
-                  <input class="input" id="printerName" placeholder="e.g., Kitchen Printer" />
-                  <div class="field-error" id="nameError">Name is required</div>
-                </div>
-
-                <div class="field-group">
-                    <div class="field">
-                      <label class="label required">Protocol</label>
-                      <select class="input" id="printerProtocol">
-                        <option value="escpos">ESC/POS emulation</option>
-                      </select>
-                    </div>
-
-                  <div class="field">
-                    <label class="label">Width (dots)</label>
-                    <input class="input" id="printerWidth" type="number" value="512" />
-                    <div class="field-hint">Paper width in dots</div>
-                  </div>
-                </div>
-
-                <div class="checkbox-field">
-                  <input type="checkbox" id="emulateBuffer" onchange="toggleBufferFields()" />
-                  <label for="emulateBuffer">Emulate buffer capacity</label>
-                </div>
-
-                <div id="bufferFields" class="indent" style="display: none;">
-                  <div class="field-group">
-                    <div class="field">
-                      <label class="label">Buffer size (bytes)</label>
-                      <input class="input" id="bufferSize" type="number" value="4096" />
-                      <div class="field-hint">Internal buffer size</div>
-                    </div>
-
-                    <div class="field">
-                      <label class="label">Drain rate (bytes/s)</label>
-                      <input class="input" id="drainRate" type="number" value="4096" />
-                      <div class="field-hint">Processing speed</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div style="background: rgba(239,68,68,0.08); border: 1px solid var(--danger); border-radius: 10px; padding: 12px; margin: 16px 0 12px 0;">
-                  <div class="checkbox-field" style="margin-bottom: 0; align-items: flex-start;">
-                    <input type="checkbox" id="securityAck" style="width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0;" />
-                    <label for="securityAck" style="color: var(--text); line-height: 1.4; font-size: 13px;">
-                      I understand this printer uses raw TCP connection without encryption and transmitted data may be intercepted or modified. This is for testing/development only. I will not send sensitive data to this printer. <a href="/docs/security" target="_blank" style="color: var(--danger); text-decoration: underline;">Learn more</a>
-                    </label>
-                  </div>
-                  <div class="field-error" id="securityAckError" style="margin-top: 6px; margin-left: 26px;">You must acknowledge the security notice</div>
-                </div>
-
-                <div class="form-actions">
-                  <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                  <button class="btn btn-primary" onclick="createPrinter()">Create</button>
-                </div>
-              </div>
-            </div>
-          `;
-            document.getElementById('modalContainer').appendChild(modal);
-        }
-
-        function toggleBufferFields() {
-            const checked = document.getElementById('emulateBuffer').checked;
-            document.getElementById('bufferFields').style.display = checked ? 'block' : 'none';
+            if (window.PrinterDialogue) {
+                PrinterDialogue.showCreate();
+            }
         }
 
         function editPrinter(printerId) {
             const printer = printers.find(p => p.id === printerId);
             if (!printer) return;
 
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.innerHTML = `
-            <div class="modal">
-              <div class="modal-header">Edit Printer</div>
-              <div class="modal-body">
-                <div class="field">
-                  <label class="label required">Name</label>
-                  <input class="input" id="printerName" value="${printer.name}" />
-                  <div class="field-error" id="nameError">Name is required</div>
-                </div>
-
-                <div class="field-group">
-                    <div class="field">
-                      <label class="label required">Protocol</label>
-                      <select class="input" id="printerProtocol" disabled>
-                      <option value="escpos" ${printer.protocol.toLowerCase() === 'escpos' ? 'selected' : ''}>ESC/POS emulation</option>
-                      </select>
-                      <div class="field-hint">Protocol cannot be changed after creation</div>
-                    </div>
-
-                  <div class="field">
-                    <label class="label">Width (dots)</label>
-                    <input class="input" id="printerWidth" type="number" value="${printer.width}" />
-                    <div class="field-hint">Paper width in dots</div>
-                  </div>
-                </div>
-
-                <div class="checkbox-field">
-                  <input type="checkbox" id="emulateBuffer" ${printer.emulateBuffer ? 'checked' : ''} onchange="toggleBufferFields()" />
-                  <label for="emulateBuffer">Emulate buffer capacity</label>
-                </div>
-
-                <div id="bufferFields" class="indent" style="display: ${printer.emulateBuffer ? 'block' : 'none'};">
-                  <div class="field-group">
-                    <div class="field">
-                      <label class="label">Buffer size (bytes)</label>
-                      <input class="input" id="bufferSize" type="number" value="${printer.bufferSize}" />
-                      <div class="field-hint">Internal buffer size</div>
-                    </div>
-
-                    <div class="field">
-                      <label class="label">Drain rate (bytes/s)</label>
-                      <input class="input" id="drainRate" type="number" value="${printer.drainRate}" />
-                      <div class="field-hint">Processing speed</div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-actions">
-                  <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                  <button class="btn btn-primary" onclick="updatePrinter('${printerId}')">Save</button>
-                </div>
-              </div>
-            </div>
-          `;
-            document.getElementById('modalContainer').appendChild(modal);
-        }
-
-        async function createPrinter() {
-            const name = document.getElementById('printerName').value.trim();
-            const protocol = document.getElementById('printerProtocol').value;
-            const width = parseInt(document.getElementById('printerWidth').value) || 512;
-            const emulateBuffer = document.getElementById('emulateBuffer').checked;
-            const bufferSize = parseInt(document.getElementById('bufferSize').value) || 4096;
-            const drainRate = parseInt(document.getElementById('drainRate').value) || 4096;
-            const securityAck = document.getElementById('securityAck').checked;
-
-            const nameInput = document.getElementById('printerName');
-            const nameError = document.getElementById('nameError');
-            const securityAckError = document.getElementById('securityAckError');
-
-            nameInput.classList.remove('invalid');
-            nameError.classList.remove('show');
-            securityAckError.classList.remove('show');
-
-            if (!name) {
-                nameInput.classList.add('invalid');
-                nameError.classList.add('show');
-                nameInput.focus();
-                return;
-            }
-
-            if (!securityAck) {
-                securityAckError.classList.add('show');
-                document.getElementById('securityAck').focus();
-                return;
-            }
-
-            try
-            {
-                const request = {
-                    printer: {
-                        id: crypto.randomUUID(),
-                        displayName: name
-                    },
-                    settings: {
-                        protocol: normalizeProtocol(protocol),
-                        widthInDots: width,
-                        heightInDots: null,
-                        emulateBufferCapacity: emulateBuffer,
-                        bufferDrainRate: drainRate,
-                        bufferMaxCapacity: bufferSize
-                    }
-                };
-
-                const created = await apiRequest('/api/printers', {
-                    method: 'POST',
-                    body: JSON.stringify(request)
-                });
-
-                await loadPrinters(created.printer.id);
-                closeModal();
-                showToast('Printer created successfully');
-            }
-            catch (err)
-            {
-                console.error(err);
-                showToast(err.message || 'Failed to create printer', true);
-            }
-        }
-
-        async function updatePrinter(printerId) {
-            const printer = printers.find(p => p.id === printerId);
-            if (!printer) return;
-
-            const name = document.getElementById('printerName').value.trim();
-            const protocol = document.getElementById('printerProtocol').value;
-            const width = parseInt(document.getElementById('printerWidth').value) || 512;
-            const emulateBuffer = document.getElementById('emulateBuffer').checked;
-            const bufferSize = parseInt(document.getElementById('bufferSize').value) || 4096;
-            const drainRate = parseInt(document.getElementById('drainRate').value) || 4096;
-
-            const nameInput = document.getElementById('printerName');
-            const nameError = document.getElementById('nameError');
-
-            nameInput.classList.remove('invalid');
-            nameError.classList.remove('show');
-
-            if (!name) {
-                nameInput.classList.add('invalid');
-                nameError.classList.add('show');
-                nameInput.focus();
-                return;
-            }
-
-            try {
-                const request = {
-                    printer: {
-                        id: printerId,
-                        displayName: name
-                    },
-                    settings: {
-                        protocol: normalizeProtocol(protocol),
-                        widthInDots: width,
-                        heightInDots: null,
-                        emulateBufferCapacity: emulateBuffer,
-                        bufferDrainRate: drainRate,
-                        bufferMaxCapacity: bufferSize
-                    }
-                };
-
-                await apiRequest(`/api/printers/${printerId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify(request)
-                });
-
-                await loadPrinters(printerId);
-                closeModal();
-                showToast('Printer updated successfully');
-            }
-            catch (err) {
-                console.error(err);
-                showToast(err.message || 'Failed to update printer', true);
+            if (window.PrinterDialogue) {
+                PrinterDialogue.showEdit(printer);
             }
         }
 
@@ -2162,6 +1922,17 @@
                     renderSidebar();
                     renderDocuments();
                 }
+            });
+        }
+
+        // Initialize Printer Dialogue module
+        if (window.PrinterDialogue) {
+            PrinterDialogue.init({
+                apiRequest: (path, options) => apiRequest(path, options),
+                normalizeProtocol: (protocol) => normalizeProtocol(protocol),
+                loadPrinters: (selectId) => loadPrinters(selectId),
+                closeModal: () => closeModal(),
+                showToast: (msg, isError) => showToast(msg, isError)
             });
         }
 

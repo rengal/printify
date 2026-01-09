@@ -1,0 +1,72 @@
+<template id="printer-dialogue-template">
+    <div class="modal-overlay" data-printer-dialogue-overlay>
+        <div class="modal">
+            <div class="modal-header" data-printer-dialogue-title>New Printer</div>
+            <div class="modal-body">
+                <!-- Name Field -->
+                <div class="field">
+                    <label class="label required" for="printer-dialogue-name">Name</label>
+                    <input class="input" id="printer-dialogue-name" data-printer-dialogue-name-input placeholder="e.g., Kitchen Printer" />
+                    <div class="field-error" data-printer-dialogue-name-error>Name is required</div>
+                </div>
+
+                <!-- Protocol and Width Fields -->
+                <div class="field-group">
+                    <div class="field">
+                        <label class="label required" for="printer-dialogue-protocol">Protocol</label>
+                        <select class="input" id="printer-dialogue-protocol" data-printer-dialogue-protocol-input>
+                            <option value="escpos">ESC/POS emulation</option>
+                        </select>
+                        <div class="field-hint" data-printer-dialogue-protocol-hint></div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label" for="printer-dialogue-width">Width (dots)</label>
+                        <input class="input" id="printer-dialogue-width" data-printer-dialogue-width-input type="number" value="512" />
+                        <div class="field-hint">Paper width in dots</div>
+                    </div>
+                </div>
+
+                <!-- Buffer Emulation Checkbox -->
+                <div class="checkbox-field">
+                    <input type="checkbox" id="printer-dialogue-emulate-buffer" data-printer-dialogue-emulate-buffer-input />
+                    <label for="printer-dialogue-emulate-buffer">Emulate buffer capacity</label>
+                </div>
+
+                <!-- Buffer Fields (conditional) -->
+                <div id="printer-dialogue-buffer-fields" data-printer-dialogue-buffer-fields class="indent" style="display: none;">
+                    <div class="field-group">
+                        <div class="field">
+                            <label class="label" for="printer-dialogue-buffer-size">Buffer size (bytes)</label>
+                            <input class="input" id="printer-dialogue-buffer-size" data-printer-dialogue-buffer-size-input type="number" value="4096" />
+                            <div class="field-hint">Internal buffer size</div>
+                        </div>
+
+                        <div class="field">
+                            <label class="label" for="printer-dialogue-drain-rate">Drain rate (bytes/s)</label>
+                            <input class="input" id="printer-dialogue-drain-rate" data-printer-dialogue-drain-rate-input type="number" value="4096" />
+                            <div class="field-hint">Processing speed</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Acknowledgment (for new printers only) -->
+                <div id="printer-dialogue-security-section" data-printer-dialogue-security-section style="background: rgba(239,68,68,0.08); border: 1px solid var(--danger); border-radius: 10px; padding: 12px; margin: 16px 0 12px 0;">
+                    <div class="checkbox-field" style="margin-bottom: 0; align-items: flex-start;">
+                        <input type="checkbox" id="printer-dialogue-security-ack" data-printer-dialogue-security-ack-input style="width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0;" />
+                        <label for="printer-dialogue-security-ack" style="color: var(--text); line-height: 1.4; font-size: 13px;">
+                            I understand this printer uses raw TCP connection without encryption and transmitted data may be intercepted or modified. This is for testing/development only. I will not send sensitive data to this printer. <a href="/docs/security" target="_blank" style="color: var(--danger); text-decoration: underline;">Learn more</a>
+                        </label>
+                    </div>
+                    <div class="field-error" data-printer-dialogue-security-ack-error style="margin-top: 6px; margin-left: 26px;">You must acknowledge the security notice</div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button class="btn btn-secondary" data-printer-dialogue-cancel>Cancel</button>
+                    <button class="btn btn-primary" data-printer-dialogue-submit>Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
