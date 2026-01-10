@@ -62,7 +62,7 @@ internal static class CommandMapper
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        return new CreateWorkspaceCommand(context, request.Id, request.OwnerName);
+        return new CreateWorkspaceCommand(context, request.Id, request.WorkspaceName);
     }
 
     private static Protocol ParseProtocol(string protocol)

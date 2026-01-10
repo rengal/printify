@@ -508,12 +508,9 @@ public sealed class WorkspaceSummaryTests(WebApplicationFactory<Program> factory
     // Helper method to send document via printer listener
     private static async Task SendDocumentAsync(Guid printerId, string text)
     {
-        if (!TestPrinterListenerFactory.TryGetListener(printerId, out var listener))
-        {
-            throw new InvalidOperationException($"Listener for printer {printerId} not found");
-        }
-
+        var listener = await TestPrinterListenerFactory.GetListenerAsync(printerId);
         var channel = await listener.AcceptClientAsync(CancellationToken.None);
+
         var payload = Encoding.ASCII.GetBytes(text);
         await channel.SendToServerAsync(payload, CancellationToken.None);
         await channel.CloseAsync(ChannelClosedReason.Completed);

@@ -228,7 +228,7 @@ async function handleCreate() {
     try {
         const request = {
             id: crypto.randomUUID(),
-            ownerName: name
+            workspaceName: name
         };
 
         const workspace = await callbacks.apiRequest('/api/workspaces', {
@@ -241,7 +241,7 @@ async function handleCreate() {
         }
 
         const workspaceToken = workspace.token;
-        const workspaceName = workspace.ownerName;
+        const workspaceName = workspace.workspaceName;
 
         // Store in localStorage
         localStorage.setItem('workspaceToken', workspaceToken);

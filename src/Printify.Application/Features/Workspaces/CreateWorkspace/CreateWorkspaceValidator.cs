@@ -12,8 +12,8 @@ public sealed class CreateWorkspaceValidator : AbstractValidator<CreateWorkspace
             .NotEmpty()
             .WithMessage("Workspace id must be supplied.");
 
-        RuleFor(command => command.OwnerName)
+        RuleFor(command => command.WorkspaceName)
             .MaximumLength(MaxDisplayNameLength)
-            .WithMessage($"Owner name cannot exceed {MaxDisplayNameLength} characters.");
+            .WithMessage($"Workspace name cannot exceed {MaxDisplayNameLength} characters.");
     }
 }

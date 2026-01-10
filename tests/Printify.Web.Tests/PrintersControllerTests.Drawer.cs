@@ -49,10 +49,7 @@ public sealed partial class PrintersControllerTests
         using var reader = new StreamReader(stream);
 
         // Get the listener to simulate client connection
-        if (!TestPrinterListenerFactory.TryGetListener(printerId, out var listener))
-        {
-            throw new InvalidOperationException("Listener was not registered for the created printer.");
-        }
+        var listener = await TestPrinterListenerFactory.GetListenerAsync(printerId);
 
         // 3. send escp/pos command to open drawer 1
         var channel1 = await listener.AcceptClientAsync(CancellationToken.None);

@@ -525,12 +525,9 @@ public sealed partial class PrintersControllerTests
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
-        if (!TestPrinterListenerFactory.TryGetListener(printerId, out var listener))
-        {
-            throw new InvalidOperationException("Listener was not registered for the created printer.");
-        }
-
+        var listener = await TestPrinterListenerFactory.GetListenerAsync(printerId);
         var channel = await listener.AcceptClientAsync(CancellationToken.None);
+
         var pulse = new byte[] { 0x1B, (byte)'p', 0x00, 0x05, 0x0A };
         await channel.SendToServerAsync(pulse, CancellationToken.None);
         await channel.CloseAsync(ChannelClosedReason.Completed);
@@ -545,11 +542,11 @@ public sealed partial class PrintersControllerTests
 
     private static async Task<Guid> CreateWorkspaceAndLoginAsync(HttpClient client)
     {
-        var ownerName = "owner_" + Guid.NewGuid().ToString("N");
+        var workspaceName = "workspace_" + Guid.NewGuid().ToString("N");
         var workspaceId = Guid.NewGuid();
         var workspaceResponse = await client.PostAsJsonAsync(
             "/api/workspaces",
-            new CreateWorkspaceRequestDto(workspaceId, ownerName));
+            new CreateWorkspaceRequestDto(workspaceId, workspaceName));
         workspaceResponse.EnsureSuccessStatusCode();
         var workspaceDto = await workspaceResponse.Content.ReadFromJsonAsync<WorkspaceResponseDto>();
         Assert.NotNull(workspaceDto);

@@ -23,10 +23,7 @@ public sealed partial class PrintersControllerTests
         createResponse.EnsureSuccessStatusCode();
 
         // Get the test listener
-        if (!TestPrinterListenerFactory.TryGetListener(printerId, out var listener))
-        {
-            throw new InvalidOperationException("Listener was not registered for the created printer.");
-        }
+        var listener = await TestPrinterListenerFactory.GetListenerAsync(printerId);
 
         // Accept client connection
         var channel = await listener.AcceptClientAsync(CancellationToken.None);
@@ -82,11 +79,7 @@ public sealed partial class PrintersControllerTests
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
-        if (!TestPrinterListenerFactory.TryGetListener(printerId, out var listener))
-        {
-            throw new InvalidOperationException("Listener was not registered for the created printer.");
-        }
-
+        var listener = await TestPrinterListenerFactory.GetListenerAsync(printerId);
         var channel = await listener.AcceptClientAsync(CancellationToken.None);
 
         var responseReceived = new TaskCompletionSource<byte[]>();
@@ -123,11 +116,7 @@ public sealed partial class PrintersControllerTests
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
-        if (!TestPrinterListenerFactory.TryGetListener(printerId, out var listener))
-        {
-            throw new InvalidOperationException("Listener was not registered for the created printer.");
-        }
-
+        var listener = await TestPrinterListenerFactory.GetListenerAsync(printerId);
         var channel = await listener.AcceptClientAsync(CancellationToken.None);
 
         var responsesReceived = new List<byte[]>();

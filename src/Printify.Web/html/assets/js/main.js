@@ -1591,7 +1591,7 @@
             accessToken = loginResponse.accessToken;
             updateWorkspaceToken(token); // This will invalidate cache if token changed
             const workspace = loginResponse.workspace;
-            workspaceName = workspace?.ownerName || null;
+            workspaceName = workspace?.workspaceName || null;
             workspaceCreatedAt = workspace?.createdAt ? new Date(workspace.createdAt) : new Date();
 
             localStorage.setItem('accessToken', accessToken);

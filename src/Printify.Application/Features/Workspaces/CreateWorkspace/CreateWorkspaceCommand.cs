@@ -8,6 +8,6 @@ namespace Printify.Application.Features.Workspaces.CreateWorkspace;
 public sealed record CreateWorkspaceCommand(
     RequestContext Context,
     Guid WorkspaceId,
-    string OwnerName)
+    string WorkspaceName)
     : IRequest, ITransactionalRequest;
 

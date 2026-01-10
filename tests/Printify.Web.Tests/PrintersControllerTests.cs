@@ -28,10 +28,7 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
-        if (!TestPrinterListenerFactory.TryGetListener(printerId, out var listener))
-        {
-            throw new InvalidOperationException($"Listener for printer {printerId} was not registered.");
-        }
+        var listener = await TestPrinterListenerFactory.GetListenerAsync(printerId);
 
         var channel = await listener.AcceptClientAsync();
 

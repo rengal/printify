@@ -264,19 +264,8 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         var response = await client.PostAsJsonAsync("/api/printers", request);
         response.EnsureSuccessStatusCode();
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-        
-        while (!cts.Token.IsCancellationRequested)
-        {
-            if (TestPrinterListenerFactory.TryGetListener(printerId, out var listener))
-            {
-                return await listener.AcceptClientAsync(cts.Token);
-            }
-            
-            await Task.Delay(100, cts.Token);
-        }
-
-        throw new InvalidOperationException($"Listener for printer {printerId} was not registered within 2 seconds.");
+        var listener = await TestPrinterListenerFactory.GetListenerAsync(printerId, timeoutInMs: 2000);
+        return await listener.AcceptClientAsync(CancellationToken.None);
     }
 
     private static async Task AuthenticateAsync(TestServiceContext.ControllerTestContext environment, string displayName)

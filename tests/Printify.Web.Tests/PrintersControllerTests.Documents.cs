@@ -125,11 +125,7 @@ public sealed partial class PrintersControllerTests
         int? expectedHeightInDots,
         CancellationToken ct)
     {
-        if (!TestPrinterListenerFactory.TryGetListener(printerId, out var listener))
-        {
-            throw new InvalidOperationException("Listener was not registered for the created printer.");
-        }
-
+        var listener = await TestPrinterListenerFactory.GetListenerAsync(printerId, cancellationToken: ct);
         var channel = await listener.AcceptClientAsync(ct);
         var payload = Encoding.ASCII.GetBytes(text);
         await channel.SendToServerAsync(payload, ct);

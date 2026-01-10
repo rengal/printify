@@ -17,12 +17,12 @@ internal class AuthHelper
     {
         var client = environment.Client;
 
-        var ownerName = "owner_" + Guid.NewGuid().ToString("N");
+        var workspaceName = "workspace_" + Guid.NewGuid().ToString("N");
 
         // Create new workspace
         var workspaceId = Guid.NewGuid();
         var createWorkspaceResponse = await client.PostAsJsonAsync("/api/workspaces",
-            new CreateWorkspaceRequestDto(workspaceId, ownerName));
+            new CreateWorkspaceRequestDto(workspaceId, workspaceName));
         createWorkspaceResponse.EnsureSuccessStatusCode();
         var workspaceResponseDto = await createWorkspaceResponse.Content.ReadFromJsonAsync<WorkspaceResponseDto>();
         Assert.NotNull(workspaceResponseDto);

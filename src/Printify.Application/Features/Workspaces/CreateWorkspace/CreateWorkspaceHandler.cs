@@ -26,7 +26,7 @@ public sealed class CreateWorkspaceHandler(IWorkspaceRepository workspaceReposit
 
         var workspace = new Workspace(
             request.WorkspaceId,
-            request.OwnerName, // Will be mapped to Name
+            request.WorkspaceName,
             token,
             DateTimeOffset.UtcNow,
             request.Context.IpAddress,
