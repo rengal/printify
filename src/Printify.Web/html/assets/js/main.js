@@ -123,23 +123,27 @@
         }
 
         async function apiRequest(path, options = {}) {
+            const { isTokenLogin = false, ...fetchOptions } = options;
+
             const headers = {
                 'Content-Type': 'application/json',
                 ...authHeaders(),
-                ...(options.headers || {})
+                ...(fetchOptions.headers || {})
             };
 
             const response = await fetch(`${apiBase}${path}`, {
-                ...options,
+                ...fetchOptions,
                 headers
             });
 
             if (!response.ok) {
                 // Handle 401/403 - authentication/authorization failures
                 if (response.status === 401 || response.status === 403) {
-                    console.error(`Auth failed (${response.status}) for ${path}, logging out`);
-                    // Only log out if we have a workspace token (avoid loops)
-                    if (workspaceToken) {
+                    console.error(`Auth failed (${response.status}) for ${path}, isTokenLogin: ${isTokenLogin}`);
+
+                    // Only auto-logout if we have a workspace token AND we're not trying to login with a new token
+                    if (workspaceToken && !isTokenLogin) {
+                        console.log('[apiRequest] Session expired - logging out');
                         logOut();
                     }
                 }
@@ -1558,47 +1562,62 @@
 
         // Workspace Management
         async function loginWithToken(token) {
-            const loginResponse = await apiRequest('/api/auth/login', {
-                method: 'POST',
-                body: JSON.stringify({ token })
-            });
+            console.log('[main.js] loginWithToken - called with token:', token);
 
-            accessToken = loginResponse.accessToken;
-            updateWorkspaceToken(token); // This will invalidate cache if token changed
-            const workspace = loginResponse.workspace;
-            workspaceName = workspace?.name || null;
-            workspaceCreatedAt = workspace?.createdAt ? new Date(workspace.createdAt) : new Date();
-
-            localStorage.setItem('accessToken', accessToken);
-            if (workspaceName) {
-                localStorage.setItem('workspaceName', workspaceName);
-            }
-            else {
-                localStorage.removeItem('workspaceName');
-            }
-            if (workspaceCreatedAt) {
-                localStorage.setItem('workspaceCreatedAt', workspaceCreatedAt.toISOString());
-            }
-
-            // Fetch current workspace to confirm auth and get user info
             try {
-                const workspace = await apiRequest('/api/workspaces');
-                if (workspace && workspace.name) {
-                    workspaceName = workspace.name;
+                const loginResponse = await apiRequest('/api/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ token }),
+                    isTokenLogin: true  // Prevent auto-logout on 401
+                });
+
+                console.log('[main.js] loginWithToken - loginResponse:', loginResponse);
+
+                accessToken = loginResponse.accessToken;
+                updateWorkspaceToken(token); // This will invalidate cache if token changed
+                const workspace = loginResponse.workspace;
+                workspaceName = workspace?.name || null;
+                workspaceCreatedAt = workspace?.createdAt ? new Date(workspace.createdAt) : new Date();
+
+                console.log('[main.js] loginWithToken - workspace from login response:', workspace);
+                console.log('[main.js] loginWithToken - workspaceName set to:', workspaceName);
+
+                localStorage.setItem('accessToken', accessToken);
+                if (workspaceName) {
                     localStorage.setItem('workspaceName', workspaceName);
-                    WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
                 }
-            startStatusStream();
-            await loadPrinters();
-            if (selectedPrinterId) {
-                await ensureDocumentsLoaded(selectedPrinterId);
-                startDocumentStream(selectedPrinterId);
-                startRuntimeStream(selectedPrinterId);
-            }
+                else {
+                    localStorage.removeItem('workspaceName');
+                }
+                if (workspaceCreatedAt) {
+                    localStorage.setItem('workspaceCreatedAt', workspaceCreatedAt.toISOString());
+                }
+
+                // Fetch current workspace to confirm auth and get user info
+                try {
+                    const workspace = await apiRequest('/api/workspaces');
+                    console.log('[main.js] loginWithToken - workspace from /api/workspaces:', workspace);
+                    if (workspace && workspace.name) {
+                        workspaceName = workspace.name;
+                        localStorage.setItem('workspaceName', workspaceName);
+                        console.log('[main.js] loginWithToken - updating WorkspaceMenu with workspaceName:', workspaceName);
+                        window.WorkspaceMenu?.updateDisplay(workspaceToken, workspaceName);
+                    }
+                } catch (innerError) {
+                    console.error('[main.js] loginWithToken - failed to fetch workspace after login:', innerError);
+                    // Continue anyway - we have the workspace from the login response
+                }
+
+                startStatusStream();
+                await loadPrinters();
+                if (selectedPrinterId) {
+                    await ensureDocumentsLoaded(selectedPrinterId);
+                    startDocumentStream(selectedPrinterId);
+                    startRuntimeStream(selectedPrinterId);
+                }
             } catch (error) {
                 console.error('Auth error:', error);
-                // Auth failed, log out
-                logOut();
+                throw error;
             }
         }
 
@@ -1959,9 +1978,11 @@
                 closeModal: () => closeModal(),
                 showToast: (msg, isError) => showToast(msg, isError),
                 onWorkspaceCreated: (token, name) => {
+                    console.log('[main.js] onWorkspaceCreated - token:', token, 'name:', name);
                     updateWorkspaceToken(token);
                     workspaceName = name;
-                    WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
+                    console.log('[main.js] onWorkspaceCreated - workspaceName set to:', workspaceName);
+                    WorkspaceMenu.updateDisplay(token, workspaceName);
                     renderSidebar();
                     renderDocuments();
                 },

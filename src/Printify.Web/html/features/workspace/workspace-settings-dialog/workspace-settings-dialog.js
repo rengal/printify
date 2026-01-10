@@ -8,6 +8,9 @@
  * - Handles workspace deletion
  */
 
+import { escapeHtml } from '../../assets/js/utils/html-utils.js';
+import { formatDateTime, formatDateTimeWithRelative, formatRelativeTime } from '../../assets/js/utils/datetime-format.js';
+
 // ============================================================================
 // STATE
 // ============================================================================
@@ -330,62 +333,6 @@ async function loadTemplate() {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     template = doc.querySelector('template');
-}
-
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-function formatDateTime(date) {
-    if (!date) return '—';
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${day}.${month}.${year} ${hours}:${minutes}`;
-}
-
-function formatDateTimeWithRelative(date) {
-    if (!date) return 'Never';
-
-    const dateTimeStr = date.toLocaleString(undefined, {
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', hour12: false
-    });
-
-    const relativeStr = formatRelativeTime(date);
-
-    return `${dateTimeStr}<br><span style="font-size: 13px; opacity: 0.7;">${relativeStr}</span>`;
-}
-
-function formatRelativeTime(date) {
-    if (!date) return '';
-    const now = new Date();
-    const diff = now - date;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days === 1) return 'yesterday';
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
-}
-
-function escapeHtml(value) {
-    if (value === null || value === undefined) {
-        return '';
-    }
-
-    return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
 }
 
 // ============================================================================

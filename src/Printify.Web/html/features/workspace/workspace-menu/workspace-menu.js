@@ -7,6 +7,8 @@
  * - Handles create/access/exit workspace
  */
 
+import { escapeHtml } from '../../assets/js/utils/html-utils.js';
+
 // ============================================================================
 // STATE
 // ============================================================================
@@ -37,6 +39,7 @@ export function init(actionCallbacks) {
  * Update the workspace display (avatar, name, status)
  */
 export function updateDisplay(workspaceToken, workspaceName) {
+    console.log('[WorkspaceMenu] updateDisplay - workspaceToken:', workspaceToken, 'workspaceName:', workspaceName);
     const avatar = document.getElementById('workspaceAvatar');
     const nameEl = document.getElementById('workspaceName');
     const statusEl = document.getElementById('workspaceStatus');
@@ -57,6 +60,7 @@ export function updateDisplay(workspaceToken, workspaceName) {
         nameEl.textContent = 'No workspace';
         statusEl.textContent = '';
     }
+    console.log('[WorkspaceMenu] updateDisplay - nameEl.textContent:', nameEl.textContent);
 }
 
 /**
@@ -311,22 +315,6 @@ function closeMenu(menu) {
         document.removeEventListener('click', menu.closeMenuHandler);
     }
     menu.remove();
-}
-
-/**
- * Escape HTML to prevent XSS
- */
-function escapeHtml(value) {
-    if (value === null || value === undefined) {
-        return '';
-    }
-
-    return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
 }
 
 /**
