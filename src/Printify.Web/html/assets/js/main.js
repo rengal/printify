@@ -1938,8 +1938,28 @@
                 onToggleFlag: (flag, value) => toggleOperationalFlag(selectedPrinterId, flag, value),
                 onToggleDebug: (value) => {
                     debugMode = value;
+                    // Re-render all cached documents with new debug mode
+                    for (const printerId in documents) {
+                        const docs = documents[printerId];
+                        const printer = getPrinterById(printerId);
+                        if (printer && docs) {
+                            documents[printerId] = docs.map(doc => ({
+                                ...doc,
+                                // Ensure global debug applies to every document, while preserving per-doc toggles.
+                                previewHtml: renderViewDocument(
+                                    doc.elements || [],
+                                    doc.widthInDots,
+                                    doc.heightInDots,
+                                    doc.id,
+                                    doc.errorMessages,
+                                    isDocumentRawDataActive(doc)
+                                )
+                            }));
+                        }
+                    }
                     renderDocuments();
                 },
+                onGetDebugMode: () => debugMode,
                 onToggleDrawer: (drawerNumber) => {
                     const state = drawerNumber === 1
                         ? (getPrinterById(selectedPrinterId)?.drawer1State)

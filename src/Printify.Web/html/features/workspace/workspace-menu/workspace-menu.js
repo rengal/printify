@@ -7,7 +7,7 @@
  * - Handles create/access/exit workspace
  */
 
-import { escapeHtml } from '../../assets/js/utils/html-utils.js';
+import { escapeHtml } from '../../../assets/js/utils/html-utils.js';
 
 // ============================================================================
 // STATE

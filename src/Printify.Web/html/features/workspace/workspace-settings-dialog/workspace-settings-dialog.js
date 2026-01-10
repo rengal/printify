@@ -8,8 +8,8 @@
  * - Handles workspace deletion
  */
 
-import { escapeHtml } from '../../assets/js/utils/html-utils.js';
-import { formatDateTime, formatDateTimeWithRelative, formatRelativeTime } from '../../assets/js/utils/datetime-format.js';
+import { escapeHtml } from '../../../assets/js/utils/html-utils.js';
+import { formatDateTime, formatDateTimeWithRelative, formatRelativeTime } from '../../../assets/js/utils/datetime-format.js';
 
 // ============================================================================
 // STATE

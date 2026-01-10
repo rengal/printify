@@ -41,6 +41,7 @@ const callbacks = {
     onStartStop: null,
     onToggleFlag: null,
     onToggleDebug: null,
+    onGetDebugMode: null,
     onToggleDrawer: null,
     onToggleDangerZone: null,
     onClearDocuments: null,
@@ -476,9 +477,9 @@ function applyData(elements, data, printerId) {
 
     // Settings
     if (data.settings) {
-        if (data.settings.debugMode !== undefined) {
-            elements.debugCheckbox.checked = data.settings.debugMode;
-        }
+        // Use the global debug mode from main.js via callback
+        const currentDebugMode = callbacks.onGetDebugMode?.() ?? false;
+        elements.debugCheckbox.checked = currentDebugMode;
         // Cache bufferMaxCapacity for use in partial updates
         if (data.settings.bufferMaxCapacity !== undefined) {
             cachedBufferMaxCapacity = data.settings.bufferMaxCapacity || 0;
