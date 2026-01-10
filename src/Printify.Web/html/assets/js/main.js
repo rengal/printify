@@ -1116,50 +1116,10 @@
                 } else {
                     operationsPanel.textContent = 'No Workspace';
                 }
-                documentsPanel.innerHTML = `
-              <div style="max-width: 600px; margin: 30px auto; text-align: center;">
-                <h1 style="margin-bottom: 12px;">Printer Management System</h1>
-                <p style="color: var(--muted); font-size: 16px; margin: 0 0 24px; line-height: 1.5;">
-                  Manage receipt and label printers with real-time document streaming
-                </p>
-
-                <div style="text-align: left; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                  <h3 style="margin-top: 0; margin-bottom: 12px;">Features</h3>
-                  <ul style="color: var(--muted); line-height: 1.6; padding-left: 24px; margin: 0;">
-                    <li>Real-time document preview with accurate rendering</li>
-                    <li>ESC/POS emulator with text formatting, images, and barcode support</li>
-                    <li>Multi-printer management (up to 10 per workspace)</li>
-                    <li>Workspace sharing across devices with secure tokens</li>
-                    <li>Buffer emulation for realistic printer behavior</li>
-                  </ul>
-                </div>
-
-                <div style="text-align: left; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                  <h3 style="margin-top: 0; margin-bottom: 12px;">Learn More</h3>
-                  <p style="color: var(--muted); line-height: 1.6; margin: 0;">
-                    <a href="docs/about" style="color: var(--accent);">About Virtual Printer</a> •
-                    <a href="docs/guide" style="color: var(--accent);">Getting Started Guide</a>
-                  </p>
-                </div>
-
-                <div style="background: rgba(16,185,129,0.1); border: 1px solid var(--accent); border-radius: 12px; padding: 20px;">
-                  <h3 style="margin-top: 0; margin-bottom: 8px; color: var(--accent);">Get Started</h3>
-                  <p style="color: var(--muted); margin-bottom: 16px;">
-                    Create a new workspace or access an existing one
-                  </p>
-                  <div style="display: flex; gap: 12px;">
-                    <button class="btn btn-secondary" onclick="WorkspaceDialog.show('create')" style="flex: 1; justify-content: center;">
-                      <img src="assets/icons/plus-circle.svg" width="18" height="18" alt="" style="flex-shrink: 0;">
-                      Create New Workspace
-                    </button>
-                    <button class="btn btn-secondary" onclick="WorkspaceDialog.show('access')" style="flex: 1; justify-content: center;">
-                      <img src="assets/icons/log-in.svg" width="18" height="18" alt="" style="flex-shrink: 0;">
-                      Access Existing
-                    </button>
-                  </div>
-                </div>
-              </div>
-            `;
+                // Use DocumentsPanel module for no-workspace state
+                if (window.DocumentsPanel?.renderNoWorkspace) {
+                    await DocumentsPanel.renderNoWorkspace(documentsPanel);
+                }
                 return;
             }
 
@@ -1173,16 +1133,17 @@
                 } else {
                     operationsPanel.textContent = noPrinterCaption;
                 }
-                const greeting = await getWelcomeMessage();
-                const noPrintersMsg = printers.length === 0
-                    ? 'No printers available. Add a printer to view documents.'
-                    : 'Select a printer to view documents';
-                documentsPanel.innerHTML = `
-              <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
-                <h2>${greeting}</h2>
-                <p>${noPrintersMsg}</p>
-              </div>
-            `;
+                // Use DocumentsPanel module for no-printer state
+                if (window.DocumentsPanel?.renderNoPrinter) {
+                    const greeting = await getWelcomeMessage();
+                    const noPrintersMsg = printers.length === 0
+                        ? 'No printers available. Add a printer to view documents.'
+                        : 'Select a printer to view documents';
+                    await DocumentsPanel.renderNoPrinter({
+                        greeting: greeting,
+                        message: noPrintersMsg
+                    }, documentsPanel);
+                }
                 return;
             }
 
@@ -1204,92 +1165,17 @@
             // Note: Operations panel is now rendered by OperationsPanel module
             // This function only handles the documents panel rendering
 
-            // Render documents in documents panel
+            // Render documents in documents panel using the module
             if (docs.length === 0) {
-                const protocolName = printer.protocol || 'ESC/POS';
-
-                documentsPanel.innerHTML = `
-              <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
-                <h3>No documents yet</h3>
-                <p>Documents will appear here when they are printed</p>
-
-                <div style="text-align: left; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 30px auto; max-width: 500px;">
-                  <h4 style="margin-top: 0; margin-bottom: 16px;">Start Printing</h4>
-                  <p style="margin-bottom: 16px;">Configure your POS application to connect to this printer:</p>
-                  <div style="background: var(--bg); border-radius: 8px; padding: 16px; font-family: monospace; font-size: 14px; line-height: 1.8;">
-                    <div><strong>Host:</strong> ${printer.publicHost || 'localhost'}</div>
-                    <div><strong>Port:</strong> ${printer.port || 'not configured'}</div>
-                    <div><strong>Protocol:</strong> ${protocolName} emulation</div>
-                  </div>
-                  <p style="margin: 16px 0 0 0;">
-                    <a href="docs/guide" style="color: var(--accent);">View Getting Started Guide</a> for code examples
-                  </p>
-                </div>
-              </div>
-            `;
+                if (window.DocumentsPanel?.renderNoDocuments) {
+                    await DocumentsPanel.renderNoDocuments(printer, documentsPanel);
+                }
                 return;
             }
 
-              const documentsHtml = docs.map(doc => {
-                  const dateTime = doc.timestamp.toLocaleString(undefined, {
-                      year: 'numeric', month: '2-digit', day: '2-digit',
-                      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-                  });
-                  const relativeTime = formatRelativeTime(doc.timestamp);
-                  const byteCount = formatByteCount(doc.bytesReceived);
-
-                // Check if document has errors
-                  const hasErrors = doc.errorMessages && doc.errorMessages.length > 0;
-                  const errorTooltip = hasErrors ? doc.errorMessages.join('\n') : '';
-                  const errorTooltipHtml = escapeHtml(errorTooltip).replace(/\n/g, '&#10;');
-                  const errorIcon = hasErrors ? `
-                    <img class="document-error-icon" src="assets/icons/alert-triangle.svg" alt="Error" title="${errorTooltipHtml}">
-                  ` : '';
-                  return `
-                <div class="document-item">
-                    <div class="document-gutter document-gutter-header">
-                    </div>
-                    <div class="document-header">
-                      <span class="document-meta-text">${dateTime} &middot; ${relativeTime}</span>
-                      <label class="flag-switch document-debug-switch" title="Show raw data for this document">
-                        <input type="checkbox" ${doc.debugEnabled ? 'checked' : ''} ${debugMode ? 'disabled' : ''}
-                          onchange="toggleDocumentDebug('${doc.id}', this.checked)">
-                        <span class="flag-label">Raw Data</span>
-                      </label>
-                    </div>
-                    <div class="document-gutter document-gutter-preview">
-                      ${errorIcon}
-                    </div>
-                    <div class="document-preview-wrap">
-                      ${doc.previewHtml}
-                    </div>
-                    <div class="document-footer">
-                      <span class="document-meta-text document-footer-text">Size: ${byteCount} bytes</span>
-                      <button class="copy-icon-btn document-copy-btn" onclick="copyToClipboard(\`${doc.plainText.replace(/\`/g, '\\`')}\`)" title="Copy document content">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                `;
-              }).join('');
-
-            documentsPanel.innerHTML = documentsHtml;
-
-            // Adjust Y positions in debug mode after DOM insertion
-              const debugDocs = docs.filter(doc => isDocumentRawDataActive(doc));
-              if (debugDocs.length > 0) {
-                  // Use requestAnimationFrame to ensure DOM is fully rendered
-                  requestAnimationFrame(() => {
-                      debugDocs.forEach(doc => {
-                          const contentId = `doc-content-${doc.id}`;
-                          console.log(`\n=== Adjusting debug positions for document ${doc.id} ===`);
-                          adjustDebugYPositions(contentId, true);
-                      });
-                  });
-              }
+            if (window.DocumentsPanel?.renderDocumentsList) {
+                await DocumentsPanel.renderDocumentsList(docs, printer, documentsPanel);
+            }
           }
 
         function showMenu(event, printerId, isPinned, isStarted) {
@@ -2042,6 +1928,20 @@
                 loadPrinters: (selectId) => loadPrinters(selectId),
                 closeModal: () => closeModal(),
                 showToast: (msg, isError) => showToast(msg, isError)
+            });
+        }
+
+        // Initialize Documents Panel module
+        if (window.DocumentsPanel) {
+            DocumentsPanel.init({
+                onCreateWorkspace: () => WorkspaceDialog?.show?.('create'),
+                onAccessWorkspace: () => WorkspaceDialog?.show?.('access'),
+                onToggleDocumentDebug: (docId, enabled) => toggleDocumentDebug(docId, enabled),
+                onCopyDocument: (text) => copyToClipboard(text),
+                getWelcomeMessage: () => getWelcomeMessage(),
+                getDebugMode: () => debugMode,
+                getPrinterById: (id) => getPrinterById(id),
+                isDocumentRawDataActive: (doc) => isDocumentRawDataActive(doc)
             });
         }
 

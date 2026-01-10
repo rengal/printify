@@ -1,0 +1,99 @@
+<!-- Documents Panel Templates -->
+
+<!-- State: No Workspace (shows landing page) -->
+<template id="docs-panel-no-workspace-template">
+  <div class="docs-landing">
+    <h1>Printer Management System</h1>
+    <p class="docs-landing-subtitle">Manage receipt and label printers with real-time document streaming</p>
+
+    <div class="docs-landing-card">
+      <h3>Features</h3>
+      <ul>
+        <li>Real-time document preview with accurate rendering</li>
+        <li>ESC/POS emulator with text formatting, images, and barcode support</li>
+        <li>Multi-printer management (up to 10 per workspace)</li>
+        <li>Workspace sharing across devices with secure tokens</li>
+        <li>Buffer emulation for realistic printer behavior</li>
+      </ul>
+    </div>
+
+    <div class="docs-landing-card">
+      <h3>Learn More</h3>
+      <p>
+        <a href="docs/about" class="docs-link">About Virtual Printer</a> &bull;
+        <a href="docs/guide" class="docs-link">Getting Started Guide</a>
+      </p>
+    </div>
+
+    <div class="docs-landing-cta">
+      <h3>Get Started</h3>
+      <p>Create a new workspace or access an existing one</p>
+      <div class="docs-landing-actions">
+        <button class="btn btn-secondary" data-action="create-workspace">
+          <img src="assets/icons/plus-circle.svg" width="18" height="18" alt="">
+          Create New Workspace
+        </button>
+        <button class="btn btn-secondary" data-action="access-workspace">
+          <img src="assets/icons/log-in.svg" width="18" height="18" alt="">
+          Access Existing
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- State: No printer selected (shows greeting) -->
+<template id="docs-panel-no-printer-template">
+  <div class="docs-empty-state">
+    <h2 data-docs-greeting></h2>
+    <p data-docs-message></p>
+  </div>
+</template>
+
+<!-- State: No documents for selected printer -->
+<template id="docs-panel-no-documents-template">
+  <div class="docs-empty-state">
+    <h3>No documents yet</h3>
+    <p>Documents will appear here when they are printed</p>
+
+    <div class="docs-setup-card">
+      <h4>Start Printing</h4>
+      <p>Configure your POS application to connect to this printer:</p>
+      <div class="docs-setup-info">
+        <div><strong>Host:</strong> <span data-docs-host></span></div>
+        <div><strong>Port:</strong> <span data-docs-port></span></div>
+        <div><strong>Protocol:</strong> <span data-docs-protocol></span> emulation</div>
+      </div>
+      <p class="docs-setup-link">
+        <a href="docs/guide" class="docs-link">View Getting Started Guide</a> for code examples
+      </p>
+    </div>
+  </div>
+</template>
+
+<!-- State: Documents list (individual document item template) -->
+<template id="docs-panel-document-item-template">
+  <div class="document-item">
+    <div class="document-gutter document-gutter-header"></div>
+    <div class="document-header">
+      <span class="document-meta-text" data-docs-datetime></span>
+      <label class="flag-switch document-debug-switch" title="Show raw data for this document">
+        <input type="checkbox" data-docs-debug-toggle>
+        <span class="flag-label">Raw Data</span>
+      </label>
+    </div>
+    <div class="document-gutter document-gutter-preview">
+      <img class="document-error-icon" data-docs-error-icon src="assets/icons/alert-triangle.svg" width="16" height="16" alt="Error" style="display: none;">
+    </div>
+    <div class="document-preview-wrap" data-docs-preview></div>
+    <div class="document-footer">
+      <span class="document-meta-text document-footer-text">Size: <span data-docs-bytes></span> bytes</span>
+      <button class="copy-icon-btn document-copy-btn" data-docs-copy title="Copy document content">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</template>

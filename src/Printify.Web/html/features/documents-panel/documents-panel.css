@@ -169,3 +169,136 @@
     color: #6ee7b7;
     background: rgba(16, 185, 129, 0.15);
 }
+
+/* ============================================================================
+   Documents Panel State Templates
+   ============================================================================ */
+
+/* Landing Page (No Workspace) */
+.docs-landing {
+    max-width: 600px;
+    margin: 30px auto;
+    text-align: center;
+}
+
+.docs-landing h1 {
+    margin-bottom: 12px;
+}
+
+.docs-landing-subtitle {
+    color: var(--muted);
+    font-size: 16px;
+    margin: 0 0 24px;
+    line-height: 1.5;
+}
+
+.docs-landing-card {
+    text-align: left;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.docs-landing-card h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+
+.docs-landing-card p {
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.docs-landing-card ul {
+    color: var(--muted);
+    line-height: 1.6;
+    padding-left: 24px;
+    margin: 0;
+}
+
+.docs-landing-cta {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.docs-landing-cta h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    color: var(--accent);
+}
+
+.docs-landing-cta p {
+    color: var(--muted);
+    margin-bottom: 16px;
+}
+
+.docs-landing-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.docs-landing-actions .btn {
+    flex: 1;
+    justify-content: center;
+}
+
+.docs-link {
+    color: var(--accent);
+}
+
+/* Empty State (No Printer Selected / No Documents) */
+.docs-empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+}
+
+.docs-empty-state h2 {
+    margin: 0 0 8px;
+}
+
+.docs-empty-state h3 {
+    margin: 0 0 8px;
+}
+
+.docs-empty-state p {
+    margin: 0;
+}
+
+/* Setup Card (No Documents state) */
+.docs-setup-card {
+    text-align: left;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 30px auto;
+    max-width: 500px;
+}
+
+.docs-setup-card h4 {
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+.docs-setup-card p {
+    margin-bottom: 16px;
+}
+
+.docs-setup-info {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.8;
+}
+
+.docs-setup-link {
+    margin: 16px 0 0 0;
+}
