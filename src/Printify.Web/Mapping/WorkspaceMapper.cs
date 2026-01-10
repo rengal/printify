@@ -10,13 +10,13 @@ internal static class WorkspaceMapper
     internal static WorkspaceResponseDto ToResponseDto(this Workspace workspace)
     {
         ArgumentNullException.ThrowIfNull(workspace);
-        return new WorkspaceResponseDto(workspace.Id, workspace.OwnerName, workspace.Token);
+        return new WorkspaceResponseDto(workspace.Id, workspace.Name, workspace.Token);
     }
 
     internal static WorkspaceDto ToDto(this Workspace workspace)
     {
         ArgumentNullException.ThrowIfNull(workspace);
-        return new WorkspaceDto(workspace.Id, workspace.OwnerName, workspace.CreatedAt);
+        return new WorkspaceDto(workspace.Id, workspace.Name, workspace.CreatedAt);
     }
 
     internal static WorkspaceSummaryDto ToDto(this WorkspaceSummary summary)

@@ -322,14 +322,18 @@ namespace Printify.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("created_from_ip");
 
+                    b.Property<int>("DocumentRetentionDays")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("document_retention_days");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER")
                         .HasColumnName("is_deleted");
 
-                    b.Property<string>("OwnerName")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT")
-                        .HasColumnName("owner_name");
+                        .HasColumnName("name");
 
                     b.Property<string>("Token")
                         .IsRequired()

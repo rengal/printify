@@ -5,7 +5,6 @@ namespace Printify.Domain.Mapping;
 
 public static class DomainMapper
 {
-        
     public static Protocol ParseProtocol(string protocol)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(protocol);

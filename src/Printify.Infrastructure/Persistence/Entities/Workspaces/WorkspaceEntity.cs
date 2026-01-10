@@ -8,13 +8,16 @@ namespace Printify.Infrastructure.Persistence.Entities.Workspaces;
 [Table("workspaces")]
 public sealed class WorkspaceEntity : BaseEntity
 {
-    [Column("owner_name")]
-    public string OwnerName { get; set; } = string.Empty;
+    [Column("name")]
+    public string Name { get; set; } = string.Empty;
 
     [Column("token")]
     public string Token { get; set; } = string.Empty;
 
     [Column("created_from_ip")]
     public string CreatedFromIp { get; set; } = string.Empty;
+
+    [Column("document_retention_days")]
+    public int DocumentRetentionDays { get; set; } = 30; // Default: 30 days
 }
 

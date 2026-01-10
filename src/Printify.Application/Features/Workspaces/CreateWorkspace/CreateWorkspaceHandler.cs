@@ -26,10 +26,11 @@ public sealed class CreateWorkspaceHandler(IWorkspaceRepository workspaceReposit
 
         var workspace = new Workspace(
             request.WorkspaceId,
-            request.OwnerName,
+            request.OwnerName, // Will be mapped to Name
             token,
             DateTimeOffset.UtcNow,
             request.Context.IpAddress,
+            30, // Default document retention days: 30
             false);
 
         // Persist immediately so the workspace becomes visible for authentication flows.

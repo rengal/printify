@@ -41,4 +41,17 @@ internal class AuthHelper
         // Set jwt access token for further requests
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
+
+    public static async Task Login(HttpClient client, string token)
+    {
+        // Login to workspace using token and get jwt access token
+        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto(token));
+        loginResponse.EnsureSuccessStatusCode();
+        var loginResponseDto = await loginResponse.Content.ReadFromJsonAsync<LoginResponseDto>();
+        Assert.NotNull(loginResponseDto);
+        var accessToken = loginResponseDto.AccessToken;
+
+        // Set jwt access token for further requests
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+    }
 }

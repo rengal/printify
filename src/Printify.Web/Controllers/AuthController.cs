@@ -2,7 +2,6 @@ using Mediator.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Printify.Application.Features.Auth.GetCurrentWorkspace;
 using Printify.Application.Features.Auth.Login;
 using Printify.Application.Interfaces;
 using Printify.Domain.Config;
@@ -45,16 +44,5 @@ public sealed class AuthController(IOptions<JwtOptions> jwtOptions, IMediator me
     {
         // Token invalidation is handled by the client until refresh tokens are introduced.
         return Ok();
-    }
-
-    [Authorize]
-    [HttpGet("me")]
-    public async Task<ActionResult<WorkspaceDto>> GetCurrentWorkspace(CancellationToken ct)
-    {
-        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var command = new GetCurrentWorkspaceCommand(httpContext);
-        var workspace = await mediator.RequestAsync<GetCurrentWorkspaceCommand, Workspace>(command, ct);
-
-        return Ok(workspace.ToDto());
     }
 }

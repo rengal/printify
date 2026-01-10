@@ -15,6 +15,7 @@
 const callbacks = {
     onLogOut: null,
     onShowWorkspaceDialog: null,
+    onShowWorkspaceSettings: null,
     onOpenDocs: null,
     apiRequest: null,
     closeModal: null,
@@ -141,6 +142,10 @@ function buildMenuHtml(hasToken) {
         </div>
       </div>
       <div class="menu-divider"></div>
+      <div class="menu-item" data-action="workspace-settings">
+        <img class="themed-icon menu-item-icon" src="assets/icons/settings.svg" alt="">
+        Workspace Settings
+      </div>
       <div class="menu-item" data-action="show-workspace-dialog" data-mode="create">
         <img class="themed-icon menu-item-icon" src="assets/icons/plus-circle.svg" alt="">
         New Workspace
@@ -240,6 +245,14 @@ function setupMenuListeners(menu) {
                 const mode = item.dataset.mode || 'create';
                 if (callbacks.onShowWorkspaceDialog) {
                     callbacks.onShowWorkspaceDialog(mode);
+                }
+                break;
+
+            case 'workspace-settings':
+                // Close menu first
+                closeMenu(menu);
+                if (callbacks.onShowWorkspaceSettings) {
+                    callbacks.onShowWorkspaceSettings();
                 }
                 break;
 

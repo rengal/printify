@@ -1607,9 +1607,9 @@
 
             // Fetch current workspace to confirm auth and get user info
             try {
-                const userInfo = await apiRequest('/api/auth/me');
-                if (userInfo && userInfo.name) {
-                    workspaceName = userInfo.name;
+                const workspace = await apiRequest('/api/workspaces');
+                if (workspace && workspace.name) {
+                    workspaceName = workspace.name;
                     localStorage.setItem('workspaceName', workspaceName);
                     WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
                 }
@@ -2004,6 +2004,11 @@
                 workspaceName: () => workspaceName,
                 onLogOut: () => logOut(),
                 onShowWorkspaceDialog: (mode) => WorkspaceDialog.show(mode),
+                onShowWorkspaceSettings: () => {
+                    if (window.WorkspaceSettingsDialog) {
+                        WorkspaceSettingsDialog.show();
+                    }
+                },
                 onOpenDocs: (doc) => window.open(`/docs/${doc}`, '_blank')
             });
         }
@@ -2027,6 +2032,27 @@
                     WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
                     renderSidebar();
                     renderDocuments();
+                }
+            });
+        }
+
+        // Initialize Workspace Settings Dialog module
+        if (window.WorkspaceSettingsDialog) {
+            WorkspaceSettingsDialog.init({
+                apiRequest: (path, options) => apiRequest(path, options),
+                closeModal: () => closeModal(),
+                showToast: (msg, isError) => showToast(msg, isError),
+                workspaceName: () => workspaceName,
+                workspaceSummary: () => workspaceSummary,
+                onWorkspaceUpdated: (settings) => {
+                    workspaceName = settings.name;
+                    if (settings.name) {
+                        localStorage.setItem('workspaceName', settings.name);
+                    }
+                    WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
+                },
+                onWorkspaceDeleted: () => {
+                    logOut();
                 }
             });
         }

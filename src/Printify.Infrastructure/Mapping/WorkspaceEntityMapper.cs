@@ -12,9 +12,11 @@ internal static class WorkspaceEntityMapper
         return new WorkspaceEntity
         {
             Id = workspace.Id,
-            OwnerName = workspace.OwnerName,
+            Name = workspace.Name,
             Token = workspace.Token,
             CreatedAt = workspace.CreatedAt,
+            CreatedFromIp = workspace.CreatedFromIp,
+            DocumentRetentionDays = workspace.DocumentRetentionDays,
             IsDeleted = workspace.IsDeleted
         };
     }
@@ -25,10 +27,11 @@ internal static class WorkspaceEntityMapper
 
         return new Workspace(
             entity.Id,
-            entity.OwnerName,
+            entity.Name,
             entity.Token,
             entity.CreatedAt,
             entity.CreatedFromIp,
+            entity.DocumentRetentionDays,
             entity.IsDeleted);
     }
 }
