@@ -15,6 +15,8 @@ let currentPanel = null;
 let currentPrinterId = null;
 let dangerZoneExpanded = false;
 let template = null;
+let emptyTemplate = null;
+let templateDocument = null;
 let elements = {};
 let cachedBufferMaxCapacity = 0;
 
@@ -74,12 +76,33 @@ export function getPanelElement() {
 async function loadTemplate() {
     if (template) return template;
 
+    const doc = await loadTemplateDocument();
+    template = doc.querySelector('#operations-panel-template');
+    return template;
+}
+
+/**
+ * Load empty-state template once and cache it
+ */
+async function loadEmptyTemplate() {
+    if (emptyTemplate) return emptyTemplate;
+
+    const doc = await loadTemplateDocument();
+    emptyTemplate = doc.querySelector('#operations-panel-empty-template');
+    return emptyTemplate;
+}
+
+/**
+ * Load the template document once and cache it
+ */
+async function loadTemplateDocument() {
+    if (templateDocument) return templateDocument;
+
     const response = await fetch('features/operations-panel/operations-panel.html');
     const html = await response.text();
     const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    template = doc.querySelector('#operations-panel-template');
-    return template;
+    templateDocument = parser.parseFromString(html, 'text/html');
+    return templateDocument;
 }
 
 // ============================================================================
@@ -303,6 +326,47 @@ export function clearPanel() {
     dangerZoneExpanded = false;
     cachedBufferMaxCapacity = 0;
     cancelBufferAnimation();
+}
+
+/**
+ * Render empty state panel (no printer selected, no printers, no workspace)
+ */
+export async function renderEmptyState(options, targetContainer) {
+    const panelElement = targetContainer || document.getElementById('operationsPanel');
+    if (!panelElement) return null;
+
+    await loadEmptyTemplate();
+    panelElement.innerHTML = '';
+
+    const fragment = emptyTemplate.content.cloneNode(true);
+    panelElement.appendChild(fragment);
+
+    const closeBtn = panelElement.querySelector('[data-action="close"]');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => callbacks.onClose?.());
+    }
+
+    const titleEl = panelElement.querySelector('[data-ops-empty-title]');
+    const bodyEl = panelElement.querySelector('[data-ops-empty-body]');
+    const titleText = options?.title || '';
+    const bodyText = options?.body || '';
+
+    if (titleEl) {
+        titleEl.textContent = titleText;
+    }
+
+    if (bodyEl) {
+        bodyEl.textContent = bodyText;
+        bodyEl.classList.toggle('is-hidden', !bodyText);
+    }
+
+    currentPanel = { element: panelElement, elements: { closeBtn, emptyTitle: titleEl, emptyBody: bodyEl } };
+    currentPrinterId = null;
+    dangerZoneExpanded = false;
+    cachedBufferMaxCapacity = 0;
+    cancelBufferAnimation();
+
+    return panelElement;
 }
 
 // ============================================================================
@@ -685,6 +749,7 @@ window.OperationsPanel = {
     applyPartialUpdate,
     toggleDangerZone,
     restoreDangerZoneState,
-    clearPanel
+    clearPanel,
+    renderEmptyState
 };
 

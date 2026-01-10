@@ -29,6 +29,24 @@
     min-height: 32px;
 }
 
+.operations-empty-body {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+}
+
+.operations-empty-title {
+    margin: 0 0 8px;
+}
+
+.operations-empty-text {
+    margin: 0;
+}
+
+.operations-empty-text.is-hidden {
+    display: none;
+}
+
 .operations-title-row {
     display: flex;
     align-items: baseline;

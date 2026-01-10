@@ -1130,12 +1130,13 @@
             const documentsPanel = document.getElementById('documentsPanel');
 
             if (!workspaceToken) {
-                operationsPanel.innerHTML = `
-              <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
-                <h3>No Workspace</h3>
-                <p>Create or access workspace</p>
-              </div>
-            `;
+                if (window.OperationsPanel?.renderEmptyState) {
+                    await OperationsPanel.renderEmptyState(
+                        { title: 'No Workspace', body: 'Create or access workspace' },
+                        operationsPanel);
+                } else {
+                    operationsPanel.textContent = 'No Workspace';
+                }
                 documentsPanel.innerHTML = `
               <div style="max-width: 600px; margin: 30px auto; text-align: center;">
                 <h1 style="margin-bottom: 12px;">Printer Management System</h1>
@@ -1184,12 +1185,15 @@
             }
 
             if (!selectedPrinterId) {
-                operationsPanel.innerHTML = `
-              <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
-                <h3>No Printer Selected</h3>
-                <p>Select a printer from the list</p>
-              </div>
-            `;
+                const noPrinterCaption = printers.length === 0 ? 'No printers yet' : 'No Printer Selected';
+                const noPrinterBody = printers.length === 0 ? '' : 'Select a printer from the list';
+                if (window.OperationsPanel?.renderEmptyState) {
+                    await OperationsPanel.renderEmptyState(
+                        { title: noPrinterCaption, body: noPrinterBody },
+                        operationsPanel);
+                } else {
+                    operationsPanel.textContent = noPrinterCaption;
+                }
                 const greeting = await getWelcomeMessage();
                 const noPrintersMsg = printers.length === 0
                     ? 'No printers available. Add a printer to view documents.'
@@ -1207,11 +1211,13 @@
             const printer = getPrinterById(selectedPrinterId);
 
             if (!printer) {
-                operationsPanel.innerHTML = `
-              <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
-                <h3>Printer not found</h3>
-              </div>
-            `;
+                if (window.OperationsPanel?.renderEmptyState) {
+                    await OperationsPanel.renderEmptyState(
+                        { title: 'Printer not found', body: '' },
+                        operationsPanel);
+                } else {
+                    operationsPanel.textContent = 'Printer not found';
+                }
                 documentsPanel.innerHTML = '';
                 return;
             }
