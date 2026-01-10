@@ -1,4 +1,4 @@
-﻿using Printify.Domain.Printers;
+using Printify.Domain.Printers;
 
 namespace Printify.Application.Interfaces;
 

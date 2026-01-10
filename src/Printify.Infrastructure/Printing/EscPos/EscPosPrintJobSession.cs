@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Core;
@@ -35,7 +36,8 @@ public class EscPosPrintJobSession : PrintJobSession
         IClockFactory clockFactory,
         PrintJob job,
         IPrinterChannel channel,
-        IEscPosCommandTrieProvider trieProvider)
+        IEscPosCommandTrieProvider trieProvider,
+        IServiceScopeFactory scopeFactory)
         : base(bufferCoordinator, job, channel)
     {
         ArgumentNullException.ThrowIfNull(bufferCoordinator);
@@ -43,9 +45,16 @@ public class EscPosPrintJobSession : PrintJobSession
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(trieProvider);
+        ArgumentNullException.ThrowIfNull(scopeFactory);
         this.bufferCoordinator = bufferCoordinator;
         idleClock = clockFactory.Create();
-        parser = new EscPosParser(trieProvider, GetAvailableBytes, OnElement, OnResponse);
+        parser = new EscPosParser(
+            trieProvider,
+            scopeFactory,
+            Printer,
+            Settings,
+            OnElement,
+            OnResponse);
     }
 
     private void OnResponse(ReadOnlyMemory<byte> data)
@@ -64,7 +73,7 @@ public class EscPosPrintJobSession : PrintJobSession
 
         idleClock.Restart();
         _ = IdleTimeoutAsync(ct);
-        return  Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     private void OnElement(Element element)
@@ -75,11 +84,6 @@ public class EscPosPrintJobSession : PrintJobSession
         }
 
         ElementBuffer.Add(element);
-    }
-
-    private int? GetAvailableBytes()
-    {
-        return bufferCoordinator.GetAvailableBytes(Printer, Settings);
     }
 
     private async Task IdleTimeoutAsync(CancellationToken ct)

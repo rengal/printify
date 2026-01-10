@@ -1,6 +1,10 @@
-using Printify.Domain.Documents.Elements;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using Printify.Application.Interfaces;
+using Printify.Application.Printing;
+using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printers;
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
@@ -8,10 +12,13 @@ public sealed class EscPosParser
 {
     private readonly EscPosCommandTrieNode root;
     private readonly ParserState state;
-    private readonly Func<int?>? getAvailableBytes;
+    private readonly IServiceScopeFactory? scopeFactory;
+    private readonly Printer? printer;
+    private readonly PrinterSettings? settings;
     private readonly Action<Element> onElement;
     private readonly Action<ReadOnlyMemory<byte>>? onResponse;
     private bool bufferOverflowEmitted;
+    private CancellationToken currentCancellationToken;
     private static readonly Encoding DefaultCodePage;
     private const int CommandRawMaxBytes = 64;
 
@@ -26,21 +33,30 @@ public sealed class EscPosParser
         ArgumentNullException.ThrowIfNull(onElement);
         root = trieProvider.Root;
         this.onElement = onElement;
+        scopeFactory = null;
+        printer = null;
+        settings = null;
         state = new ParserState(root);
     }
 
     public EscPosParser(
         IEscPosCommandTrieProvider trieProvider,
-        Func<int?> getAvailableBytes,
+        IServiceScopeFactory scopeFactory,
+        Printer printer,
+        PrinterSettings settings,
         Action<Element> onElement,
         Action<ReadOnlyMemory<byte>>? onResponse = null)
     {
         ArgumentNullException.ThrowIfNull(trieProvider);
-        ArgumentNullException.ThrowIfNull(getAvailableBytes);
+        ArgumentNullException.ThrowIfNull(scopeFactory);
+        ArgumentNullException.ThrowIfNull(printer);
+        ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(onElement);
         root = trieProvider.Root;
         this.onElement = onElement;
-        this.getAvailableBytes = getAvailableBytes;
+        this.scopeFactory = scopeFactory;
+        this.printer = printer;
+        this.settings = settings;
         this.onResponse = onResponse;
         state = new ParserState(root);
     }
@@ -93,13 +109,15 @@ public sealed class EscPosParser
     public void Feed(ReadOnlySpan<byte> buffer, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
+        currentCancellationToken = ct;
 
         foreach (var value in buffer)
             Feed(value, ct);
     }
 
-    public void Feed(byte value, CancellationToken ct)
+    private void Feed(byte value, CancellationToken ct)
     {
+        currentCancellationToken = ct;
         // Process the byte - handlers are responsible for adding to buffer
         // This allows buffer to semantically represent "bytes accumulated for current state"
         bool handled;
@@ -318,7 +336,7 @@ public sealed class EscPosParser
         // Handle status requests by immediately generating and sending response
         if (element is StatusRequest statusRequest)
         {
-            BuildAndSendStatusResponse(statusRequest.RequestType);
+            BuildAndSendStatusResponse(statusRequest.RequestType, currentCancellationToken);
         }
 
         state.Buffer.Clear();
@@ -327,40 +345,125 @@ public sealed class EscPosParser
     /// <summary>
     /// Builds and sends an ESC/POS status response for a given request type.
     /// </summary>
-    private void BuildAndSendStatusResponse(StatusRequestType requestType)
+    private void BuildAndSendStatusResponse(StatusRequestType requestType, CancellationToken ct)
     {
-        // ESC/POS status byte format (for ready printer):
-        // Bit 0: Fixed (0)
-        // Bit 1: Fixed (1)
-        // Bit 2: Cover closed (0 = closed, 1 = open)
-        // Bit 3: Not used for offline sensor (0)
-        // Bit 4: Fixed (1)
-        // Bit 5: Paper present (0 = present, 1 = out)
-        // Bit 6: No error (0)
-        // Bit 7: Fixed (0)
-        // Ready printer = 0x12 (0001 0010)
-
-        const byte readyStatus = 0x12;
-        const byte offlineStatus = 0x52;
-        // TODO: Make configurable per printer settings for testing
-
-        var availableBytes = getAvailableBytes?.Invoke();
-        var isReady = availableBytes is null || availableBytes > 0;
-        var statusByte = isReady ? readyStatus : offlineStatus;
-
-        // Send response to client immediately
-        onResponse?.Invoke(new[] { statusByte });
-
-        // Also emit the response element for document/debugging
-        var response = new StatusResponse(statusByte,
-            IsPaperOut: false,
-            IsCoverOpen: false,
-            IsOffline: !isReady)
+        try
         {
-            CommandRaw = Convert.ToHexString(new[] { statusByte }),
-            LengthInBytes = 1
-        };
-        onElement.Invoke(response);
+            PrinterOperationalFlags? flags = null;
+            var snapshot = new PrinterBufferSnapshot(
+                BufferedBytes: 0,
+                IsBusy: false,
+                IsFull: false,
+                IsEmpty: true);
+
+            if (scopeFactory is not null && printer is not null && settings is not null)
+            {
+                // Operational flags are persisted per printer and drive status bits for ESC/POS responses.
+                // Fetch flags synchronously to keep element emission ordered with the request.
+                // Resolve scoped services per status request to avoid holding onto scoped dependencies.
+                using var scope = scopeFactory.CreateScope();
+                var printerRepository = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
+                var bufferCoordinator = scope.ServiceProvider.GetRequiredService<IPrinterBufferCoordinator>();
+                flags = printerRepository.GetOperationalFlagsAsync(printer.Id, ct).GetAwaiter().GetResult();
+                snapshot = bufferCoordinator.GetSnapshot(printer, settings);
+            }
+
+            var isCoverOpen = flags?.IsCoverOpen ?? false;
+            var isPaperOut = flags?.IsPaperOut ?? false;
+            var hasError = flags?.HasError ?? false;
+            var isOfflineFlag = flags?.IsOffline ?? false;
+            var isPaperNearEnd = flags?.IsPaperNearEnd ?? false;
+            // Treat receive-buffer exhaustion or busy state as offline to match devices that stop accepting data.
+            var isBufferFull = snapshot.IsFull;
+            var isBufferBusy = snapshot.IsBusy;
+            // ESC/POS marks the printer offline when any operational blocker is active.
+            var isPrinterOffline = isOfflineFlag || isBufferFull || isBufferBusy || isCoverOpen || isPaperOut || hasError;
+
+            var statusByte = requestType switch
+            {
+                StatusRequestType.PrinterStatus => BuildPrinterStatusByte(isPrinterOffline, hasError, isPaperOut),
+                StatusRequestType.OfflineCause => BuildOfflineCauseByte(isCoverOpen, isPaperOut, hasError, isOfflineFlag),
+                StatusRequestType.ErrorCause => BuildErrorCauseByte(hasError),
+                StatusRequestType.PaperRollSensor => BuildPaperRollSensorByte(isPaperNearEnd, isPaperOut),
+                _ => BuildPrinterStatusByte(isPrinterOffline, hasError, isPaperOut)
+            };
+
+            // Also emit the response element for document/debugging.
+            var response = new StatusResponse(statusByte,
+                IsPaperOut: isPaperOut,
+                IsCoverOpen: isCoverOpen,
+                IsOffline: isPrinterOffline)
+            {
+                CommandRaw = Convert.ToHexString(new[] { statusByte }),
+                LengthInBytes = 1
+            };
+            onElement.Invoke(response);
+
+            var responseHandler = onResponse;
+            if (responseHandler is not null)
+            {
+                // Send response to client asynchronously to avoid blocking the parser.
+                Task.Run(() => responseHandler.Invoke(new[] { statusByte }), CancellationToken.None);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when the print job is canceled mid-response.
+        }
+        catch (Exception ex)
+        {
+            onElement.Invoke(new PrinterError($"Status response failed: {ex.Message}"));
+        }
+    }
+
+    private static byte BuildPrinterStatusByte(bool isOffline, bool hasError, bool isPaperOut)
+    {
+        // DLE EOT 1: bit1 fixed, bit3 offline, bit5 error, bit6 paper out.
+        const byte baseStatus = 0x12;
+        var status = baseStatus;
+        if (isOffline)
+            status |= 0x08;
+        if (hasError)
+            status |= 0x20;
+        if (isPaperOut)
+            status |= 0x40;
+        return status;
+    }
+
+    private static byte BuildOfflineCauseByte(bool isCoverOpen, bool isPaperOut, bool hasError, bool isOfflineFlag)
+    {
+        // DLE EOT 2: bit1 fixed, bit2 cover open, bit5 paper out, bit6 error/offline.
+        const byte baseStatus = 0x12;
+        var status = baseStatus;
+        if (isCoverOpen)
+            status |= 0x04;
+        if (isPaperOut)
+            status |= 0x20;
+        if (hasError || isOfflineFlag)
+            status |= 0x40;
+        return status;
+    }
+
+    private static byte BuildErrorCauseByte(bool hasError)
+    {
+        // DLE EOT 3: bit1 fixed, bit4 recoverable error.
+        const byte baseStatus = 0x02;
+        var status = baseStatus;
+        if (hasError)
+            status |= 0x10;
+        return status;
+    }
+
+    private static byte BuildPaperRollSensorByte(bool isPaperNearEnd, bool isPaperOut)
+    {
+        // DLE EOT 4: bit1 fixed, bit2 near end, bit5 paper out.
+        const byte baseStatus = 0x12;
+        var status = baseStatus;
+        if (isPaperNearEnd)
+            status |= 0x04;
+        if (isPaperOut)
+            status |= 0x20;
+        return status;
     }
 
     /// <summary>
@@ -399,12 +502,16 @@ public sealed class EscPosParser
         // may be corrupted, partially executed, or ignored entirely as the receive buffer wraps
         // or drops data. This single error signals the point where reliable command processing ends.
         if (!bufferOverflowEmitted &&
-            getAvailableBytes is not null &&
-            element is not (Error or PrinterError or StatusRequest)
-           )
+            scopeFactory is not null &&
+            printer is not null &&
+            settings is not null &&
+            element is not (Error or PrinterError or StatusRequest))
         {
-            var availableBytes = getAvailableBytes();
-            if (lengthInBytes > availableBytes && !bufferOverflowEmitted)
+            // Resolve buffer coordinator per element to respect scoped lifetimes.
+            using var scope = scopeFactory.CreateScope();
+            var bufferCoordinator = scope.ServiceProvider.GetRequiredService<IPrinterBufferCoordinator>();
+            var availableBytes = bufferCoordinator.GetAvailableBytes(printer, settings);
+            if (availableBytes.HasValue && lengthInBytes > availableBytes.Value && !bufferOverflowEmitted)
             {
                 // Emit overflow once, just before the element that exceeds capacity.
                 bufferOverflowEmitted = true;
