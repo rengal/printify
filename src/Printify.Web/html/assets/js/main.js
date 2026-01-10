@@ -7,7 +7,6 @@
         let workspaceName = null;
         let workspaceCreatedAt = null;
         let accessToken = null;
-        let workspaceSummary = null;
 
         // Data
         let printers = [];
@@ -201,16 +200,6 @@
             return printers.find(p => p.id === id) || null;
         }
 
-        async function loadWorkspaceSummary() {
-            try {
-                workspaceSummary = await apiRequest('/api/workspaces/summary');
-                console.debug('loadWorkspaceSummary fetched', workspaceSummary);
-            } catch (err) {
-                console.error('Failed to load workspace summary:', err);
-                workspaceSummary = null;
-            }
-        }
-
         async function loadPrinters(selectId = null) {
             try {
                 const list = await apiRequest('/api/printers');
@@ -238,10 +227,6 @@
             return `${adj}-${noun}-${num}`;
         }
 
-        function isValidToken(token) {
-            return /^[a-z]+-[a-z]+-\d{4}$/.test(token);
-        }
-
         // Utility Functions
         function formatRelativeTime(date) {
             if (!date) return '';
@@ -257,16 +242,6 @@
             if (days === 1) return 'yesterday';
             if (days < 7) return `${days}d ago`;
             return date.toLocaleDateString();
-        }
-
-        function formatDateTime(date) {
-            if (!date) return '—';
-            const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const year = date.getFullYear();
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            return `${day}.${month}.${year} ${hours}:${minutes}`;
         }
 
         function formatPrinterAddress(printer) {
@@ -1591,7 +1566,7 @@
             accessToken = loginResponse.accessToken;
             updateWorkspaceToken(token); // This will invalidate cache if token changed
             const workspace = loginResponse.workspace;
-            workspaceName = workspace?.workspaceName || null;
+            workspaceName = workspace?.name || null;
             workspaceCreatedAt = workspace?.createdAt ? new Date(workspace.createdAt) : new Date();
 
             localStorage.setItem('accessToken', accessToken);
@@ -1614,7 +1589,6 @@
                     WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
                 }
             startStatusStream();
-            await loadWorkspaceSummary();
             await loadPrinters();
             if (selectedPrinterId) {
                 await ensureDocumentsLoaded(selectedPrinterId);
@@ -1626,42 +1600,6 @@
                 // Auth failed, log out
                 logOut();
             }
-        }
-
-        function showTokenDialog(token) {
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.innerHTML = `
-            <div class="modal">
-              <div class="modal-header">Your Workspace Token</div>
-              <div class="modal-body">
-                <div class="token-display">
-                  <p style="color: var(--muted); margin: 0 0 8px;">Save this token to access your workspace from other devices</p>
-                  <div class="token-value">${token}</div>
-                  <div class="token-actions">
-                    <button class="btn btn-primary" onclick="copyToClipboard('${token}')">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                      </svg>
-                      Copy Token
-                    </button>
-                  </div>
-                </div>
-
-                <div style="background: rgba(239,68,68,0.1); border: 1px solid var(--danger); border-radius: 10px; padding: 16px; margin-top: 16px;">
-                  <p style="margin: 0; font-size: 14px; color: var(--muted);">
-                    <strong style="color: var(--danger);">⚠️ Important:</strong> This token will only be shown once. Anyone with this token can access your printers.
-                  </p>
-                </div>
-
-                <div class="form-actions">
-                  <button class="btn btn-primary w100" onclick="closeModal()">I've Saved My Token</button>
-                </div>
-              </div>
-            </div>
-          `;
-            document.getElementById('modalContainer').appendChild(modal);
         }
 
         async function logOut() {
@@ -2019,7 +1957,6 @@
                 apiRequest: (path, options) => apiRequest(path, options),
                 loginWithToken: (token) => loginWithToken(token),
                 closeModal: () => closeModal(),
-                showTokenDialog: (token) => showTokenDialog(token),
                 showToast: (msg, isError) => showToast(msg, isError),
                 onWorkspaceCreated: (token, name) => {
                     updateWorkspaceToken(token);
@@ -2043,7 +1980,6 @@
                 closeModal: () => closeModal(),
                 showToast: (msg, isError) => showToast(msg, isError),
                 workspaceName: () => workspaceName,
-                workspaceSummary: () => workspaceSummary,
                 onWorkspaceUpdated: (settings) => {
                     workspaceName = settings.name;
                     if (settings.name) {
@@ -2087,17 +2023,16 @@
             accessToken = savedAccessToken;
             console.log('Workspace restored, verifying auth and loading data');
 
-            // Verify auth and get user info
+            // Verify auth and get workspace info
             (async () => {
                 try {
-                    const userInfo = await apiRequest('/api/auth/me');
-                    if (userInfo && userInfo.name) {
-                        workspaceName = userInfo.name;
+                    const workspaceInfo = await apiRequest('/api/workspaces');
+                    if (workspaceInfo && workspaceInfo.name) {
+                        workspaceName = workspaceInfo.name;
                         localStorage.setItem('workspaceName', workspaceName);
                         WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
                     }
                     startStatusStream();
-                    loadWorkspaceSummary();
                     loadPrinters();
                 } catch (error) {
                     console.error('Auth verification failed on startup:', error);

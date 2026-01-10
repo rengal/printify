@@ -1,40 +1,44 @@
 <template id="workspace-settings-dialog-template">
     <div class="modal-overlay" data-workspace-settings-overlay>
         <div class="modal workspace-settings-dialog">
-            <div class="modal-header">
-                <div class="workspace-settings-header">
-                    <h2>Workspace Settings</h2>
-                    <button class="btn-close" data-workspace-settings-close aria-label="Close">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </div>
+            <div class="workspace-settings-header">
+                <h2>Workspace Settings</h2>
+                <button class="btn-close" data-workspace-settings-close aria-label="Close">
+                    <img class="themed-icon" src="assets/icons/x.svg" width="20" height="20" alt="">
+                </button>
             </div>
-            <div class="modal-body workspace-settings-body">
-                <!-- Tabs Navigation -->
-                <div class="workspace-settings-tabs">
-                    <button class="workspace-settings-tab active" data-tab="general">General</button>
-                    <button class="workspace-settings-tab" data-tab="retention">Retention Policy</button>
-                    <button class="workspace-settings-tab" data-tab="usage">Usage & Statistics</button>
-                    <button class="workspace-settings-tab danger" data-tab="danger">Danger Zone</button>
-                </div>
+
+            <div class="workspace-settings-content-wrapper">
+                <!-- Vertical Sidebar Navigation -->
+                <nav class="workspace-settings-nav">
+                    <button class="workspace-settings-nav-item active" data-tab="general">
+                        <img class="themed-icon" src="assets/icons/settings.svg" width="18" height="18" alt="">
+                        General
+                    </button>
+                    <button class="workspace-settings-nav-item" data-tab="retention">
+                        <img class="themed-icon" src="assets/icons/clock.svg" width="18" height="18" alt="">
+                        Retention Policy
+                    </button>
+                    <button class="workspace-settings-nav-item" data-tab="usage">
+                        <img class="themed-icon" src="assets/icons/bar-chart-2.svg" width="18" height="18" alt="">
+                        Usage & Statistics
+                    </button>
+                    <div class="workspace-settings-nav-divider"></div>
+                    <button class="workspace-settings-nav-item danger" data-tab="danger">
+                        <img class="themed-icon" src="assets/icons/trash-2.svg" width="18" height="18" alt="">
+                        Danger Zone
+                    </button>
+                </nav>
 
                 <!-- Tab Content -->
                 <div class="workspace-settings-content">
                     <!-- General Tab -->
                     <div class="workspace-settings-tab-content active" data-content="general">
                         <div class="settings-section">
+                            <h3>General Settings</h3>
                             <div class="field">
                                 <label class="label" for="workspace-name-input">Workspace name</label>
                                 <input class="input" id="workspace-name-input" data-workspace-name-input type="text" placeholder="e.g., Demo Room" />
-                                <div class="field-hint">Used only for display purposes</div>
-                            </div>
-
-                            <div class="field">
-                                <label class="label">Created at</label>
-                                <div class="read-only-value" data-workspace-created-at></div>
                             </div>
                         </div>
                     </div>
@@ -42,6 +46,7 @@
                     <!-- Retention Policy Tab -->
                     <div class="workspace-settings-tab-content" data-content="retention">
                         <div class="settings-section">
+                            <h3>Document Retention Policy</h3>
                             <div class="field">
                                 <label class="label" for="retention-days-input">Keep documents for</label>
                                 <div class="input-with-suffix">
@@ -49,15 +54,11 @@
                                     <span class="input-suffix">days</span>
                                 </div>
                                 <div class="field-hint">Documents older than this will be automatically deleted (1-365 days)</div>
-                                <div class="field-error" data-retention-days-error>Retention days must be between 1 and 365</div>
+                                <div class="field-error" data-retention-days-error>Document retention days must be between 1 and 365</div>
                             </div>
 
                             <div class="info-box">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="12" y1="16" x2="12" y2="12"></line>
-                                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                                </svg>
+                                <img class="themed-icon" src="assets/icons/info.svg" width="18" height="18" alt="">
                                 <span>Changes to retention policy affect all printers in this workspace.</span>
                             </div>
                         </div>
@@ -66,6 +67,7 @@
                     <!-- Usage & Statistics Tab -->
                     <div class="workspace-settings-tab-content" data-content="usage">
                         <div class="settings-section">
+                            <h3>Workspace Usage</h3>
                             <div class="stats-grid">
                                 <div class="stat-item">
                                     <div class="stat-label">Total Printers</div>
@@ -84,6 +86,10 @@
                                     <div class="stat-value" data-stat-last-document>Never</div>
                                 </div>
                             </div>
+                            <div class="field" style="margin-top: 20px;">
+                                <label class="label">Created at</label>
+                                <div class="read-only-value" data-workspace-created-at></div>
+                            </div>
                         </div>
                     </div>
 
@@ -95,16 +101,13 @@
                                 Once you delete a workspace, there is no going back. Please be certain.
                             </p>
                             <button class="btn btn-danger" data-delete-workspace-btn>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                </svg>
+                                <img class="themed-icon" src="assets/icons/trash-2.svg" width="16" height="16" alt="">
                                 Delete Workspace
                             </button>
                         </div>
                     </div>
                 </div>
-                </div>
+            </div>
 
             <div class="modal-footer workspace-settings-footer">
                 <button class="btn btn-secondary" data-workspace-settings-cancel>Cancel</button>

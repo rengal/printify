@@ -1,132 +1,119 @@
 /**
  * Workspace Settings Dialog Styles
+ * This file contains only workspace-settings-dialog specific styles.
+ * All modal, form, button, and other shared styles are imported from main.css
  */
 
+/* Larger modal for settings dialog */
 .workspace-settings-dialog {
-    max-width: 700px;
-    width: 90vw;
+    max-width: 800px;
 }
 
-/* Header with close button */
+/* Custom header (not using default modal-header) */
 .workspace-settings-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 100%;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
 }
 
 .workspace-settings-header h2 {
     margin: 0;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
 }
 
-.btn-close {
-    background: none;
-    border: none;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 6px;
+/* Content wrapper with sidebar and content area */
+.workspace-settings-content-wrapper {
+    display: flex;
+    min-height: 400px;
+}
+
+/* Vertical sidebar navigation */
+.workspace-settings-nav {
+    width: 200px;
+    flex-shrink: 0;
+    padding: 20px 0;
+    border-right: 1px solid var(--border);
+}
+
+.workspace-settings-nav-item {
+    width: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
-    transition: background-color 0.15s, color 0.15s;
-}
-
-.btn-close:hover {
-    background-color: var(--bg-elev);
-    color: var(--text);
-}
-
-/* Dialog body with tabs */
-.workspace-settings-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-}
-
-/* Tabs */
-.workspace-settings-tabs {
-    display: flex;
-    gap: 4px;
-    border-bottom: 1px solid var(--border);
-    padding: 0 16px;
-    margin-bottom: 20px;
-}
-
-.workspace-settings-tab {
+    gap: 12px;
+    padding: 10px 20px;
     background: none;
     border: none;
-    padding: 12px 16px;
+    border-left: 3px solid transparent;
     font-size: 14px;
     font-weight: 500;
     color: var(--muted);
     cursor: pointer;
-    border-radius: 8px 8px 0 0;
-    transition: color 0.15s, background-color 0.15s;
-    position: relative;
+    text-align: left;
+    transition: all 0.15s;
 }
 
-.workspace-settings-tab:hover {
-    color: var(--text);
-    background-color: var(--bg-elev);
-}
-
-.workspace-settings-tab.active {
+.workspace-settings-nav-item:hover {
+    background-color: rgba(128, 128, 128, 0.3);
     color: var(--text);
 }
 
-.workspace-settings-tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background-color: var(--accent);
+.workspace-settings-nav-item.active {
+    color: var(--text);
+    border-left-color: var(--accent);
+    background-color: rgba(16, 185, 129, 0.15);
 }
 
-.workspace-settings-tab.danger {
+.workspace-settings-nav-item.active:hover {
+    background-color: rgba(16, 185, 129, 0.2);
+}
+
+.workspace-settings-nav-item.danger {
     color: var(--danger);
-    margin-left: auto;
 }
 
-.workspace-settings-tab.danger:hover {
+.workspace-settings-nav-item.danger:hover {
     background-color: rgba(239, 68, 68, 0.1);
 }
 
-.workspace-settings-tab.danger.active {
-    color: var(--danger);
+.workspace-settings-nav-item.danger.active {
+    border-left-color: var(--danger);
 }
 
-.workspace-settings-tab.danger.active::after {
-    background-color: var(--danger);
+.workspace-settings-nav-divider {
+    height: 1px;
+    margin: 8px 20px;
+    background-color: var(--border);
 }
 
-/* Tab content */
+.workspace-settings-nav-item img,
+.workspace-settings-nav-item svg {
+    flex-shrink: 0;
+}
+
+/* Tab content area */
 .workspace-settings-content {
     flex: 1;
+    padding: 20px;
 }
 
 .workspace-settings-tab-content {
     display: none;
-    padding: 0 20px;
 }
 
 .workspace-settings-tab-content.active {
     display: block;
 }
 
-/* Settings section */
+/* Settings sections */
 .settings-section {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    max-width: 500px;
 }
 
 .settings-section h3 {
-    margin: 0 0 8px 0;
+    margin: 0 0 20px 0;
     font-size: 16px;
     font-weight: 600;
 }
@@ -144,7 +131,7 @@
     background-color: rgba(239, 68, 68, 0.05);
 }
 
-/* Read-only value */
+/* Read-only value display */
 .read-only-value {
     padding: 10px 12px;
     background-color: var(--bg-elev);
@@ -154,11 +141,12 @@
     font-size: 14px;
 }
 
-/* Input with suffix */
+/* Input with suffix (e.g., "30 days") */
 .input-with-suffix {
     position: relative;
     display: flex;
     align-items: center;
+    width: 150px;
 }
 
 .input-with-suffix .input {
@@ -187,6 +175,7 @@
     line-height: 1.5;
 }
 
+.info-box img,
 .info-box svg {
     flex-shrink: 0;
     color: var(--accent);
@@ -196,7 +185,7 @@
 /* Stats grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
 }
 
@@ -219,22 +208,36 @@
     color: var(--text);
 }
 
+/* Special styling for Last Document Received to show date + relative time */
+[data-stat-last-document] {
+    font-size: 16px !important;
+    line-height: 1.4;
+}
+
 /* Footer */
 .workspace-settings-footer {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding-top: 20px;
+    padding: 16px 20px;
     border-top: 1px solid var(--border);
 }
 
-/* Danger button - add gap for icon */
-.workspace-settings-dialog .btn-danger {
-    display: inline-flex;
+/* Close button */
+.btn-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    transition: background-color 0.15s, color 0.15s;
 }
 
-.workspace-settings-dialog .btn-danger svg {
-    flex-shrink: 0;
+.btn-close:hover {
+    background-color: var(--bg-elev);
+    color: var(--text);
 }

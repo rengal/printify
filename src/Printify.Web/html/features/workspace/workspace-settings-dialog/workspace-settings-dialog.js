@@ -24,8 +24,7 @@ const callbacks = {
     showToast: null,
     onWorkspaceUpdated: null,
     onWorkspaceDeleted: null,
-    workspaceName: null,
-    workspaceSummary: null
+    workspaceName: null
 };
 
 // ============================================================================
@@ -35,14 +34,14 @@ const callbacks = {
 /**
  * Initialize the workspace settings dialog module with action callbacks
  */
-export function init(actionCallbacks) {
+function init(actionCallbacks) {
     Object.assign(callbacks, actionCallbacks);
 }
 
 /**
  * Show the workspace settings dialog
  */
-export async function show() {
+async function show() {
     // Close any existing dialog
     close();
 
@@ -111,7 +110,7 @@ export async function show() {
 /**
  * Close the workspace settings dialog
  */
-export function close() {
+function close() {
     if (currentOverlay) {
         if (currentOverlay.escapeHandler) {
             document.removeEventListener('keydown', currentOverlay.escapeHandler);
@@ -128,16 +127,16 @@ export function close() {
 // ============================================================================
 
 function setupTabs(modalOverlay) {
-    const tabs = modalOverlay.querySelectorAll('.workspace-settings-tab');
+    const navItems = modalOverlay.querySelectorAll('.workspace-settings-nav-item');
     const contents = modalOverlay.querySelectorAll('.workspace-settings-tab-content');
 
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabName = tab.dataset.tab;
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const tabName = item.dataset.tab;
 
-            // Update active tab
-            tabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
+            // Update active nav item
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
 
             // Update active content
             contents.forEach(content => {
@@ -175,8 +174,11 @@ function setupChangeDetection(modalOverlay) {
 
 async function loadSettings() {
     try {
-        const workspace = await callbacks.apiRequest('/api/workspaces');
-        const summary = callbacks.workspaceSummary?.() || {};
+        // Fetch workspace settings and summary in parallel
+        const [workspace, summary] = await Promise.all([
+            callbacks.apiRequest('/api/workspaces'),
+            callbacks.apiRequest('/api/workspaces/summary')
+        ]);
 
         currentSettings = {
             name: workspace.name,
@@ -202,8 +204,8 @@ async function loadSettings() {
         if (totalDocumentsEl) totalDocumentsEl.textContent = summary.totalDocuments || 0;
         if (documents24hEl) documents24hEl.textContent = summary.documentsLast24h || 0;
         if (lastDocumentEl) {
-            lastDocumentEl.textContent = summary.lastDocumentAt
-                ? formatRelativeTime(new Date(summary.lastDocumentAt))
+            lastDocumentEl.innerHTML = summary.lastDocumentAt
+                ? formatDateTimeWithRelative(new Date(summary.lastDocumentAt))
                 : 'Never';
         }
 
@@ -335,6 +337,7 @@ async function loadTemplate() {
 // ============================================================================
 
 function formatDateTime(date) {
+    if (!date) return '—';
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
@@ -343,7 +346,21 @@ function formatDateTime(date) {
     return `${day}.${month}.${year} ${hours}:${minutes}`;
 }
 
+function formatDateTimeWithRelative(date) {
+    if (!date) return 'Never';
+
+    const dateTimeStr = date.toLocaleString(undefined, {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false
+    });
+
+    const relativeStr = formatRelativeTime(date);
+
+    return `${dateTimeStr}<br><span style="font-size: 13px; opacity: 0.7;">${relativeStr}</span>`;
+}
+
 function formatRelativeTime(date) {
+    if (!date) return '';
     const now = new Date();
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);

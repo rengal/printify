@@ -20,7 +20,6 @@ const callbacks = {
     apiRequest: null,
     loginWithToken: null,
     closeModal: null,
-    showTokenDialog: null,
     showToast: null,
     onWorkspaceCreated: null,
     onWorkspaceAccessed: null
@@ -241,7 +240,7 @@ async function handleCreate() {
         }
 
         const workspaceToken = workspace.token;
-        const workspaceName = workspace.workspaceName;
+        const workspaceName = workspace.name;
 
         // Store in localStorage
         localStorage.setItem('workspaceToken', workspaceToken);
@@ -254,8 +253,8 @@ async function handleCreate() {
         close();
 
         // Show token dialog
-        if (callbacks.showTokenDialog) {
-            callbacks.showTokenDialog(workspaceToken);
+        if (window.TokenDialog) {
+            await window.TokenDialog.show(workspaceToken);
         }
 
         // Notify callback

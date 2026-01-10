@@ -1,0 +1,65 @@
+/**
+ * Token Dialog Styles
+ */
+
+.token-display {
+    margin-bottom: 16px;
+}
+
+.token-hint {
+    color: var(--muted);
+    margin: 0 0 8px;
+}
+
+.token-value {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: 1px;
+    word-break: break-all;
+    user-select: all;
+}
+
+.token-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.token-actions button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.token-warning {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--danger);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.token-warning-text {
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+}
+
+.token-warning-text strong {
+    color: var(--danger);
+}
+
+.form-actions {
+    margin-top: 20px;
+}
+
+.w100 {
+    width: 100%;
+}

@@ -25,7 +25,7 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         var workspaceResponseDto = await createWorkspaceResponse.Content.ReadFromJsonAsync<WorkspaceResponseDto>();
         Assert.NotNull(workspaceResponseDto);
         Assert.Equal(workspaceId, workspaceResponseDto.Id);
-        Assert.Equal(workspaceName, workspaceResponseDto.WorkspaceName);
+        Assert.Equal(workspaceName, workspaceResponseDto.Name);
     }
 
 
@@ -56,7 +56,7 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
     }
 
     [Fact]
-    public async Task UpdateWorkspace_WithValidRequest_UpdatesWorkspaceName()
+    public async Task UpdateWorkspace_WithValidRequest_UpdatesName()
     {
         const string workspaceName = "workspace-name";
         const string updatedName = "updated-name";
@@ -79,14 +79,14 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         updateResponse.EnsureSuccessStatusCode();
         var updatedWorkspace = await updateResponse.Content.ReadFromJsonAsync<WorkspaceDto>();
         Assert.NotNull(updatedWorkspace);
-        Assert.Equal(updatedName, updatedWorkspace.WorkspaceName);
+        Assert.Equal(updatedName, updatedWorkspace.Name);
 
         // Verify update persisted
         var fetchResponse = await client.GetAsync("/api/workspaces");
         fetchResponse.EnsureSuccessStatusCode();
         var fetchedWorkspace = await fetchResponse.Content.ReadFromJsonAsync<WorkspaceDto>();
         Assert.NotNull(fetchedWorkspace);
-        Assert.Equal(updatedName, fetchedWorkspace.WorkspaceName);
+        Assert.Equal(updatedName, fetchedWorkspace.Name);
     }
 
     [Fact]
@@ -168,7 +168,7 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         var workspaceDto = await getResponse.Content.ReadFromJsonAsync<WorkspaceDto>();
         Assert.NotNull(workspaceDto);
         Assert.Equal(workspaceId, workspaceDto.Id);
-        Assert.Equal(workspaceName, workspaceDto.WorkspaceName);
+        Assert.Equal(workspaceName, workspaceDto.Name);
     }
 
     // Unauthorized access tests
@@ -235,7 +235,7 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         fetchResponse.EnsureSuccessStatusCode();
         var fetchedWorkspace = await fetchResponse.Content.ReadFromJsonAsync<WorkspaceDto>();
         Assert.NotNull(fetchedWorkspace);
-        Assert.Equal(workspaceName, fetchedWorkspace.WorkspaceName);
+        Assert.Equal(workspaceName, fetchedWorkspace.Name);
     }
 
     [Fact]
@@ -262,14 +262,14 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         updateResponse.EnsureSuccessStatusCode();
         var updatedWorkspace = await updateResponse.Content.ReadFromJsonAsync<WorkspaceDto>();
         Assert.NotNull(updatedWorkspace);
-        Assert.Equal(updatedName, updatedWorkspace.WorkspaceName);
+        Assert.Equal(updatedName, updatedWorkspace.Name);
 
         // Verify update persisted
         var fetchResponse = await client.GetAsync("/api/workspaces");
         fetchResponse.EnsureSuccessStatusCode();
         var fetchedWorkspace = await fetchResponse.Content.ReadFromJsonAsync<WorkspaceDto>();
         Assert.NotNull(fetchedWorkspace);
-        Assert.Equal(updatedName, fetchedWorkspace.WorkspaceName);
+        Assert.Equal(updatedName, fetchedWorkspace.Name);
     }
 
     // Edge cases
@@ -303,7 +303,7 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         updateResponse.EnsureSuccessStatusCode();
         var updatedWorkspace = await updateResponse.Content.ReadFromJsonAsync<WorkspaceDto>();
         Assert.NotNull(updatedWorkspace);
-        Assert.Equal(initialWorkspace.WorkspaceName, updatedWorkspace.WorkspaceName);
+        Assert.Equal(initialWorkspace.Name, updatedWorkspace.Name);
     }
 
     // Boundary value tests for DocumentRetentionDays

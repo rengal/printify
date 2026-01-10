@@ -73,6 +73,12 @@
     color: white;
 }
 
+.btn-success {
+    background: #10b981;
+    border-color: transparent;
+    color: white;
+}
+
 .btn-sm {
     height: 28px;
     padding: 0 10px;
