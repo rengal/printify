@@ -25,3 +25,12 @@
 .indent {
     margin-left: 20px;
 }
+
+/* Hide dropdown arrow for read-only protocol field in edit mode */
+select.no-dropdown {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 12px;
+    background-image: none;
+}

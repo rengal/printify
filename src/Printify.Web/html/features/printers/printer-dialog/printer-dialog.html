@@ -5,7 +5,7 @@
             <div class="modal-body">
                 <!-- Name Field -->
                 <div class="field">
-                    <label class="label required" for="printer-dialogue-name">Name</label>
+                    <label class="label" for="printer-dialogue-name">Name</label>
                     <input class="input" id="printer-dialogue-name" data-printer-dialogue-name-input placeholder="e.g., Kitchen Printer" />
                     <div class="field-error" data-printer-dialogue-name-error>Name is required</div>
                 </div>
@@ -13,9 +13,13 @@
                 <!-- Protocol and Width Fields -->
                 <div class="field-group">
                     <div class="field">
-                        <label class="label required" for="printer-dialogue-protocol">Protocol</label>
+                        <label class="label" for="printer-dialogue-protocol">Protocol</label>
                         <select class="input" id="printer-dialogue-protocol" data-printer-dialogue-protocol-input>
                             <option value="escpos">ESC/POS emulation</option>
+                            <option value="epl">EPL emulation</option>
+                            <option value="zpl">ZPL emulation</option>
+                            <option value="tspl">TSPL emulation</option>
+                            <option value="slcs">SLCS emulation</option>
                         </select>
                         <div class="field-hint" data-printer-dialogue-protocol-hint></div>
                     </div>

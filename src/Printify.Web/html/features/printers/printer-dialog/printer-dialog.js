@@ -8,6 +8,8 @@
  * - Uses template-based rendering with data-* attributes
  */
 
+import { normalizeProtocol } from '../../../assets/js/api/protocol.js';
+
 // ============================================================================
 // STATE
 // ============================================================================
@@ -172,17 +174,19 @@ function configureDialog(elements, mode, printer) {
     // Configure protocol field
     if (isEditMode) {
         elements.protocolInput.disabled = true;
+        elements.protocolInput.classList.add('no-dropdown');
         elements.protocolHint.textContent = 'Protocol cannot be changed after creation';
         elements.protocolHint.style.display = 'block';
     } else {
         elements.protocolInput.disabled = false;
+        elements.protocolInput.classList.remove('no-dropdown');
         elements.protocolHint.style.display = 'none';
     }
 
     // Populate fields for edit mode
     if (isEditMode && printer) {
         elements.nameInput.value = printer.name || '';
-        elements.protocolInput.value = printer.protocol || 'escpos';
+        elements.protocolInput.value = normalizeProtocol(printer.protocol);
         elements.widthInput.value = printer.width || 512;
         elements.emulateBufferInput.checked = printer.emulateBuffer || false;
         elements.bufferSizeInput.value = printer.bufferSize || 4096;
@@ -360,16 +364,6 @@ async function handleEdit(elements) {
             callbacks.showToast(err.message || 'Failed to update printer', true);
         }
     }
-}
-
-/**
- * Normalize protocol string
- */
-function normalizeProtocol(protocol) {
-    if (!protocol) return 'escpos';
-    const normalized = protocol.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (normalized.includes('esc')) return 'escpos';
-    return normalized;
 }
 
 /**
