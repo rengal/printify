@@ -1,4 +1,5 @@
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Documents.Elements.EscPos;
 
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
@@ -52,7 +53,7 @@ public sealed class SetCodePageDescriptor : ICommandDescriptor
         var codePageId = buffer[2];
         if (EscCodePageMap.TryGetValue(codePageId, out var codePage))
         {
-            return MatchResult.Matched(new Domain.Documents.Elements.SetCodePage(codePage));
+            return MatchResult.Matched(new SetCodePage(codePage));
         }
 
         var error = new PrinterError($"Unrecognized code page ID: 0x{codePageId:X2}");

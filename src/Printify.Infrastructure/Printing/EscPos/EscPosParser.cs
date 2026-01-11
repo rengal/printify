@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Documents.Elements.EscPos;
 using Printify.Domain.Printers;
 
 namespace Printify.Infrastructure.Printing.EscPos;
@@ -297,7 +298,7 @@ public sealed class EscPosParser
 
         if (!string.IsNullOrEmpty(text))
         {
-            var element = new AppendToLineBuffer(text)
+            var element = new AppendText(text)
             {
                 CommandRaw = BuildCommandRaw(textBytes),
                 LengthInBytes = textBytes.Length
@@ -505,7 +506,7 @@ public sealed class EscPosParser
             scopeFactory is not null &&
             printer is not null &&
             settings is not null &&
-            element is not (Error or PrinterError or StatusRequest))
+            element is not (ParseError or PrinterError or StatusRequest))
         {
             // Resolve buffer coordinator per element to respect scoped lifetimes.
             using var scope = scopeFactory.CreateScope();

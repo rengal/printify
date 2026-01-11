@@ -1,4 +1,5 @@
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Documents.Elements.EscPos;
 
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
@@ -19,7 +20,7 @@ public sealed class PartialCutThreePointDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        var element = new Pagecut(PagecutMode.PartialThreePoint);
+        var element = new CutPaper(PagecutMode.PartialThreePoint);
         return MatchResult.Matched(element);
     }
 }

@@ -1,3 +1,5 @@
+using Printify.Domain.Documents.Elements.EscPos;
+
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 /// Command: ESC ! - select font characteristics.
@@ -19,7 +21,7 @@ public sealed class SetFontDescriptor : ICommandDescriptor
         var isDoubleHeight = (parameter & 0x10) != 0;
         var isDoubleWidth = (parameter & 0x20) != 0;
 
-        var fontElement = new Domain.Documents.Elements.SetFont(fontNumber, isDoubleWidth, isDoubleHeight);
+        var fontElement = new SelectFont(fontNumber, isDoubleWidth, isDoubleHeight);
         return MatchResult.Matched(fontElement);
     }
 }

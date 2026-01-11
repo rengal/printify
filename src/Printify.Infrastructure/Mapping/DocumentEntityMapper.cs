@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Printify.Domain.Mapping;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Documents.Elements.EscPos;
 using Printify.Infrastructure.Documents;
 using Printify.Infrastructure.Persistence.Entities.Documents;
 

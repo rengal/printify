@@ -3,6 +3,7 @@ using Printify.Application.Features.Printers.Documents;
 using Printify.Application.Features.Printers.Documents.View;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Documents.Elements.EscPos;
 using Printify.Domain.Documents.View;
 using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
@@ -30,14 +31,14 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         {
             switch (element)
             {
-                case AppendToLineBuffer textLine:
+                case AppendText textLine:
                     AddDebugElement(elements, textLine, "appendToLineBuffer", new Dictionary<string, string>
                     {
                         ["Text"] = textLine.Text ?? string.Empty
                     });
                     AppendTextSegment(textLine, state, lineBuffer);
                     break;
-                case FlushLineBufferAndFeed flushLine:
+                case PrintAndLineFeed flushLine:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: true, flushLine);
                     break;
                 case LegacyCarriageReturn legacyCarriageReturn:
@@ -117,7 +118,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                     state.LineSpacing = EscPosViewConstants.DefaultLineSpacing;
                     AddDebugElement(elements, resetLineSpacing, "resetLineSpacing", new Dictionary<string, string>());
                     break;
-                case SetFont font:
+                case SelectFont font:
                     state.FontNumber = font.FontNumber;
                     state.ScaleX = font.IsDoubleWidth ? 2 : 1;
                     state.ScaleY = font.IsDoubleHeight ? 2 : 1;
@@ -128,7 +129,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                         ["IsDoubleHeight"] = font.IsDoubleHeight.ToString()
                     });
                     break;
-                case ResetPrinter resetPrinter:
+                case Initialize resetPrinter:
                     state = RenderState.CreateDefault();
                     AddDebugElement(elements, resetPrinter, "resetPrinter", new Dictionary<string, string>());
                     break;
@@ -139,12 +140,12 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         }
 
         // Do not flush residual text; only explicit LF commands emit view text elements.
-        // Collect error messages from Error and PrinterError elements
+        // Collect error messages from ParseError and PrinterError elements
         var errorMessages = document.Elements
-            .Where(e => e is Error or PrinterError)
+            .Where(e => e is ParseError or PrinterError)
             .Select(e => e switch
             {
-                Error error => error.Message ?? error.Code ?? "Unknown error",
+                ParseError error => error.Message ?? error.Code ?? "Unknown error",
                 PrinterError printerError => printerError.Message ?? "Printer error",
                 _ => null
             })
@@ -168,7 +169,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
     }
 
     private static void AppendTextSegment(
-        AppendToLineBuffer textLine,
+        AppendText textLine,
         RenderState state,
         LineBufferState lineBuffer)
     {
@@ -205,7 +206,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         LineBufferState lineBuffer,
         List<ViewElement> elements,
         bool includeFlushState,
-        FlushLineBufferAndFeed? flushElement)
+        PrintAndLineFeed? flushElement)
     {
         if (lineBuffer.Segments.Count == 0)
         {
@@ -376,18 +377,18 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         return element switch
         {
             Bell => "bell",
-            Error => "error",
-            Pagecut => "pagecut",
+            ParseError => "error",
+            CutPaper => "pagecut",
             PrinterError => "printerError",
             GetPrinterStatus => "printerStatus",
             Pulse => "pulse",
-            ResetPrinter => "resetPrinter",
+            Initialize => "resetPrinter",
             SetBarcodeHeight => "setBarcodeHeight",
             SetBarcodeLabelPosition => "setBarcodeLabelPosition",
             SetBarcodeModuleWidth => "setBarcodeModuleWidth",
             SetBoldMode => "setBoldMode",
             SetCodePage => "setCodePage",
-            SetFont => "setFont",
+            SelectFont => "setFont",
             SetJustification => "setJustification",
             SetLineSpacing => "setLineSpacing",
             ResetLineSpacing => "resetLineSpacing",
@@ -408,7 +409,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
     {
         return element switch
         {
-            Error error => new Dictionary<string, string>
+            ParseError error => new Dictionary<string, string>
             {
                 ["Code"] = error.Code,
                 ["Message"] = error.Message
@@ -443,7 +444,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
             {
                 ["CodePage"] = codePage.CodePage
             },
-            SetFont font => new Dictionary<string, string>
+            SelectFont font => new Dictionary<string, string>
             {
                 ["FontNumber"] = font.FontNumber.ToString(),
                 ["IsDoubleWidth"] = font.IsDoubleWidth.ToString(),
@@ -482,7 +483,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
             {
                 ["Content"] = store.Content
             },
-            Pagecut pagecut => new Dictionary<string, string>
+            CutPaper pagecut => new Dictionary<string, string>
             {
                 ["Mode"] = pagecut.Mode.ToString(),
                 ["FeedMotionUnits"] = pagecut.FeedMotionUnits?.ToString() ?? string.Empty

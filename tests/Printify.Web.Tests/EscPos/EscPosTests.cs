@@ -3,20 +3,19 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Printify.Application.Printing.Events;
-using Printify.Domain.Documents.Elements;
+using DomainElements = Printify.Domain.Documents.Elements;
+using EscPosElements = Printify.Domain.Documents.Elements.EscPos;
 using Printify.Domain.Printers;
 using Printify.Tests.Shared.Document;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
 using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Contracts.Auth.Responses;
-using Printify.Web.Contracts.Documents.Responses;
-using Printify.Web.Contracts.Documents.Responses.Elements;
 using Printify.Web.Contracts.Documents.Responses.View;
+using Printify.Web.Contracts.Documents.Responses.View.Elements;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Workspaces.Requests;
 using Printify.Web.Contracts.Workspaces.Responses;
-using Bell = Printify.Domain.Documents.Elements.Bell;
 
 namespace Printify.Web.Tests.EscPos;
 
@@ -74,7 +73,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(stepMs));
         await nextEventTask.WaitAsync(TimeSpan.FromMilliseconds(500));
 
-        var expectedElements = new List<Element> { new Bell {LengthInBytes = 1} };
+        var expectedElements = new List<DomainElements.Element> { new EscPosElements.Bell {LengthInBytes = 1} };
 
         Assert.True(nextEventTask.Result);
         var documentEvent = streamEnumerator.Current;
@@ -155,79 +154,14 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
             DefaultPrinterHeightInDots);
         DocumentAssertions.EqualBytes(scenario.Input.Length, bytesSent, documentEvent.Document);
 
-        // Request document via web call and verify
-        var documentId = documentEvent.Document.Id;
-        var response = await environment.Client.GetAsync($"/api/printers/{printerId}/documents/{documentId}");
-        response.EnsureSuccessStatusCode();
-
-        // Read response content as string
-        var responseContent = await response.Content.ReadAsStringAsync();
-
-        // Parse JSON with custom options
-        var options = new System.Text.Json.JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        };
-        var retrievedDocument = System.Text.Json.JsonSerializer.Deserialize<DocumentDto>(responseContent, options);
-
-        Assert.NotNull(retrievedDocument);
-
-        DocumentAssertions.Equal(
-            scenario.ExpectedPersistedElements ?? scenario.ExpectedRequestElements,
-            Protocol.EscPos,
-            retrievedDocument,
-            DefaultPrinterWidthInDots,
-            DefaultPrinterHeightInDots);
-        DocumentAssertions.EqualBytes(scenario.Input.Length, bytesSent, retrievedDocument);
-
-        // Verify RasterImage elements have accessible Media URLs
-        foreach (var element in retrievedDocument.Elements)
-        {
-            if (element is RasterImageDto rasterImage)
-            {
-                Assert.False(string.IsNullOrWhiteSpace(rasterImage.Media.Url));
-
-                // Verify the media URL is accessible
-                var mediaResponse = await environment.Client.GetAsync(rasterImage.Media.Url);
-                mediaResponse.EnsureSuccessStatusCode();
-
-                // Verify content type is an image
-                var contentType = mediaResponse.Content.Headers.ContentType?.MediaType;
-                Assert.NotNull(contentType);
-                Assert.True(contentType.StartsWith("image/"),
-                    $"Expected image content type, but got {contentType}");
-
-                var responseLength = mediaResponse.Content.Headers.ContentLength;
-                Assert.NotNull(responseLength);
-                Assert.Equal(rasterImage.Media.Length, responseLength.Value);
-
-                var payload = await mediaResponse.Content.ReadAsByteArrayAsync();
-                Assert.Equal(responseLength.Value, payload.LongLength);
-                Assert.Equal(rasterImage.Media.Length, payload.LongLength);
-
-                // Verify SHA-256 checksum is valid
-                if (!string.IsNullOrWhiteSpace(rasterImage.Media.Sha256))
-                {
-                    var computedChecksum = Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant();
-                    Assert.Equal(rasterImage.Media.Sha256, computedChecksum);
-
-                    var eTag = mediaResponse.Headers.ETag?.Tag;
-                    Assert.NotNull(eTag);
-                    Assert.StartsWith("\"sha256:", eTag, StringComparison.OrdinalIgnoreCase);
-                    var eTagValue = eTag.Trim('"');
-                    var eTagChecksum = eTagValue.Split(':', 2).ElementAtOrDefault(1);
-                    Assert.False(string.IsNullOrWhiteSpace(eTagChecksum));
-                    Assert.Equal(computedChecksum, eTagChecksum.ToLowerInvariant());
-                }
-            }
-        }
-
+        // Verify view endpoint works
         var ct = CancellationToken.None;
         var viewResponse = await environment.Client.GetAsync($"/api/printers/{printerId}/documents/view?limit=10");
         viewResponse.EnsureSuccessStatusCode();
         var viewDocumentList = await viewResponse.Content.ReadFromJsonAsync<ViewDocumentListResponseDto>(cancellationToken: ct);
         Assert.NotNull(viewDocumentList);
         var viewDocuments = viewDocumentList.Result.Items;
+        var documentId = documentEvent.Document.Id;
         var viewDocument = viewDocuments.FirstOrDefault(doc => doc.Id == documentId)
             ?? viewDocuments.FirstOrDefault();
         Assert.NotNull(viewDocument);
@@ -240,6 +174,47 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
             DefaultPrinterHeightInDots);
         DocumentAssertions.EqualBytes(scenario.Input.Length, bytesSent, viewDocument);
 
+        // Verify RasterImage elements have accessible Media URLs
+        foreach (var element in viewDocument.Elements)
+        {
+            if (element is ViewImageElementDto viewImage)
+            {
+                Assert.False(string.IsNullOrWhiteSpace(viewImage.Media.Url));
+
+                // Verify the media URL is accessible
+                var mediaResponse = await environment.Client.GetAsync(viewImage.Media.Url);
+                mediaResponse.EnsureSuccessStatusCode();
+
+                // Verify content type is an image
+                var contentType = mediaResponse.Content.Headers.ContentType?.MediaType;
+                Assert.NotNull(contentType);
+                Assert.True(contentType.StartsWith("image/"),
+                    $"Expected image content type, but got {contentType}");
+
+                var responseLength = mediaResponse.Content.Headers.ContentLength;
+                Assert.NotNull(responseLength);
+                Assert.Equal(viewImage.Media.Length, responseLength.Value);
+
+                var payload = await mediaResponse.Content.ReadAsByteArrayAsync();
+                Assert.Equal(responseLength.Value, payload.LongLength);
+                Assert.Equal(viewImage.Media.Length, payload.LongLength);
+
+                // Verify SHA-256 checksum is valid
+                if (!string.IsNullOrWhiteSpace(viewImage.Media.Sha256))
+                {
+                    var computedChecksum = Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant();
+                    Assert.Equal(viewImage.Media.Sha256, computedChecksum);
+
+                    var eTag = mediaResponse.Headers.ETag?.Tag;
+                    Assert.NotNull(eTag);
+                    Assert.StartsWith("\"sha256:", eTag, StringComparison.OrdinalIgnoreCase);
+                    var eTagValue = eTag.Trim('"');
+                    var eTagChecksum = eTagValue.Split(':', 2).ElementAtOrDefault(1);
+                    Assert.False(string.IsNullOrWhiteSpace(eTagChecksum));
+                    Assert.Equal(computedChecksum, eTagChecksum.ToLowerInvariant());
+                }
+            }
+        }
     }
 
     private static async Task<TestPrinterChannel> CreatePrinterAsync(

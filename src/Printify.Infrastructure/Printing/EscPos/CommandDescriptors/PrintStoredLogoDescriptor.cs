@@ -1,3 +1,5 @@
+using Printify.Domain.Documents.Elements.EscPos;
+
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 /// Command: FS p m n - print stored logo by identifier.
@@ -16,7 +18,7 @@ public sealed class PrintStoredLogoDescriptor : ICommandDescriptor
     {
         // logoId is the fourth byte (index 3)
         var logoId = buffer[3];
-        var element = new Domain.Documents.Elements.StoredLogo(logoId);
+        var element = new StoredLogo(logoId);
         return MatchResult.Matched(element);
     }
 }

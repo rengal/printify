@@ -4,6 +4,7 @@ using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Documents.Elements.EscPos;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;

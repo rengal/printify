@@ -1,3 +1,5 @@
+using Printify.Domain.Documents.Elements.EscPos;
+
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 /// Command: ESC 3 n - set line spacing.
@@ -14,6 +16,6 @@ public sealed class SetLineSpacingDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
         var spacing = buffer[2];
-        return MatchResult.Matched(new Domain.Documents.Elements.SetLineSpacing(spacing));
+        return MatchResult.Matched(new SetLineSpacing(spacing));
     }
 }

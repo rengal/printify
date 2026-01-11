@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Documents.Elements.EscPos;
 using Printify.Domain.Mapping;
 
 namespace Printify.Application.Features.Printers.Documents;
@@ -58,7 +59,7 @@ public static class CommandDescriptionBuilder
         {
             Bell => Lines(
                 "BEL - Buzzer (beeper)"),
-            Error error => Lines(
+            ParseError error => Lines(
                 "Parser error",
                 $"Code={error.Code}",
                 $"Message=\"{EscapeDescriptionText(error.Message)}\""),
@@ -72,7 +73,7 @@ public static class CommandDescriptionBuilder
                 "ESC p m t1 t2 - Cash drawer pulse",
                 $"m={pulse.Pin}",
                 $"t1={pulse.OnTimeMs}, t2={pulse.OffTimeMs}"),
-            ResetPrinter => Lines(
+            Initialize => Lines(
                 "ESC @ - Initialize printer"),
             SetBarcodeHeight height => Lines(
                 "GS h n - Set barcode height",
@@ -85,7 +86,7 @@ public static class CommandDescriptionBuilder
                 "ESC E n - Turn emphasized (bold) mode on/off",
                 $"n={(bold.IsEnabled ? 1 : 0)} ({(bold.IsEnabled ? "on" : "off")})"),
             SetCodePage codePage => BuildCodePageDescription(codePage.CodePage),
-            SetFont font => BuildFontDescription(font),
+            SelectFont font => BuildFontDescription(font),
             SetJustification justification => BuildJustificationDescription(justification.Justification),
             SetLineSpacing spacing => Lines(
                 "ESC 3 n - Set line spacing",
@@ -129,18 +130,18 @@ public static class CommandDescriptionBuilder
             StoredLogo storedLogo => Lines(
                 "FS p m n - Print stored logo",
                 $"n={storedLogo.LogoId}"),
-            AppendToLineBuffer textLine => Lines(
+            AppendText textLine => Lines(
                 "0x20-0xFF (excl. 0x7F) - Append to line buffer",
                 $"len={textLine.Text.Length}",
                 $"preview=\"{EscapeDescriptionText(textLine.Text)}\""),
-            FlushLineBufferAndFeed => Lines(
+            PrintAndLineFeed => Lines(
                 "LF - Flush line buffer and feed one line"),
             LegacyCarriageReturn => Lines(
                 "CR - Carriage return (legacy compatibility)",
                 "Ignored by the printer"),
             RasterImage raster => BuildRasterImageDescription(raster.Width, raster.Height),
             RasterImageUpload upload => BuildRasterImageDescription(upload.Width, upload.Height),
-            Pagecut pagecut => BuildPagecutDescription(pagecut),
+            CutPaper pagecut => BuildPagecutDescription(pagecut),
             _ => Lines("Unknown command")
         };
     }
@@ -228,7 +229,7 @@ public static class CommandDescriptionBuilder
             $"n={FormatHexByte((byte)value)} ({value}) - {DomainMapper.ToString(justification)}");
     }
 
-    private static IReadOnlyList<string> BuildFontDescription(SetFont font)
+    private static IReadOnlyList<string> BuildFontDescription(SelectFont font)
     {
         // ESC ! n: low 3 bits = font, bit 4 = double height, bit 5 = double width.
         var parameter = (byte)(font.FontNumber & 0x07);
@@ -286,7 +287,7 @@ public static class CommandDescriptionBuilder
             $"Height={heightInDots} (dots)");
     }
 
-    private static IReadOnlyList<string> BuildPagecutDescription(Pagecut pagecut)
+    private static IReadOnlyList<string> BuildPagecutDescription(CutPaper pagecut)
     {
         // ESC i / ESC m are legacy partial cuts; GS V handles full/partial and optional feed.
         return pagecut.Mode switch
@@ -299,7 +300,7 @@ public static class CommandDescriptionBuilder
         };
     }
 
-    private static IReadOnlyList<string> BuildGsPagecutDescription(Pagecut pagecut)
+    private static IReadOnlyList<string> BuildGsPagecutDescription(CutPaper pagecut)
     {
         var modeLabel = pagecut.Mode switch
         {

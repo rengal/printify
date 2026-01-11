@@ -2,6 +2,7 @@
 
 using System.Collections.Generic;
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Documents.Elements.EscPos;
 using Printify.Domain.Media;
 
 /// <summary>
@@ -20,8 +21,8 @@ public static class DocumentElementMapper
         return element switch
         {
             Bell => new BellElementPayload(),
-            Error error => new ErrorElementPayload(error.Code, error.Message),
-            Pagecut pagecut => new PagecutElementPayload(pagecut.Mode.ToString(), pagecut.FeedMotionUnits),
+            ParseError error => new ErrorElementPayload(error.Code, error.Message),
+            CutPaper pagecut => new PagecutElementPayload(pagecut.Mode.ToString(), pagecut.FeedMotionUnits),
             PrinterError printerError => new PrinterErrorElementPayload(printerError.Message),
             GetPrinterStatus status => new PrinterStatusElementPayload(status.StatusByte, status.AdditionalStatusByte),
             PrintBarcode barcode => new PrintBarcodeElementPayload(
@@ -39,14 +40,14 @@ public static class DocumentElementMapper
                 image.Height,
                 image.Media.Id),
             Pulse pulse => new PulseElementPayload(pulse.Pin, pulse.OnTimeMs, pulse.OffTimeMs),
-            ResetPrinter => new ResetPrinterElementPayload(),
+            Initialize => new ResetPrinterElementPayload(),
             SetBarcodeHeight height => new SetBarcodeHeightElementPayload(height.HeightInDots),
             SetBarcodeLabelPosition position => new SetBarcodeLabelPositionElementPayload(
                 SerializeEnum(position.Position, Domain.Documents.Elements.BarcodeLabelPosition.Below)),
             SetBarcodeModuleWidth moduleWidth => new SetBarcodeModuleWidthElementPayload(moduleWidth.ModuleWidth),
             SetBoldMode bold => new SetBoldModeElementPayload(SerializeBool(bold.IsEnabled)),
             SetCodePage codePage => new SetCodePageElementPayload(codePage.CodePage),
-            SetFont font => new SetFontElementPayload(font.FontNumber, SerializeBool(font.IsDoubleWidth), SerializeBool(font.IsDoubleHeight)),
+            SelectFont font => new SetFontElementPayload(font.FontNumber, SerializeBool(font.IsDoubleWidth), SerializeBool(font.IsDoubleHeight)),
             SetJustification justification => new SetJustificationElementPayload(
                 SerializeEnum(justification.Justification, TextJustification.Left)),
             SetLineSpacing spacing => new SetLineSpacingElementPayload(spacing.Spacing),
@@ -59,8 +60,8 @@ public static class DocumentElementMapper
             SetUnderlineMode underline => new SetUnderlineModeElementPayload(SerializeBool(underline.IsEnabled)),
             StoreQrData store => new StoreQrDataElementPayload(store.Content),
             StoredLogo logo => new StoredLogoElementPayload(logo.LogoId),
-            AppendToLineBuffer append => new AppendToLineBufferElementPayload(append.Text),
-            FlushLineBufferAndFeed => new FlushLineBufferAndFeedElementPayload(),
+            AppendText append => new AppendToLineBufferElementPayload(append.Text),
+            PrintAndLineFeed => new FlushLineBufferAndFeedElementPayload(),
             LegacyCarriageReturn => new LegacyCarriageReturnElementPayload(),
             StatusRequest request => new StatusRequestElementPayload((byte)request.RequestType),
             StatusResponse response => new StatusResponseElementPayload(
@@ -80,8 +81,8 @@ public static class DocumentElementMapper
         return dto switch
         {
             BellElementPayload => new Bell(),
-            ErrorElementPayload error => new Error(error.Code ?? string.Empty, error.Message ?? string.Empty),
-            PagecutElementPayload pagecut => new Pagecut(
+            ErrorElementPayload error => new ParseError(error.Code ?? string.Empty, error.Message ?? string.Empty),
+            PagecutElementPayload pagecut => new CutPaper(
                 ParseEnumOrDefault(pagecut.Mode, PagecutMode.Full),
                 pagecut.FeedMotionUnits),
             PrinterErrorElementPayload printerError => new PrinterError(printerError.Message ?? string.Empty),
@@ -100,14 +101,14 @@ public static class DocumentElementMapper
                 media),
                 //media ?? throw new InvalidOperationException("Raster image metadata is missing.")),
             PulseElementPayload pulse => new Pulse(pulse.Pin, pulse.OnTimeMs, pulse.OffTimeMs),
-            ResetPrinterElementPayload => new ResetPrinter(),
+            ResetPrinterElementPayload => new Initialize(),
             SetBarcodeHeightElementPayload height => new SetBarcodeHeight(height.HeightInDots),
             SetBarcodeLabelPositionElementPayload position => new SetBarcodeLabelPosition(
                 ParseEnumOrDefault(position.Position, Domain.Documents.Elements.BarcodeLabelPosition.Below)),
             SetBarcodeModuleWidthElementPayload moduleWidth => new SetBarcodeModuleWidth(moduleWidth.ModuleWidth),
             SetBoldModeElementPayload bold => new SetBoldMode(bold.IsEnabled ?? DefaultBoolean),
             SetCodePageElementPayload codePage => new SetCodePage(codePage.CodePage ?? "437"),
-            SetFontElementPayload font => new SetFont(
+            SetFontElementPayload font => new SelectFont(
                 font.FontNumber,
                 font.IsDoubleWidth ?? DefaultBoolean,
                 font.IsDoubleHeight ?? DefaultBoolean),
@@ -123,8 +124,8 @@ public static class DocumentElementMapper
             SetUnderlineModeElementPayload underline => new SetUnderlineMode(underline.IsEnabled ?? DefaultBoolean),
             StoreQrDataElementPayload store => new StoreQrData(store.Content ?? string.Empty),
             StoredLogoElementPayload logo => new StoredLogo(logo.LogoId),
-            AppendToLineBufferElementPayload textLine => new AppendToLineBuffer(textLine.Text ?? string.Empty),
-            FlushLineBufferAndFeedElementPayload => new FlushLineBufferAndFeed(),
+            AppendToLineBufferElementPayload textLine => new AppendText(textLine.Text ?? string.Empty),
+            FlushLineBufferAndFeedElementPayload => new PrintAndLineFeed(),
             LegacyCarriageReturnElementPayload => new LegacyCarriageReturn(),
             StatusRequestElementPayload request => new StatusRequest((StatusRequestType)request.RequestType),
             StatusResponseElementPayload response => new StatusResponse(

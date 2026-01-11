@@ -1,4 +1,5 @@
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Documents.Elements.EscPos;
 
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
@@ -14,6 +15,6 @@ public sealed class FlushLineBufferAndFeedDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        return MatchResult.Matched(new FlushLineBufferAndFeed());
+        return MatchResult.Matched(new PrintAndLineFeed());
     }
 }

@@ -1,3 +1,5 @@
+using Printify.Domain.Documents.Elements.EscPos;
+
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 /// Command: ESC - n - enable/disable underline mode.
@@ -13,7 +15,7 @@ public sealed class SetUnderlineModeDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
         var enabled = buffer[2] != 0;
-        var element = new Domain.Documents.Elements.SetUnderlineMode(enabled);
+        var element = new SetUnderlineMode(enabled);
         return MatchResult.Matched(element);
     }
 }

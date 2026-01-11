@@ -1,3 +1,5 @@
+using Printify.Domain.Documents.Elements.EscPos;
+
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 /// Command: ESC 2 - set default line spacing (approx. 30 dots).
@@ -11,6 +13,6 @@ public sealed class ResetLineSpacingDescriptor : ICommandDescriptor
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        return MatchResult.Matched(new Domain.Documents.Elements.ResetLineSpacing());
+        return MatchResult.Matched(new ResetLineSpacing());
     }
 }

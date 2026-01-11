@@ -64,11 +64,11 @@ public sealed partial class PrintersControllerTests
     }
 
     [Theory]
-    [InlineData(0x01)] // PrinterStatus
-    [InlineData(0x02)] // OfflineCause
-    [InlineData(0x03)] // ErrorCause
-    [InlineData(0x04)] // PaperRollSensor
-    public async Task SendStatusRequest_DifferentRequestTypes_AllRespondWithReadyStatus(byte requestType)
+    [InlineData(0x01, 0x12)] // PrinterStatus -> 0x12 (ready)
+    [InlineData(0x02, 0x12)] // OfflineCause -> 0x12 (no offline condition)
+    [InlineData(0x03, 0x02)] // ErrorCause -> 0x02 (no error, bit1 fixed)
+    [InlineData(0x04, 0x12)] // PaperRollSensor -> 0x12 (paper present)
+    public async Task SendStatusRequest_DifferentRequestTypes_AllRespondWithReadyStatus(byte requestType, byte expectedStatusByte)
     {
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
@@ -99,7 +99,7 @@ public sealed partial class PrintersControllerTests
         var response = await responseTask;
         Assert.NotNull(response);
         Assert.Single(response);
-        Assert.Equal(0x12, response[0]);
+        Assert.Equal(expectedStatusByte, response[0]);
 
         await channel.CloseAsync(ChannelClosedReason.Completed);
     }

@@ -1,3 +1,5 @@
+using Printify.Domain.Documents.Elements.EscPos;
+
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 /// Command: BEL - buzzer/beeper.
@@ -9,5 +11,5 @@ public sealed class BelDescriptor : ICommandDescriptor
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x07 };
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state) => MatchResult.Matched(new Domain.Documents.Elements.Bell());
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state) => MatchResult.Matched(new Bell());
 }

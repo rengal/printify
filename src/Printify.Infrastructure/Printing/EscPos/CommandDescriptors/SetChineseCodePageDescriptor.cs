@@ -1,3 +1,5 @@
+using Printify.Domain.Documents.Elements.EscPos;
+
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 /// Command: FS & - select Chinese (GB2312) character set.
@@ -15,6 +17,6 @@ public sealed class SetChineseCodePageDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
     {
-        return MatchResult.Matched(new Domain.Documents.Elements.SetCodePage(Gb2312CodePage));
+        return MatchResult.Matched(new SetCodePage(Gb2312CodePage));
     }
 }

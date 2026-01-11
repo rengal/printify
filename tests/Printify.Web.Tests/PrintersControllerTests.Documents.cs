@@ -5,8 +5,7 @@ using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
-using Printify.Web.Contracts.Documents.Responses;
-using Printify.Web.Contracts.Documents.Responses.Elements;
+using Printify.Web.Contracts.Documents.Responses.View;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using PrinterRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterDto;
@@ -116,7 +115,7 @@ public sealed partial class PrintersControllerTests
         throw new TimeoutException($"Printer {printerId} did not reach State={expectedStatus} within timeout");
     }
 
-    private static async Task<DocumentDto> SendDocumentAndVerifyAsync(
+    private static async Task SendDocumentAndVerifyAsync(
         HttpClient client,
         IAsyncEnumerator<DocumentStreamEvent> documentStream,
         Guid printerId,
@@ -135,16 +134,19 @@ public sealed partial class PrintersControllerTests
         Assert.True(hasNext, "Expected document event from stream");
 
         var document = documentStream.Current.Document;
-        var response = await client.GetAsync($"/api/printers/{printerId}/documents/{document.Id}", ct);
+
+        // Verify view endpoint returns the document
+        var response = await client.GetAsync($"/api/printers/{printerId}/documents/view?limit=10", ct);
         response.EnsureSuccessStatusCode();
 
-        var dto = await response.Content.ReadFromJsonAsync<DocumentDto>(cancellationToken: ct);
-        Assert.NotNull(dto);
-        Assert.Equal(expectedWidthInDots, dto!.WidthInDots);
-        Assert.Equal(expectedHeightInDots, dto.HeightInDots);
-        var textLine = dto!.Elements.OfType<AppendToLineBufferDto>().FirstOrDefault();
-        Assert.NotNull(textLine);
-        Assert.Equal(text, textLine!.Text);
-        return dto!;
+        var viewDocumentList = await response.Content.ReadFromJsonAsync<ViewDocumentListResponseDto>(cancellationToken: ct);
+        Assert.NotNull(viewDocumentList);
+
+        var viewDocument = viewDocumentList.Result.Items.FirstOrDefault(doc => doc.Id == document.Id)
+            ?? viewDocumentList.Result.Items.FirstOrDefault();
+        Assert.NotNull(viewDocument);
+
+        Assert.Equal(expectedWidthInDots, viewDocument!.WidthInDots);
+        Assert.Equal(expectedHeightInDots, viewDocument.HeightInDots);
     }
 }

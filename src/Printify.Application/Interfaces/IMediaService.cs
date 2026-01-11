@@ -1,4 +1,5 @@
-﻿using Printify.Domain.Documents.Elements;
+﻿using DomainElements = Printify.Domain.Documents.Elements;
+using EscPosElements = Printify.Domain.Documents.Elements.EscPos;
 using Printify.Domain.Media;
 using Printify.Domain.Printers;
 
@@ -21,25 +22,25 @@ public interface IMediaService
     /// <summary>
     /// Generates a barcode image using the supplied payload and rendering options.
     /// </summary>
-    RasterImageUpload GenerateBarcodeMedia(PrintBarcodeUpload upload, BarcodeRenderOptions options);
+    EscPosElements.RasterImageUpload GenerateBarcodeMedia(EscPosElements.PrintBarcodeUpload upload, BarcodeRenderOptions options);
 
     /// <summary>
     /// Generates a QR code image using the supplied payload and rendering options.
     /// </summary>
-    RasterImageUpload GenerateQrMedia(QrRenderOptions options);
+    EscPosElements.RasterImageUpload GenerateQrMedia(QrRenderOptions options);
 }
 
 public sealed record BarcodeRenderOptions(
     int? HeightInDots,
     int? ModuleWidthInDots,
-    BarcodeLabelPosition? LabelPosition,
-    TextJustification? Justification,
+    DomainElements.BarcodeLabelPosition? LabelPosition,
+    DomainElements.TextJustification? Justification,
     int? PrinterWidthInDots);
 
 public sealed record QrRenderOptions(
     string Data,
-    QrModel Model,
+    DomainElements.QrModel Model,
     int? ModuleSizeInDots,
-    QrErrorCorrectionLevel? ErrorCorrectionLevel,
-    TextJustification? Justification,
+    DomainElements.QrErrorCorrectionLevel? ErrorCorrectionLevel,
+    DomainElements.TextJustification? Justification,
     int? PrinterWidthInDots);

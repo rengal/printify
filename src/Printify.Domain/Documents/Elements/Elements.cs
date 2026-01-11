@@ -1,7 +1,5 @@
 using System.Text.Json.Serialization;
-
-using Printify.Domain.Media;
-using DomainMedia = Printify.Domain.Media.Media;
+using EscPosElements = Printify.Domain.Documents.Elements.EscPos;
 
 namespace Printify.Domain.Documents.Elements;
 
@@ -9,38 +7,43 @@ namespace Printify.Domain.Documents.Elements;
 /// Base type for all document elements produced by tokenizers and consumed by renderers.
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "")]
-[JsonDerivedType(typeof(Bell), "bell")]
-[JsonDerivedType(typeof(Error), "error")]
-[JsonDerivedType(typeof(Pagecut), "pagecut")]
-[JsonDerivedType(typeof(PrinterError), "printerError")]
-[JsonDerivedType(typeof(GetPrinterStatus), "printerStatus")]
-[JsonDerivedType(typeof(PrintBarcode), "printBarcode")]
-[JsonDerivedType(typeof(PrintQrCode), "printQrCode")]
-[JsonDerivedType(typeof(Pulse), "pulse")]
-[JsonDerivedType(typeof(RasterImageUpload), "rasterImageUpload")]
-[JsonDerivedType(typeof(RasterImage), "rasterImage")]
-[JsonDerivedType(typeof(ResetPrinter), "resetPrinter")]
-[JsonDerivedType(typeof(SetBarcodeHeight), "setBarcodeHeight")]
-[JsonDerivedType(typeof(SetBarcodeLabelPosition), "setBarcodeLabelPosition")]
-[JsonDerivedType(typeof(SetBarcodeModuleWidth), "setBarcodeModuleWidth")]
-[JsonDerivedType(typeof(SetBoldMode), "setBoldMode")]
-[JsonDerivedType(typeof(SetCodePage), "setCodePage")]
-[JsonDerivedType(typeof(SetFont), "setFont")]
-[JsonDerivedType(typeof(SetJustification), "setJustification")]
-[JsonDerivedType(typeof(SetLineSpacing), "setLineSpacing")]
-[JsonDerivedType(typeof(ResetLineSpacing), "resetLineSpacing")]
-[JsonDerivedType(typeof(SetQrErrorCorrection), "setQrErrorCorrection")]
-[JsonDerivedType(typeof(SetQrModel), "setQrModel")]
-[JsonDerivedType(typeof(SetQrModuleSize), "setQrModuleSize")]
-[JsonDerivedType(typeof(SetReverseMode), "setReverseMode")]
-[JsonDerivedType(typeof(SetUnderlineMode), "setUnderlineMode")]
-[JsonDerivedType(typeof(StoreQrData), "storeQrData")]
-[JsonDerivedType(typeof(StoredLogo), "storedLogo")]
-[JsonDerivedType(typeof(AppendToLineBuffer), "appendToLineBuffer")]
-[JsonDerivedType(typeof(FlushLineBufferAndFeed), "flushLineBufferAndFeed")]
-[JsonDerivedType(typeof(LegacyCarriageReturn), "legacyCarriageReturn")]
-[JsonDerivedType(typeof(StatusRequest), "statusRequest")]
-[JsonDerivedType(typeof(StatusResponse), "statusResponse")]
+// EscPos Text Elements
+[JsonDerivedType(typeof(EscPosElements.AppendText), "appendToLineBuffer")]
+[JsonDerivedType(typeof(EscPosElements.PrintAndLineFeed), "flushLineBufferAndFeed")]
+[JsonDerivedType(typeof(EscPosElements.LegacyCarriageReturn), "legacyCarriageReturn")]
+[JsonDerivedType(typeof(EscPosElements.SelectFont), "setFont")]
+[JsonDerivedType(typeof(EscPosElements.SetBoldMode), "setBoldMode")]
+[JsonDerivedType(typeof(EscPosElements.SetUnderlineMode), "setUnderlineMode")]
+[JsonDerivedType(typeof(EscPosElements.SetReverseMode), "setReverseMode")]
+[JsonDerivedType(typeof(EscPosElements.SetJustification), "setJustification")]
+[JsonDerivedType(typeof(EscPosElements.SetLineSpacing), "setLineSpacing")]
+[JsonDerivedType(typeof(EscPosElements.ResetLineSpacing), "resetLineSpacing")]
+[JsonDerivedType(typeof(EscPosElements.SetCodePage), "setCodePage")]
+[JsonDerivedType(typeof(EscPosElements.StoredLogo), "storedLogo")]
+[JsonDerivedType(typeof(EscPosElements.RasterImageUpload), "rasterImageUpload")]
+[JsonDerivedType(typeof(EscPosElements.RasterImage), "rasterImage")]
+// EscPos Barcode Elements
+[JsonDerivedType(typeof(EscPosElements.PrintBarcodeUpload), "printBarcodeUpload")]
+[JsonDerivedType(typeof(EscPosElements.PrintBarcode), "printBarcode")]
+[JsonDerivedType(typeof(EscPosElements.SetBarcodeHeight), "setBarcodeHeight")]
+[JsonDerivedType(typeof(EscPosElements.SetBarcodeLabelPosition), "setBarcodeLabelPosition")]
+[JsonDerivedType(typeof(EscPosElements.SetBarcodeModuleWidth), "setBarcodeModuleWidth")]
+[JsonDerivedType(typeof(EscPosElements.PrintQrCodeUpload), "printQrCodeUpload")]
+[JsonDerivedType(typeof(EscPosElements.PrintQrCode), "printQrCode")]
+[JsonDerivedType(typeof(EscPosElements.StoreQrData), "storeQrData")]
+[JsonDerivedType(typeof(EscPosElements.SetQrErrorCorrection), "setQrErrorCorrection")]
+[JsonDerivedType(typeof(EscPosElements.SetQrModel), "setQrModel")]
+[JsonDerivedType(typeof(EscPosElements.SetQrModuleSize), "setQrModuleSize")]
+// EscPos Control Elements
+[JsonDerivedType(typeof(EscPosElements.Bell), "bell")]
+[JsonDerivedType(typeof(EscPosElements.CutPaper), "pagecut")]
+[JsonDerivedType(typeof(EscPosElements.Pulse), "pulse")]
+[JsonDerivedType(typeof(EscPosElements.Initialize), "resetPrinter")]
+[JsonDerivedType(typeof(EscPosElements.ParseError), "error")]
+[JsonDerivedType(typeof(EscPosElements.PrinterError), "printerError")]
+[JsonDerivedType(typeof(EscPosElements.GetPrinterStatus), "printerStatus")]
+[JsonDerivedType(typeof(EscPosElements.StatusRequest), "statusRequest")]
+[JsonDerivedType(typeof(EscPosElements.StatusResponse), "statusResponse")]
 public abstract record Element
 {
     /// <summary>
@@ -63,40 +66,6 @@ public abstract record NonPrintingElement : Element;
 /// Base type for printing (visible) elements that produce output on paper.
 /// </summary>
 public abstract record PrintingElement : Element;
-
-/// <summary>
-/// Base type for raster images with shared geometry across content or descriptors.
-/// </summary>
-/// <param name="Width">Image width in printer dots.</param>
-/// <param name="Height">Image height in printer dots.</param>
-public abstract record BaseRasterImage(
-    int Width,
-    int Height)
-    : PrintingElement;
-
-/// <summary>
-/// Raster image that carries the media payload directly in the element.
-/// </summary>
-/// <param name="Width">Image width in printer dots.</param>
-/// <param name="Height">Image height in printer dots.</param>
-/// <param name="Media">Raster image media payload, including raw bytes and associated metadata.</param>
-public sealed record RasterImageUpload(
-    int Width,
-    int Height,
-    MediaUpload Media)
-    : BaseRasterImage(Width, Height);
-
-/// <summary>
-/// Raster image that references persisted media content.
-/// </summary>
-/// <param name="Width">Image width in printer dots.</param>
-/// <param name="Height">Image height in printer dots.</param>
-/// <param name="Media">Persisted media descriptor with accessible URL.</param>
-public sealed record RasterImage(
-    int Width,
-    int Height,
-    DomainMedia Media)
-    : BaseRasterImage(Width, Height);
 
 /// <summary>
 /// ESC/POS barcode symbologies supported by GS k.
@@ -268,233 +237,6 @@ public enum PagecutMode
     /// </summary>
     PartialThreePoint = 3,
 }
-
-/// <summary>
-/// An audible/attention bell signal.
-/// </summary>
-public sealed record Bell : NonPrintingElement;
-
-/// <summary>
-/// A non-printing error event emitted by the tokenizer/session (e.g., buffer overflow).
-/// </summary>
-/// <param name="Code">Machine-readable code (e.g., "BufferOverflow", "ParseError").</param>
-/// <param name="Message">Human-readable description.</param>
-public sealed record Error(string Code, string Message) : NonPrintingElement;
-
-/// <summary>
-/// A paper cut operation (full or partial depending on command parsed).
-/// </summary>
-/// <param name="Mode">The type of cut to perform (full or partial).</param>
-/// <param name="FeedMotionUnits">Feed distance in motion units before cutting (GS V m n).</param>
-public sealed record Pagecut(PagecutMode Mode, int? FeedMotionUnits = null) : NonPrintingElement;
-
-/// <summary>
-/// Represents a printer-specific error emitted during tokenization (e.g., simulated buffer overflow).
-/// </summary>
-/// <param name="Message">Human-readable description of the error.</param>
-public sealed record PrinterError(string Message) : NonPrintingElement;
-
-/// <summary>
-/// A decoded printer status byte with optional human-readable description.
-/// </summary>
-/// <param name="StatusByte">Raw status byte value.</param>
-/// <param name="AdditionalStatusByte">
-/// Optional additional status byte value, if present in the protocol.
-/// </param>
-public sealed record GetPrinterStatus(
-    byte StatusByte,
-    byte? AdditionalStatusByte = null)
-    : NonPrintingElement;
-
-/// <summary>
-/// Renders a one-dimensional barcode using the GS k command family.
-/// </summary>
-/// <param name="Symbology">Selected barcode symbology.</param>
-/// <param name="Data">Raw data payload to encode.</param>
-public sealed record PrintBarcodeUpload(
-    BarcodeSymbology Symbology,
-    string Data)
-    : PrintingElement;
-
-/// <summary>
-/// Renders a one-dimensional barcode using the GS k command family.
-/// </summary>
-/// <param name="Symbology">Selected barcode symbology.</param>
-/// <param name="Data">Raw data payload to encode.</param>
-public sealed record PrintBarcode(
-    BarcodeSymbology Symbology,
-    string Data,
-    int Width,
-    int Height,
-    DomainMedia Media)
-    : PrintingElement;
-
-/// <summary>
-/// Emits a QR code print request using the last stored payload.
-/// </summary>
-public sealed record PrintQrCodeUpload : PrintingElement;
-
-/// <summary>
-/// Emits a QR code print request using the last stored payload.
-/// </summary>
-public sealed record PrintQrCode(
-    string Data,
-    int Width,
-    int Height,
-    DomainMedia Media) : PrintingElement;
-
-/// <summary>
-/// A cash drawer pulse signal sent to a specific pin.
-/// </summary>
-/// <param name="Pin">Target drawer pin.</param>
-/// <param name="OnTimeMs">Pulse ON interval in milliseconds.</param>
-/// <param name="OffTimeMs">Pulse OFF interval in milliseconds.</param>
-public sealed record Pulse(int Pin, int OnTimeMs, int OffTimeMs)
-    : NonPrintingElement;
-
-/// <summary>
-/// Resets the printer to its power-on state (ESC @).
-/// </summary>
-public sealed record ResetPrinter : NonPrintingElement;
-
-/// <summary>
-/// Configures the height of subsequent barcodes using GS h (0x1D 0x68).
-/// </summary>
-/// <param name="HeightInDots">Barcode height in dots.</param>
-public sealed record SetBarcodeHeight(int HeightInDots) : NonPrintingElement;
-
-/// <summary>
-/// Selects the placement of human-readable barcode labels via GS H (0x1D 0x48).
-/// </summary>
-/// <param name="Position">Desired label positioning.</param>
-public sealed record SetBarcodeLabelPosition(BarcodeLabelPosition Position)
-    : NonPrintingElement;
-
-/// <summary>
-/// Configures the module width (basic bar width) for subsequent barcodes using GS w (0x1D 0x77).
-/// </summary>
-/// <param name="ModuleWidth">Module width in device units (typically dots).</param>
-public sealed record SetBarcodeModuleWidth(int ModuleWidth) : NonPrintingElement;
-
-/// <summary>
-/// Enables or disables emphasized (bold) text mode (ESC E).
-/// </summary>
-/// <param name="IsEnabled">True when bold mode is turned on; false when turned off.</param>
-public sealed record SetBoldMode(bool IsEnabled) : NonPrintingElement;
-
-/// <summary>
-/// Sets the code page used to decode incoming bytes to text.
-/// </summary>
-/// <param name="CodePage">Code page identifier/name (e.g., "CP437", "CP850").</param>
-public sealed record SetCodePage(string CodePage) : NonPrintingElement;
-
-/// <summary>
-/// Changes the active font selection for subsequent printed text using ESC ! (0x1B 0x21) semantics.
-/// </summary>
-/// <param name="FontNumber">Protocol-specific font number (e.g., 0=A, 1=B).</param>
-/// <param name="IsDoubleWidth">True when double-width bit is set.</param>
-/// <param name="IsDoubleHeight">True when double-height bit is set.</param>
-public sealed record SetFont(int FontNumber, bool IsDoubleWidth, bool IsDoubleHeight)
-    : NonPrintingElement;
-
-/// <summary>
-/// Selects justification for subsequent printable data using ESC a (0x1B 0x61).
-/// </summary>
-/// <param name="Justification">Requested alignment value.</param>
-public sealed record SetJustification(TextJustification Justification)
-    : NonPrintingElement;
-
-/// <summary>
-/// Sets line spacing in printer dots for subsequent lines (e.g., ESC 0x1B 0x33 n).
-/// </summary>
-/// <param name="Spacing">Line spacing value in dots.</param>
-public sealed record SetLineSpacing(int Spacing) : NonPrintingElement;
-
-/// <summary>
-/// Resets the line spacing to the printer default value.
-/// </summary>
-public sealed record ResetLineSpacing : NonPrintingElement;
-
-/// <summary>
-/// Selects the QR error correction level for subsequent symbols via GS ( k.
-/// </summary>
-/// <param name="Level">Chosen QR error correction level.</param>
-public sealed record SetQrErrorCorrection(QrErrorCorrectionLevel Level)
-    : NonPrintingElement;
-
-/// <summary>
-/// Configures the QR code model for subsequent GS ( k.
-/// </summary>
-/// <param name="Model">Selected QR code model.</param>
-public sealed record SetQrModel(QrModel Model) : NonPrintingElement;
-
-/// <summary>
-/// Sets the module size (dot width) for QR codes via GS ( k.
-/// </summary>
-/// <param name="ModuleSize">Width of a single QR module in dots.</param>
-public sealed record SetQrModuleSize(int ModuleSize) : NonPrintingElement;
-
-/// <summary>
-/// Enables or disables reverse (white-on-black) print mode (GS B).
-/// </summary>
-/// <param name="IsEnabled">True when reverse mode is turned on; false when turned off.</param>
-public sealed record SetReverseMode(bool IsEnabled) : NonPrintingElement;
-
-/// <summary>
-/// Enables or disables underline text mode (ESC -).
-/// </summary>
-/// <param name="IsEnabled">True when underline mode is turned on; false when turned off.</param>
-public sealed record SetUnderlineMode(bool IsEnabled) : NonPrintingElement;
-
-/// <summary>
-/// Prints a logo stored in printer memory by its identifier.
-/// Corresponds to ESC/POS stored logo commands (e.g., FS p).
-/// </summary>
-/// <param name="LogoId">Identifier/index of the stored logo in printer memory.</param>
-public sealed record StoredLogo(int LogoId) : PrintingElement;
-
-/// <summary>
-/// Stores QR code data into the printer memory using GS ( k.
-/// </summary>
-/// <param name="Content">Payload to be encoded into the QR symbol.</param>
-public sealed record StoreQrData(string Content) : NonPrintingElement;
-
-/// <summary>
-/// Text bytes that are appended to the line buffer.
-/// </summary>
-/// <param name="Text">Raw text content (decoded as parsed; typically ASCII/CP437 in MVP).</param>
-public sealed record AppendToLineBuffer(string Text) : PrintingElement;
-
-/// <summary>
-/// Flushes the current line buffer and feeds one line.
-/// </summary>
-public sealed record FlushLineBufferAndFeed : PrintingElement;
-
-/// <summary>
-/// Legacy carriage return kept for compatibility; ignored by the printer.
-/// </summary>
-public sealed record LegacyCarriageReturn : NonPrintingElement;
-
-/// <summary>
-/// DLE EOT n - Real-time status transmission request.
-/// Client requests printer status; printer responds immediately with 1 byte.
-/// </summary>
-/// <param name="RequestType">Type of status being requested (1-4).</param>
-public sealed record StatusRequest(StatusRequestType RequestType) : Element;
-
-/// <summary>
-/// Status response sent from printer to client (1 byte).
-/// Generated in response to StatusRequest command.
-/// </summary>
-/// <param name="StatusByte">Single byte containing printer status flags.</param>
-/// <param name="IsPaperOut">Paper end detected (bit 5).</param>
-/// <param name="IsCoverOpen">Cover is open (bit 2).</param>
-/// <param name="IsOffline">Printer is offline/error (bit 6).</param>
-public sealed record StatusResponse(
-    byte StatusByte,
-    bool IsPaperOut,
-    bool IsCoverOpen,
-    bool IsOffline) : Element;
 
 /// <summary>
 /// Type of real-time status request (DLE EOT n parameter).

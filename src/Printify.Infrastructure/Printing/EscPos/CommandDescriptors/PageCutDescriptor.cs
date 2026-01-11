@@ -1,3 +1,5 @@
+using Printify.Domain.Documents.Elements.EscPos;
+
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 /// <summary>
@@ -69,9 +71,9 @@ public sealed class PageCutDescriptor : ICommandDescriptor
             _ => Domain.Documents.Elements.PagecutMode.Full // Default to full cut for unknown modes
         };
 
-        // Create Pagecut element with the determined mode and feed parameter
-        var element = new Domain.Documents.Elements.Pagecut(cutMode, feedMotionUnits);
-        
+        // Create CutPaper element with the determined mode and feed parameter
+        var element = new CutPaper(cutMode, feedMotionUnits);
+
         return MatchResult.Matched(element);
     }
 }

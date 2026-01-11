@@ -1,5 +1,6 @@
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents.Elements;
+using Printify.Domain.Documents.Elements.EscPos;
 using Printify.Domain.Media;
 using SkiaSharp;
 using ZXing;

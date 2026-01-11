@@ -25,7 +25,6 @@ using Printify.Domain.Documents.View;
 using Printify.Domain.Printers;
 using Printify.Web.Contracts.Common.Pagination;
 using Printify.Web.Contracts.Documents.Requests;
-using Printify.Web.Contracts.Documents.Responses;
 using Printify.Web.Contracts.Documents.Responses.View;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
@@ -157,30 +156,6 @@ public sealed class PrintersController : ControllerBase
     }
 
     [Authorize]
-    [HttpGet("{id:guid}/documents/stream")]
-    public async Task StreamDocuments(Guid id, CancellationToken cancellationToken)
-    {
-        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var printer = await mediator.RequestAsync<GetPrinterQuery, PrinterDetailsSnapshot?>(
-            new GetPrinterQuery(id, httpContext),
-            cancellationToken);
-        if (printer is null)
-        {
-            Response.StatusCode = StatusCodes.Status404NotFound;
-            return;
-        }
-
-        Response.Headers.CacheControl = "no-store";
-        Response.Headers["X-Accel-Buffering"] = "no";
-        Response.ContentType = "text/event-stream";
-
-        await foreach (var documentEvent in documentStream.Subscribe(id, cancellationToken))
-        {
-            await WriteSseAsync("documentReady", DocumentMapper.ToResponseDto(documentEvent.Document), cancellationToken);
-        }
-    }
-
-    [Authorize]
     [HttpGet("{id:guid}/documents/view/stream")]
     public async Task StreamViewDocuments(Guid id, CancellationToken cancellationToken)
     {
@@ -214,36 +189,6 @@ public sealed class PrintersController : ControllerBase
                     cancellationToken);
             }
         }
-    }
-
-    [Authorize]
-    [HttpGet("{id:guid}/documents")]
-    public async Task<ActionResult<DocumentListResponseDto>> ListDocuments(
-        Guid id,
-        [FromQuery] GetDocumentsRequestDto? request,
-        CancellationToken cancellationToken = default)
-    {
-        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var effectiveLimit = request?.Limit ?? 20;
-        var documents = await mediator.RequestAsync<ListPrinterDocumentsQuery, PrinterDocumentListResponse>(
-            new ListPrinterDocumentsQuery(
-                id,
-                httpContext,
-                request?.BeforeId,
-                effectiveLimit),
-            cancellationToken);
-        var items = documents.Documents
-            .Select(DocumentMapper.ToResponseDto)
-            .ToList();
-        var hasMore = effectiveLimit > 0 && documents.Documents.Count == effectiveLimit;
-        var nextBeforeId = hasMore ? documents.Documents.Last().Id : (Guid?)null;
-        var response = new DocumentListResponseDto(
-            new Contracts.Common.Pagination.PagedResult<DocumentDto>(
-                items,
-                hasMore,
-                nextBeforeId,
-                null));
-        return Ok(response);
     }
 
     [Authorize]
@@ -293,22 +238,6 @@ public sealed class PrintersController : ControllerBase
     public IActionResult SetLastViewedDocument(Guid id, [FromBody] SetLastViewedDocumentRequestDto request)
     {
         return StatusCode(StatusCodes.Status501NotImplemented);
-    }
-
-    [Authorize]
-    [HttpGet("{printerId:guid}/documents/{documentId:guid}")]
-    public async Task<ActionResult<Domain.Documents.Document>> GetDocument(Guid printerId, Guid documentId, CancellationToken cancellationToken)
-    {
-        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
-        var document = await mediator.RequestAsync<GetPrinterDocumentQuery, Domain.Documents.Document?>(
-            new GetPrinterDocumentQuery(printerId, documentId, httpContext),
-            cancellationToken);
-        if (document is null)
-        {
-            return NotFound();
-        }
-
-        return Ok(DocumentMapper.ToResponseDto(document));
     }
 
     [Authorize]
