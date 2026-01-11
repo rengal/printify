@@ -19,24 +19,6 @@
         let runtimeStreamPrinterId = null;
         let debugMode = false;
 
-        // Icon cache
-        const iconCache = {};
-
-        async function loadIcon(name) {
-            if (iconCache[name]) {
-                return iconCache[name];
-            }
-            try {
-                const response = await fetch(`assets/icons/${name}.svg`);
-                const svgText = await response.text();
-                iconCache[name] = svgText;
-                return svgText;
-            } catch (err) {
-                console.error(`Failed to load icon ${name}:`, err);
-                return '';
-            }
-        }
-
         // Strong daytime intervals (server and client must agree)
         const TIME_INTERVALS = {
             morning: { start: 6, end: 11 },   // 06:00 - 11:00
@@ -94,26 +76,6 @@
             } else {
                 workspaceToken = newToken;
             }
-        }
-
-        function getIcon(name, options = {}) {
-            const svg = iconCache[name] || '';
-            if (!svg) return '';
-
-            let result = svg;
-            if (options.width) {
-                result = result.replace(/width="[^"]*"/, `width="${options.width}"`);
-            }
-            if (options.height) {
-                result = result.replace(/height="[^"]*"/, `height="${options.height}"`);
-            }
-            if (options.stroke) {
-                result = result.replace(/stroke="[^"]*"/g, `stroke="${options.stroke}"`);
-            }
-            if (options.class) {
-                result = result.replace(/<svg/, `<svg class="${options.class}"`);
-            }
-            return result;
         }
 
         function authHeaders() {
@@ -1987,11 +1949,6 @@
         WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
         renderSidebar();
         renderDocuments();
-
-        // Preload icons
-        loadIcon('alert-triangle');
-        loadIcon('plus-circle');
-        loadIcon('log-in');
 
         // Restore sidebar state
         const sidebarMinimized = localStorage.getItem('sidebarMinimized') === 'true';
