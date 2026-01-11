@@ -300,5 +300,7 @@
 }
 
 .docs-setup-link {
-    margin: 16px 0 0 0;
+    margin: 24px 0 0 0;
+    color: var(--muted);
+    line-height: 1.5;
 }
