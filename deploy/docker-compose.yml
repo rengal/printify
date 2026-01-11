@@ -1,0 +1,39 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: printify:latest
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://0.0.0.0:8080
+      Listener__PublicHost: ${PUBLIC_HOST}
+      Storage__DatabasePath: /data/db
+      Storage__MediaRootPath: /data/media
+      Jwt__SecretKey: ${JWT_SECRET_KEY}
+      Jwt__Issuer: https://${PUBLIC_HOST}
+      Jwt__Audience: https://${PUBLIC_HOST}
+    volumes:
+      - C:/Printify-data:/data
+    ports:
+      - "9100-15000:9100-15000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.8
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  caddy-data:
+  caddy-config:

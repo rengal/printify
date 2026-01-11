@@ -1,0 +1,4 @@
+{$PUBLIC_HOST} {
+    reverse_proxy app:8080
+    encode zstd gzip
+}
