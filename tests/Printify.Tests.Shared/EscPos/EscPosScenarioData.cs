@@ -287,7 +287,7 @@ public static class EscPosScenarioData
         new(
             id: 16001,
             input: [0x00],
-            expectedRequestElements: [new EscPosElements.PrinterError("") { LengthInBytes = 1 }],
+            expectedRequestElements: [new DomainElements.PrinterError("") { LengthInBytes = 1 }],
             expectedViewElements:
             [
                 ViewDebug("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
@@ -299,7 +299,7 @@ public static class EscPosScenarioData
         new(
             id: 16002,
             input: [0x00, 0x00],
-            expectedRequestElements: [new EscPosElements.PrinterError("") { LengthInBytes = 2 }],
+            expectedRequestElements: [new DomainElements.PrinterError("") { LengthInBytes = 2 }],
             expectedViewElements:
             [
                 ViewDebug("printerError", lengthInBytes: 2, parameters: new Dictionary<string, string>
@@ -311,7 +311,7 @@ public static class EscPosScenarioData
         new(
             id: 16003,
             input: [0x00, 0x01, 0x02],
-            expectedRequestElements: [new EscPosElements.PrinterError("") { LengthInBytes = 3 }],
+            expectedRequestElements: [new DomainElements.PrinterError("") { LengthInBytes = 3 }],
             expectedViewElements:
             [
                 ViewDebug("printerError", lengthInBytes: 3, parameters: new Dictionary<string, string>
@@ -324,7 +324,7 @@ public static class EscPosScenarioData
             id: 160004,
             input: [0x00, .. "ABC"u8],
             expectedRequestElements: [
-                new EscPosElements.PrinterError("") { LengthInBytes = 1 },
+                new DomainElements.PrinterError("") { LengthInBytes = 1 },
                 new EscPosElements.AppendText("ABC") { LengthInBytes = 3 }],
             expectedViewElements:
             [
@@ -340,7 +340,7 @@ public static class EscPosScenarioData
             input: [.. "ABC"u8, 0x00, .. "DEF"u8],
             expectedRequestElements: [
                 new EscPosElements.AppendText("ABC") { LengthInBytes = 3 },
-                new EscPosElements.PrinterError("") { LengthInBytes = 1 },
+                new DomainElements.PrinterError("") { LengthInBytes = 1 },
                 new EscPosElements.AppendText("DEF") { LengthInBytes = 3 }],
             expectedViewElements:
             [
@@ -356,7 +356,7 @@ public static class EscPosScenarioData
             id: 160006,
             input: [0x00, 0x07],
             expectedRequestElements: [
-                new EscPosElements.PrinterError("") { LengthInBytes = 1 },
+                new DomainElements.PrinterError("") { LengthInBytes = 1 },
                 new EscPosElements.Bell { LengthInBytes = 1 }],
             expectedViewElements:
             [

@@ -79,7 +79,7 @@ public static class ServiceCollectionExtensions
         // Infrastructure services
         services.AddSingleton<IMediaService, MediaService>();
         services.AddSingleton<IMediaStorage, FileSystemMediaStorage>();
-        services.AddSingleton<IEscPosCommandTrieProvider, EscPosCommandTrieProvider>();
+        services.AddSingleton<EscPosCommandTrieProvider>();
         services.AddSingleton<IPrinterBufferCoordinator, PrinterBufferCoordinator>();
         services.AddSingleton<IPrinterStatusStream, PrinterStatusStream>();
         services.AddSingleton<IPrinterRuntimeStatusStore, PrinterRuntimeStatusStore>();

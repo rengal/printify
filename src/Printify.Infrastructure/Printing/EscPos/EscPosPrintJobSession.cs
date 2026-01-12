@@ -36,7 +36,7 @@ public class EscPosPrintJobSession : PrintJobSession
         IClockFactory clockFactory,
         PrintJob job,
         IPrinterChannel channel,
-        IEscPosCommandTrieProvider trieProvider,
+        EscPosCommandTrieProvider trieProvider,
         IServiceScopeFactory scopeFactory)
         : base(bufferCoordinator, job, channel)
     {

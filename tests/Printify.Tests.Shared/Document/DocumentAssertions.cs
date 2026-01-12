@@ -36,8 +36,8 @@ public static class DocumentAssertions
 
             switch (expected)
             {
-                case EscPosElements.PrinterError:
-                    _ = Assert.IsType<EscPosElements.PrinterError>(actualElement);
+                case DomainElements.PrinterError:
+                    _ = Assert.IsType<DomainElements.PrinterError>(actualElement);
                     break;
                 case EscPosElements.PrintBarcode expectedBarcode:
                     var actualBarcode = Assert.IsType<EscPosElements.PrintBarcode>(actualElement);

@@ -1,3 +1,4 @@
+using Printify.Infrastructure.Printing.Common;
 using System.Text;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.Elements.EscPos;
@@ -97,6 +98,7 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
         }
 
         string content;
+        int bytesConsumed;
 
         // Function A: symbologyByte <= 0x06 uses null terminator
         // Function B: symbologyByte >= 0x41 uses length indicator
@@ -117,6 +119,7 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
 
             var payload = buffer.Slice(4, length).ToArray();
             content = Encoding.ASCII.GetString(payload);
+            bytesConsumed = 4 + length;
         }
         else
         {
@@ -130,6 +133,7 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
             var payloadLength = terminator - payloadStart;
             var payload = payloadLength > 0 ? buffer.Slice(payloadStart, payloadLength).ToArray() : [];
             content = Encoding.ASCII.GetString(payload);
+            bytesConsumed = terminator + 1; // Include null terminator
         }
 
         return MatchResult.Matched(new PrintBarcodeUpload(symbology, content));

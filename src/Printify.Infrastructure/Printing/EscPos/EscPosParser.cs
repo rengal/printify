@@ -6,12 +6,13 @@ using Printify.Application.Printing;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.Elements.EscPos;
 using Printify.Domain.Printers;
+using Printify.Infrastructure.Printing.Common;
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
 public sealed class EscPosParser
 {
-    private readonly EscPosCommandTrieNode root;
+    private readonly CommandTrieNode<ParserState> root;
     private readonly ParserState state;
     private readonly IServiceScopeFactory? scopeFactory;
     private readonly Printer? printer;
@@ -28,7 +29,7 @@ public sealed class EscPosParser
         DefaultCodePage = Encoding.GetEncoding(437);  // OEM-US (DOS)
     }
 
-    public EscPosParser(IEscPosCommandTrieProvider trieProvider, Action<Element> onElement)
+    public EscPosParser(EscPosCommandTrieProvider trieProvider, Action<Element> onElement)
     {
         ArgumentNullException.ThrowIfNull(trieProvider);
         ArgumentNullException.ThrowIfNull(onElement);
@@ -41,7 +42,7 @@ public sealed class EscPosParser
     }
 
     public EscPosParser(
-        IEscPosCommandTrieProvider trieProvider,
+        EscPosCommandTrieProvider trieProvider,
         IServiceScopeFactory scopeFactory,
         Printer printer,
         PrinterSettings settings,
@@ -87,7 +88,7 @@ public sealed class EscPosParser
         return false;
     }
 
-    private void Navigate(EscPosCommandTrieNode nextNode)
+    private void Navigate(CommandTrieNode<ParserState> nextNode)
     {
         state.CommandState.Reset();
         state.CommandState.CurrentNode = nextNode;

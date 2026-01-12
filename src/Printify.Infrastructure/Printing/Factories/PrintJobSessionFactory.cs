@@ -11,7 +11,7 @@ namespace Printify.Infrastructure.Printing.Factories;
 public class PrintJobSessionFactory(
     IPrinterBufferCoordinator bufferCoordinator,
     IClockFactory clockFactory,
-    IEscPosCommandTrieProvider commandTrieProvider,
+    EscPosCommandTrieProvider commandTrieProvider,
     IServiceScopeFactory scopeFactory)
     : IPrintJobSessionFactory
 {

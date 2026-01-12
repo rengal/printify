@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using EscPosElements = Printify.Domain.Documents.Elements.EscPos;
+using EplElements = Printify.Domain.Documents.Elements.Epl;
 
 namespace Printify.Domain.Documents.Elements;
 
@@ -39,11 +40,31 @@ namespace Printify.Domain.Documents.Elements;
 [JsonDerivedType(typeof(EscPosElements.CutPaper), "pagecut")]
 [JsonDerivedType(typeof(EscPosElements.Pulse), "pulse")]
 [JsonDerivedType(typeof(EscPosElements.Initialize), "resetPrinter")]
-[JsonDerivedType(typeof(EscPosElements.ParseError), "error")]
-[JsonDerivedType(typeof(EscPosElements.PrinterError), "printerError")]
+// Shared Error Elements (used by both ESC/POS and EPL)
+[JsonDerivedType(typeof(ParseError), "error")]
+[JsonDerivedType(typeof(PrinterError), "printerError")]
 [JsonDerivedType(typeof(EscPosElements.GetPrinterStatus), "printerStatus")]
 [JsonDerivedType(typeof(EscPosElements.StatusRequest), "statusRequest")]
 [JsonDerivedType(typeof(EscPosElements.StatusResponse), "statusResponse")]
+// EPL Text Elements
+[JsonDerivedType(typeof(EplElements.ScalableText), "ScalableText")]
+[JsonDerivedType(typeof(EplElements.DrawHorizontalLine), "DrawHorizontalLine")]
+[JsonDerivedType(typeof(EplElements.Print), "Print")]
+// EPL Barcode Elements
+[JsonDerivedType(typeof(EplElements.PrintBarcode), "PrintBarcode")]
+// EPL Graphics Elements
+[JsonDerivedType(typeof(EplElements.PrintGraphic), "PrintGraphic")]
+// EPL Shape Elements
+[JsonDerivedType(typeof(EplElements.DrawLine), "DrawLine")]
+// EPL Config Elements
+[JsonDerivedType(typeof(EplElements.ClearBuffer), "ClearBuffer")]
+[JsonDerivedType(typeof(EplElements.SetLabelWidth), "SetLabelWidth")]
+[JsonDerivedType(typeof(EplElements.SetLabelHeight), "SetLabelHeight")]
+[JsonDerivedType(typeof(EplElements.SetPrintSpeed), "SetPrintSpeed")]
+[JsonDerivedType(typeof(EplElements.SetPrintDarkness), "SetPrintDarkness")]
+[JsonDerivedType(typeof(EplElements.SetPrintDirection), "SetPrintDirection")]
+[JsonDerivedType(typeof(EplElements.SetInternationalCharacter), "SetInternationalCharacter")]
+[JsonDerivedType(typeof(EplElements.SetCodePage), "SetCodePage")]
 public abstract record Element
 {
     /// <summary>

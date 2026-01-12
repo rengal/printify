@@ -1,3 +1,4 @@
+using Printify.Infrastructure.Printing.Common;
 using Printify.Domain.Documents.Elements.EscPos;
 
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;

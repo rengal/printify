@@ -12,7 +12,7 @@ public partial class EscPosParserTests(EscPosParserFixture fixture) : IClassFixt
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
 
-    private readonly IEscPosCommandTrieProvider trieProvider = fixture.TrieProvider;
+    private readonly EscPosCommandTrieProvider trieProvider = fixture.TrieProvider;
 
     private void AssertScenario(EscPosScenario scenario, EscPosChunkStrategy strategy)
     {

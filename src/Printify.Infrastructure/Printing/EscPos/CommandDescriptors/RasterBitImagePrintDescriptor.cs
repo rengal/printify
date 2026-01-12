@@ -1,3 +1,4 @@
+using Printify.Infrastructure.Printing.Common;
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.Elements.EscPos;
