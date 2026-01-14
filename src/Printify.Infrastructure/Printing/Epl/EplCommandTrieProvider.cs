@@ -11,27 +11,27 @@ public sealed class EplCommandTrieProvider : CommandTrieProvider<EplParserState,
     protected override IEnumerable<ICommandDescriptor<EplParserState>> AllDescriptors =>
     [
         // Text commands
-        new EplA2TextDescriptor(),
+        new ScalableTextDescriptor(),
 
         // Drawing commands
-        new EplLODrawLineDescriptor(),
-        new EplBBarcodeDescriptor(),
-        new EplXDrawLineDescriptor(),
+        new DrawHorizontalLineDescriptor(),
+        new PrintBarcodeDescriptor(),
+        new DrawLineDescriptor(),
 
         // Graphics commands
-        new EplGWGraphicWriteDescriptor(),
+        new PrintGraphicDescriptor(),
 
         // Print commands
-        new EplPfPrintAndFeedDescriptor(),
+        new PrintDescriptor(),
 
         // Configuration commands
-        new EplqWidthDescriptor(),
-        new EplQHeightDescriptor(),
-        new EplRSpeedDescriptor(),
-        new EplSDarknessDescriptor(),
-        new EplZDirectionDescriptor(),
-        new EplIInternationalCharacterDescriptor(),
-        new EpliCodePageDescriptor(),
-        new EplNNAcknowledgeDescriptor(),
+        new SetLabelWidthDescriptor(),
+        new SetLabelHeightDescriptor(),
+        new SetPrintSpeedDescriptor(),
+        new SetPrintDarknessDescriptor(),
+        new SetPrintDirectionDescriptor(),
+        new SetInternationalCharacterDescriptor(),
+        new SetCodePageDescriptor(),
+        new ClearBufferDescriptor(),
     ];
 }

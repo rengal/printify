@@ -1,0 +1,232 @@
+using Printify.Domain.Documents.Elements;
+using Printify.Infrastructure.Printing.Common;
+using System.Globalization;
+
+namespace Printify.Infrastructure.Printing.Epl;
+
+/// <summary>
+/// Common helper methods for EPL command parsing.
+/// </summary>
+public static class EplParsingHelpers
+{
+    /// <summary>
+    /// Finds the newline character starting from the end of the buffer.
+    /// This is more efficient for EPL commands since \n is always the last byte.
+    /// </summary>
+    /// <param name="buffer">The buffer to search.</param>
+    /// <param name="newlineIndex">Outputs the index of the newline character.</param>
+    /// <returns>True if newline was found, false otherwise.</returns>
+    public static bool TryFindNewlineFromEnd(ReadOnlySpan<byte> buffer, out int newlineIndex)
+    {
+        // Search from the end backwards since \n is expected to be the last byte
+        for (int i = buffer.Length - 1; i >= 0; i--)
+        {
+            if (buffer[i] == (byte)'\n')
+            {
+                newlineIndex = i;
+                return true;
+            }
+        }
+        newlineIndex = -1;
+        return false;
+    }
+
+    /// <summary>
+    /// Parses comma-separated arguments from a string with type-safe conversion.
+    /// Returns a MatchResult with either a PrinterError element or the parsed result.
+    /// </summary>
+    public static MatchResult ParseCommaSeparatedArgs<T>(
+        string content,
+        string commandName,
+        Func<ArgsParser, T> resultFactory) where T : Element
+    {
+        var trimmed = content.TrimEnd('\n');
+        var parts = trimmed.Split(',');
+
+        try
+        {
+            var parser = new ArgsParser(parts, commandName);
+            var element = resultFactory(parser);
+            return MatchResult.Matched(element);
+        }
+        catch (ParseException ex)
+        {
+            return MatchResult.Matched(new PrinterError($"Invalid {commandName}: {ex.Message}"));
+        }
+    }
+
+    /// <summary>
+    /// Parses comma-separated arguments from a string with type-safe conversion and custom result.
+    /// Returns a MatchResult with either a PrinterError element or the parsed result.
+    /// </summary>
+    public static MatchResult ParseCommaSeparatedArgs(
+        string content,
+        string commandName,
+        Func<ArgsParser, Element> resultFactory)
+    {
+        var trimmed = content.TrimEnd('\n');
+        var parts = trimmed.Split(',');
+
+        try
+        {
+            var parser = new ArgsParser(parts, commandName);
+            var element = resultFactory(parser);
+            return MatchResult.Matched(element);
+        }
+        catch (ParseException ex)
+        {
+            return MatchResult.Matched(new PrinterError($"Invalid {commandName}: {ex.Message}"));
+        }
+    }
+
+    /// <summary>
+    /// Parses a single integer value from content after the command prefix.
+    /// Returns a MatchResult with error if failed, or null if successful.
+    /// </summary>
+    public static MatchResult? ParseSingleIntArg(
+        ReadOnlySpan<byte> buffer,
+        int commandLength,
+        string commandName,
+        out int value)
+    {
+        value = 0;
+        var content = System.Text.Encoding.ASCII.GetString(buffer[commandLength..]);
+        var trimmed = content.TrimEnd('\n');
+
+        if (int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
+        {
+            value = parsed;
+            return null; // Success
+        }
+
+        return MatchResult.Matched(new PrinterError($"Invalid {commandName}: '{trimmed}' is not a valid integer"));
+    }
+
+    /// <summary>
+    /// Creates a MatchResult for a successfully parsed element with command metadata.
+    /// Note: This requires the element to have CommandRaw and LengthInBytes as init-only properties.
+    /// </summary>
+    public static MatchResult Success(Element element, string commandRaw, int length)
+    {
+        // Create a new element with the properties set via reflection (for init-only properties)
+        // This is needed because LengthInBytes is init-only
+        var elementType = element.GetType();
+        var commandRawProperty = elementType.GetProperty(nameof(Element.CommandRaw));
+        var lengthInBytesProperty = elementType.GetProperty(nameof(Element.LengthInBytes));
+
+        if (commandRawProperty != null && commandRawProperty.CanWrite)
+            commandRawProperty.SetValue(element, commandRaw);
+
+        if (lengthInBytesProperty != null && lengthInBytesProperty.CanWrite)
+            lengthInBytesProperty.SetValue(element, length);
+        else if (lengthInBytesProperty?.SetMethod != null)
+            // For init-only properties, we need to use the setter via reflection
+            lengthInBytesProperty.SetMethod.Invoke(element, [length]);
+
+        return MatchResult.Matched(element);
+    }
+
+    /// <summary>
+    /// Creates a MatchResult for a successfully parsed element with command metadata.
+    /// Converts the buffer to hex string.
+    /// </summary>
+    public static MatchResult Success(Element element, ReadOnlySpan<byte> buffer, int length)
+    {
+        var commandRaw = Convert.ToHexString(buffer[..length]);
+        return Success(element, commandRaw, length);
+    }
+}
+
+/// <summary>
+/// Exception thrown during parsing when a parameter value is invalid.
+/// </summary>
+public sealed class ParseException : Exception
+{
+    public ParseException(string message) : base(message) { }
+}
+
+/// <summary>
+/// Helper for parsing typed arguments from string parts.
+/// </summary>
+public sealed class ArgsParser
+{
+    private readonly string[] _parts;
+
+    public ArgsParser(string[] parts, string commandName)
+    {
+        _parts = parts;
+    }
+
+    /// <summary>
+    /// Gets the number of parts available.
+    /// </summary>
+    public int Count => _parts.Length;
+
+    /// <summary>
+    /// Ensures there are at least the specified number of parts.
+    /// </summary>
+    public void RequireAtLeast(int count)
+    {
+        if (_parts.Length < count)
+            throw new ParseException($"expected at least {count} parameters, got {_parts.Length}");
+    }
+
+    /// <summary>
+    /// Parses an integer at the specified index.
+    /// </summary>
+    public int GetInt(int index, string? paramName = null)
+    {
+        if (index >= _parts.Length)
+            throw new ParseException($"missing parameter at index {index}");
+
+        if (int.TryParse(_parts[index].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var result))
+            return result;
+
+        throw new ParseException($"parameter '{paramName ?? index.ToString()}' ('{_parts[index]}') is not a valid integer");
+    }
+
+    /// <summary>
+    /// Parses an optional integer at the specified index, returning defaultValue if not present or invalid.
+    /// </summary>
+    public int GetIntOrDefault(int index, int defaultValue)
+    {
+        if (index >= _parts.Length)
+            return defaultValue;
+
+        if (int.TryParse(_parts[index].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var result))
+            return result;
+
+        return defaultValue;
+    }
+
+    /// <summary>
+    /// Gets a string at the specified index.
+    /// </summary>
+    public string GetString(int index)
+    {
+        if (index >= _parts.Length)
+            throw new ParseException($"missing parameter at index {index}");
+
+        return _parts[index].Trim();
+    }
+
+    /// <summary>
+    /// Gets a string at the specified index, or defaultValue if not present.
+    /// </summary>
+    public string? GetStringOrDefault(int index, string? defaultValue = null)
+    {
+        if (index >= _parts.Length)
+            return defaultValue;
+
+        return _parts[index].Trim();
+    }
+
+    /// <summary>
+    /// Gets a character at the specified index (first char of the string).
+    /// </summary>
+    public char GetChar(int index, char defaultValue = '\0')
+    {
+        var str = GetStringOrDefault(index);
+        return string.IsNullOrEmpty(str) ? defaultValue : str[0];
+    }
+}

@@ -5,11 +5,17 @@ using System.Globalization;
 
 namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 
+/// <summary>
 /// Command: GW x, y, bytesPerRow, height, - Graphic write.
 /// ASCII: GW {x},{y},{bytesPerRow},{height},
 /// HEX: 47 57 {x},{y},{bytesPerRow},{height},
 /// Followed by binary graphics data (bytesPerRow * height bytes) and then newline.
-public sealed class EplGWGraphicWriteDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+/// <remarks>
+/// This descriptor is special - it has a useful TryGetExactLength implementation
+/// because the command length can be calculated from the header parameters.
+/// </remarks>
+public sealed class PrintGraphicDescriptor : ICommandDescriptor<EplParserState>
 {
     private const int MinLen = 10; // 'GW' + minimum params
 
@@ -25,7 +31,7 @@ public sealed class EplGWGraphicWriteDescriptor : ICommandDescriptor<EplParserSt
 
         // Parse the header to get total data bytes
         var headerStr = System.Text.Encoding.ASCII.GetString(buffer[..commaIndex]);
-        var parts = headerStr[(2)..].Split(','); // Skip "GW"
+        var parts = headerStr[2..].Split(','); // Skip "GW"
 
         if (parts.Length < 4)
             return null;

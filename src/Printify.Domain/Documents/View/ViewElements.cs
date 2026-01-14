@@ -9,6 +9,11 @@ public static class ViewFontNames
 {
     public const string EscPosA = "ESCPOS_A";
     public const string EscPosB = "ESCPOS_B";
+
+    // EPL scalable fonts (font selection: 2=font 0, 3=font 1, 4=font 2)
+    public const string EplFont0 = "EPL_0";
+    public const string EplFont1 = "EPL_1";
+    public const string EplFont2 = "EPL_2";
 }
 
 /// <summary>

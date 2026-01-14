@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.Elements.EscPos;
+using EplElements = Printify.Domain.Documents.Elements.Epl;
 using Printify.Domain.Mapping;
 
 namespace Printify.Application.Features.Printers.Documents;
@@ -142,6 +143,39 @@ public static class CommandDescriptionBuilder
             RasterImage raster => BuildRasterImageDescription(raster.Width, raster.Height),
             RasterImageUpload upload => BuildRasterImageDescription(upload.Width, upload.Height),
             CutPaper pagecut => BuildPagecutDescription(pagecut),
+            // EPL Text Elements
+            EplElements.ScalableText scalableText => BuildScalableTextDescription(scalableText),
+            EplElements.DrawHorizontalLine horizontalLine => BuildDrawHorizontalLineDescription(horizontalLine),
+            EplElements.Print print => BuildPrintDescription(print),
+            // EPL Barcode Elements
+            EplElements.PrintBarcode eplBarcode => BuildEplBarcodeDescription(eplBarcode),
+            // EPL Graphics Elements
+            EplElements.PrintGraphic graphic => BuildPrintGraphicDescription(graphic),
+            // EPL Shape Elements
+            EplElements.DrawLine drawLine => BuildDrawLineDescription(drawLine),
+            // EPL Config Elements
+            EplElements.ClearBuffer => Lines("N - Clear buffer (acknowledge/clear image buffer)"),
+            EplElements.SetLabelWidth labelWidth => Lines(
+                "q width - Set label width",
+                $"width={labelWidth.Width} (dots)"),
+            EplElements.SetLabelHeight labelHeight => Lines(
+                "Q height, param2 - Set label height",
+                $"height={labelHeight.Height} (dots)"),
+            EplElements.SetPrintSpeed speed => Lines(
+                "R speed - Set print speed",
+                $"speed={speed.Speed} (ips)"),
+            EplElements.SetPrintDarkness darkness => Lines(
+                "S darkness - Set print darkness",
+                $"darkness={darkness.Darkness}"),
+            EplElements.SetPrintDirection direction => Lines(
+                "Z direction - Set print direction",
+                $"direction={direction.Direction}"),
+            EplElements.SetInternationalCharacter intlChar => Lines(
+                "I code - Set international character set",
+                $"code={intlChar.Code}"),
+            EplElements.SetCodePage eplCodePage => Lines(
+                "i code, scaling - Set code page",
+                $"code={eplCodePage.Code}, scaling={eplCodePage.Scaling}"),
             _ => Lines("Unknown command")
         };
     }
@@ -336,5 +370,81 @@ public static class CommandDescriptionBuilder
     private static string FormatHexByte(byte value)
     {
         return $"0x{value:X2}";
+    }
+
+    // EPL command description builders
+
+    private static IReadOnlyList<string> BuildScalableTextDescription(EplElements.ScalableText scalableText)
+    {
+        var rotationLabel = scalableText.Rotation switch
+        {
+            0 => "normal",
+            1 => "90°",
+            2 => "180°",
+            3 => "270°",
+            _ => scalableText.Rotation.ToString()
+        };
+
+        return Lines(
+            "A x,y,rotation,font,h,v,reverse,\"text\" - Scalable/rotatable text",
+            $"x={scalableText.X}, y={scalableText.Y}",
+            $"rotation={rotationLabel}",
+            $"font={scalableText.Font}, h-mul={scalableText.HorizontalMultiplication}, v-mul={scalableText.VerticalMultiplication}",
+            $"reverse={scalableText.Reverse}",
+            $"text=\"{EscapeDescriptionText(scalableText.Text)}\"");
+    }
+
+    private static IReadOnlyList<string> BuildDrawHorizontalLineDescription(EplElements.DrawHorizontalLine horizontalLine)
+    {
+        return Lines(
+            "LO x,y,thickness,length - Draw horizontal line",
+            $"x={horizontalLine.X}, y={horizontalLine.Y}",
+            $"thickness={horizontalLine.Thickness}, length={horizontalLine.Length}");
+    }
+
+    private static IReadOnlyList<string> BuildPrintDescription(EplElements.Print print)
+    {
+        return Lines(
+            "P n - Print format and feed label",
+            $"n={print.Copies} (copies)");
+    }
+
+    private static IReadOnlyList<string> BuildEplBarcodeDescription(EplElements.PrintBarcode barcode)
+    {
+        var rotationLabel = barcode.Rotation switch
+        {
+            0 => "normal",
+            1 => "90°",
+            2 => "180°",
+            3 => "270°",
+            _ => barcode.Rotation.ToString()
+        };
+
+        return Lines(
+            "B x,y,rotation,type,width,height,hri,\"data\" - Print barcode",
+            $"x={barcode.X}, y={barcode.Y}",
+            $"rotation={rotationLabel}",
+            $"type={barcode.Type}",
+            $"width={barcode.Width}, height={barcode.Height}",
+            $"hri={barcode.Hri}",
+            $"data=\"{EscapeDescriptionText(barcode.Data)}\"");
+    }
+
+    private static IReadOnlyList<string> BuildPrintGraphicDescription(EplElements.PrintGraphic graphic)
+    {
+        return Lines(
+            "GW x,y,width,height,[data] - Print graphic",
+            $"x={graphic.X}, y={graphic.Y}",
+            $"width={graphic.Width} (dots), height={graphic.Height} (dots)",
+            $"dataLength={graphic.Data.Length} (bytes)");
+    }
+
+    private static IReadOnlyList<string> BuildDrawLineDescription(EplElements.DrawLine drawLine)
+    {
+        return Lines(
+            "X x1,y1,thickness,x2,y2 - Draw line or box",
+            $"x1={drawLine.X1}, y1={drawLine.Y1}",
+            $"thickness={drawLine.Thickness}",
+            $"x2={drawLine.X2}, y2={drawLine.Y2}");
     }
 }

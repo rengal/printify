@@ -1,315 +1,251 @@
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.Elements.Epl;
 using Printify.Infrastructure.Printing.Common;
-using System.Globalization;
 
 namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 
+/// <summary>
 /// Command: q width - Set label width.
 /// ASCII: q {width}
 /// HEX: 71 {width}
-public sealed class EplqWidthDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+public sealed class SetLabelWidthDescriptor : EplCommandDescriptor
 {
     private const int MinLen = 2; // 'q' + at least 1 digit
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x71 }; // 'q'
-    public int MinLength => MinLen;
+    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x71 }; // 'q'
+    public override int MinLength => MinLen;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
     {
-        // Find end of command (newline or end of buffer)
-        var end = buffer.IndexOf((byte)'\n');
-        return end >= 0 ? end + 1 : null;
-    }
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
-    {
-        var end = buffer.IndexOf((byte)'\n');
-        if (end < 0)
+        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
 
-        var length = end + 1;
-
+        var length = newline + 1;
         if (length < 2)
             return MatchResult.Matched(new PrinterError("Invalid q width: too short"));
 
-        // Parse width number after 'q'
-        var widthStr = System.Text.Encoding.ASCII.GetString(buffer[1..length]);
-        if (int.TryParse(widthStr.TrimEnd('\n'), NumberStyles.Integer, CultureInfo.InvariantCulture, out var width))
-        {
-            var element = new SetLabelWidth(width)
-            {
-                CommandRaw = Convert.ToHexString(buffer[..length]),
-                LengthInBytes = length
-            };
-            state.LabelWidth = width;
-            return MatchResult.Matched(element);
-        }
+        var parseResult = EplParsingHelpers.ParseSingleIntArg(buffer, 1, "q width", out var width);
+        if (parseResult.HasValue)
+            return parseResult.Value;
 
-        var error = new PrinterError($"Invalid q width format");
-        return MatchResult.Matched(error);
+        var element = new SetLabelWidth(width);
+        state.LabelWidth = width;
+        return EplParsingHelpers.Success(element, buffer, length);
     }
 }
 
+/// <summary>
 /// Command: Q height, [param2] - Set label height.
 /// ASCII: Q {height},{param2}
 /// HEX: 51 {height},{param2}
-public sealed class EplQHeightDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+public sealed class SetLabelHeightDescriptor : EplCommandDescriptor
 {
     private const int MinLen = 3; // 'Q' + at least 1 digit + comma
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x51 }; // 'Q'
-    public int MinLength => MinLen;
+    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x51 }; // 'Q'
+    public override int MinLength => MinLen;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
     {
-        var end = buffer.IndexOf((byte)'\n');
-        return end >= 0 ? end + 1 : null;
-    }
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
-    {
-        var end = buffer.IndexOf((byte)'\n');
-        if (end < 0)
+        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
 
-        var length = end + 1;
+        var length = newline + 1;
+        var commandRaw = Convert.ToHexString(buffer[..length]);
 
-        // Parse: Q{height},{param2}
-        var content = System.Text.Encoding.ASCII.GetString(buffer[1..length]);
-        var parts = content.TrimEnd('\n').Split(',');
-
-        if (parts.Length >= 1 && int.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var height))
-        {
-            var param2 = parts.Length > 1 && int.TryParse(parts[1].Trim(), out var p2) ? p2 : 0;
-            var element = new SetLabelHeight(height, param2)
+        return EplParsingHelpers.ParseCommaSeparatedArgs(
+            System.Text.Encoding.ASCII.GetString(buffer[1..length]),
+            "Q height",
+            p =>
             {
-                CommandRaw = Convert.ToHexString(buffer[..length]),
-                LengthInBytes = length
-            };
-            state.LabelHeight = height;
-            return MatchResult.Matched(element);
-        }
+                var height = p.GetInt(0, "height");
+                var param2 = p.GetIntOrDefault(1, 0);
 
-        var error = new PrinterError($"Invalid Q height format");
-        return MatchResult.Matched(error);
+                state.LabelHeight = height;
+                return new SetLabelHeight(height, param2);
+            }).WithMetadata(commandRaw, length);
     }
 }
 
+/// <summary>
 /// Command: R speed - Set print speed.
 /// ASCII: R {speed}
 /// HEX: 52 {speed}
-public sealed class EplRSpeedDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+public sealed class SetPrintSpeedDescriptor : EplCommandDescriptor
 {
     private const int MinLen = 2;
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x52 }; // 'R'
-    public int MinLength => MinLen;
+    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x52 }; // 'R'
+    public override int MinLength => MinLen;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
     {
-        var end = buffer.IndexOf((byte)'\n');
-        return end >= 0 ? end + 1 : null;
-    }
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
-    {
-        var end = buffer.IndexOf((byte)'\n');
-        if (end < 0)
+        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
 
-        var length = end + 1;
-
+        var length = newline + 1;
         if (length < 2)
             return MatchResult.Matched(new PrinterError("Invalid R speed: too short"));
 
-        var speedStr = System.Text.Encoding.ASCII.GetString(buffer[1..length]);
-        if (int.TryParse(speedStr.TrimEnd('\n'), NumberStyles.Integer, CultureInfo.InvariantCulture, out var speed))
-        {
-            var element = new SetPrintSpeed(speed)
-            {
-                CommandRaw = Convert.ToHexString(buffer[..length]),
-                LengthInBytes = length
-            };
-            state.PrintSpeed = speed;
-            return MatchResult.Matched(element);
-        }
+        var parseResult = EplParsingHelpers.ParseSingleIntArg(buffer, 1, "R speed", out var speed);
+        if (parseResult.HasValue)
+            return parseResult.Value;
 
-        var error = new PrinterError($"Invalid R speed format");
-        return MatchResult.Matched(error);
+        var element = new SetPrintSpeed(speed);
+        state.PrintSpeed = speed;
+        return EplParsingHelpers.Success(element, buffer, length);
     }
 }
 
+/// <summary>
 /// Command: S darkness - Set print darkness.
 /// ASCII: S {darkness}
 /// HEX: 53 {darkness}
-public sealed class EplSDarknessDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+public sealed class SetPrintDarknessDescriptor : EplCommandDescriptor
 {
     private const int MinLen = 2;
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x53 }; // 'S'
-    public int MinLength => MinLen;
+    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x53 }; // 'S'
+    public override int MinLength => MinLen;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
     {
-        var end = buffer.IndexOf((byte)'\n');
-        return end >= 0 ? end + 1 : null;
-    }
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
-    {
-        var end = buffer.IndexOf((byte)'\n');
-        if (end < 0)
+        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
 
-        var length = end + 1;
-
+        var length = newline + 1;
         if (length < 2)
             return MatchResult.Matched(new PrinterError("Invalid S darkness: too short"));
 
-        var darknessStr = System.Text.Encoding.ASCII.GetString(buffer[1..length]);
-        if (int.TryParse(darknessStr.TrimEnd('\n'), NumberStyles.Integer, CultureInfo.InvariantCulture, out var darkness))
-        {
-            var element = new SetPrintDarkness(darkness)
-            {
-                CommandRaw = Convert.ToHexString(buffer[..length]),
-                LengthInBytes = length
-            };
-            state.PrintDarkness = darkness;
-            return MatchResult.Matched(element);
-        }
+        var parseResult = EplParsingHelpers.ParseSingleIntArg(buffer, 1, "S darkness", out var darkness);
+        if (parseResult.HasValue)
+            return parseResult.Value;
 
-        var error = new PrinterError($"Invalid S darkness format");
-        return MatchResult.Matched(error);
+        var element = new SetPrintDarkness(darkness);
+        state.PrintDarkness = darkness;
+        return EplParsingHelpers.Success(element, buffer, length);
     }
 }
 
+/// <summary>
 /// Command: Z direction - Set print direction.
 /// ASCII: Z T or Z B
 /// HEX: 5A 54 or 5A 42
-public sealed class EplZDirectionDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+public sealed class SetPrintDirectionDescriptor : EplCommandDescriptor
 {
     private const int FixedLength = 3; // 'Z' + 'T'/'B' + newline
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x5A }; // 'Z'
-    public int MinLength => FixedLength;
+    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x5A }; // 'Z'
+    public override int MinLength => FixedLength;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => buffer.Length >= 3 ? 3 : null;
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
     {
-        if (buffer.Length < 3)
+        const int length = 3;
+
+        if (buffer.Length < length)
             return MatchResult.NeedMore();
 
-        const int length = 3;
+        if (buffer[2] != (byte)'\n')
+            return MatchResult.NeedMore();
+
         var direction = (char)buffer[1];
         if (direction is 'T' or 'B' or 't' or 'b')
         {
-            var element = new SetPrintDirection(char.ToUpper(direction))
-            {
-                CommandRaw = Convert.ToHexString(buffer[..length]),
-                LengthInBytes = length
-            };
-            return MatchResult.Matched(element);
+            var element = new SetPrintDirection(char.ToUpper(direction));
+            return EplParsingHelpers.Success(element, buffer, length);
         }
 
-        var error = new PrinterError($"Invalid Z direction: {direction}");
-        return MatchResult.Matched(error);
+        return MatchResult.Matched(new PrinterError($"Invalid Z direction: '{direction}' (expected 'T' or 'B')"));
     }
 }
 
+/// <summary>
 /// Command: I code - Set international character set.
 /// ASCII: I {code}
 /// HEX: 49 {code}
-public sealed class EplIInternationalCharacterDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+public sealed class SetInternationalCharacterDescriptor : EplCommandDescriptor
 {
     private const int MinLen = 2;
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x49 }; // 'I'
-    public int MinLength => MinLen;
+    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x49 }; // 'I'
+    public override int MinLength => MinLen;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
     {
-        var end = buffer.IndexOf((byte)'\n');
-        return end >= 0 ? end + 1 : null;
-    }
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
-    {
-        var end = buffer.IndexOf((byte)'\n');
-        if (end < 0)
+        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
 
-        var length = end + 1;
-
+        var length = newline + 1;
         if (length < 2)
             return MatchResult.Matched(new PrinterError("Invalid I code: too short"));
 
-        var codeStr = System.Text.Encoding.ASCII.GetString(buffer[1..length]);
-        if (int.TryParse(codeStr.TrimEnd('\n'), NumberStyles.Integer, CultureInfo.InvariantCulture, out var code))
-        {
-            // Update encoding based on code (simplified mapping)
-            if (code is 8 or 38) // DOS 866 Cyrillic
-                state.Encoding = System.Text.Encoding.GetEncoding(866);
+        var parseResult = EplParsingHelpers.ParseSingleIntArg(buffer, 1, "I code", out var code);
+        if (parseResult.HasValue)
+            return parseResult.Value;
 
-            var element = new SetInternationalCharacter(code)
-            {
-                CommandRaw = Convert.ToHexString(buffer[..length]),
-                LengthInBytes = length
-            };
-            return MatchResult.Matched(element);
-        }
+        // Update encoding based on code (simplified mapping)
+        if (code is 8 or 38) // DOS 866 Cyrillic
+            state.Encoding = System.Text.Encoding.GetEncoding(866);
 
-        var error = new PrinterError($"Invalid I code format");
-        return MatchResult.Matched(error);
+        var element = new SetInternationalCharacter(code);
+        return EplParsingHelpers.Success(element, buffer, length);
     }
 }
 
+/// <summary>
 /// Command: i code, scaling - Set codepage.
 /// ASCII: i {code},{scaling}
 /// HEX: 69 {code},{scaling}
-public sealed class EpliCodePageDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+public sealed class SetCodePageDescriptor : EplCommandDescriptor
 {
     private const int MinLen = 2;
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x69 }; // 'i'
-    public int MinLength => MinLen;
+    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x69 }; // 'i'
+    public override int MinLength => MinLen;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
     {
-        var end = buffer.IndexOf((byte)'\n');
-        return end >= 0 ? end + 1 : null;
-    }
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
-    {
-        var end = buffer.IndexOf((byte)'\n');
-        if (end < 0)
+        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
 
-        var length = end + 1;
+        var length = newline + 1;
+        var commandRaw = Convert.ToHexString(buffer[..length]);
 
-        // Parse: i{code},{scaling}
-        var content = System.Text.Encoding.ASCII.GetString(buffer[1..length]);
-        var parts = content.TrimEnd('\n').Split(',');
-
-        if (parts.Length >= 1 && int.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var code))
-        {
-            var scaling = parts.Length > 1 && int.TryParse(parts[1].Trim(), out var s) ? s : 0;
-
-            // Update encoding based on code (simplified mapping)
-            if (code is 0 or 8) // DOS 866 Cyrillic
-                state.Encoding = System.Text.Encoding.GetEncoding(866);
-
-            var element = new SetCodePage(code, scaling)
+        return EplParsingHelpers.ParseCommaSeparatedArgs(
+            System.Text.Encoding.ASCII.GetString(buffer[1..length]),
+            "i codepage",
+            p =>
             {
-                CommandRaw = Convert.ToHexString(buffer[..length]),
-                LengthInBytes = length
-            };
-            return MatchResult.Matched(element);
-        }
+                var code = p.GetInt(0, "code");
+                var scaling = p.GetIntOrDefault(1, 0);
 
-        var error = new PrinterError($"Invalid i codepage format");
-        return MatchResult.Matched(error);
+                // Update encoding based on code (simplified mapping)
+                if (code is 0 or 8) // DOS 866 Cyrillic
+                    state.Encoding = System.Text.Encoding.GetEncoding(866);
+
+                return new SetCodePage(code, scaling);
+            }).WithMetadata(commandRaw, length);
+    }
+}
+
+/// <summary>
+/// Extension helper to add metadata to MatchResult.
+/// </summary>
+internal static class MatchResultExtensions
+{
+    public static MatchResult WithMetadata(this MatchResult result, string commandRaw, int length)
+    {
+        if (result.Kind == MatchKind.Matched && result.Element is Element element)
+        {
+            return EplParsingHelpers.Success(element, commandRaw, length);
+        }
+        return result;
     }
 }

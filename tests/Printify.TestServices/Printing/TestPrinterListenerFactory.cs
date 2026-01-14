@@ -34,7 +34,7 @@ public sealed class TestPrinterListenerFactory : IPrinterListenerFactory
 
         while (!cts.IsCancellationRequested)
         {
-            if (listeners.TryGetValue(printerId, out var listener))
+            if (listeners.TryGetValue(printerId, out var listener) && listener.Status == PrinterListenerStatus.Listening)
             {
                 return listener;
             }

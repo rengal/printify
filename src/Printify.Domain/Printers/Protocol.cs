@@ -6,6 +6,9 @@ namespace Printify.Domain.Printers;
 public enum Protocol
 {
     /// <summary>ESC/POS protocol (Epson-compatible).</summary>
-    EscPos = 0
+    EscPos = 0,
+
+    /// <summary>EPL protocol (Eltron Programming Language).</summary>
+    Epl = 1
 }
 

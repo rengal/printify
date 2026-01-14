@@ -12,7 +12,6 @@ namespace Printify.Infrastructure.Printing.EscPos;
 
 public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
 {
-
     public ViewDocument ToViewDocument(Document document)
     {
         ArgumentNullException.ThrowIfNull(document);

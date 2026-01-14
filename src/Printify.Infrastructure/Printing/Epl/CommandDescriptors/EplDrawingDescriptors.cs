@@ -1,283 +1,228 @@
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.Elements.Epl;
 using Printify.Infrastructure.Printing.Common;
-using System.Globalization;
 
 namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 
+/// <summary>
 /// Command: A x, y, rotation, font, h-mul, v-mul, reverse, "text" - Scalable/rotatable text.
 /// ASCII: A {x},{y},{rotation},{font},{h},{v},{reverse},"{text}"
 /// HEX: 41 {x},{y},{rotation},{font},{h},{v},{reverse},{text}
-public sealed class EplA2TextDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+public sealed class ScalableTextDescriptor : EplCommandDescriptor
 {
     private const int MinLen = 10; // 'A' + minimum params
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x41 }; // 'A'
-    public int MinLength => MinLen;
+    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x41 }; // 'A'
+    public override int MinLength => MinLen;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
     {
-        // Find closing quote and newline
-        var closeQuote = buffer.IndexOf((byte)'"');
-        if (closeQuote < 0)
-            return null;
-
-        var newline = buffer[closeQuote..].IndexOf((byte)'\n');
-        if (newline < 0)
-            return null;
-
-        return closeQuote + newline + 1;
-    }
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
-    {
-        var closeQuote = buffer.IndexOf((byte)'"');
-        if (closeQuote < 0)
+        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
 
-        var afterQuote = closeQuote + 1;
-        var totalLen = afterQuote;
-        if (buffer.Length > afterQuote && buffer[afterQuote] == (byte)'\\')
-            totalLen += 1; // Skip escaped quote
-        if (buffer.Length > totalLen && buffer[totalLen] == (byte)'\n')
-            totalLen += 1;
+        var length = newline + 1;
+        var commandStr = System.Text.Encoding.ASCII.GetString(buffer[..length]);
+        var commandRaw = Convert.ToHexString(buffer[..length]);
 
-        // Parse: A{x},{y},{rotation},{font},{h},{v},{reverse},"{text}"
-        var headerStr = System.Text.Encoding.ASCII.GetString(buffer[..Math.Min(closeQuote, 100)]);
-        var headerParts = headerStr.Split(',');
+        // Extract and unescape text between quotes first
+        var quoteStart = commandStr.IndexOf('"');
+        if (quoteStart < 0)
+            return MatchResult.Matched(new PrinterError("Missing opening quote in A text command"));
 
-        if (headerParts.Length < 7)
-            return MatchResult.NeedMore();
+        var quoteEnd = EplStringHelpers.FindClosingQuote(commandStr, quoteStart + 1);
+        if (quoteEnd < 0)
+            return MatchResult.Matched(new PrinterError("Missing closing quote in A text command"));
 
-        if (!int.TryParse(headerParts[0].TrimStart('A'), NumberStyles.Integer, CultureInfo.InvariantCulture, out var x) ||
-            !int.TryParse(headerParts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) ||
-            !int.TryParse(headerParts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var rotation) ||
-            !int.TryParse(headerParts[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var font) ||
-            !int.TryParse(headerParts[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out var hMul) ||
-            !int.TryParse(headerParts[5], NumberStyles.Integer, CultureInfo.InvariantCulture, out var vMul))
+        var escapedText = commandStr[(quoteStart + 1)..quoteEnd];
+        var text = EplStringHelpers.Unescape(escapedText);
+
+        // Parse comma-separated args before the quote
+        var argsContent = commandStr[1..quoteStart]; // Skip 'A' and get content before quote
+        var parts = argsContent.Split(',');
+
+        if (parts.Length < 7)
+            return MatchResult.Matched(new PrinterError($"Invalid A text parameters: expected at least 7 parts, got {parts.Length}"));
+
+        try
         {
-            var error = new PrinterError($"Invalid A2 text parameters");
-            return MatchResult.Matched(error);
+            var parser = new ArgsParser(parts, "A text");
+
+            var x = parser.GetInt(0, "x");
+            var y = parser.GetInt(1, "y");
+            var rotation = parser.GetInt(2, "rotation");
+            var font = parser.GetInt(3, "font");
+            var hMul = parser.GetInt(4, "h-multiplication");
+            var vMul = parser.GetInt(5, "v-multiplication");
+            var reverse = parser.GetChar(6, 'N');
+
+            var element = new ScalableText(x, y, rotation, font, hMul, vMul, reverse, text);
+            return EplParsingHelpers.Success(element, commandRaw, length);
         }
-
-        var reverseStr = headerParts[6].Trim();
-        var reverse = reverseStr.Length > 0 ? reverseStr[0] : 'N';
-
-        // Extract text between quotes
-        var textStart = headerStr.IndexOf('"') + 1;
-        var textEnd = headerStr.IndexOf('"', textStart);
-        var text = textEnd > textStart ? headerStr[textStart..textEnd] : "";
-
-        var element = new ScalableText(x, y, rotation, font, hMul, vMul, reverse, text)
+        catch (ParseException ex)
         {
-            CommandRaw = Convert.ToHexString(buffer[..Math.Min(totalLen, buffer.Length)]),
-            LengthInBytes = Math.Min(totalLen, buffer.Length)
-        };
-        return MatchResult.Matched(element);
+            return MatchResult.Matched(new PrinterError($"Invalid A text: {ex.Message}"));
+        }
     }
 }
 
+/// <summary>
 /// Command: LO x, y, thickness, length - Draw line (typically for underline).
 /// ASCII: LO {x},{y},{thickness},{length}
 /// HEX: 4C 4F {x},{y},{thickness},{length}
-public sealed class EplLODrawLineDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+public sealed class DrawHorizontalLineDescriptor : EplCommandDescriptor
 {
     private const int FixedLength = 3; // 'L' + 'O'
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x4C, 0x4F }; // 'LO'
-    public int MinLength => FixedLength;
+    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x4C, 0x4F }; // 'LO'
+    public override int MinLength => FixedLength;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
     {
-        var end = buffer.IndexOf((byte)'\n');
-        return end >= 0 ? end + 1 : null;
-    }
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
-    {
-        var end = buffer.IndexOf((byte)'\n');
-        if (end < 0)
+        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
 
-        var length = end + 1;
+        var length = newline + 1;
+        var commandRaw = Convert.ToHexString(buffer[..length]);
 
-        // Parse: LO{x},{y},{thickness},{length}
-        var content = System.Text.Encoding.ASCII.GetString(buffer[2..length]);
-        var parts = content.TrimEnd('\n').Split(',');
-
-        if (parts.Length >= 4 &&
-            int.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var x) &&
-            int.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) &&
-            int.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var thickness) &&
-            int.TryParse(parts[3].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var lineLength))
-        {
-            var element = new DrawHorizontalLine(x, y, thickness, lineLength)
+        return EplParsingHelpers.ParseCommaSeparatedArgs(
+            System.Text.Encoding.ASCII.GetString(buffer[2..length]),
+            "LO draw line",
+            p =>
             {
-                CommandRaw = Convert.ToHexString(buffer[..length]),
-                LengthInBytes = length
-            };
-            return MatchResult.Matched(element);
-        }
-
-        var error = new PrinterError($"Invalid LO draw line parameters");
-        return MatchResult.Matched(error);
+                var x = p.GetInt(0, "x");
+                var y = p.GetInt(1, "y");
+                var thickness = p.GetInt(2, "thickness");
+                var lineLength = p.GetInt(3, "length");
+                return new DrawHorizontalLine(x, y, thickness, lineLength);
+            }).WithMetadata(commandRaw, length);
     }
 }
 
+/// <summary>
 /// Command: B x, y, rotation, type, width, height, hri, "data" - Barcode.
 /// ASCII: B {x},{y},{rotation},{type},{width},{height},{hri},"{data}"
 /// HEX: 42 {x},{y},{rotation},{type},{width},{height},{hri},{data}
-public sealed class EplBBarcodeDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+public sealed class PrintBarcodeDescriptor : EplCommandDescriptor
 {
     private const int MinLen = 10;
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x42 }; // 'B'
-    public int MinLength => MinLen;
+    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x42 }; // 'B'
+    public override int MinLength => MinLen;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
     {
-        var closeQuote = buffer.IndexOf((byte)'"');
-        if (closeQuote < 0)
-            return null;
-
-        var newline = buffer[closeQuote..].IndexOf((byte)'\n');
-        if (newline < 0)
-            return null;
-
-        return closeQuote + newline + 1;
-    }
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
-    {
-        var closeQuote = buffer.IndexOf((byte)'"');
-        if (closeQuote < 0)
+        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
 
-        var afterQuote = closeQuote + 1;
-        var totalLen = buffer.Length > afterQuote && buffer[afterQuote] == (byte)'\n' ? afterQuote + 1 : afterQuote;
+        var length = newline + 1;
+        var commandStr = System.Text.Encoding.ASCII.GetString(buffer[..length]);
+        var commandRaw = Convert.ToHexString(buffer[..length]);
 
-        // Parse: B{x},{y},{rotation},{type},{width},{height},{hri},"{data}"
-        var headerStr = System.Text.Encoding.ASCII.GetString(buffer[..Math.Min(closeQuote, 200)]);
-        var headerParts = headerStr.Split(',');
+        // Extract and unescape data between quotes first
+        var quoteStart = commandStr.IndexOf('"');
+        if (quoteStart < 0)
+            return MatchResult.Matched(new PrinterError("Missing opening quote in B barcode command"));
 
-        if (headerParts.Length < 7)
-            return MatchResult.NeedMore();
+        var quoteEnd = EplStringHelpers.FindClosingQuote(commandStr, quoteStart + 1);
+        if (quoteEnd < 0)
+            return MatchResult.Matched(new PrinterError("Missing closing quote in B barcode command"));
 
-        if (!int.TryParse(headerParts[0].TrimStart('B'), NumberStyles.Integer, CultureInfo.InvariantCulture, out var x) ||
-            !int.TryParse(headerParts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var y) ||
-            !int.TryParse(headerParts[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var rotation) ||
-            !int.TryParse(headerParts[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out var width) ||
-            !int.TryParse(headerParts[5], NumberStyles.Integer, CultureInfo.InvariantCulture, out var height))
+        var escapedData = commandStr[(quoteStart + 1)..quoteEnd];
+        var data = EplStringHelpers.Unescape(escapedData);
+
+        // Parse comma-separated args before the quote
+        var argsContent = commandStr[1..quoteStart]; // Skip 'B' and get content before quote
+        var parts = argsContent.Split(',');
+
+        if (parts.Length < 7)
+            return MatchResult.Matched(new PrinterError($"Invalid B barcode parameters: expected at least 7 parts, got {parts.Length}"));
+
+        try
         {
-            var error = new PrinterError($"Invalid B barcode parameters");
-            return MatchResult.Matched(error);
+            var parser = new ArgsParser(parts, "B barcode");
+
+            var x = parser.GetInt(0, "x");
+            var y = parser.GetInt(1, "y");
+            var rotation = parser.GetInt(2, "rotation");
+            var type = parser.GetString(3);
+            var width = parser.GetInt(4, "width");
+            var height = parser.GetInt(5, "height");
+            var hri = parser.GetChar(6, 'N');
+
+            var element = new PrintBarcode(x, y, rotation, type, width, height, hri, data);
+            return EplParsingHelpers.Success(element, commandRaw, length);
         }
-
-        var type = headerParts[3].Trim();
-        var hriStr = headerParts[6].Trim();
-        var hri = hriStr.Length > 0 ? hriStr[0] : 'N';
-
-        // Extract text between quotes
-        var textStart = headerStr.IndexOf('"') + 1;
-        var textEnd = headerStr.IndexOf('"', textStart);
-        var data = textEnd > textStart ? headerStr[textStart..textEnd] : "";
-
-        var element = new PrintBarcode(x, y, rotation, type, width, height, hri, data)
+        catch (ParseException ex)
         {
-            CommandRaw = Convert.ToHexString(buffer[..Math.Min(totalLen, buffer.Length)]),
-            LengthInBytes = Math.Min(totalLen, buffer.Length)
-        };
-        return MatchResult.Matched(element);
+            return MatchResult.Matched(new PrinterError($"Invalid B barcode: {ex.Message}"));
+        }
     }
 }
 
+/// <summary>
 /// Command: X x1, y1, thickness, x2, y2 - Draw line/box.
 /// ASCII: X {x1},{y1},{thickness},{x2},{y2}
 /// HEX: 58 {x1},{y1},{thickness},{x2},{y2}
-public sealed class EplXDrawLineDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+public sealed class DrawLineDescriptor : EplCommandDescriptor
 {
     private const int MinLen = 5;
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x58 }; // 'X'
-    public int MinLength => MinLen;
+    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x58 }; // 'X'
+    public override int MinLength => MinLen;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
     {
-        var end = buffer.IndexOf((byte)'\n');
-        return end >= 0 ? end + 1 : null;
-    }
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
-    {
-        var end = buffer.IndexOf((byte)'\n');
-        if (end < 0)
+        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
 
-        var length = end + 1;
+        var length = newline + 1;
+        var commandRaw = Convert.ToHexString(buffer[..length]);
 
-        // Parse: X{x1},{y1},{thickness},{x2},{y2}
-        var content = System.Text.Encoding.ASCII.GetString(buffer[1..length]);
-        var parts = content.TrimEnd('\n').Split(',');
-
-        if (parts.Length >= 5 &&
-            int.TryParse(parts[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var x1) &&
-            int.TryParse(parts[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var y1) &&
-            int.TryParse(parts[2].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var thickness) &&
-            int.TryParse(parts[3].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var x2) &&
-            int.TryParse(parts[4].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var y2))
-        {
-            var element = new DrawLine(x1, y1, thickness, x2, y2)
+        return EplParsingHelpers.ParseCommaSeparatedArgs(
+            System.Text.Encoding.ASCII.GetString(buffer[1..length]),
+            "X draw line",
+            p =>
             {
-                CommandRaw = Convert.ToHexString(buffer[..length]),
-                LengthInBytes = length
-            };
-            return MatchResult.Matched(element);
-        }
-
-        var error = new PrinterError($"Invalid X draw line parameters");
-        return MatchResult.Matched(error);
+                var x1 = p.GetInt(0, "x1");
+                var y1 = p.GetInt(1, "y1");
+                var thickness = p.GetInt(2, "thickness");
+                var x2 = p.GetInt(3, "x2");
+                var y2 = p.GetInt(4, "y2");
+                return new DrawLine(x1, y1, thickness, x2, y2);
+            }).WithMetadata(commandRaw, length);
     }
 }
 
+/// <summary>
 /// Command: P n - Print format and feed.
 /// ASCII: P {n}
 /// HEX: 50 {n}
-public sealed class EplPfPrintAndFeedDescriptor : ICommandDescriptor<EplParserState>
+/// </summary>
+public sealed class PrintDescriptor : EplCommandDescriptor
 {
     private const int MinLen = 2;
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x50 }; // 'P'
-    public int MinLength => MinLen;
+    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x50 }; // 'P'
+    public override int MinLength => MinLen;
 
-    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
     {
-        var end = buffer.IndexOf((byte)'\n');
-        return end >= 0 ? end + 1 : null;
-    }
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
-    {
-        var end = buffer.IndexOf((byte)'\n');
-        if (end < 0)
+        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
 
-        var length = end + 1;
-
+        var length = newline + 1;
         if (length < 2)
             return MatchResult.Matched(new PrinterError("Invalid P print: too short"));
 
-        var copiesStr = System.Text.Encoding.ASCII.GetString(buffer[1..length]);
-        if (int.TryParse(copiesStr.TrimEnd('\n'), NumberStyles.Integer, CultureInfo.InvariantCulture, out var copies))
-        {
-            var element = new Print(copies)
-            {
-                CommandRaw = Convert.ToHexString(buffer[..length]),
-                LengthInBytes = length
-            };
-            return MatchResult.Matched(element);
-        }
+        var parseResult = EplParsingHelpers.ParseSingleIntArg(buffer, 1, "P print", out var copies);
+        if (parseResult.HasValue)
+            return parseResult.Value;
 
-        var error = new PrinterError($"Invalid P print copies format");
-        return MatchResult.Matched(error);
+        var element = new Print(copies);
+        return EplParsingHelpers.Success(element, buffer, length);
     }
 }

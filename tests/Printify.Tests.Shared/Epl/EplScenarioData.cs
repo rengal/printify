@@ -101,10 +101,10 @@ public static class EplScenarioData
         new(
             id: 3001,
             input: "A10,20,0,2,1,1,N,\"Hello\"\n"u8.ToArray(),
-            expectedRequestElements: [new ScalableText(10, 20, 0, 2, 1, 1, 'N', "Hello") { LengthInBytes = 19 }],
+            expectedRequestElements: [new ScalableText(10, 20, 0, 2, 1, 1, 'N', "Hello") { LengthInBytes = 25 }],
             expectedViewElements:
             [
-                ViewDebug("scalableText", lengthInBytes: 19, parameters: new Dictionary<string, string>
+                ViewDebug("scalableText", lengthInBytes: 25, parameters: new Dictionary<string, string>
                 {
                     ["X"] = "10",
                     ["Y"] = "20",
@@ -119,10 +119,10 @@ public static class EplScenarioData
         new(
             id: 3002,
             input: "A50,100,1,3,2,2,R,\"World\"\n"u8.ToArray(),
-            expectedRequestElements: [new ScalableText(50, 100, 1, 3, 2, 2, 'R', "World") { LengthInBytes = 19 }],
+            expectedRequestElements: [new ScalableText(50, 100, 1, 3, 2, 2, 'R', "World") { LengthInBytes = 26 }],
             expectedViewElements:
             [
-                ViewDebug("scalableText", lengthInBytes: 19, parameters: new Dictionary<string, string>
+                ViewDebug("scalableText", lengthInBytes: 26, parameters: new Dictionary<string, string>
                 {
                     ["X"] = "50",
                     ["Y"] = "100",
@@ -137,10 +137,10 @@ public static class EplScenarioData
         new(
             id: 3003,
             input: "A0,0,0,4,3,3,N,\"Test123\"\n"u8.ToArray(),
-            expectedRequestElements: [new ScalableText(0, 0, 0, 4, 3, 3, 'N', "Test123") { LengthInBytes = 22 }],
+            expectedRequestElements: [new ScalableText(0, 0, 0, 4, 3, 3, 'N', "Test123") { LengthInBytes = 25 }],
             expectedViewElements:
             [
-                ViewDebug("scalableText", lengthInBytes: 22, parameters: new Dictionary<string, string>
+                ViewDebug("scalableText", lengthInBytes: 25, parameters: new Dictionary<string, string>
                 {
                     ["X"] = "0",
                     ["Y"] = "0",
@@ -159,10 +159,10 @@ public static class EplScenarioData
         new(
             id: 4001,
             input: "B10,50,0,E30,2,100,B,\"123456789012\"\n"u8.ToArray(),
-            expectedRequestElements: [new PrintBarcode(10, 50, 0, "E30", 2, 100, 'B', "123456789012") { LengthInBytes = 28 }],
+            expectedRequestElements: [new PrintBarcode(10, 50, 0, "E30", 2, 100, 'B', "123456789012") { LengthInBytes = 36 }],
             expectedViewElements:
             [
-                ViewDebug("printBarcode", lengthInBytes: 28, parameters: new Dictionary<string, string>
+                ViewDebug("printBarcode", lengthInBytes: 36, parameters: new Dictionary<string, string>
                 {
                     ["X"] = "10",
                     ["Y"] = "50",
@@ -177,10 +177,10 @@ public static class EplScenarioData
         new(
             id: 4002,
             input: "B20,80,1,2A,3,120,N,\"ABC123\"\n"u8.ToArray(),
-            expectedRequestElements: [new PrintBarcode(20, 80, 1, "2A", 3, 120, 'N', "ABC123") { LengthInBytes = 26 }],
+            expectedRequestElements: [new PrintBarcode(20, 80, 1, "2A", 3, 120, 'N', "ABC123") { LengthInBytes = 29 }],
             expectedViewElements:
             [
-                ViewDebug("printBarcode", lengthInBytes: 26, parameters: new Dictionary<string, string>
+                ViewDebug("printBarcode", lengthInBytes: 29, parameters: new Dictionary<string, string>
                 {
                     ["X"] = "20",
                     ["Y"] = "80",
@@ -205,10 +205,10 @@ public static class EplScenarioData
         new(
             id: 6001,
             input: "LO10,20,2,100\n"u8.ToArray(),
-            expectedRequestElements: [new DrawHorizontalLine(10, 20, 2, 100) { LengthInBytes = 12 }],
+            expectedRequestElements: [new DrawHorizontalLine(10, 20, 2, 100) { LengthInBytes = 14 }],
             expectedViewElements:
             [
-                ViewDebug("drawHorizontalLine", lengthInBytes: 12, parameters: new Dictionary<string, string>
+                ViewDebug("drawHorizontalLine", lengthInBytes: 14, parameters: new Dictionary<string, string>
                 {
                     ["X"] = "10",
                     ["Y"] = "20",
@@ -219,10 +219,10 @@ public static class EplScenarioData
         new(
             id: 6002,
             input: "X5,10,1,200,50\n"u8.ToArray(),
-            expectedRequestElements: [new DrawLine(5, 10, 1, 200, 50) { LengthInBytes = 14 }],
+            expectedRequestElements: [new DrawLine(5, 10, 1, 200, 50) { LengthInBytes = 15 }],
             expectedViewElements:
             [
-                ViewDebug("drawLine", lengthInBytes: 14, parameters: new Dictionary<string, string>
+                ViewDebug("drawLine", lengthInBytes: 15, parameters: new Dictionary<string, string>
                 {
                     ["X1"] = "5",
                     ["Y1"] = "10",

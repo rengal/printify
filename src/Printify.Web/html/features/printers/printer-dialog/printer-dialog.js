@@ -18,6 +18,7 @@ let template = null;
 let currentMode = null; // 'create' or 'edit'
 let currentPrinterId = null;
 let currentOverlay = null;
+let protocolDefaultsSet = false; // Track if defaults have been set for current dialog
 
 // Callbacks for actions (set by main.js)
 const callbacks = {
@@ -106,7 +107,11 @@ async function show(mode, printer) {
         nameError: modalOverlay.querySelector('[data-printer-dialogue-name-error]'),
         protocolInput: modalOverlay.querySelector('[data-printer-dialogue-protocol-input]'),
         protocolHint: modalOverlay.querySelector('[data-printer-dialogue-protocol-hint]'),
+        dimensionsGroup: modalOverlay.querySelector('[data-printer-dialogue-dimensions-group]'),
         widthInput: modalOverlay.querySelector('[data-printer-dialogue-width-input]'),
+        heightField: modalOverlay.querySelector('[data-printer-dialogue-height-field]'),
+        heightInput: modalOverlay.querySelector('[data-printer-dialogue-height-input]'),
+        emulateBufferField: modalOverlay.querySelector('[data-printer-dialogue-emulate-buffer-field]'),
         emulateBufferInput: modalOverlay.querySelector('[data-printer-dialogue-emulate-buffer-input]'),
         bufferFields: modalOverlay.querySelector('[data-printer-dialogue-buffer-fields]'),
         bufferSizeInput: modalOverlay.querySelector('[data-printer-dialogue-buffer-size-input]'),
@@ -122,6 +127,10 @@ async function show(mode, printer) {
     elements.cancelBtn.addEventListener('click', close);
     elements.submitBtn.addEventListener('click', () => handleSubmit(elements));
     elements.emulateBufferInput.addEventListener('change', () => toggleBufferFields(elements));
+    elements.protocolInput.addEventListener('change', () => {
+        elements.protocolInput.classList.remove('invalid');
+        updateProtocolFields(elements);
+    });
     elements.nameInput.addEventListener('input', () => clearNameError(elements));
     elements.securityAckInput?.addEventListener('change', () => clearSecurityError(elements));
 
@@ -162,14 +171,32 @@ async function show(mode, printer) {
 function configureDialog(elements, mode, printer) {
     const isEditMode = mode === 'edit';
 
+    // Reset protocol defaults tracking
+    protocolDefaultsSet = false;
+
     // Set title
     elements.title.textContent = isEditMode ? 'Edit Printer' : 'New Printer';
 
-    // Set submit button text
+    // Set submit button text and initial state
     elements.submitBtn.textContent = isEditMode ? 'Save' : 'Create';
+    elements.submitBtn.disabled = !isEditMode; // Disabled in create mode until protocol selected
+
+    // In create mode, hide all protocol-dependent fields initially
+    if (!isEditMode) {
+        elements.dimensionsGroup.style.display = 'none';
+        elements.heightField.style.display = 'none';
+        elements.emulateBufferField.style.display = 'none';
+        elements.bufferFields.style.display = 'none';
+        elements.securitySection.style.display = 'none';
+    } else {
+        // In edit mode, show security section is handled below
+        // All fields will be shown by updateProtocolFields
+    }
 
     // Hide security section in edit mode
-    elements.securitySection.style.display = isEditMode ? 'none' : 'block';
+    if (isEditMode) {
+        elements.securitySection.style.display = 'none';
+    }
 
     // Configure protocol field
     if (isEditMode) {
@@ -188,10 +215,19 @@ function configureDialog(elements, mode, printer) {
         elements.nameInput.value = printer.name || '';
         elements.protocolInput.value = normalizeProtocol(printer.protocol);
         elements.widthInput.value = printer.width || 512;
+        if (elements.heightInput) {
+            elements.heightInput.value = printer.height || 300;
+        }
         elements.emulateBufferInput.checked = printer.emulateBuffer || false;
         elements.bufferSizeInput.value = printer.bufferSize || 4096;
-        elements.drainRateInput.value = printer.drainRate || 4096;
+        elements.drainRateInput.value = printer.drainRate || 2048;
+
+        // In edit mode, show all fields based on protocol
+        protocolDefaultsSet = true; // Don't override existing values
     }
+
+    // Set initial protocol-specific field visibility
+    updateProtocolFields(elements);
 
     // Set initial buffer fields visibility
     toggleBufferFields(elements);
@@ -203,6 +239,99 @@ function configureDialog(elements, mode, printer) {
 function toggleBufferFields(elements) {
     const shouldShow = elements.emulateBufferInput.checked;
     elements.bufferFields.style.display = shouldShow ? 'block' : 'none';
+}
+
+// Protocol-specific defaults
+const DEFAULT_WIDTH_ESCPOS = 512;
+const DEFAULT_WIDTH_EPL = 412;
+const DEFAULT_HEIGHT_EPL = 310;
+
+/**
+ * Update field visibility and defaults based on protocol selection
+ */
+function updateProtocolFields(elements) {
+    const protocol = elements.protocolInput.value;
+    const isEpl = protocol === 'epl';
+    const isEscPos = protocol === 'escpos';
+    const hasProtocol = protocol !== '';
+    const isEditMode = currentMode === 'edit';
+
+    // Show/hide protocol-dependent fields based on whether protocol is selected
+    if (hasProtocol) {
+        // Show dimensions group (contains width and height fields)
+        if (elements.dimensionsGroup) {
+            elements.dimensionsGroup.style.display = 'grid';
+        }
+
+        // Show height field only for EPL
+        if (elements.heightField) {
+            elements.heightField.style.display = isEpl ? 'block' : 'none';
+        }
+
+        // Show buffer emulation only for ESC/POS
+        if (elements.emulateBufferField) {
+            elements.emulateBufferField.style.display = isEscPos ? 'flex' : 'none';
+        }
+
+        // Show security section in create mode
+        if (!isEditMode && elements.securitySection) {
+            elements.securitySection.style.display = 'block';
+        }
+
+        // Enable submit button in create mode
+        if (!isEditMode && elements.submitBtn) {
+            elements.submitBtn.disabled = false;
+        }
+    } else {
+        // Hide all protocol-dependent fields when no protocol selected
+        if (elements.dimensionsGroup) {
+            elements.dimensionsGroup.style.display = 'none';
+        }
+        if (elements.heightField) {
+            elements.heightField.style.display = 'none';
+        }
+        if (elements.emulateBufferField) {
+            elements.emulateBufferField.style.display = 'none';
+        }
+        if (elements.bufferFields) {
+            elements.bufferFields.style.display = 'none';
+        }
+        if (!isEditMode && elements.securitySection) {
+            elements.securitySection.style.display = 'none';
+        }
+
+        // Disable submit button in create mode
+        if (!isEditMode && elements.submitBtn) {
+            elements.submitBtn.disabled = true;
+        }
+
+        // Clear values when no protocol selected
+        if (elements.widthInput) elements.widthInput.value = '';
+        if (elements.heightInput) elements.heightInput.value = '';
+
+        return;
+    }
+
+    // Set defaults only on first protocol selection in create mode
+    if (!isEditMode && !protocolDefaultsSet) {
+        if (isEscPos) {
+            elements.widthInput.value = DEFAULT_WIDTH_ESCPOS;
+        } else if (isEpl) {
+            elements.widthInput.value = DEFAULT_WIDTH_EPL;
+            if (elements.heightInput) {
+                elements.heightInput.value = DEFAULT_HEIGHT_EPL;
+            }
+        }
+        protocolDefaultsSet = true;
+    }
+
+    // Handle buffer fields visibility
+    if (isEpl) {
+        elements.bufferFields.style.display = 'none';
+    } else if (isEscPos) {
+        // For ESC/POS, respect the checkbox state
+        toggleBufferFields(elements);
+    }
 }
 
 /**
@@ -239,20 +368,32 @@ async function handleCreate(elements) {
     const name = elements.nameInput.value.trim();
     const protocol = elements.protocolInput.value;
     const width = parseInt(elements.widthInput.value) || 512;
+    const height = elements.heightInput ? (parseInt(elements.heightInput.value) || 300) : 300;
     const emulateBuffer = elements.emulateBufferInput.checked;
     const bufferSize = parseInt(elements.bufferSizeInput.value) || 4096;
-    const drainRate = parseInt(elements.drainRateInput.value) || 4096;
+    const drainRate = parseInt(elements.drainRateInput.value) || 2048;
     const securityAck = elements.securityAckInput.checked;
 
     // Clear validation errors
     clearNameError(elements);
     clearSecurityError(elements);
+    elements.protocolInput.classList.remove('invalid');
 
     // Validate name
     if (!name) {
         elements.nameInput.classList.add('invalid');
         elements.nameError.classList.add('show');
         elements.nameInput.focus();
+        return;
+    }
+
+    // Validate protocol
+    if (!protocol) {
+        elements.protocolInput.classList.add('invalid');
+        elements.protocolInput.focus();
+        if (callbacks.showToast) {
+            callbacks.showToast('Please select a protocol', true);
+        }
         return;
     }
 
@@ -272,7 +413,7 @@ async function handleCreate(elements) {
             settings: {
                 protocol: callbacks.normalizeProtocol ? callbacks.normalizeProtocol(protocol) : normalizeProtocol(protocol),
                 widthInDots: width,
-                heightInDots: null,
+                heightInDots: protocol === 'epl' ? height : null,
                 emulateBufferCapacity: emulateBuffer,
                 bufferDrainRate: drainRate,
                 bufferMaxCapacity: bufferSize
@@ -313,9 +454,10 @@ async function handleEdit(elements) {
     const name = elements.nameInput.value.trim();
     const protocol = elements.protocolInput.value;
     const width = parseInt(elements.widthInput.value) || 512;
+    const height = elements.heightInput ? (parseInt(elements.heightInput.value) || 300) : 300;
     const emulateBuffer = elements.emulateBufferInput.checked;
     const bufferSize = parseInt(elements.bufferSizeInput.value) || 4096;
-    const drainRate = parseInt(elements.drainRateInput.value) || 4096;
+    const drainRate = parseInt(elements.drainRateInput.value) || 2048;
 
     // Clear validation errors
     clearNameError(elements);
@@ -337,7 +479,7 @@ async function handleEdit(elements) {
             settings: {
                 protocol: callbacks.normalizeProtocol ? callbacks.normalizeProtocol(protocol) : normalizeProtocol(protocol),
                 widthInDots: width,
-                heightInDots: null,
+                heightInDots: protocol === 'epl' ? height : null,
                 emulateBufferCapacity: emulateBuffer,
                 bufferDrainRate: drainRate,
                 bufferMaxCapacity: bufferSize
@@ -370,7 +512,9 @@ async function handleEdit(elements) {
  * Load the HTML template
  */
 async function loadTemplate() {
-    const response = await fetch('features/printers/printer-dialog/printer-dialog.html');
+    // Add cache busting parameter to force reload
+    const cacheBuster = `?v=${Date.now()}`;
+    const response = await fetch('features/printers/printer-dialog/printer-dialog.html' + cacheBuster, { cache: 'no-store' });
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');

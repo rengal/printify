@@ -11,6 +11,7 @@ public static class DomainMapper
         return protocol switch
         {
             "EscPos" => Protocol.EscPos,
+            "Epl" => Protocol.Epl,
             _ => throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Protocol is not supported.")
         };
     }
@@ -20,6 +21,7 @@ public static class DomainMapper
         return protocol switch
         {
             Protocol.EscPos => "EscPos",
+            Protocol.Epl => "Epl",
             _ => throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Unsupported protocol value.")
         };
     }
