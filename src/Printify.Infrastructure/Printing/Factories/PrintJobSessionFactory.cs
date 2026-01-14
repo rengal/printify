@@ -4,6 +4,7 @@ using Printify.Application.Printing;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
+using Printify.Infrastructure.Printing.Epl;
 using Printify.Infrastructure.Printing.EscPos;
 
 namespace Printify.Infrastructure.Printing.Factories;
@@ -11,7 +12,8 @@ namespace Printify.Infrastructure.Printing.Factories;
 public class PrintJobSessionFactory(
     IPrinterBufferCoordinator bufferCoordinator,
     IClockFactory clockFactory,
-    EscPosCommandTrieProvider commandTrieProvider,
+    EscPosCommandTrieProvider escPosCommandTrieProvider,
+    EplCommandTrieProvider eplCommandTrieProvider,
     IServiceScopeFactory scopeFactory)
     : IPrintJobSessionFactory
 {
@@ -26,7 +28,19 @@ public class PrintJobSessionFactory(
                     clockFactory,
                     job,
                     channel,
-                    commandTrieProvider,
+                    escPosCommandTrieProvider,
+                    scopeFactory));
+        }
+
+        if (protocol == Protocol.Epl)
+        {
+            return Task.FromResult<IPrintJobSession>(
+                new EplPrintJobSession(
+                    bufferCoordinator,
+                    clockFactory,
+                    job,
+                    channel,
+                    eplCommandTrieProvider,
                     scopeFactory));
         }
 

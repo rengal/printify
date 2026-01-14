@@ -8,10 +8,13 @@ public static class DomainMapper
     public static Protocol ParseProtocol(string protocol)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(protocol);
-        return protocol switch
+        return protocol.ToLowerInvariant() switch
         {
-            "EscPos" => Protocol.EscPos,
-            "Epl" => Protocol.Epl,
+            ProtocolConstants.EscPos => Protocol.EscPos,
+            ProtocolConstants.Epl => Protocol.Epl,
+            ProtocolConstants.Zpl => Protocol.Zpl,
+            ProtocolConstants.Tspl => Protocol.Tspl,
+            ProtocolConstants.Slcs => Protocol.Slcs,
             _ => throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Protocol is not supported.")
         };
     }
@@ -22,6 +25,9 @@ public static class DomainMapper
         {
             Protocol.EscPos => "EscPos",
             Protocol.Epl => "Epl",
+            Protocol.Zpl => "Zpl",
+            Protocol.Tspl => "Tspl",
+            Protocol.Slcs => "Slcs",
             _ => throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Unsupported protocol value.")
         };
     }

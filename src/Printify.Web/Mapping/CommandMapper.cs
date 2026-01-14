@@ -68,11 +68,11 @@ internal static class CommandMapper
     private static Protocol ParseProtocol(string protocol)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(protocol);
-        if (protocol.ToLower() == "escpos")
+        return protocol.ToLowerInvariant() switch
         {
-            return Protocol.EscPos;
-        }
-
-        throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Protocol is not supported.");
+            ProtocolConstants.EscPos => Protocol.EscPos,
+            ProtocolConstants.Epl => Protocol.Epl,
+            _ => throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "Protocol is not supported.")
+        };
     }
 }

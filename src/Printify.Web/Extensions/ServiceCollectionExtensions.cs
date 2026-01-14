@@ -15,6 +15,7 @@ using Printify.Infrastructure.Clock;
 using Printify.Infrastructure.Media;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Printing;
+using Printify.Infrastructure.Printing.Epl;
 using Printify.Infrastructure.Printing.EscPos;
 using Printify.Infrastructure.Printing.Factories;
 using Printify.Infrastructure.Repositories;
@@ -80,6 +81,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMediaService, MediaService>();
         services.AddSingleton<IMediaStorage, FileSystemMediaStorage>();
         services.AddSingleton<EscPosCommandTrieProvider>();
+        services.AddSingleton<EplCommandTrieProvider>();
         services.AddSingleton<IPrinterBufferCoordinator, PrinterBufferCoordinator>();
         services.AddSingleton<IPrinterStatusStream, PrinterStatusStream>();
         services.AddSingleton<IPrinterRuntimeStatusStore, PrinterRuntimeStatusStore>();

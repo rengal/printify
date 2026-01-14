@@ -9,6 +9,15 @@ public enum Protocol
     EscPos = 0,
 
     /// <summary>EPL protocol (Eltron Programming Language).</summary>
-    Epl = 1
+    Epl = 1,
+
+    /// <summary>ZPL protocol (Zebra Programming Language).</summary>
+    Zpl = 2,
+
+    /// <summary>TSPL protocol (TSC Printer Language).</summary>
+    Tspl = 3,
+
+    /// <summary>SLCS protocol (Sato Barcode Printer Language).</summary>
+    Slcs = 4
 }
 

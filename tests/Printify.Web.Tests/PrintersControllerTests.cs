@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Printify.Domain.Printers;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
 using Printify.Web.Contracts.Printers.Requests;
@@ -13,8 +14,10 @@ namespace Printify.Web.Tests;
 public sealed partial class PrintersControllerTests(WebApplicationFactory<Program> factory)
     : IClassFixture<WebApplicationFactory<Program>>
 {
-    [Fact]
-    public async Task CreatePrinter_RegistersInMemoryListenerChannel()
+    [Theory]
+    [InlineData(ProtocolConstants.EscPos)]
+    [InlineData(ProtocolConstants.Epl)]
+    public async Task CreatePrinter_RegistersInMemoryListenerChannel(string protocol)
     {
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
@@ -23,8 +26,8 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
 
         var printerId = Guid.NewGuid();
         var createRequest = new CreatePrinterRequestDto(
-            new PrinterRequestDto(printerId, "Listener Printer"),
-            new PrinterSettingsRequestDto("EscPos", 384, null, false, null, null));
+            new PrinterRequestDto(printerId, $"Listener Printer ({protocol})"),
+            new PrinterSettingsRequestDto(protocol, 384, null, false, null, null));
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
@@ -48,8 +51,10 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
         Assert.False(channel.IsDisposed);
     }
 
-    [Fact]
-    public async Task CreateTwoPrinters_AssignsDifferentTcpPorts()
+    [Theory]
+    [InlineData(ProtocolConstants.EscPos)]
+    [InlineData(ProtocolConstants.Epl)]
+    public async Task CreateTwoPrinters_AssignsDifferentTcpPorts(string protocol)
     {
         // Arrange: create workspace and authenticate
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
@@ -59,8 +64,8 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
         // Act: create first printer
         var firstId = Guid.NewGuid();
         var firstRequest = new CreatePrinterRequestDto(
-            new PrinterRequestDto(firstId, "Port Printer 1"),
-            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
+            new PrinterRequestDto(firstId, $"Port Printer 1 ({protocol})"),
+            new PrinterSettingsRequestDto(protocol, 512, null, false, null, null));
         var firstResponse = await client.PostAsJsonAsync("/api/printers", firstRequest);
         firstResponse.EnsureSuccessStatusCode();
         var firstDto = await firstResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
@@ -69,8 +74,8 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
         // Act: create second printer
         var secondId = Guid.NewGuid();
         var secondRequest = new CreatePrinterRequestDto(
-            new PrinterRequestDto(secondId, "Port Printer 2"),
-            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
+            new PrinterRequestDto(secondId, $"Port Printer 2 ({protocol})"),
+            new PrinterSettingsRequestDto(protocol, 512, null, false, null, null));
         var secondResponse = await client.PostAsJsonAsync("/api/printers", secondRequest);
         secondResponse.EnsureSuccessStatusCode();
         var secondDto = await secondResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
