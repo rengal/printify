@@ -4,9 +4,11 @@ using Printify.Domain.Documents.Elements.EscPos;
 
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
+/// <summary>
 /// Command: ESC t - select character code table.
 /// ASCII: ESC t n.
 /// HEX: 1B 74 n.
+/// </summary>
 public sealed class SetCodePageDescriptor : ICommandDescriptor
 {
     private const int FixedLength = 3;
@@ -59,5 +61,26 @@ public sealed class SetCodePageDescriptor : ICommandDescriptor
 
         var error = new PrinterError($"Unrecognized code page ID: 0x{codePageId:X2}");
         return MatchResult.Matched(error);
+    }
+}
+
+/// <summary>
+/// Command: FS & - select Chinese (GB2312) character set.
+/// ASCII: FS &.
+/// HEX: 1C 26.
+/// </summary>
+public sealed class SetChineseCodePageDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 2;
+    private const string Gb2312CodePage = "936";
+
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1C, 0x26 };
+    public int MinLength => FixedLength;
+
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        return MatchResult.Matched(new SetCodePage(Gb2312CodePage));
     }
 }
