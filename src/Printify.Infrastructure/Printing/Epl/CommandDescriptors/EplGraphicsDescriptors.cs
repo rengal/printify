@@ -15,14 +15,14 @@ namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 /// This descriptor is special - it has a useful TryGetExactLength implementation
 /// because the command length can be calculated from the header parameters.
 /// </remarks>
-public sealed class PrintGraphicDescriptor : EplCommandDescriptor
+public sealed class PrintGraphicDescriptor : ICommandDescriptor
 {
     private const int MinLen = 10; // 'GW' + minimum params
 
-    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x47, 0x57 }; // 'GW'
-    public override int MinLength => MinLen;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x47, 0x57 }; // 'GW'
+    public int MinLength => MinLen;
 
-    public override int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
     {
         // Find the comma at end of header
         var commaIndex = buffer.IndexOf((byte)',');
@@ -47,7 +47,7 @@ public sealed class PrintGraphicDescriptor : EplCommandDescriptor
         return buffer.Length >= totalLength ? totalLength : null;
     }
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         // Find the comma at end of header
         var commaIndex = buffer.IndexOf((byte)',');

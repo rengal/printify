@@ -9,14 +9,14 @@ namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 /// ASCII: N
 /// HEX: 4E
 /// </summary>
-public sealed class ClearBufferDescriptor : EplCommandDescriptor
+public sealed class ClearBufferDescriptor : ICommandDescriptor
 {
     private const int FixedLength = 2; // 'N' + newline
 
-    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x4E }; // 'N'
-    public override int MinLength => FixedLength;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x4E }; // 'N'
+    public int MinLength => FixedLength;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         const int length = 2;
 

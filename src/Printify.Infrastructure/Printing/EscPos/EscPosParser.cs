@@ -76,7 +76,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         {
             // Switch to Command mode - ChangeState will emit accumulated text
             ChangeState(ParserMode.Command);
-            return false; // Reprocess in Command mode
+            return false; // Processing is not completed. Need another iteration to process in Command mode
         }
 
         // Check if this is a valid text byte
@@ -84,7 +84,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         {
             // Switch to Error mode - ChangeState will emit accumulated text
             ChangeState(ParserMode.Error);
-            return false; // Reprocess in Error mode
+            return false; // Processing is not completed. Need another iteration to process in Error mode
         }
 
         // Valid text byte - add to buffer

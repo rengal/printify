@@ -9,14 +9,14 @@ namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 /// ASCII: q {width}
 /// HEX: 71 {width}
 /// </summary>
-public sealed class SetLabelWidthDescriptor : EplCommandDescriptor
+public sealed class SetLabelWidthDescriptor : ICommandDescriptor
 {
     private const int MinLen = 2; // 'q' + at least 1 digit
 
-    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x71 }; // 'q'
-    public override int MinLength => MinLen;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x71 }; // 'q'
+    public int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -39,14 +39,14 @@ public sealed class SetLabelWidthDescriptor : EplCommandDescriptor
 /// ASCII: Q {height},{param2}
 /// HEX: 51 {height},{param2}
 /// </summary>
-public sealed class SetLabelHeightDescriptor : EplCommandDescriptor
+public sealed class SetLabelHeightDescriptor : ICommandDescriptor
 {
     private const int MinLen = 3; // 'Q' + at least 1 digit + comma
 
-    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x51 }; // 'Q'
-    public override int MinLength => MinLen;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x51 }; // 'Q'
+    public int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -72,14 +72,14 @@ public sealed class SetLabelHeightDescriptor : EplCommandDescriptor
 /// ASCII: R {speed}
 /// HEX: 52 {speed}
 /// </summary>
-public sealed class SetPrintSpeedDescriptor : EplCommandDescriptor
+public sealed class SetPrintSpeedDescriptor : ICommandDescriptor
 {
     private const int MinLen = 2;
 
-    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x52 }; // 'R'
-    public override int MinLength => MinLen;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x52 }; // 'R'
+    public int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -102,14 +102,14 @@ public sealed class SetPrintSpeedDescriptor : EplCommandDescriptor
 /// ASCII: S {darkness}
 /// HEX: 53 {darkness}
 /// </summary>
-public sealed class SetPrintDarknessDescriptor : EplCommandDescriptor
+public sealed class SetPrintDarknessDescriptor : ICommandDescriptor
 {
     private const int MinLen = 2;
 
-    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x53 }; // 'S'
-    public override int MinLength => MinLen;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x53 }; // 'S'
+    public int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -132,14 +132,14 @@ public sealed class SetPrintDarknessDescriptor : EplCommandDescriptor
 /// ASCII: Z T or Z B
 /// HEX: 5A 54 or 5A 42
 /// </summary>
-public sealed class SetPrintDirectionDescriptor : EplCommandDescriptor
+public sealed class SetPrintDirectionDescriptor : ICommandDescriptor
 {
     private const int FixedLength = 3; // 'Z' + 'T'/'B' + newline
 
-    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x5A }; // 'Z'
-    public override int MinLength => FixedLength;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x5A }; // 'Z'
+    public int MinLength => FixedLength;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         const int length = 3;
 
@@ -165,14 +165,14 @@ public sealed class SetPrintDirectionDescriptor : EplCommandDescriptor
 /// ASCII: I {code}
 /// HEX: 49 {code}
 /// </summary>
-public sealed class SetInternationalCharacterDescriptor : EplCommandDescriptor
+public sealed class SetInternationalCharacterDescriptor : ICommandDescriptor
 {
     private const int MinLen = 2;
 
-    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x49 }; // 'I'
-    public override int MinLength => MinLen;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x49 }; // 'I'
+    public int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -196,14 +196,14 @@ public sealed class SetInternationalCharacterDescriptor : EplCommandDescriptor
 /// ASCII: i {code},{scaling}
 /// HEX: 69 {code},{scaling}
 /// </summary>
-public sealed class SetCodePageDescriptor : EplCommandDescriptor
+public sealed class SetCodePageDescriptor : ICommandDescriptor
 {
     private const int MinLen = 2;
 
-    public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x69 }; // 'i'
-    public override int MinLength => MinLen;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x69 }; // 'i'
+    public int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();

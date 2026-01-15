@@ -8,12 +8,14 @@ namespace Printify.Infrastructure.Printing.Common;
 public sealed class TrieNavigationState
 {
     /// <summary>
-    /// Minimum command length (from descriptor).
+    /// Minimum command length from the descriptor.
+    /// The parser will not attempt to parse until at least this many bytes have been received.
     /// </summary>
     public int? MinLength { get; set; }
 
     /// <summary>
-    /// Exact command length if determinable from parsed bytes.
+    /// Exact command length if determinable from parsed bytes (e.g., from length fields in the command).
+    /// When set, the parser knows exactly how many bytes constitute the complete command.
     /// </summary>
     public int? ExactLength { get; set; }
 

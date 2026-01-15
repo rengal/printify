@@ -20,8 +20,9 @@ public interface ICommandDescriptor
     /// <summary>
     /// Attempts to determine the exact length of the command from the buffer.
     /// Returns null if length cannot be determined yet.
+    /// Default implementation returns null (exact length cannot be determined early).
     /// </summary>
-    int? TryGetExactLength(ReadOnlySpan<byte> buffer);
+    virtual int? TryGetExactLength(ReadOnlySpan<byte> buffer) => null;
 
     /// <summary>
     /// Attempts to parse the command from the buffer.
