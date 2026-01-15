@@ -6,6 +6,6 @@ public partial class EscPosParserTests
     [MemberData(nameof(EscPosScenarioData.FontStyleScenarios), MemberType = typeof(EscPosScenarioData))]
     public void Parser_FontStyle_Scenarios_ProduceExpectedElements(EscPosScenario scenario)
     {
-        AssertScenarioAcrossAllStrategies(scenario);
+        AssertScenario(scenario);
     }
 }

@@ -1,44 +1,31 @@
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Printify.Application.Printing.Events;
+using ApplicationEvents = Printify.Application.Printing.Events;
 using DomainElements = Printify.Domain.Documents.Elements;
 using EscPosElements = Printify.Domain.Documents.Elements.EscPos;
 using Printify.Domain.Printers;
 using Printify.Tests.Shared.Document;
+using Printify.Tests.Shared.EscPos;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
-using Printify.Web.Contracts.Auth.Requests;
-using Printify.Web.Contracts.Auth.Responses;
 using Printify.Web.Contracts.Documents.Responses.View;
 using Printify.Web.Contracts.Documents.Responses.View.Elements;
-using Printify.Web.Contracts.Printers.Requests;
-using Printify.Web.Contracts.Workspaces.Requests;
-using Printify.Web.Contracts.Workspaces.Responses;
 
 namespace Printify.Web.Tests.EscPos;
 
-public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+public class EscPosTests(WebApplicationFactory<Program> factory)
+    : ProtocolTestsBase<EscPosScenario>(
+        factory,
+        Protocol.EscPos,
+        "EscPos")
 {
     protected const byte Esc = 0x1B;
     protected const byte Gs = 0x1D;
-    private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(1);
-    private const int DefaultPrinterWidthInDots = 512;
-    private static readonly int? DefaultPrinterHeightInDots = null;
 
-    private enum CompletionMode
+    public override async Task DocumentCompletesAfterIdleTimeout()
     {
-        AdvanceIdleTimeout,
-        CloseChannel
-    }
-
-    private static readonly IReadOnlyList<EscPosChunkStrategy> ChunkStrategies = EscPosChunkStrategies.All;
-
-    [Fact]
-    public async Task DocumentCompletesAfterIdleTimeout()
-    {
-        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        await using var environment = TestServiceContext.CreateForControllerTest(Factory);
         await AuthenticateAsync(environment, "escpos-idle-user");
 
         var printerId = Guid.NewGuid();
@@ -84,75 +71,6 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
             DefaultPrinterWidthInDots,
             DefaultPrinterHeightInDots);
         DocumentAssertions.EqualBytes(expectedElements.Sum(element => element.LengthInBytes), bytesSent, documentEvent.Document);
-    }
-
-    protected async Task RunScenarioAsync(EscPosScenario scenario)
-    {
-        System.Diagnostics.Debug.WriteLine($"Starting scenario [{scenario.Id}]");
-        var strategy = EscPosChunkStrategies.SingleByte;
-        System.Diagnostics.Debug.WriteLine($"   chunkStrategy={strategy.Name}");
-        await RunScenarioAsync(scenario, $"escpos-strategy-{strategy.Name}", strategy);
-        System.Diagnostics.Debug.WriteLine($"Completed scenario [{scenario.Id}]");
-    }
-
-    private async Task RunScenarioAsync(
-        EscPosScenario scenario,
-        string userPrefix,
-        EscPosChunkStrategy strategy)
-    {
-        await RunScenarioAsync(scenario, userPrefix, strategy, CompletionMode.AdvanceIdleTimeout);
-        await RunScenarioAsync(scenario, userPrefix, strategy, CompletionMode.CloseChannel);
-    }
-
-    private async Task RunScenarioAsync(
-        EscPosScenario scenario,
-        string userPrefix,
-        EscPosChunkStrategy strategy,
-        CompletionMode completionMode)
-    {
-        await using var environment = TestServiceContext.CreateForControllerTest(factory);
-        await AuthenticateAsync(environment, $"{userPrefix}-{completionMode}");
-
-        var printerId = Guid.NewGuid();
-        var channel =
-            await CreatePrinterAsync(
-                environment,
-                printerId,
-                $"EscPos Test Printer {userPrefix}-{completionMode}",
-                DefaultPrinterWidthInDots,
-                DefaultPrinterHeightInDots);
-
-        var bytesSent = 0;
-        channel.OnResponse(data => bytesSent += data.Length);
-
-        var streamEnumerator = environment.DocumentStream
-            .Subscribe(printerId, CancellationToken.None)
-            .GetAsyncEnumerator();
-
-        await SendWithChunkStrategyAsync(environment, channel, scenario.Input, strategy);
-
-        switch (completionMode)
-        {
-            case CompletionMode.AdvanceIdleTimeout:
-                AdvanceBeyondIdle(environment, PrinterConstants.ListenerIdleTimeoutMs + 50);
-                break;
-            case CompletionMode.CloseChannel:
-                await channel.CloseAsync(ChannelClosedReason.Completed);
-                break;
-        }
-
-        var result = await streamEnumerator.MoveNextAsync().AsTask().WaitAsync(IdleTimeout);
-        Assert.True(result);
-
-        var documentEvent = streamEnumerator.Current;
-
-        DocumentAssertions.Equal(
-            scenario.ExpectedPersistedElements ?? scenario.ExpectedRequestElements,
-            Protocol.EscPos,
-            documentEvent.Document,
-            DefaultPrinterWidthInDots,
-            DefaultPrinterHeightInDots);
-        DocumentAssertions.EqualBytes(scenario.Input.Length, bytesSent, documentEvent.Document);
 
         // Verify view endpoint works
         var ct = CancellationToken.None;
@@ -167,12 +85,12 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
         Assert.NotNull(viewDocument);
 
         DocumentAssertions.EqualView(
-            scenario.ExpectedViewElements,
+            [],
             Protocol.EscPos,
             viewDocument,
             DefaultPrinterWidthInDots,
             DefaultPrinterHeightInDots);
-        DocumentAssertions.EqualBytes(scenario.Input.Length, bytesSent, viewDocument);
+        DocumentAssertions.EqualBytes(expectedElements.Sum(element => element.LengthInBytes), bytesSent, viewDocument);
 
         // Verify RasterImage elements have accessible Media URLs
         foreach (var element in viewDocument.Elements)
@@ -215,101 +133,5 @@ public class EscPosTests(WebApplicationFactory<Program> factory) : IClassFixture
                 }
             }
         }
-    }
-
-    private static async Task<TestPrinterChannel> CreatePrinterAsync(
-        TestServiceContext.ControllerTestContext environment,
-        Guid printerId,
-        string displayName,
-        int widthInDots,
-        int? heightInDots)
-    {
-        var client = environment.Client;
-
-        var request = new CreatePrinterRequestDto(
-            printerId,
-            displayName,
-            "EscPos",
-            widthInDots,
-            heightInDots,
-            false,
-            null,
-            null);
-
-        var response = await client.PostAsJsonAsync("/api/printers", request);
-        response.EnsureSuccessStatusCode();
-
-        var listener = await TestPrinterListenerFactory.GetListenerAsync(printerId, timeoutInMs: 2000);
-        return await listener.AcceptClientAsync(CancellationToken.None);
-    }
-
-    private static async Task AuthenticateAsync(TestServiceContext.ControllerTestContext environment, string displayName)
-    {
-        var client = environment.Client;
-
-        // Create new workspace
-        var workspaceId = Guid.NewGuid();
-        var createWorkspaceResponse = await client.PostAsJsonAsync("/api/workspaces", new CreateWorkspaceRequestDto(workspaceId, displayName));
-        createWorkspaceResponse.EnsureSuccessStatusCode();
-        var workspaceResponseDto = await createWorkspaceResponse.Content.ReadFromJsonAsync<WorkspaceResponseDto>();
-        Assert.NotNull(workspaceResponseDto);
-        Assert.Equal(workspaceId, workspaceResponseDto.Id);
-        var token = workspaceResponseDto.Token;
-
-        // Login to workspace using token and get jwt access token
-        var loginResponse = await client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto(token));
-        loginResponse.EnsureSuccessStatusCode();
-        var loginResponseDto = await loginResponse.Content.ReadFromJsonAsync<LoginResponseDto>();
-        Assert.NotNull(loginResponseDto);
-        Assert.NotNull(loginResponseDto.Workspace);
-        Assert.Equal(workspaceId, loginResponseDto.Workspace.Id);
-        var accessToken = loginResponseDto.AccessToken;
-
-        // Set jwt access token for further requests
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-    }
-
-    private static async Task SendWithChunkStrategyAsync(
-        TestServiceContext.ControllerTestContext environment,
-        TestPrinterChannel channel,
-        byte[] payload,
-        EscPosChunkStrategy strategy)
-    {
-        if (payload.Length == 0)
-        {
-            return;
-        }
-
-        var clockFactory = Assert.IsType<TestClockFactory>(environment.ClockFactory);
-        var remaining = payload.Length;
-
-        foreach (var step in EscPosScenarioChunker.EnumerateChunks(payload, strategy))
-        {
-            await channel.SendToServerAsync(step.Buffer, CancellationToken.None);
-            remaining -= step.Buffer.Length;
-
-            if (remaining <= 0)
-            {
-                continue;
-            }
-
-            if (step.DelayAfterMilliseconds <= 0)
-            {
-                continue;
-            }
-
-            var boundedDelay = Math.Min(step.DelayAfterMilliseconds,
-                Math.Max(10, PrinterConstants.ListenerIdleTimeoutMs / 2));
-            if (boundedDelay > 0)
-            {
-                clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(boundedDelay));
-            }
-        }
-    }
-
-    private static void AdvanceBeyondIdle(TestServiceContext.ControllerTestContext environment, int additionalMs)
-    {
-        var clockFactory = Assert.IsType<TestClockFactory>(environment.ClockFactory);
-        clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(additionalMs));
     }
 }

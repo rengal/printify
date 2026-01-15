@@ -15,21 +15,18 @@ public partial class EplParserTests(EplParserFixture fixture) : IClassFixture<Ep
 
     private readonly EplCommandTrieProvider trieProvider = fixture.TrieProvider;
 
-    private void AssertScenario(EplScenario scenario, EplChunkStrategy strategy)
+    private void AssertScenario(EplScenario scenario)
     {
         var elements = new List<Element>();
         var parser = new EplParser(elements.Add);
-        foreach (var step in EplScenarioChunker.EnumerateChunks(scenario.Input, strategy))
+
+        // Send byte by byte
+        foreach (var b in scenario.Input)
         {
-            parser.Feed(step.Buffer.Span, CancellationToken.None);
+            parser.Feed(new[] { b }, CancellationToken.None);
         }
 
         parser.Complete();
         DocumentAssertions.Equal(scenario.ExpectedRequestElements, elements);
-    }
-
-    private void AssertScenarioAcrossAllStrategies(EplScenario scenario)
-    {
-        AssertScenario(scenario, EplChunkStrategies.SingleByte);
     }
 }

@@ -80,6 +80,9 @@ appsettings.json
 *.pubxml.user
 PublishProfiles/
 
+# Publish directory
+Publish/
+
 # Cache / temp
 *.cache
 *.tmp

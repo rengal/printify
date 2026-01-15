@@ -8,6 +8,6 @@ public partial class EscPosParserTests
     [MemberData(nameof(EscPosScenarioData.TextScenarios), MemberType = typeof(EscPosScenarioData))]
     public void Parser_Text_Scenarios_ProduceExpectedElements(EscPosScenario scenario)
     {
-        AssertScenarioAcrossAllStrategies(scenario);
+        AssertScenario(scenario);
     }
 }

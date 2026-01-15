@@ -98,7 +98,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPrinterListenerOrchestrator, PrinterListenerOrchestrator>();
         services.AddSingleton<IPrinterListenerFactory, PrinterListenerFactory>();
         services.AddSingleton<IPrinterDocumentStream, PrinterDocumentStream>();
-        services.AddSingleton<IViewDocumentConverter, EscPosViewDocumentConverter>();
+
+        // View document converters - register all protocol-specific converters
+        services.AddSingleton<EscPosViewDocumentConverter>();
+        services.AddSingleton<EplViewDocumentConverter>();
+        // Composite converter that delegates to the appropriate converter based on protocol
+        services.AddSingleton<IViewDocumentConverter, CompositeViewDocumentConverter>();
 
         services.AddHostedService(provider =>
             (PrinterBufferCoordinator)provider.GetRequiredService<IPrinterBufferCoordinator>());

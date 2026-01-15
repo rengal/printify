@@ -8,6 +8,6 @@ public partial class EplParserTests
     [MemberData(nameof(EplScenarioData.BarcodeScenarios), MemberType = typeof(EplScenarioData))]
     public void Parser_Barcode_Scenarios_ProduceExpectedElements(EplScenario scenario)
     {
-        AssertScenarioAcrossAllStrategies(scenario);
+        AssertScenario(scenario);
     }
 }

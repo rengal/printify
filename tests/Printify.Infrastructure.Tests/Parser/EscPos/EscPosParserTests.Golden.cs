@@ -13,6 +13,6 @@ public partial class EscPosParserTests
             value.expectedRequestElement,
             value.expectedPersistedElements,
             value.expectedViewElements);
-        AssertScenarioAcrossAllStrategies(scenario);
+        AssertScenario(scenario);
     }
 }

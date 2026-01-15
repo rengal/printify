@@ -1,13 +1,14 @@
 namespace Printify.Tests.Shared.Epl;
 
 using Printify.Domain.Documents.Elements;
+using Printify.Tests.Shared;
 using Printify.Web.Contracts.Documents.Responses.View.Elements;
 
 /// <summary>
 /// Represents a deterministic EPL parser scenario consisting of an input payload
 /// and the elements that must be produced after parsing it.
 /// </summary>
-public sealed record EplScenario
+public sealed record EplScenario : ITestScenario
 {
     public EplScenario(
         int id,

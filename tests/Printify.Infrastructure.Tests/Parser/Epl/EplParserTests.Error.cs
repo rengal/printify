@@ -8,6 +8,6 @@ public partial class EplParserTests
     [MemberData(nameof(EplScenarioData.ErrorScenarios), MemberType = typeof(EplScenarioData))]
     public void Parser_Error_Scenarios_ProduceExpectedElements(EplScenario scenario)
     {
-        AssertScenarioAcrossAllStrategies(scenario);
+        AssertScenario(scenario);
     }
 }

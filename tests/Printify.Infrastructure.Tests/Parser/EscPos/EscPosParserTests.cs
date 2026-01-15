@@ -14,23 +14,18 @@ public partial class EscPosParserTests(EscPosParserFixture fixture) : IClassFixt
 
     private readonly EscPosCommandTrieProvider trieProvider = fixture.TrieProvider;
 
-    private void AssertScenario(EscPosScenario scenario, EscPosChunkStrategy strategy)
+    private void AssertScenario(EscPosScenario scenario)
     {
         var elements = new List<Element>();
         var parser = new EscPosParser(trieProvider, elements.Add);
-        foreach (var step in EscPosScenarioChunker.EnumerateChunks(scenario.Input, strategy))
+
+        // Send byte by byte
+        foreach (var b in scenario.Input)
         {
-            parser.Feed(step.Buffer.Span, CancellationToken.None);
+            parser.Feed(new[] { b }, CancellationToken.None);
         }
 
         parser.Complete();
         DocumentAssertions.Equal(scenario.ExpectedRequestElements, elements);
-    }
-
-    private void AssertScenarioAcrossAllStrategies(EscPosScenario scenario)
-    {
-        //foreach (var strategy in EscPosChunkStrategies.All)
-        //  AssertScenario(scenario, strategy);//todo debugnow
-        AssertScenario(scenario, EscPosChunkStrategies.SingleByte);
     }
 }

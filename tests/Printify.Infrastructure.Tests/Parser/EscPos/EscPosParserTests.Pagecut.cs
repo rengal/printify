@@ -6,6 +6,6 @@ public partial class EscPosParserTests
     [MemberData(nameof(EscPosScenarioData.PagecutScenarios), MemberType = typeof(EscPosScenarioData))]
     public void Parser_Pagecut_Scenarios_ProduceExpectedElements(EscPosScenario scenario)
     {
-        AssertScenarioAcrossAllStrategies(scenario);
+        AssertScenario(scenario);
     }
 }

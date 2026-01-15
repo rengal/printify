@@ -6,6 +6,6 @@ public partial class EscPosParserTests
     [MemberData(nameof(EscPosScenarioData.LineSpacingScenarios), MemberType = typeof(EscPosScenarioData))]
     public void Parser_LineSpacing_Scenarios_ProduceExpectedElements(EscPosScenario scenario)
     {
-        AssertScenarioAcrossAllStrategies(scenario);
+        AssertScenario(scenario);
     }
 }

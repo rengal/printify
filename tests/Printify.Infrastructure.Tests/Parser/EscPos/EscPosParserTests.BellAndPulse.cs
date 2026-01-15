@@ -6,13 +6,13 @@ public partial class EscPosParserTests
     [MemberData(nameof(EscPosScenarioData.BellScenarios), MemberType = typeof(EscPosScenarioData))]
     public void Parser_Bell_Scenarios_ProduceExpectedElements(EscPosScenario scenario)
     {
-        AssertScenarioAcrossAllStrategies(scenario);
+        AssertScenario(scenario);
     }
 
     [Theory]
     [MemberData(nameof(EscPosScenarioData.PulseScenarios), MemberType = typeof(EscPosScenarioData))]
     public void Parser_Pulse_Scenarios_ProduceExpectedElements(EscPosScenario scenario)
     {
-        AssertScenarioAcrossAllStrategies(scenario);
+        AssertScenario(scenario);
     }
 }
