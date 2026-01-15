@@ -1,6 +1,6 @@
 using Printify.Application.Exceptions;
 using Printify.Application.Features.Printers.Documents;
-using Printify.Application.Features.Printers.Documents.View;
+using Printify.Application.Interfaces;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.Elements.EscPos;

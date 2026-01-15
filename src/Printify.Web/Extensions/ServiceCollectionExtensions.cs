@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Auth.Login;
-using Printify.Application.Features.Printers.Documents.View;
 using Printify.Application.Interfaces;
 using Printify.Application.Pipeline;
 using Printify.Application.Printing;

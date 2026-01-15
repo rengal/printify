@@ -143,13 +143,6 @@ async function show(mode, printer) {
     document.addEventListener('keydown', handleEscape);
     elements.overlay.escapeHandler = handleEscape;
 
-    // Click outside closes dialog
-    elements.overlay.addEventListener('click', (e) => {
-        if (e.target === elements.overlay) {
-            close();
-        }
-    });
-
     // Configure dialog based on mode
     configureDialog(elements, mode, printer);
 

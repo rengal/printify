@@ -1,5 +1,5 @@
 using Printify.Application.Exceptions;
-using Printify.Application.Features.Printers.Documents.View;
+using Printify.Application.Interfaces;
 using Printify.Domain.Documents;
 using Printify.Domain.Documents.View;
 using Printify.Domain.Printers;
@@ -11,9 +11,9 @@ namespace Printify.Infrastructure.Printing;
 /// <summary>
 /// Composite view document converter that delegates to protocol-specific converters.
 /// </summary>
-public sealed class CompositeViewDocumentConverter : IViewDocumentConverter
+public sealed class ViewDocumentConverterFactory
 {
-    private readonly Dictionary<Protocol, IViewDocumentConverter> _converters;
+    private readonly Dictionary<Protocol, IViewDocumentConverter> converters;
 
     public CompositeViewDocumentConverter(
         EscPosViewDocumentConverter escPosConverter,
@@ -22,7 +22,7 @@ public sealed class CompositeViewDocumentConverter : IViewDocumentConverter
         ArgumentNullException.ThrowIfNull(escPosConverter);
         ArgumentNullException.ThrowIfNull(eplConverter);
 
-        _converters = new Dictionary<Protocol, IViewDocumentConverter>
+        converters = new Dictionary<Protocol, IViewDocumentConverter>
         {
             [Protocol.EscPos] = escPosConverter,
             [Protocol.Epl] = eplConverter

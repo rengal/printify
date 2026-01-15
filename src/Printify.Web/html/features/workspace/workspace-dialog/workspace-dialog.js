@@ -82,13 +82,6 @@ export async function show(mode = 'create') {
     document.addEventListener('keydown', handleEscape);
     modalOverlay.escapeHandler = handleEscape;
 
-    // Click outside closes dialog
-    modalOverlay.addEventListener('click', (e) => {
-        if (e.target === modalOverlay) {
-            close();
-        }
-    });
-
     // Append to DOM first
     document.getElementById('modalContainer').appendChild(modalOverlay);
 
