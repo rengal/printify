@@ -31,7 +31,7 @@ public sealed class QrCodeDescriptor : ICommandDescriptor
         return 5 + parameterLength;
     }
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var pL = buffer[3];
         var pH = buffer[4];

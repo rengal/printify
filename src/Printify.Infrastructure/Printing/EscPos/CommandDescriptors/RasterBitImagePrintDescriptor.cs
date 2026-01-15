@@ -31,7 +31,7 @@ public sealed class RasterBitImagePrintDescriptor(IMediaService mediaService) : 
         return 8 + payloadLength;
     }
     
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         // Extract parameters
         var mode = buffer[3];

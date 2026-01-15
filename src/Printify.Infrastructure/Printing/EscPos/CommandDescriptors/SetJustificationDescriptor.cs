@@ -14,7 +14,7 @@ public sealed class SetJustificationDescriptor : ICommandDescriptor
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (TryParseJustification(buffer[2], out var justification))
         {

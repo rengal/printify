@@ -15,7 +15,7 @@ public sealed class BarcodeSetHeightDescriptor : ICommandDescriptor
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1D, 0x68 };
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var height = buffer[2];
         return MatchResult.Matched(new SetBarcodeHeight(height));
@@ -32,7 +32,7 @@ public sealed class BarcodeSetModuleWidthDescriptor : ICommandDescriptor
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1D, 0x77 };
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var width = buffer[2];
         return MatchResult.Matched(new SetBarcodeModuleWidth(width));
@@ -49,7 +49,7 @@ public sealed class BarcodeSetLabelPositionDescriptor : ICommandDescriptor
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1D, 0x48 };
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var value = buffer[2];
         if (!TryGetLabelPosition(value, out var position))
@@ -88,7 +88,7 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1D, 0x6B };
     public int MinLength => 4;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => null;
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var symbologyByte = buffer[2];
         if (!TryResolveBarcodeSymbology(symbologyByte, out var symbology))

@@ -19,7 +19,7 @@ public sealed class PartialCutThreePointDescriptor : ICommandDescriptor
 
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => fixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var element = new CutPaper(PagecutMode.PartialThreePoint);
         return MatchResult.Matched(element);

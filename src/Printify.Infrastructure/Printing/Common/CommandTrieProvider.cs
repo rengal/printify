@@ -1,24 +1,29 @@
 namespace Printify.Infrastructure.Printing.Common;
 
 /// <summary>
-/// Base class for command trie providers that build and maintain
+/// Non-generic base class for command trie providers.
+/// Provides access to the root trie node.
+/// </summary>
+public abstract class CommandTrieProvider
+{
+    /// <summary>
+    /// Gets the root node of the immutable trie that contains all registered descriptors.
+    /// </summary>
+    public CommandTrieNode Root { get; protected set; }
+}
+
+/// <summary>
+/// Generic base class for command trie providers that build and maintain
 /// immutable command tries for protocol parsers.
 /// </summary>
-/// <typeparam name="TState">The parser state type.</typeparam>
 /// <typeparam name="TDescriptor">The command descriptor type.</typeparam>
-public abstract class CommandTrieProvider<TState, TDescriptor>
-    where TState : class
-    where TDescriptor : ICommandDescriptor<TState>
+public abstract class CommandTrieProvider<TDescriptor> : CommandTrieProvider
+    where TDescriptor : ICommandDescriptor
 {
     /// <summary>
     /// Gets all registered command descriptors.
     /// </summary>
     protected abstract IEnumerable<TDescriptor> AllDescriptors { get; }
-
-    /// <summary>
-    /// Gets the root node of the immutable trie that contains all registered descriptors.
-    /// </summary>
-    public CommandTrieNode<TState> Root { get; }
 
     /// <summary>
     /// Initializes a new instance and builds the command trie.
@@ -31,7 +36,7 @@ public abstract class CommandTrieProvider<TState, TDescriptor>
     /// <summary>
     /// Builds the immutable command trie from the provided descriptors.
     /// </summary>
-    private CommandTrieNode<TState> Build(IEnumerable<TDescriptor> descriptors)
+    private CommandTrieNode Build(IEnumerable<TDescriptor> descriptors)
     {
         var root = new MutableNode();
 
@@ -82,9 +87,9 @@ public abstract class CommandTrieProvider<TState, TDescriptor>
         current.Descriptor = descriptor;
     }
 
-    private static CommandTrieNode<TState> Freeze(MutableNode node)
+    private static CommandTrieNode Freeze(MutableNode node)
     {
-        var frozenChildren = new Dictionary<byte, CommandTrieNode<TState>>(node.Children.Count);
+        var frozenChildren = new Dictionary<byte, CommandTrieNode>(node.Children.Count);
         var isLeaf = node.Children.Count == 0;
 
         // Validate trie invariant: leaf nodes must have a descriptor, non-leaf nodes must not
@@ -107,12 +112,12 @@ public abstract class CommandTrieProvider<TState, TDescriptor>
             frozenChildren[child.Key] = frozenChild;
         }
 
-        return new CommandTrieNode<TState>(frozenChildren, node.Descriptor, isLeaf);
+        return new CommandTrieNode(frozenChildren, node.Descriptor, isLeaf);
     }
 
     private sealed class MutableNode
     {
         public Dictionary<byte, MutableNode> Children { get; } = new();
-        public TDescriptor? Descriptor { get; set; }
+        public ICommandDescriptor? Descriptor { get; set; }
     }
 }

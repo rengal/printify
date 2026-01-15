@@ -16,7 +16,7 @@ public sealed class SetLabelWidthDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x71 }; // 'q'
     public override int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -30,7 +30,6 @@ public sealed class SetLabelWidthDescriptor : EplCommandDescriptor
             return parseResult.Value;
 
         var element = new SetLabelWidth(width);
-        state.LabelWidth = width;
         return EplParsingHelpers.Success(element, buffer, length);
     }
 }
@@ -47,7 +46,7 @@ public sealed class SetLabelHeightDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x51 }; // 'Q'
     public override int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -63,7 +62,6 @@ public sealed class SetLabelHeightDescriptor : EplCommandDescriptor
                 var height = p.GetInt(0, "height");
                 var param2 = p.GetIntOrDefault(1, 0);
 
-                state.LabelHeight = height;
                 return new SetLabelHeight(height, param2);
             }).WithMetadata(commandRaw, length);
     }
@@ -81,7 +79,7 @@ public sealed class SetPrintSpeedDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x52 }; // 'R'
     public override int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -95,7 +93,6 @@ public sealed class SetPrintSpeedDescriptor : EplCommandDescriptor
             return parseResult.Value;
 
         var element = new SetPrintSpeed(speed);
-        state.PrintSpeed = speed;
         return EplParsingHelpers.Success(element, buffer, length);
     }
 }
@@ -112,7 +109,7 @@ public sealed class SetPrintDarknessDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x53 }; // 'S'
     public override int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -126,7 +123,6 @@ public sealed class SetPrintDarknessDescriptor : EplCommandDescriptor
             return parseResult.Value;
 
         var element = new SetPrintDarkness(darkness);
-        state.PrintDarkness = darkness;
         return EplParsingHelpers.Success(element, buffer, length);
     }
 }
@@ -143,7 +139,7 @@ public sealed class SetPrintDirectionDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x5A }; // 'Z'
     public override int MinLength => FixedLength;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         const int length = 3;
 
@@ -176,7 +172,7 @@ public sealed class SetInternationalCharacterDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x49 }; // 'I'
     public override int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -189,10 +185,7 @@ public sealed class SetInternationalCharacterDescriptor : EplCommandDescriptor
         if (parseResult.HasValue)
             return parseResult.Value;
 
-        // Update encoding based on code (simplified mapping)
-        if (code is 8 or 38) // DOS 866 Cyrillic
-            state.Encoding = System.Text.Encoding.GetEncoding(866);
-
+        // Note: Encoding updates are now handled in EplParser.ModifyDeviceContext()
         var element = new SetInternationalCharacter(code);
         return EplParsingHelpers.Success(element, buffer, length);
     }
@@ -210,7 +203,7 @@ public sealed class SetCodePageDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x69 }; // 'i'
     public override int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -226,10 +219,7 @@ public sealed class SetCodePageDescriptor : EplCommandDescriptor
                 var code = p.GetInt(0, "code");
                 var scaling = p.GetIntOrDefault(1, 0);
 
-                // Update encoding based on code (simplified mapping)
-                if (code is 0 or 8) // DOS 866 Cyrillic
-                    state.Encoding = System.Text.Encoding.GetEncoding(866);
-
+                // Note: Encoding updates are now handled in EplParser.ModifyDeviceContext()
                 return new SetCodePage(code, scaling);
             }).WithMetadata(commandRaw, length);
     }

@@ -15,7 +15,7 @@ public sealed class PrintStoredLogoDescriptor : ICommandDescriptor
 
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         // logoId is the fourth byte (index 3)
         var logoId = buffer[3];

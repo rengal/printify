@@ -6,7 +6,7 @@ namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 /// Base class for EPL command descriptors with default implementations.
 /// EPL commands are newline-terminated, so exact length cannot be determined early.
 /// </summary>
-public abstract class EplCommandDescriptor : ICommandDescriptor<EplParserState>
+public abstract class EplCommandDescriptor : ICommandDescriptor
 {
     /// <summary>
     /// Command prefix bytes used for trie matching.
@@ -27,5 +27,5 @@ public abstract class EplCommandDescriptor : ICommandDescriptor<EplParserState>
     /// <summary>
     /// Attempts to parse the command from the buffer.
     /// </summary>
-    public abstract MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state);
+    public abstract MatchResult TryParse(ReadOnlySpan<byte> buffer);
 }

@@ -1,5 +1,4 @@
 using Printify.Infrastructure.Printing.Common;
-using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.Elements.EscPos;
 
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
@@ -13,7 +12,7 @@ public sealed class SetBoldModeDescriptor : ICommandDescriptor
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, (byte)'E' };
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var mode = buffer[2] == 0x01;
         var element = new SetBoldMode(mode);

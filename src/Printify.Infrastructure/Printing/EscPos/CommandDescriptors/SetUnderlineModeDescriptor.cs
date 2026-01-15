@@ -13,7 +13,7 @@ public sealed class SetUnderlineModeDescriptor : ICommandDescriptor
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var enabled = buffer[2] != 0;
         var element = new SetUnderlineMode(enabled);

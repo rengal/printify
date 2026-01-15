@@ -1,83 +1,64 @@
-using System.Text;
-using Printify.Infrastructure.Printing.Common;
-
 namespace Printify.Infrastructure.Printing.Common;
 
 /// <summary>
-/// Common parser state shared by all protocol parsers.
-/// Contains properties for mode management, buffering, and encoding.
+/// Unified parser state that contains all parsing state for a printer protocol.
+/// This includes mode, buffers, trie navigation, and protocol-specific device context.
 /// </summary>
-/// <typeparam name="TState">The specific parser state type.</typeparam>
-public abstract class ParserState<TState> where TState : class
+/// <typeparam name="TDeviceContext">The device context type for this protocol.</typeparam>
+public sealed class ParserState<TDeviceContext>
+    where TDeviceContext : IDeviceContext
 {
     /// <summary>
-    /// Command-specific state for trie navigation and parsing.
-    /// </summary>
-    public abstract ICommandState<TState> CommandState { get; }
-
-    /// <summary>
-    /// Current parser mode.
+    /// Current parser mode (Text, Command, or Error).
     /// </summary>
     public ParserMode Mode { get; set; }
 
     /// <summary>
     /// Buffer for accumulating bytes during parsing.
+    /// The semantic meaning depends on the current mode:
+    /// - Text mode: accumulated text bytes
+    /// - Command mode: command bytes being parsed
+    /// - Error mode: unused (errors go to UnrecognizedBuffer)
     /// </summary>
     public List<byte> Buffer { get; } = new();
 
     /// <summary>
-    /// Buffer for unrecognized/error bytes.
+    /// Buffer for unrecognized/error bytes that couldn't be parsed.
     /// </summary>
     public List<byte> UnrecognizedBuffer { get; } = new();
 
     /// <summary>
-    /// Current encoding for text interpretation.
+    /// Trie navigation state for tracking position in the command trie.
+    /// This represents WHERE we are in the command tree, not WHAT mode we're in.
     /// </summary>
-    public Encoding Encoding { get; set; }
+    public TrieNavigationState TrieNavigation { get; }
 
     /// <summary>
-    /// Initializes a new instance with the specified encoding.
+    /// Device context containing protocol-specific state like encoding,
+    /// label dimensions, print settings, etc.
     /// </summary>
-    protected ParserState(Encoding encoding)
+    public TDeviceContext DeviceContext { get; }
+
+    /// <summary>
+    /// Initializes a new parser state with the specified device context and trie root.
+    /// </summary>
+    /// <param name="deviceContext">The device context for this protocol.</param>
+    /// <param name="trieRoot">The root node of the command trie.</param>
+    public ParserState(TDeviceContext deviceContext, CommandTrieNode trieRoot)
     {
-        Encoding = encoding;
+        DeviceContext = deviceContext;
+        TrieNavigation = new TrieNavigationState(trieRoot);
     }
 
     /// <summary>
-    /// Resets the parser state to defaults.
+    /// Resets the parser state to initial conditions.
     /// </summary>
-    public virtual void Reset()
+    /// <param name="defaultMode">The default mode for this protocol (Command for EPL, Text for ESC/POS).</param>
+    public void Reset(ParserMode defaultMode)
     {
-        Mode = ParserMode.Command;
-        CommandState.Reset();
+        Mode = defaultMode;
         Buffer.Clear();
         UnrecognizedBuffer.Clear();
+        TrieNavigation.Reset();
     }
-}
-
-/// <summary>
-/// Interface for command state used by parsers.
-/// </summary>
-/// <typeparam name="TState">The parser state type.</typeparam>
-public interface ICommandState<TState> where TState : class
-{
-    /// <summary>
-    /// Minimum command length.
-    /// </summary>
-    int? MinLength { get; set; }
-
-    /// <summary>
-    /// Exact command length if known.
-    /// </summary>
-    int? ExactLength { get; set; }
-
-    /// <summary>
-    /// Current trie node during command parsing.
-    /// </summary>
-    CommandTrieNode<TState> CurrentNode { get; set; }
-
-    /// <summary>
-    /// Resets the command state.
-    /// </summary>
-    void Reset();
 }

@@ -14,7 +14,7 @@ public sealed class SetLineSpacingDescriptor : ICommandDescriptor
 
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var spacing = buffer[2];
         return MatchResult.Matched(new SetLineSpacing(spacing));

@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using System.Text;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
 using Printify.Application.Interfaces;
@@ -23,13 +22,13 @@ public enum ParserMode
 /// Handles command and error parsing modes. Derived classes can extend with
 /// additional modes (e.g., Text mode for ESC/POS).
 /// </summary>
-/// <typeparam name="TState">The parser state type.</typeparam>
+/// <typeparam name="TDeviceContext">The device context type for this protocol.</typeparam>
 /// <typeparam name="TCommandTrieProvider">The command trie provider type.</typeparam>
-public abstract class Parser<TState, TCommandTrieProvider>
-    where TState : class
-    where TCommandTrieProvider : CommandTrieProvider<TState, ICommandDescriptor<TState>>
+public abstract class Parser<TDeviceContext, TCommandTrieProvider>
+    where TDeviceContext : IDeviceContext
+    where TCommandTrieProvider : CommandTrieProvider, new()
 {
-    private readonly TState state;
+    private readonly ParserState<TDeviceContext> state;
     private readonly IServiceScopeFactory? scopeFactory;
     private readonly Printer? printer;
     private readonly PrinterSettings? settings;
@@ -40,6 +39,30 @@ public abstract class Parser<TState, TCommandTrieProvider>
     private const int CommandRawMaxBytes = 64;
 
     /// <summary>
+    /// Gets the service scope factory for resolving scoped services.
+    /// Available only when parser is constructed with full printer context.
+    /// </summary>
+    protected IServiceScopeFactory? ScopeFactory => scopeFactory;
+
+    /// <summary>
+    /// Gets the printer instance.
+    /// Available only when parser is constructed with full printer context.
+    /// </summary>
+    protected Printer? Printer => printer;
+
+    /// <summary>
+    /// Gets the printer settings.
+    /// Available only when parser is constructed with full printer context.
+    /// </summary>
+    protected PrinterSettings? Settings => settings;
+
+    /// <summary>
+    /// Gets the response callback for sending data back to the client.
+    /// Available only when parser is constructed with full printer context.
+    /// </summary>
+    protected Action<ReadOnlyMemory<byte>>? OnResponse => onResponse;
+
+    /// <summary>
     /// Gets the command trie provider.
     /// </summary>
     protected TCommandTrieProvider TrieProvider { get; }
@@ -47,11 +70,16 @@ public abstract class Parser<TState, TCommandTrieProvider>
     /// <summary>
     /// Gets the root command trie node.
     /// </summary>
-    protected CommandTrieNode<TState> Root => TrieProvider.Root;
+    protected CommandTrieNode Root => TrieProvider.Root;
+
+    /// <summary>
+    /// Gets the parser state.
+    /// </summary>
+    protected ParserState<TDeviceContext> State => state;
 
     protected Parser(
         TCommandTrieProvider trieProvider,
-        TState state,
+        ParserState<TDeviceContext> state,
         IServiceScopeFactory? scopeFactory,
         Printer? printer,
         PrinterSettings? settings,
@@ -66,11 +94,6 @@ public abstract class Parser<TState, TCommandTrieProvider>
         this.onElement = onElement;
         this.onResponse = onResponse;
     }
-
-    /// <summary>
-    /// Gets the current parser state.
-    /// </summary>
-    protected TState State => state;
 
     /// <summary>
     /// Gets the cancellation token for the current operation.
@@ -99,7 +122,7 @@ public abstract class Parser<TState, TCommandTrieProvider>
         bool handled;
         do
         {
-            handled = GetMode() switch
+            handled = state.Mode switch
             {
                 ParserMode.Command => ProcessInParseCommandMode(value),
                 ParserMode.Error => ProcessInAppendErrorMode(value),
@@ -119,47 +142,21 @@ public abstract class Parser<TState, TCommandTrieProvider>
     }
 
     /// <summary>
-    /// Derived classes implement this to return the current parser mode.
-    /// </summary>
-    protected abstract ParserMode GetMode();
-
-    /// <summary>
-    /// Derived classes implement this to change the parser mode.
-    /// </summary>
-    protected abstract void SetMode(ParserMode newMode);
-
-    /// <summary>
-    /// Derived classes implement this to emit accumulated buffer when changing modes.
+    /// Derived classes implement this to emit buffer when changing modes.
     /// </summary>
     protected abstract void EmitBufferForModeChange(ParserMode oldMode, ParserMode newMode);
-
-    /// <summary>
-    /// Derived classes implement this to get the buffer list.
-    /// </summary>
-    protected abstract List<byte> GetBuffer();
-
-    /// <summary>
-    /// Derived classes implement this to get the unrecognized buffer list.
-    /// </summary>
-    protected abstract List<byte> GetUnrecognizedBuffer();
-
-    /// <summary>
-    /// Derived classes implement this to get the command state.
-    /// </summary>
-    protected abstract ICommandState<TState> GetCommandState();
 
     /// <summary>
     /// Processes a byte while in ParseCommand mode using trie navigation.
     /// </summary>
     protected bool ProcessInParseCommandMode(byte value)
     {
-        var buffer = GetBuffer();
-        buffer.Add(value);
+        state.Buffer.Add(value);
 
-        var commandState = GetCommandState();
+        var trieNavigation = state.TrieNavigation;
 
         // Try to navigate deeper in the trie
-        if (!commandState.CurrentNode.IsLeaf)
+        if (!trieNavigation.CurrentNode.IsLeaf)
         {
             if (!TryNavigateChild(value))
             {
@@ -170,39 +167,42 @@ public abstract class Parser<TState, TCommandTrieProvider>
         }
 
         // Node is not leaf, we are in the middle of the command. Current processing is completed
-        if (!commandState.CurrentNode.IsLeaf)
+        if (!trieNavigation.CurrentNode.IsLeaf)
             return true;
 
-        var descriptor = commandState.CurrentNode.Descriptor;
+        var descriptor = trieNavigation.CurrentNode.Descriptor;
 
         // Process current trie node
         if (descriptor == null)
             throw new InvalidOperationException("Descriptor must not be null for leaf nodes");
 
-        commandState.MinLength ??= descriptor.MinLength;
+        trieNavigation.MinLength ??= descriptor.MinLength;
 
         // Not all bytes received, return
-        if (buffer.Count < commandState.MinLength.Value)
+        if (state.Buffer.Count < trieNavigation.MinLength.Value)
             return true;
 
-        if (commandState.ExactLength is null && buffer.Count >= commandState.MinLength.Value)
+        if (trieNavigation.ExactLength is null && state.Buffer.Count >= trieNavigation.MinLength.Value)
         {
-            var exactLength = descriptor.TryGetExactLength(CollectionsMarshal.AsSpan(buffer));
+            var exactLength = descriptor.TryGetExactLength(CollectionsMarshal.AsSpan(state.Buffer));
             if (exactLength.HasValue)
-                commandState.ExactLength = exactLength.Value;
+                trieNavigation.ExactLength = exactLength.Value;
         }
 
         // If exact length is known and not met, return
-        if (commandState.ExactLength.HasValue && buffer.Count < commandState.ExactLength.Value)
+        if (trieNavigation.ExactLength.HasValue && state.Buffer.Count < trieNavigation.ExactLength.Value)
             return true;
 
-        var result = descriptor.TryParse(CollectionsMarshal.AsSpan(buffer), state);
+        var result = descriptor.TryParse(CollectionsMarshal.AsSpan(state.Buffer));
 
         if (result.Kind == MatchKind.NeedMore)
             return true;
 
         if (result.Kind == MatchKind.Matched)
         {
+            // Modify device context based on the parsed element
+            ModifyDeviceContext(result.Element);
+
             EmitCommandElement(result.Element);
             // Command completed, restore default mode
             ChangeState(GetDefaultMode());
@@ -240,7 +240,7 @@ public abstract class Parser<TState, TCommandTrieProvider>
         }
 
         // Invalid byte (not command, not text) - continue accumulating error bytes
-        GetUnrecognizedBuffer().Add(value);
+        state.UnrecognizedBuffer.Add(value);
         return true;
     }
 
@@ -265,20 +265,17 @@ public abstract class Parser<TState, TCommandTrieProvider>
     /// </summary>
     protected void ChangeState(ParserMode newMode)
     {
-        var oldMode = GetMode();
+        var oldMode = state.Mode;
         if (oldMode == newMode)
             return;
 
         // Emit accumulated buffer based on CURRENT state before transitioning
-        var buffer = GetBuffer();
-        var unrecognizedBuffer = GetUnrecognizedBuffer();
-
-        if (buffer.Count > 0 || unrecognizedBuffer.Count > 0)
+        if (state.Buffer.Count > 0 || state.UnrecognizedBuffer.Count > 0)
         {
             EmitBufferForModeChange(oldMode, newMode);
         }
 
-        SetMode(newMode);
+        state.Mode = newMode;
     }
 
     /// <summary>
@@ -286,8 +283,8 @@ public abstract class Parser<TState, TCommandTrieProvider>
     /// </summary>
     protected bool TryNavigateChild(byte value)
     {
-        var commandState = GetCommandState();
-        if (commandState.CurrentNode.Children.TryGetValue(value, out var nextNode))
+        var trieNavigation = state.TrieNavigation;
+        if (trieNavigation.CurrentNode.Children.TryGetValue(value, out var nextNode))
         {
             Navigate(nextNode);
             return true;
@@ -299,11 +296,20 @@ public abstract class Parser<TState, TCommandTrieProvider>
     /// <summary>
     /// Navigates to a new trie node.
     /// </summary>
-    protected void Navigate(CommandTrieNode<TState> nextNode)
+    protected void Navigate(CommandTrieNode nextNode)
     {
-        var commandState = GetCommandState();
-        commandState.Reset();
-        commandState.CurrentNode = nextNode;
+        state.TrieNavigation.Reset();
+        state.TrieNavigation.CurrentNode = nextNode;
+    }
+
+    /// <summary>
+    /// Modifies the device context based on the parsed element.
+    /// This is called after a successful parse but before emitting the element.
+    /// Derived classes override to update protocol-specific state (encoding, label dimensions, etc.).
+    /// </summary>
+    protected virtual void ModifyDeviceContext(Element element)
+    {
+        // Default implementation: no state modification
     }
 
     /// <summary>
@@ -314,11 +320,11 @@ public abstract class Parser<TState, TCommandTrieProvider>
     {
         if (element == null)
         {
-            GetBuffer().Clear();
+            state.Buffer.Clear();
             return;
         }
 
-        var buffer = GetBuffer();
+        var buffer = state.Buffer;
         var rawBytes = CollectionsMarshal.AsSpan(buffer);
         element = element with
         {
@@ -335,7 +341,7 @@ public abstract class Parser<TState, TCommandTrieProvider>
     /// </summary>
     protected void EmitUnrecognizedBufferAsError()
     {
-        var unrecognizedBuffer = GetUnrecognizedBuffer();
+        var unrecognizedBuffer = state.UnrecognizedBuffer;
         if (unrecognizedBuffer.Count == 0)
             return;
 
@@ -410,13 +416,10 @@ public abstract class Parser<TState, TCommandTrieProvider>
     /// </summary>
     public virtual void Complete()
     {
-        var buffer = GetBuffer();
-        var unrecognizedBuffer = GetUnrecognizedBuffer();
-
         // Flush remaining buffer based on current mode
-        if (buffer.Count > 0 || unrecognizedBuffer.Count > 0)
+        if (state.Buffer.Count > 0 || state.UnrecognizedBuffer.Count > 0)
         {
-            var currentMode = GetMode();
+            var currentMode = state.Mode;
             EmitBufferForModeChange(currentMode, GetDefaultMode());
 
             if (currentMode == ParserMode.Command || currentMode == ParserMode.Error)
@@ -426,8 +429,7 @@ public abstract class Parser<TState, TCommandTrieProvider>
         }
 
         // Reset to initial state
-        SetMode(GetDefaultMode());
-        Navigate(Root);
+        state.Reset(GetDefaultMode());
         bufferOverflowEmitted = false;
     }
 }

@@ -6,9 +6,9 @@ namespace Printify.Infrastructure.Printing.Epl;
 /// <summary>
 /// Builds the EPL command trie once and keeps it immutable for reuse.
 /// </summary>
-public sealed class EplCommandTrieProvider : CommandTrieProvider<EplParserState, ICommandDescriptor<EplParserState>>
+public sealed class EplCommandTrieProvider : CommandTrieProvider<EplCommandDescriptor>
 {
-    protected override IEnumerable<ICommandDescriptor<EplParserState>> AllDescriptors =>
+    protected override IEnumerable<EplCommandDescriptor> AllDescriptors =>
     [
         // Text commands
         new ScalableTextDescriptor(),

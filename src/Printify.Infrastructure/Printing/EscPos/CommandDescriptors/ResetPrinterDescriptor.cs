@@ -13,7 +13,7 @@ public sealed class ResetPrinterDescriptor : ICommandDescriptor
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         return MatchResult.Matched(new Initialize());
     }

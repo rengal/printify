@@ -15,7 +15,7 @@ public sealed class PulseDescriptor : ICommandDescriptor
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (buffer.Length < FixedLength)
             return MatchResult.NeedMore();

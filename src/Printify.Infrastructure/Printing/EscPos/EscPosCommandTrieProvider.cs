@@ -8,11 +8,11 @@ namespace Printify.Infrastructure.Printing.EscPos;
 /// <summary>
 /// Builds the ESC/POS command trie once and keeps it immutable for reuse.
 /// </summary>
-public sealed class EscPosCommandTrieProvider : CommandTrieProvider<ParserState, ICommandDescriptor<ParserState>>
+public sealed class EscPosCommandTrieProvider : CommandTrieProvider<ICommandDescriptor>
 {
     private static readonly IMediaService RasterMediaService = new MediaService();
 
-    protected override IEnumerable<ICommandDescriptor<ParserState>> AllDescriptors =>
+    protected override IEnumerable<ICommandDescriptor> AllDescriptors =>
     [
         new BarcodePrintDescriptor(),
         new BarcodeSetHeightDescriptor(),

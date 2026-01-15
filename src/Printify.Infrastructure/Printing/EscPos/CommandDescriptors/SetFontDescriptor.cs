@@ -15,7 +15,7 @@ public sealed class SetFontDescriptor : ICommandDescriptor
 
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var parameter = buffer[2];
         var fontNumber = parameter & 0x07;

@@ -48,7 +48,7 @@ public sealed class PageCutDescriptor : ICommandDescriptor
         };
     }
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (buffer.Length < MinimumLength)
         {

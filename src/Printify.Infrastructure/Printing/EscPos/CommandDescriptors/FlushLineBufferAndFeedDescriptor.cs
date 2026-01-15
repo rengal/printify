@@ -14,7 +14,7 @@ public sealed class FlushLineBufferAndFeedDescriptor : ICommandDescriptor
     public int MinLength => fixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => fixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         return MatchResult.Matched(new PrintAndLineFeed());
     }

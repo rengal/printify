@@ -49,7 +49,7 @@ public sealed class SetCodePageDescriptor : ICommandDescriptor
 
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var codePageId = buffer[2];
         if (EscCodePageMap.TryGetValue(codePageId, out var codePage))

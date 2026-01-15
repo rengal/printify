@@ -16,7 +16,7 @@ public sealed class SetChineseCodePageDescriptor : ICommandDescriptor
 
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         return MatchResult.Matched(new SetCodePage(Gb2312CodePage));
     }

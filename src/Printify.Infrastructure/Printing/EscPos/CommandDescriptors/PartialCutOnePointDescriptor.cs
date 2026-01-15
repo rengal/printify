@@ -19,7 +19,7 @@ public sealed class PartialCutOnePointDescriptor : ICommandDescriptor
 
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => fixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var element = new CutPaper(PagecutMode.PartialOnePoint);
         return MatchResult.Matched(element);

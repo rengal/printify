@@ -2,11 +2,10 @@ namespace Printify.Infrastructure.Printing.Common;
 
 /// <summary>
 /// Interface for command descriptors that parse specific printer protocol commands.
-/// Each protocol (ESC/POS, EPL, etc.) provides its own parser state type.
+/// Descriptors are pure functions - they parse bytes and return elements without modifying state.
+/// State modification (e.g., updating encoding, label dimensions) happens in the parser when elements are emitted.
 /// </summary>
-/// <typeparam name="TState">The parser state type for this protocol.</typeparam>
-public interface ICommandDescriptor<TState>
-    where TState : class
+public interface ICommandDescriptor
 {
     /// <summary>
     /// Command prefix bytes used for trie matching.
@@ -26,9 +25,9 @@ public interface ICommandDescriptor<TState>
 
     /// <summary>
     /// Attempts to parse the command from the buffer.
+    /// This is a pure function - it does not modify any state.
     /// </summary>
     /// <param name="buffer">The buffer containing the command data.</param>
-    /// <param name="state">The parser state for this protocol.</param>
     /// <returns>A match result indicating success, failure, or need for more data.</returns>
-    MatchResult TryParse(ReadOnlySpan<byte> buffer, TState state);
+    MatchResult TryParse(ReadOnlySpan<byte> buffer);
 }

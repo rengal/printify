@@ -11,7 +11,7 @@ public sealed class GetPrinterStatusDescriptor: ICommandDescriptor
 {
     private const int FixedLength = 3;
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x10, 0x04 };
-    public int MinLength => 3;
+    public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
     {
         byte statusByte = buffer[2];
@@ -28,7 +28,7 @@ public sealed class GetPrinterStatusDescriptor: ICommandDescriptor
         return null;
     }
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         byte statusByte = buffer[2];
 

@@ -13,16 +13,16 @@ namespace Printify.Infrastructure.Printing;
 /// </summary>
 public sealed class ViewDocumentConverterFactory
 {
-    private readonly Dictionary<Protocol, IViewDocumentConverter> converters;
+    private readonly Dictionary<Protocol, IViewDocumentConverter> _converters;
 
-    public CompositeViewDocumentConverter(
+    public ViewDocumentConverterFactory(
         EscPosViewDocumentConverter escPosConverter,
         EplViewDocumentConverter eplConverter)
     {
         ArgumentNullException.ThrowIfNull(escPosConverter);
         ArgumentNullException.ThrowIfNull(eplConverter);
 
-        converters = new Dictionary<Protocol, IViewDocumentConverter>
+        _converters = new Dictionary<Protocol, IViewDocumentConverter>
         {
             [Protocol.EscPos] = escPosConverter,
             [Protocol.Epl] = eplConverter

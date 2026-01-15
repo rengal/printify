@@ -16,7 +16,7 @@ public sealed class ScalableTextDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x41 }; // 'A'
     public override int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -78,7 +78,7 @@ public sealed class DrawHorizontalLineDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x4C, 0x4F }; // 'LO'
     public override int MinLength => FixedLength;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -112,7 +112,7 @@ public sealed class PrintBarcodeDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x42 }; // 'B'
     public override int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -174,7 +174,7 @@ public sealed class DrawLineDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x58 }; // 'X'
     public override int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();
@@ -209,7 +209,7 @@ public sealed class PrintDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x50 }; // 'P'
     public override int MinLength => MinLen;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
             return MatchResult.NeedMore();

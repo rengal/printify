@@ -12,7 +12,7 @@ public sealed class ResetLineSpacingDescriptor : ICommandDescriptor
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, 0x32 };
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         return MatchResult.Matched(new ResetLineSpacing());
     }

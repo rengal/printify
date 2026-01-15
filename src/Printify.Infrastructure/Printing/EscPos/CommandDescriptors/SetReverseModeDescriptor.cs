@@ -14,7 +14,7 @@ public sealed class SetReverseModeDescriptor : ICommandDescriptor
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var mode = buffer[2] == 0x01;
         var element = new SetReverseMode(mode);

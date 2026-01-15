@@ -14,7 +14,7 @@ public sealed class LegacyCarriageReturnDescriptor : ICommandDescriptor
     public int MinLength => fixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => fixedLength;
 
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer, ParserState state)
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         // Compatibility workaround: emit a non-visual element so debug traces include CR.
         return MatchResult.Matched(new LegacyCarriageReturn());

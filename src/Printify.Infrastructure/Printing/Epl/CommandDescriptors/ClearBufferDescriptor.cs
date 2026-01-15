@@ -16,7 +16,7 @@ public sealed class ClearBufferDescriptor : EplCommandDescriptor
     public override ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x4E }; // 'N'
     public override int MinLength => FixedLength;
 
-    public override MatchResult TryParse(ReadOnlySpan<byte> buffer, EplParserState state)
+    public override MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         const int length = 2;
 
