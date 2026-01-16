@@ -6,8 +6,6 @@ using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.Elements.Epl;
 using Printify.Domain.Documents.View;
 using Printify.Domain.Printers;
-using PrintBarcode = Printify.Domain.Documents.Elements.EscPos.PrintBarcode;
-using SetCodePage = Printify.Domain.Documents.Elements.EscPos.SetCodePage;
 
 namespace Printify.Infrastructure.Printing.Epl;
 

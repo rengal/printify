@@ -9,20 +9,20 @@ using Printify.Infrastructure.Printing.EscPos;
 namespace Printify.Infrastructure.Printing;
 
 /// <summary>
-/// Composite view document converter that delegates to protocol-specific converters.
+/// Service that delegates view document conversion to protocol-specific converters.
 /// </summary>
-public sealed class ViewDocumentConverterFactory
+public sealed class ViewDocumentConversionService : IViewDocumentConverter
 {
-    private readonly Dictionary<Protocol, IViewDocumentConverter> _converters;
+    private readonly Dictionary<Protocol, IViewDocumentConverter> converters;
 
-    public ViewDocumentConverterFactory(
+    public ViewDocumentConversionService(
         EscPosViewDocumentConverter escPosConverter,
         EplViewDocumentConverter eplConverter)
     {
         ArgumentNullException.ThrowIfNull(escPosConverter);
         ArgumentNullException.ThrowIfNull(eplConverter);
 
-        _converters = new Dictionary<Protocol, IViewDocumentConverter>
+        converters = new Dictionary<Protocol, IViewDocumentConverter>
         {
             [Protocol.EscPos] = escPosConverter,
             [Protocol.Epl] = eplConverter
@@ -33,7 +33,7 @@ public sealed class ViewDocumentConverterFactory
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        if (_converters.TryGetValue(document.Protocol, out var converter))
+        if (converters.TryGetValue(document.Protocol, out var converter))
         {
             return converter.ToViewDocument(document);
         }

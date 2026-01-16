@@ -8,7 +8,6 @@ using Microsoft.Extensions.Options;
 using Printify.Application.Features.Printers.Create;
 using Printify.Application.Features.Printers.Delete;
 using Printify.Application.Features.Printers.Documents.Clear;
-using Printify.Application.Features.Printers.Documents.Get;
 using Printify.Application.Features.Printers.Documents.List;
 using Printify.Application.Features.Printers.Documents.View;
 using Printify.Application.Features.Printers.Get;

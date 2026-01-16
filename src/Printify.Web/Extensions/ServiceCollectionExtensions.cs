@@ -98,11 +98,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPrinterListenerFactory, PrinterListenerFactory>();
         services.AddSingleton<IPrinterDocumentStream, PrinterDocumentStream>();
 
-        // View document converters - register all protocol-specific converters
+        // View document conversion service
         services.AddSingleton<EscPosViewDocumentConverter>();
         services.AddSingleton<EplViewDocumentConverter>();
-        // Composite converter that delegates to the appropriate converter based on protocol
-        services.AddSingleton<IViewDocumentConverter, CompositeViewDocumentConverter>();
+        services.AddSingleton<IViewDocumentConverter, ViewDocumentConversionService>();
 
         services.AddHostedService(provider =>
             (PrinterBufferCoordinator)provider.GetRequiredService<IPrinterBufferCoordinator>());
