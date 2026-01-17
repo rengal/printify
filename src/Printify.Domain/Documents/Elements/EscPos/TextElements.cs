@@ -5,9 +5,10 @@ namespace Printify.Domain.Documents.Elements.EscPos;
 
 /// <summary>
 /// Text bytes that are appended to the line buffer.
+/// The bytes are stored raw and decoded during view conversion using the current codepage.
 /// </summary>
-/// <param name="Text">Raw text content (decoded as parsed; typically ASCII/CP437 in MVP).</param>
-public sealed record AppendText(string Text) : PrintingElement;
+/// <param name="RawBytes">Raw text bytes that will be decoded using the current codepage.</param>
+public sealed record AppendText(byte[] RawBytes) : PrintingElement;
 
 /// <summary>
 /// Flushes the current line buffer and feeds one line.

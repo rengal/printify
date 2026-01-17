@@ -101,7 +101,7 @@ public static class EplScenarioData
         new(
             id: 3001,
             input: "A10,20,0,2,1,1,N,\"Hello\"\n"u8.ToArray(),
-            expectedRequestElements: [new ScalableText(10, 20, 0, 2, 1, 1, 'N', "Hello") { LengthInBytes = 25 }],
+            expectedRequestElements: [CreateScalableText(10, 20, 0, 2, 1, 1, 'N', "Hello")],
             expectedViewElements:
             [
                 ViewDebug("scalableText", lengthInBytes: 25, parameters: new Dictionary<string, string>
@@ -119,7 +119,7 @@ public static class EplScenarioData
         new(
             id: 3002,
             input: "A50,100,1,3,2,2,R,\"World\"\n"u8.ToArray(),
-            expectedRequestElements: [new ScalableText(50, 100, 1, 3, 2, 2, 'R', "World") { LengthInBytes = 26 }],
+            expectedRequestElements: [CreateScalableText(50, 100, 1, 3, 2, 2, 'R', "World")],
             expectedViewElements:
             [
                 ViewDebug("scalableText", lengthInBytes: 26, parameters: new Dictionary<string, string>
@@ -137,7 +137,7 @@ public static class EplScenarioData
         new(
             id: 3003,
             input: "A0,0,0,4,3,3,N,\"Test123\"\n"u8.ToArray(),
-            expectedRequestElements: [new ScalableText(0, 0, 0, 4, 3, 3, 'N', "Test123") { LengthInBytes = 25 }],
+            expectedRequestElements: [CreateScalableText(0, 0, 0, 4, 3, 3, 'N', "Test123")],
             expectedViewElements:
             [
                 ViewDebug("scalableText", lengthInBytes: 25, parameters: new Dictionary<string, string>
@@ -299,5 +299,21 @@ public static class EplScenarioData
         {
             LengthInBytes = lengthInBytes
         };
+    }
+
+    private static ScalableText CreateScalableText(
+        int x,
+        int y,
+        int rotation,
+        int font,
+        int hMul,
+        int vMul,
+        char reverse,
+        string text,
+        Encoding? encoding = null)
+    {
+        encoding ??= Encoding.GetEncoding(437);
+        var bytes = encoding.GetBytes(text);
+        return new ScalableText(x, y, rotation, font, hMul, vMul, reverse, bytes) { LengthInBytes = text.Length + 15 }; // Approximate length
     }
 }

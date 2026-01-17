@@ -140,12 +140,11 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         if (State.Buffer.Count == 0)
             return;
 
-        var textBytes = CollectionsMarshal.AsSpan(State.Buffer);
-        var text = State.DeviceContext.Encoding.GetString(textBytes);
+        var textBytes = CollectionsMarshal.AsSpan(State.Buffer).ToArray();
 
-        if (!string.IsNullOrEmpty(text))
+        if (textBytes.Length > 0)
         {
-            var element = new AppendText(text)
+            var element = new AppendText(textBytes)
             {
                 CommandRaw = BuildCommandRaw(textBytes),
                 LengthInBytes = textBytes.Length

@@ -57,7 +57,7 @@ public static class EscPosScenarioData
         new(
             id: 15003,
             input: "A"u8.ToArray(),
-            expectedRequestElements: [new EscPosElements.AppendText("A") { LengthInBytes = 1 }],
+            expectedRequestElements: [CreateAppendText("A")],
             expectedViewElements:
             [
                 ViewAppend("A", lengthInBytes: 1)
@@ -67,7 +67,7 @@ public static class EscPosScenarioData
             input: "ABC\n"u8.ToArray(),
             expectedRequestElements:
             [
-                new EscPosElements.AppendText("ABC") { LengthInBytes = 3 },
+                CreateAppendText("ABC"),
                 new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 }
             ],
             expectedViewElements:
@@ -81,7 +81,7 @@ public static class EscPosScenarioData
             input: [.. "ABC"u8, Cr, Lf],
             expectedRequestElements:
             [
-                new EscPosElements.AppendText("ABC") { LengthInBytes = 3 },
+                CreateAppendText("ABC"),
                 new EscPosElements.LegacyCarriageReturn { LengthInBytes = 1 },
                 new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 }
             ],
@@ -95,7 +95,7 @@ public static class EscPosScenarioData
         new(
             id: 15006,
             input: "ABC"u8.ToArray(),
-            expectedRequestElements: [new EscPosElements.AppendText("ABC") { LengthInBytes = 3 }],
+            expectedRequestElements: [CreateAppendText("ABC")],
             expectedViewElements:
             [
                 ViewAppend("ABC", lengthInBytes: 3)
@@ -103,7 +103,7 @@ public static class EscPosScenarioData
         new(
             id: 15007,
             input: "ABC"u8.ToArray(),
-            expectedRequestElements: [new EscPosElements.AppendText("ABC") { LengthInBytes = 3 }],
+            expectedRequestElements: [CreateAppendText("ABC")],
             expectedViewElements:
             [
                 ViewAppend("ABC", lengthInBytes: 3)
@@ -113,11 +113,11 @@ public static class EscPosScenarioData
             input: "ABC\nDEF\nG"u8.ToArray(),
             expectedRequestElements:
             [
-                new EscPosElements.AppendText("ABC") { LengthInBytes = 3 },
+                CreateAppendText("ABC"),
                 new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 },
-                new EscPosElements.AppendText("DEF") { LengthInBytes = 3 },
+                CreateAppendText("DEF"),
                 new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 },
-                new EscPosElements.AppendText("G") { LengthInBytes = 1 }
+                CreateAppendText("G")
             ],
             expectedViewElements:
             [
@@ -132,7 +132,7 @@ public static class EscPosScenarioData
         new(
             id: 15009,
             input: "ABC"u8.ToArray(),
-            expectedRequestElements: [new EscPosElements.AppendText("ABC") { LengthInBytes = 3 }],
+            expectedRequestElements: [CreateAppendText("ABC")],
             expectedViewElements:
             [
                 ViewAppend("ABC", lengthInBytes: 3)
@@ -140,7 +140,7 @@ public static class EscPosScenarioData
         new(
             id: 15010,
             input: Encoding.ASCII.GetBytes(new string('A', 100)),
-            expectedRequestElements: [new EscPosElements.AppendText(new string('A', 100)) { LengthInBytes = 100 }],
+            expectedRequestElements: [CreateAppendText(new string('A', 100))],
             expectedViewElements:
             [
                 ViewAppend(new string('A', 100), lengthInBytes: 100)
@@ -150,7 +150,7 @@ public static class EscPosScenarioData
             input: [.. "ABC"u8, 0x07],
             expectedRequestElements:
             [
-                new EscPosElements.AppendText("ABC") { LengthInBytes = 3 },
+                CreateAppendText("ABC"),
                 new EscPosElements.Bell { LengthInBytes = 1 }
             ],
             expectedViewElements:
@@ -163,9 +163,9 @@ public static class EscPosScenarioData
             input: [.. "ABC"u8, 0x07, .. "DEF"u8, 0x07],
             expectedRequestElements:
             [
-                new EscPosElements.AppendText("ABC") { LengthInBytes = 3 },
+                CreateAppendText("ABC"),
                 new EscPosElements.Bell { LengthInBytes = 1 },
-                new EscPosElements.AppendText("DEF") { LengthInBytes = 3 },
+                CreateAppendText("DEF"),
                 new EscPosElements.Bell { LengthInBytes = 1 }
             ],
             expectedViewElements:
@@ -180,9 +180,9 @@ public static class EscPosScenarioData
             input: [.. "ABC"u8, 0x07, .. "DEF\n"u8, 0x07],
             expectedRequestElements:
             [
-                new EscPosElements.AppendText("ABC") { LengthInBytes = 3 },
+                CreateAppendText("ABC"),
                 new EscPosElements.Bell { LengthInBytes = 1 },
-                new EscPosElements.AppendText("DEF") { LengthInBytes = 3 },
+                CreateAppendText("DEF"),
                 new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 },
                 new EscPosElements.Bell { LengthInBytes = 1 }
             ],
@@ -201,9 +201,9 @@ public static class EscPosScenarioData
             input: [.. "ABC"u8, Esc, (byte)'i', .. "DEF\n"u8],
             expectedRequestElements:
             [
-                new EscPosElements.AppendText("ABC") { LengthInBytes = 3 },
+                CreateAppendText("ABC"),
                 new EscPosElements.CutPaper(DomainElements.PagecutMode.PartialOnePoint) { LengthInBytes = 2 },
-                new EscPosElements.AppendText("DEF") { LengthInBytes = 3 },
+                CreateAppendText("DEF"),
                 new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 }
             ],
             expectedViewElements:
@@ -231,20 +231,20 @@ public static class EscPosScenarioData
             ],
             expectedRequestElements:
             [
-                new EscPosElements.AppendText("ABC") { LengthInBytes = 3 },
+                CreateAppendText("ABC"),
                 new EscPosElements.RasterImageUpload(
                     Width: 8,
                     Height: 2,
                     Media: CreateExpectedRasterMedia(8, 2, [0x00, 0x00]))
                 { LengthInBytes = 10 },
-                new EscPosElements.AppendText("DEF") { LengthInBytes = 3 },
+                CreateAppendText("DEF"),
                 new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 }
             ],
             expectedPersistedElements:
             [
-                new EscPosElements.AppendText("ABC") { LengthInBytes = 3 },
+                CreateAppendText("ABC"),
                 new EscPosElements.RasterImage(8, 2, Media.CreateDefaultPng(85)) { LengthInBytes = 10 },
-                new EscPosElements.AppendText("DEF") { LengthInBytes = 3 },
+                CreateAppendText("DEF"),
                 new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 }
             ],
             expectedViewElements:
@@ -325,7 +325,7 @@ public static class EscPosScenarioData
             input: [0x00, .. "ABC"u8],
             expectedRequestElements: [
                 new DomainElements.PrinterError("") { LengthInBytes = 1 },
-                new EscPosElements.AppendText("ABC") { LengthInBytes = 3 }],
+                CreateAppendText("ABC")],
             expectedViewElements:
             [
                 ViewDebug("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
@@ -339,9 +339,9 @@ public static class EscPosScenarioData
             id: 160005,
             input: [.. "ABC"u8, 0x00, .. "DEF"u8],
             expectedRequestElements: [
-                new EscPosElements.AppendText("ABC") { LengthInBytes = 3 },
+                CreateAppendText("ABC"),
                 new DomainElements.PrinterError("") { LengthInBytes = 1 },
-                new EscPosElements.AppendText("DEF") { LengthInBytes = 3 }],
+                CreateAppendText("DEF")],
             expectedViewElements:
             [
                 ViewAppend("ABC", lengthInBytes: 3),
@@ -841,7 +841,7 @@ public static class EscPosScenarioData
                 input.Add(Lf);
 
                 var normalized = vector.Encoding.GetString(bytes);
-                expected.Add(new EscPosElements.AppendText(normalized) { LengthInBytes = bytes.Length });
+                expected.Add(new EscPosElements.AppendText(bytes) { LengthInBytes = bytes.Length });
                 expected.Add(new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 });
 
                 expectedView.Add(ViewAppend(normalized, lengthInBytes: bytes.Length));
@@ -1058,4 +1058,11 @@ public static class EscPosScenarioData
     private const string TurkishLower = "abcçdefgğhıijklmnoöprsştuüvyz";
     private const string HebrewLetters = "אבגדהוזחטיךכלםמןנסעףפץצקרשת";
     private const string ArabicLetters = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي";
+
+    private static EscPosElements.AppendText CreateAppendText(string text, Encoding? encoding = null)
+    {
+        encoding ??= Encoding.GetEncoding(437);
+        var bytes = encoding.GetBytes(text);
+        return new EscPosElements.AppendText(bytes) { LengthInBytes = bytes.Length };
+    }
 }

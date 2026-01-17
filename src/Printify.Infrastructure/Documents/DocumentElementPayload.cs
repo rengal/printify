@@ -149,7 +149,7 @@ public sealed record StoreQrDataElementPayload(string Content) : DocumentElement
 
 public sealed record StoredLogoElementPayload(int LogoId) : DocumentElementPayload;
 
-public sealed record AppendToLineBufferElementPayload(string Text) : DocumentElementPayload;
+public sealed record AppendToLineBufferElementPayload(byte[] RawBytes) : DocumentElementPayload;
 
 public sealed record FlushLineBufferAndFeedElementPayload : DocumentElementPayload;
 

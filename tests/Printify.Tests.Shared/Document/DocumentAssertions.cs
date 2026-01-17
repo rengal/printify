@@ -16,7 +16,15 @@ public static class DocumentAssertions
     public static void Equal(IReadOnlyList<DomainElements.Element> expectedElements, IReadOnlyList<DomainElements.Element> actualElements)
     {
         Assert.NotNull(expectedElements);
-        Assert.Equal(expectedElements.Count, actualElements.Count);
+        try
+        {
+            Assert.Equal(expectedElements.Count, actualElements.Count);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e); //debugnow;
+            Assert.Equal(expectedElements.Count, actualElements.Count);
+        }
 
         for (var index = 0; index < expectedElements.Count; index++)
         {

@@ -1,6 +1,7 @@
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.Elements.Epl;
 using Printify.Infrastructure.Printing.Common;
+using System.Text;
 
 namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 
@@ -22,10 +23,10 @@ public sealed class ScalableTextDescriptor : ICommandDescriptor
             return MatchResult.NeedMore();
 
         var length = newline + 1;
-        var commandStr = System.Text.Encoding.ASCII.GetString(buffer[..length]);
+        var commandStr = Encoding.ASCII.GetString(buffer[..length]);
         var commandRaw = Convert.ToHexString(buffer[..length]);
 
-        // Extract and unescape text between quotes first
+        // Find quote positions in the ASCII string for structure parsing
         var quoteStart = commandStr.IndexOf('"');
         if (quoteStart < 0)
             return MatchResult.Matched(new PrinterError("Missing opening quote in A text command"));
@@ -34,10 +35,7 @@ public sealed class ScalableTextDescriptor : ICommandDescriptor
         if (quoteEnd < 0)
             return MatchResult.Matched(new PrinterError("Missing closing quote in A text command"));
 
-        var escapedText = commandStr[(quoteStart + 1)..quoteEnd];
-        var text = EplStringHelpers.Unescape(escapedText);
-
-        // Parse comma-separated args before the quote
+        // Parse comma-separated args before the quote (ASCII safe - just numbers and single chars)
         var argsContent = commandStr[1..quoteStart]; // Skip 'A' and get content before quote
         var parts = argsContent.Split(',');
 
@@ -56,13 +54,35 @@ public sealed class ScalableTextDescriptor : ICommandDescriptor
             var vMul = parser.GetInt(5, "v-multiplication");
             var reverse = parser.GetChar(6, 'N');
 
-            var element = new ScalableText(x, y, rotation, font, hMul, vMul, reverse, text);
+            // Extract the raw text bytes from the original buffer (not ASCII decoded)
+            // Find the byte positions of the quotes in the original buffer
+            var quoteStartByteIndex = FindByteIndexOfChar(buffer, '"', 0);
+            var quoteEndByteIndex = FindByteIndexOfChar(buffer, '"', quoteStartByteIndex + 1);
+
+            if (quoteStartByteIndex < 0 || quoteEndByteIndex < 0)
+                return MatchResult.Matched(new PrinterError("Could not find quote positions in buffer"));
+
+            // Extract raw bytes between quotes (excluding the quotes themselves)
+            var textBytes = buffer[(quoteStartByteIndex + 1)..quoteEndByteIndex].ToArray();
+
+            var element = new ScalableText(x, y, rotation, font, hMul, vMul, reverse, textBytes);
             return EplParsingHelpers.Success(element, commandRaw, length);
         }
         catch (ParseException ex)
         {
             return MatchResult.Matched(new PrinterError($"Invalid A text: {ex.Message}"));
         }
+    }
+
+    private static int FindByteIndexOfChar(ReadOnlySpan<byte> buffer, char charToFind, int startIndex)
+    {
+        var charByte = (byte)charToFind;
+        for (int i = startIndex; i < buffer.Length; i++)
+        {
+            if (buffer[i] == charByte)
+                return i;
+        }
+        return -1;
     }
 }
 

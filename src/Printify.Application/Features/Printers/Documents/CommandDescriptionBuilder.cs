@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.Elements.EscPos;
 using EplElements = Printify.Domain.Documents.Elements.Epl;
@@ -133,8 +134,8 @@ public static class CommandDescriptionBuilder
                 $"n={storedLogo.LogoId}"),
             AppendText textLine => Lines(
                 "0x20-0xFF (excl. 0x7F) - Append to line buffer",
-                $"len={textLine.Text.Length}",
-                $"preview=\"{EscapeDescriptionText(textLine.Text)}\""),
+                $"len={textLine.RawBytes.Length}",
+                $"preview=\"{EscapeDescriptionText(Encoding.GetEncoding(437).GetString(textLine.RawBytes))}\""),
             PrintAndLineFeed => Lines(
                 "LF - Flush line buffer and feed one line"),
             LegacyCarriageReturn => Lines(
@@ -391,7 +392,7 @@ public static class CommandDescriptionBuilder
             $"rotation={rotationLabel}",
             $"font={scalableText.Font}, h-mul={scalableText.HorizontalMultiplication}, v-mul={scalableText.VerticalMultiplication}",
             $"reverse={scalableText.Reverse}",
-            $"text=\"{EscapeDescriptionText(scalableText.Text)}\"");
+            $"text=\"{EscapeDescriptionText(Encoding.GetEncoding(437).GetString(scalableText.RawBytes))}\"");
     }
 
     private static IReadOnlyList<string> BuildDrawHorizontalLineDescription(EplElements.DrawHorizontalLine horizontalLine)

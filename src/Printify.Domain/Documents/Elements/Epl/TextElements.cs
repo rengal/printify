@@ -3,6 +3,7 @@ namespace Printify.Domain.Documents.Elements.Epl;
 /// <summary>
 /// Scalable/rotatable text at X,Y position.
 /// Command: A x, y, rotation, font, h-multiplication, v-multiplication, reverse, "text"
+/// The text bytes are stored raw and decoded during view conversion using the current codepage.
 /// </summary>
 /// <param name="X">Horizontal position (in dots).</param>
 /// <param name="Y">Vertical position (in dots).</param>
@@ -11,7 +12,7 @@ namespace Printify.Domain.Documents.Elements.Epl;
 /// <param name="HorizontalMultiplication">Horizontal font multiplication (1-6).</param>
 /// <param name="VerticalMultiplication">Vertical font multiplication (1-9).</param>
 /// <param name="Reverse">Reverse printing: N=normal, R=reverse.</param>
-/// <param name="Text">Text content to print.</param>
+/// <param name="RawBytes">Raw text bytes that will be decoded using the current codepage.</param>
 public sealed record ScalableText(
     int X,
     int Y,
@@ -20,7 +21,7 @@ public sealed record ScalableText(
     int HorizontalMultiplication,
     int VerticalMultiplication,
     char Reverse,
-    string Text) : PrintingElement;
+    byte[] RawBytes) : PrintingElement;
 
 /// <summary>
 /// Draw horizontal line (typically used for underline).

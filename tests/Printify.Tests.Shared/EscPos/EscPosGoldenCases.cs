@@ -27,7 +27,7 @@ public static class EscPosGoldenCases
                         new EscPosElements.SelectFont(0, false, false) { LengthInBytes = 3 },
                         new EscPosElements.SetCodePage("866") { LengthInBytes = 3 },
                         new EscPosElements.SelectFont(0, false, false) { LengthInBytes = 3 },
-                        new EscPosElements.AppendText(Pad("font 0", 42)) { LengthInBytes = 42 },
+                        CreateAppendText(Pad("font 0", 42)),
                         new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 },
                         new EscPosElements.CutPaper(DomainElements.PagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
@@ -61,13 +61,13 @@ public static class EscPosGoldenCases
                         new EscPosElements.SelectFont(0, false, false) { LengthInBytes = 3 },
                         new EscPosElements.SetCodePage("866") { LengthInBytes = 3 },
                         new EscPosElements.SelectFont(0, false, false) { LengthInBytes = 3 },
-                        new EscPosElements.AppendText(Pad("font 0", 42)) { LengthInBytes = 42 },
+                        CreateAppendText(Pad("font 0", 42)),
                         new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 },
                         new EscPosElements.SelectFont(1, true, true) { LengthInBytes = 3 },
-                        new EscPosElements.AppendText(Pad("font 1", 28)) { LengthInBytes = 28 },
+                        CreateAppendText(Pad("font 1", 28)),
                         new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 },
                         new EscPosElements.SelectFont(0, true, true) { LengthInBytes = 3 },
-                        new EscPosElements.AppendText(Pad("font 2", 21)) { LengthInBytes = 21 },
+                        CreateAppendText(Pad("font 2", 21)),
                         new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 },
                         new EscPosElements.CutPaper(DomainElements.PagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
@@ -429,6 +429,13 @@ public static class EscPosGoldenCases
         {
             ["Text"] = text
         };
+    }
+
+    private static EscPosElements.AppendText CreateAppendText(string text, Encoding? encoding = null)
+    {
+        encoding ??= Encoding.GetEncoding(437);
+        var bytes = encoding.GetBytes(text);
+        return new EscPosElements.AppendText(bytes) { LengthInBytes = bytes.Length };
     }
 
 }

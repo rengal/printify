@@ -6,6 +6,7 @@ using Printify.Domain.Documents.Elements;
 using Printify.Domain.Documents.Elements.Epl;
 using Printify.Domain.Documents.View;
 using Printify.Domain.Printers;
+using System.Text;
 
 namespace Printify.Infrastructure.Printing.Epl;
 
@@ -21,6 +22,7 @@ public sealed class EplViewDocumentConverter : IViewDocumentConverter
                 $"View conversion is only supported for EPL, got {document.Protocol}.");
         }
 
+        var state = RenderState.CreateDefault();
         var elements = new List<ViewElement>();
 
         foreach (var element in document.Elements)
@@ -28,7 +30,7 @@ public sealed class EplViewDocumentConverter : IViewDocumentConverter
             switch (element)
             {
                 case ScalableText scalableText:
-                    AddScalableTextViewElement(scalableText, elements);
+                    AddScalableTextViewElement(scalableText, state, elements);
                     break;
                 case DrawHorizontalLine horizontalLine:
                     AddDrawHorizontalLineViewElement(horizontalLine, elements);
@@ -83,12 +85,16 @@ public sealed class EplViewDocumentConverter : IViewDocumentConverter
                     });
                     break;
                 case SetInternationalCharacter intlChar:
+                    // Update encoding state based on international character setting
+                    state.CurrentEncoding = GetEncodingFromCodePage(intlChar.Code);
                     AddDebugElement(elements, intlChar, "setInternationalCharacter", new Dictionary<string, string>
                     {
                         ["Code"] = intlChar.Code.ToString()
                     });
                     break;
                 case SetCodePage codePage:
+                    // Update encoding state based on code page setting
+                    state.CurrentEncoding = GetEncodingFromCodePage(codePage.Code, codePage.Scaling);
                     AddDebugElement(elements, codePage, "setCodePage", new Dictionary<string, string>
                     {
                         ["Code"] = codePage.Code.ToString(),
@@ -142,8 +148,11 @@ public sealed class EplViewDocumentConverter : IViewDocumentConverter
             errorMessages is { Length: > 0 } ? errorMessages : null);
     }
 
-    private static void AddScalableTextViewElement(ScalableText scalableText, List<ViewElement> elements)
+    private static void AddScalableTextViewElement(ScalableText scalableText, RenderState state, List<ViewElement> elements)
     {
+        // Decode raw bytes using current codepage
+        var decodedText = state.CurrentEncoding.GetString(scalableText.RawBytes);
+
         // Add debug element for the command
         AddDebugElement(elements, scalableText, "scalableText", new Dictionary<string, string>
         {
@@ -154,7 +163,7 @@ public sealed class EplViewDocumentConverter : IViewDocumentConverter
             ["HorizontalMultiplication"] = scalableText.HorizontalMultiplication.ToString(),
             ["VerticalMultiplication"] = scalableText.VerticalMultiplication.ToString(),
             ["Reverse"] = scalableText.Reverse.ToString(),
-            ["Text"] = scalableText.Text
+            ["Text"] = decodedText
         });
 
         // Get font base dimensions
@@ -170,7 +179,7 @@ public sealed class EplViewDocumentConverter : IViewDocumentConverter
 
         // Add the text element
         elements.Add(new ViewTextElement(
-            scalableText.Text,
+            decodedText,
             scalableText.X,
             scalableText.Y,
             renderedWidth,
@@ -378,5 +387,28 @@ public sealed class EplViewDocumentConverter : IViewDocumentConverter
             3 => (height, width),    // 270° clockwise
             _ => (width, height)
         };
+    }
+
+    private static Encoding GetEncodingFromCodePage(int code, int scaling = 0)
+    {
+        try
+        {
+            return code switch
+            {
+                0 or 8 => Encoding.GetEncoding(866), // DOS 866 Cyrillic
+                _ => Encoding.GetEncoding(437)       // Default to CP437
+            };
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+        {
+            return Encoding.GetEncoding(437);
+        }
+    }
+
+    private sealed class RenderState
+    {
+        public Encoding CurrentEncoding { get; set; } = Encoding.GetEncoding(437);
+
+        public static RenderState CreateDefault() => new();
     }
 }

@@ -7,6 +7,7 @@ using Printify.Domain.Documents.Elements.EscPos;
 using Printify.Domain.Documents.View;
 using Printify.Domain.Mapping;
 using Printify.Domain.Printers;
+using System.Text;
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
@@ -31,11 +32,13 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
             switch (element)
             {
                 case AppendText textLine:
+                    var decodedText = state.CurrentEncoding.GetString(textLine.RawBytes);
                     AddDebugElement(elements, textLine, "appendToLineBuffer", new Dictionary<string, string>
                     {
-                        ["Text"] = textLine.Text ?? string.Empty
+                        ["Text"] = decodedText,
+                        ["CodePage"] = state.CurrentEncoding.CodePage.ToString()
                     });
-                    AppendTextSegment(textLine, state, lineBuffer);
+                    AppendTextSegment(textLine, state, lineBuffer, decodedText);
                     break;
                 case PrintAndLineFeed flushLine:
                     FlushLine(document, state, lineBuffer, elements, includeFlushState: true, flushLine);
@@ -117,6 +120,13 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
                     state.LineSpacing = EscPosViewConstants.DefaultLineSpacing;
                     AddDebugElement(elements, resetLineSpacing, "resetLineSpacing", new Dictionary<string, string>());
                     break;
+                case SetCodePage codePage:
+                    state.CurrentEncoding = GetEncodingFromCodePage(codePage.CodePage);
+                    AddDebugElement(elements, codePage, "setCodePage", new Dictionary<string, string>
+                    {
+                        ["CodePage"] = codePage.CodePage
+                    });
+                    break;
                 case SelectFont font:
                     state.FontNumber = font.FontNumber;
                     state.ScaleX = font.IsDoubleWidth ? 2 : 1;
@@ -170,9 +180,10 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
     private static void AppendTextSegment(
         AppendText textLine,
         RenderState state,
-        LineBufferState lineBuffer)
+        LineBufferState lineBuffer,
+        string decodedText)
     {
-        var text = textLine.Text ?? string.Empty;
+        var text = decodedText;
         var fontWidth = GetFontWidth(state.FontNumber) * state.ScaleX;
         var fontHeight = GetFontHeight(state.FontNumber) * state.ScaleY;
         var charSpacing = state.CharSpacing;
@@ -543,6 +554,20 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         };
     }
 
+    private static Encoding GetEncodingFromCodePage(string codePage)
+    {
+        try
+        {
+            return int.TryParse(codePage, out var codePageInt)
+                ? Encoding.GetEncoding(codePageInt)
+                : Encoding.GetEncoding(codePage);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException)
+        {
+            return Encoding.GetEncoding(437);
+        }
+    }
+
     private sealed class RenderState
     {
         public TextJustification Justification { get; set; } = TextJustification.Left;
@@ -556,6 +581,7 @@ public sealed class EscPosViewDocumentConverter : IViewDocumentConverter
         public bool IsReverse { get; set; }
         public int ZIndex { get; set; }
         public int CurrentY { get; set; }
+        public Encoding CurrentEncoding { get; set; } = Encoding.GetEncoding(437);
 
         public static RenderState CreateDefault() => new();
     }
