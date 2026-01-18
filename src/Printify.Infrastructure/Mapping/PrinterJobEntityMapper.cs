@@ -1,5 +1,4 @@
-﻿using Printify.Domain.Mapping;
-using Printify.Domain.PrintJobs;
+﻿using Printify.Domain.PrintJobs;
 using Printify.Infrastructure.Persistence.Entities.PrinterJobs;
 
 namespace Printify.Infrastructure.Mapping;

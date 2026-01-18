@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc.Testing;
-using Printify.Domain.Documents.Elements;
 
 namespace Printify.Web.Tests.EscPos;
 

@@ -15,7 +15,9 @@ using Printify.Infrastructure.Media;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Printing;
 using Printify.Infrastructure.Printing.Epl;
+using Printify.Infrastructure.Printing.Epl.Renderers;
 using Printify.Infrastructure.Printing.EscPos;
+using Printify.Infrastructure.Printing.EscPos.Renderers;
 using Printify.Infrastructure.Printing.Factories;
 using Printify.Infrastructure.Repositories;
 using Printify.Infrastructure.Security;
@@ -77,7 +79,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
 
         // Infrastructure services
-        services.AddSingleton<IMediaService, MediaService>();
+        services.AddSingleton<MediaService>();
+        services.AddSingleton<IMediaService>(sp => sp.GetRequiredService<MediaService>());
+        services.AddSingleton<IEscPosBarcodeService>(sp => sp.GetRequiredService<MediaService>());
         services.AddSingleton<IMediaStorage, FileSystemMediaStorage>();
         services.AddSingleton<EscPosCommandTrieProvider>();
         services.AddSingleton<EplCommandTrieProvider>();
@@ -98,10 +102,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPrinterListenerFactory, PrinterListenerFactory>();
         services.AddSingleton<IPrinterDocumentStream, PrinterDocumentStream>();
 
-        // View document conversion service
-        services.AddSingleton<EscPosViewDocumentConverter>();
-        services.AddSingleton<EplViewDocumentConverter>();
-        services.AddSingleton<IViewDocumentConverter, ViewDocumentConversionService>();
+        // Renderer factory for protocol-specific canvas rendering
+        services.AddSingleton<EscPosRenderer>();
+        services.AddSingleton<EplRenderer>();
+        services.AddSingleton<IRendererFactory, RendererFactory>();
 
         services.AddHostedService(provider =>
             (PrinterBufferCoordinator)provider.GetRequiredService<IPrinterBufferCoordinator>());

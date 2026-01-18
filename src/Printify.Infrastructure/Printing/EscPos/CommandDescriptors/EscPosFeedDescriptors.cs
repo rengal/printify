@@ -1,6 +1,5 @@
 using Printify.Infrastructure.Printing.Common;
-using Printify.Domain.Documents.Elements;
-using Printify.Domain.Documents.Elements.EscPos;
+using Printify.Infrastructure.Printing.EscPos.Commands;
 
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
@@ -105,9 +104,9 @@ public sealed class PageCutDescriptor : ICommandDescriptor
         // Map ESC/POS mode byte to PagecutMode enum
         var cutMode = modeValue switch
         {
-            0 or 48 or 65 or 97 or 103 => Domain.Documents.Elements.PagecutMode.Full,
-            1 or 49 or 66 or 98 or 104 => Domain.Documents.Elements.PagecutMode.Partial,
-            _ => Domain.Documents.Elements.PagecutMode.Full // Default to full cut for unknown modes
+            0 or 48 or 65 or 97 or 103 => PagecutMode.Full,
+            1 or 49 or 66 or 98 or 104 => PagecutMode.Partial,
+            _ => PagecutMode.Full // Default to full cut for unknown modes
         };
 
         // Create CutPaper element with the determined mode and feed parameter

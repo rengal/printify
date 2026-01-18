@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Options;
 using Printify.Application.Printing;
 using Printify.Domain.Config;
-using Printify.Domain.Mapping;
+using Printify.Infrastructure.Mapping;
 using Printify.Domain.Printers;
 using Printify.Web.Contracts.Printers.Responses;
 

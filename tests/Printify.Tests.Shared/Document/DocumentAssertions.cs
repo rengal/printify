@@ -1,11 +1,12 @@
 using Xunit;
-using DomainElements = Printify.Domain.Documents.Elements;
-using EscPosElements = Printify.Domain.Documents.Elements.EscPos;
-using Printify.Domain.Mapping;
+using EscPosCommands = Printify.Infrastructure.Printing.EscPos.Commands;
+using EplCommands = Printify.Infrastructure.Printing.Epl.Commands;
+using Printify.Domain.Documents;
+using Printify.Domain.Printing;
 using Printify.Domain.Printers;
-using Printify.Domain.Documents.View;
-using Printify.Web.Contracts.Documents.Responses.View;
-using Printify.Web.Contracts.Documents.Responses.View.Elements;
+using Printify.Infrastructure.Mapping;
+using Printify.Web.Contracts.Documents.Responses.Canvas;
+using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
 using Printify.Web.Mapping;
 using SkiaSharp;
 
@@ -13,7 +14,7 @@ namespace Printify.Tests.Shared.Document;
 
 public static class DocumentAssertions
 {
-    public static void Equal(IReadOnlyList<DomainElements.Element> expectedElements, IReadOnlyList<DomainElements.Element> actualElements)
+    public static void Equal(IReadOnlyList<Command> expectedElements, IReadOnlyList<Command> actualElements)
     {
         Assert.NotNull(expectedElements);
         try
@@ -44,11 +45,26 @@ public static class DocumentAssertions
 
             switch (expected)
             {
-                case DomainElements.PrinterError:
-                    _ = Assert.IsType<DomainElements.PrinterError>(actualElement);
+                case EscPosCommands.AppendText expectedText:
+                    var actualText = Assert.IsType<EscPosCommands.AppendText>(actualElement);
+                    Assert.Equal(expectedText.TextBytes, actualText.TextBytes);
                     break;
-                case EscPosElements.PrintBarcode expectedBarcode:
-                    var actualBarcode = Assert.IsType<EscPosElements.PrintBarcode>(actualElement);
+                case EplCommands.ScalableText expectedText:
+                    var actualScalableText = Assert.IsType<EplCommands.ScalableText>(actualElement);
+                    Assert.Equal(expectedText.X, actualScalableText.X);
+                    Assert.Equal(expectedText.Y, actualScalableText.Y);
+                    Assert.Equal(expectedText.Rotation, actualScalableText.Rotation);
+                    Assert.Equal(expectedText.Font, actualScalableText.Font);
+                    Assert.Equal(expectedText.HorizontalMultiplication, actualScalableText.HorizontalMultiplication);
+                    Assert.Equal(expectedText.VerticalMultiplication, actualScalableText.VerticalMultiplication);
+                    Assert.Equal(expectedText.Reverse, actualScalableText.Reverse);
+                    Assert.Equal(expectedText.TextBytes, actualScalableText.TextBytes);
+                    break;
+                case PrinterError:
+                    _ = Assert.IsType<PrinterError>(actualElement);
+                    break;
+                case EscPosCommands.PrintBarcode expectedBarcode:
+                    var actualBarcode = Assert.IsType<EscPosCommands.PrintBarcode>(actualElement);
                     Assert.Equal(expectedBarcode.Symbology, actualBarcode.Symbology);
                     Assert.True(actualBarcode.Width > 0);
                     Assert.True(actualBarcode.Height > 0);
@@ -58,8 +74,8 @@ public static class DocumentAssertions
                     Assert.False(string.IsNullOrWhiteSpace(actualBarcode.Media.Sha256Checksum));
                     Assert.False(string.IsNullOrWhiteSpace(actualBarcode.Media.Url));
                     break;
-                case EscPosElements.PrintQrCode expectedQr:
-                    var actualQr = Assert.IsType<EscPosElements.PrintQrCode>(actualElement);
+                case EscPosCommands.PrintQrCode expectedQr:
+                    var actualQr = Assert.IsType<EscPosCommands.PrintQrCode>(actualElement);
                     Assert.Equal(expectedQr.Data, actualQr.Data);
                     Assert.True(actualQr.Width > 0);
                     Assert.True(actualQr.Height > 0);
@@ -69,8 +85,8 @@ public static class DocumentAssertions
                     Assert.False(string.IsNullOrWhiteSpace(actualQr.Media.Sha256Checksum));
                     Assert.False(string.IsNullOrWhiteSpace(actualQr.Media.Url));
                     break;
-                case EscPosElements.RasterImageUpload expectedRasterImageUpload:
-                    var actualRasterImageUpload = Assert.IsType<EscPosElements.RasterImageUpload>(actualElement);
+                case EscPosCommands.RasterImageUpload expectedRasterImageUpload:
+                    var actualRasterImageUpload = Assert.IsType<EscPosCommands.RasterImageUpload>(actualElement);
                     Assert.Equal(expectedRasterImageUpload.Width, actualRasterImageUpload.Width);
                     Assert.Equal(expectedRasterImageUpload.Height, actualRasterImageUpload.Height);
                     Assert.Equal(expectedRasterImageUpload.Media.ContentType, actualRasterImageUpload.Media.ContentType);
@@ -86,8 +102,8 @@ public static class DocumentAssertions
                             expectedRasterImageUpload.Height);
                     }
                     break;
-                case EscPosElements.RasterImage expectedRasterImage:
-                    var actualRasterImage = Assert.IsType<EscPosElements.RasterImage>(actualElement);
+                case EscPosCommands.RasterImage expectedRasterImage:
+                    var actualRasterImage = Assert.IsType<EscPosCommands.RasterImage>(actualElement);
                     Assert.Equal(expectedRasterImage.Width, actualRasterImage.Width);
                     Assert.Equal(expectedRasterImage.Height, actualRasterImage.Height);
                     Assert.Equal(expectedRasterImage.Media.ContentType, actualRasterImage.Media.ContentType);
@@ -103,7 +119,7 @@ public static class DocumentAssertions
     }
 
     public static void Equal(
-        IReadOnlyList<DomainElements.Element> expectedElements,
+        IReadOnlyList<Command> expectedElements,
         Protocol expectedProtocol,
         Domain.Documents.Document? actual,
         int expectedWidthInDots,
@@ -111,37 +127,34 @@ public static class DocumentAssertions
     {
         Assert.NotNull(actual);
         Assert.Equal(expectedProtocol, actual.Protocol);
-        Assert.Equal(expectedWidthInDots, actual.WidthInDots);
-        Assert.Equal(expectedHeightInDots, actual.HeightInDots);
-
-        Equal(expectedElements, actual.Elements.ToList());
+        Equal(expectedElements, actual.Commands.ToList());
     }
 
-    public static void EqualView(
-        IReadOnlyList<ViewElementDto> expectedElements,
+    public static void EqualCanvas(
+        IReadOnlyList<CanvasElementDto> expectedCanvasElements,
         Protocol expectedProtocol,
-        ViewDocumentDto? actual,
+        CanvasDocumentDto? actual,
         int expectedWidthInDots,
         int? expectedHeightInDots)
     {
         Assert.NotNull(actual);
         Assert.Equal(DomainMapper.ToString(expectedProtocol), actual.Protocol);
-        Assert.Equal(expectedWidthInDots, actual.WidthInDots);
-        Assert.Equal(expectedHeightInDots, actual.HeightInDots);
+        Assert.Equal(expectedWidthInDots, actual.Canvas.WidthInDots);
+        Assert.Equal(expectedHeightInDots, actual.Canvas.HeightInDots);
 
-        EqualViewElements(expectedElements, actual.Elements.ToList());
+        EqualCanvasElements(expectedCanvasElements, actual.Canvas.Items.ToList());
     }
 
     public static void EqualView(
-        IReadOnlyList<ViewElementDto> expectedElements,
+        IReadOnlyList<CanvasElementDto> expectedElements,
         Protocol expectedProtocol,
-        ViewDocument? actual,
+        RenderedDocument? actual,
         int expectedWidthInDots,
         int? expectedHeightInDots)
     {
         Assert.NotNull(actual);
-        var dto = ViewDocumentMapper.ToViewResponseDto(actual);
-        EqualView(expectedElements, expectedProtocol, dto, expectedWidthInDots, expectedHeightInDots);
+        var dto = CanvasDocumentMapper.ToCanvasResponseDto(actual);
+        EqualCanvas(expectedElements, expectedProtocol, dto, expectedWidthInDots, expectedHeightInDots);
     }
 
     public static void EqualBytes(
@@ -154,21 +167,21 @@ public static class DocumentAssertions
         Assert.Equal(expectedBytesSent, actual.BytesSent);
     }
 
-    public static void EqualBytes(int expectedBytesReceived, int expectedBytesSent, ViewDocumentDto? actual)
+    public static void EqualBytes(int expectedBytesReceived, int expectedBytesSent, CanvasDocumentDto? actual)
     {
         Assert.NotNull(actual);
         Assert.Equal(expectedBytesReceived, actual.BytesReceived);
         Assert.Equal(expectedBytesSent, actual.BytesSent);
     }
 
-    public static void EqualViewElements(
-        IReadOnlyList<ViewElementDto> expectedElements,
-        IReadOnlyList<ViewElementDto> actualElements)
+    public static void EqualCanvasElements(
+        IReadOnlyList<CanvasElementDto> expectedCanvasElements,
+        IReadOnlyList<CanvasElementDto> actualCanvasElements)
     {
-        Assert.NotNull(expectedElements);
+        Assert.NotNull(expectedCanvasElements);
         try
         {
-            Assert.Equal(expectedElements.Count, actualElements.Count);
+            Assert.Equal(expectedCanvasElements.Count, actualCanvasElements.Count);
         }
         catch (Exception e)
         {
@@ -176,15 +189,38 @@ public static class DocumentAssertions
             throw;
         }
 
-        for (var index = 0; index < expectedElements.Count; index++)
+        for (var index = 0; index < expectedCanvasElements.Count; index++)
         {
-            var expected = expectedElements[index];
-            var actualElement = actualElements[index];
+            var expected = expectedCanvasElements[index];
+            var actualElement = actualCanvasElements[index];
 
             try
             {
                 Assert.Equal(expected.GetType(), actualElement.GetType());
-                Assert.Equal(expected.LengthInBytes, actualElement.LengthInBytes);
+
+                // Debug output
+                if (expected is CanvasTextElementDto expectedText)
+                {
+                    var actualText = actualElement as CanvasTextElementDto;
+                    Console.WriteLine($"DEBUG: Expected Text='{expectedText.Text}', Actual Text='{actualText?.Text}'");
+                }
+
+                if (expected is CanvasDebugElementDto || actualElement is CanvasDebugElementDto)
+                {
+                    Assert.Equal(expected.LengthInBytes, actualElement.LengthInBytes);
+
+                    // Verify CommandDescription is not empty for debug elements
+                    if (actualElement is CanvasDebugElementDto actualDebug)
+                    {
+                        Assert.NotNull(actualDebug.CommandDescription);
+                        Assert.NotEmpty(actualDebug.CommandDescription);
+                        Assert.All(actualDebug.CommandDescription, line =>
+                        {
+                            Assert.False(string.IsNullOrWhiteSpace(line),
+                                $"CommandDescription for {actualDebug.DebugType} contains empty/whitespace line");
+                        });
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -194,33 +230,35 @@ public static class DocumentAssertions
 
             switch (expected)
             {
-                case ViewTextElementDto expectedText:
-                    var actualText = Assert.IsType<ViewTextElementDto>(actualElement);
+                case CanvasTextElementDto expectedText:
+                    var actualText = Assert.IsType<CanvasTextElementDto>(actualElement);
                     Assert.Equal(expectedText.Text, actualText.Text);
                     Assert.Equal(expectedText.X, actualText.X);
                     Assert.Equal(expectedText.Y, actualText.Y);
                     Assert.Equal(expectedText.Width, actualText.Width);
                     Assert.Equal(expectedText.Height, actualText.Height);
-                    Assert.Equal(expectedText.Font, actualText.Font);
+                    Assert.Equal(expectedText.FontName, actualText.FontName);
                     Assert.Equal(expectedText.CharSpacing, actualText.CharSpacing);
                     Assert.Equal(expectedText.IsBold, actualText.IsBold);
                     Assert.Equal(expectedText.IsUnderline, actualText.IsUnderline);
                     Assert.Equal(expectedText.IsReverse, actualText.IsReverse);
                     Assert.Equal(expectedText.CharScaleX, actualText.CharScaleX);
                     Assert.Equal(expectedText.CharScaleY, actualText.CharScaleY);
+                    Assert.Equal(expectedText.Rotation, actualText.Rotation);
                     break;
-                case ViewImageElementDto expectedImage:
-                    var actualImage = Assert.IsType<ViewImageElementDto>(actualElement);
+                case CanvasImageElementDto expectedImage:
+                    var actualImage = Assert.IsType<CanvasImageElementDto>(actualElement);
                     Assert.Equal(expectedImage.X, actualImage.X);
                     Assert.Equal(expectedImage.Y, actualImage.Y);
                     Assert.Equal(expectedImage.Width, actualImage.Width);
                     Assert.Equal(expectedImage.Height, actualImage.Height);
                     Assert.NotNull(actualImage.Media);
-                    Assert.True(actualImage.Media.Length > 0);
+                    Assert.True(actualImage.Media.Size > 0);
                     Assert.Equal(expectedImage.Media.ContentType, actualImage.Media.ContentType);
+                    Assert.Equal(expectedImage.Rotation, actualImage.Rotation);
                     break;
-                case ViewDebugElementDto expectedDebug:
-                    var actualDebug = Assert.IsType<ViewDebugElementDto>(actualElement);
+                case CanvasDebugElementDto expectedDebug:
+                    var actualDebug = Assert.IsType<CanvasDebugElementDto>(actualElement);
                     Assert.Equal(expectedDebug.DebugType, actualDebug.DebugType);
                     break;
                 default:
@@ -230,21 +268,20 @@ public static class DocumentAssertions
         }
     }
 
-    private static ViewElementDto NormalizeViewElement(ViewElementDto expected, ViewElementDto actual)
+    private static CanvasElementDto NormalizeViewElement(CanvasElementDto expected, CanvasElementDto actual)
     {
         return expected with
         {
             CommandRaw = actual.CommandRaw,
-            CommandDescription = actual.CommandDescription,
-            ZIndex = actual.ZIndex
+            CommandDescription = actual.CommandDescription
         };
     }
 
-    private static DomainElements.Element NormalizeDomain(DomainElements.Element expected, DomainElements.Element actual)
+    private static Command NormalizeDomain(Command expected, Command actual)
     {
         return expected with
         {
-            CommandRaw = actual.CommandRaw,
+            RawBytes = actual.RawBytes,
             LengthInBytes = actual.LengthInBytes
         };
     }

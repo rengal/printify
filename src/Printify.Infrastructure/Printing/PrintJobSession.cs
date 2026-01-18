@@ -1,7 +1,7 @@
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Documents;
-using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printing;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
 
@@ -11,7 +11,7 @@ public abstract class PrintJobSession : IPrintJobSession
 {
     #region IPrintJobSession Properties
 
-    private readonly List<Element> elements = new();
+    private readonly List<Command> elements = new();
     private Document? document;
 
     public int TotalBytesReceived { get; private set; }
@@ -42,7 +42,7 @@ public abstract class PrintJobSession : IPrintJobSession
     }
 
     public bool IsCompleted { get; protected set; }
-    public IReadOnlyList<Element> Elements => elements;
+    public IReadOnlyList<Command> Elements => elements;
     public Document? Document => document;
 
     #endregion IPrintJobSession Properties
@@ -73,7 +73,7 @@ public abstract class PrintJobSession : IPrintJobSession
         return Task.CompletedTask;
     }
 
-    protected IList<Element> MutableElements => elements;
+    protected IList<Command> MutableElements => elements;
 
     protected void SetDocument(Document value)
     {

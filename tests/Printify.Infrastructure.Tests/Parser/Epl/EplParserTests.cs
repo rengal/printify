@@ -1,5 +1,6 @@
-using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Epl;
+using Printify.Infrastructure.Printing.Epl.Parsers;
 using Printify.Tests.Shared.Document;
 using Printify.Tests.Shared.Epl;
 using System.Text;
@@ -17,7 +18,7 @@ public partial class EplParserTests(EplParserFixture fixture) : IClassFixture<Ep
 
     private void AssertScenario(EplScenario scenario)
     {
-        var elements = new List<Element>();
+        var elements = new List<Command>();
         var parser = new EplParser(elements.Add);
 
         // Send byte by byte
@@ -27,6 +28,6 @@ public partial class EplParserTests(EplParserFixture fixture) : IClassFixture<Ep
         }
 
         parser.Complete();
-        DocumentAssertions.Equal(scenario.ExpectedRequestElements, elements);
+        DocumentAssertions.Equal(scenario.ExpectedRequestCommands, elements);
     }
 }

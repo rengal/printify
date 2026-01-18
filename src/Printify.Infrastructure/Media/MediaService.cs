@@ -1,6 +1,7 @@
 using Printify.Application.Interfaces;
-using Printify.Domain.Documents.Elements;
-using Printify.Domain.Documents.Elements.EscPos;
+using Printify.Domain.Printing;
+using Printify.Infrastructure.Printing.EscPos.Commands;
+using Printify.Infrastructure.Printing.EscPos;
 using Printify.Domain.Media;
 using SkiaSharp;
 using ZXing;
@@ -13,8 +14,9 @@ namespace Printify.Infrastructure.Media;
 
 /// <summary>
 /// Converts monochrome bitmaps to media upload format using SkiaSharp.
+/// Implements both generic media conversion and ESC/POS-specific barcode/QR generation.
 /// </summary>
-public sealed class MediaService : IMediaService
+public sealed class MediaService : IMediaService, IEscPosBarcodeService
 {
     /// <inheritdoc />
     public MediaUpload ConvertToMediaUpload(MonochromeBitmap bitmap, string format = "image/png")

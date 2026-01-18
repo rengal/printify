@@ -1,10 +1,10 @@
 using System.Text;
-using Printify.Domain.Documents.View;
-using DomainElements = Printify.Domain.Documents.Elements;
-using EscPosElements = Printify.Domain.Documents.Elements.EscPos;
+using EscPosCommands = Printify.Infrastructure.Printing.EscPos.Commands;
 using Printify.Domain.Media;
+using Printify.Domain.Printing;
+using Printify.Domain.Printing.Constants;
 using Printify.Infrastructure.Media;
-using Printify.Web.Contracts.Documents.Responses.View.Elements;
+using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
 using Xunit;
 
 namespace Printify.Tests.Shared.EscPos;
@@ -18,10 +18,10 @@ public static class EscPosScenarioData
     private const byte Gs = 0x1D;
     private const byte Lf = 0x0A;
     private const byte Cr = 0x0D;
+    private static readonly bool EncodingProviderRegistered = RegisterEncodingProvider();
 
     static EscPosScenarioData()
     {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var codePageVectors = BuildCodePageVectors();
         CodePageScenarios = BuildCodePageScenarios(codePageVectors);
         AllScenarios = BuildAllScenarios();
@@ -32,10 +32,10 @@ public static class EscPosScenarioData
         new(
             id: 15001,
             input: [0x07],
-            expectedRequestElements: [new EscPosElements.Bell { LengthInBytes = 1 }],
+            expectedRequestCommands: [new EscPosCommands.Bell { LengthInBytes = 1 }],
             expectedViewElements:
             [
-                new ViewDebugElementDto("bell")
+                new CanvasDebugElementDto("bell")
                 {
                     LengthInBytes = 1
                 }
@@ -43,9 +43,9 @@ public static class EscPosScenarioData
         new(
             id: 15002,
             input: Enumerable.Repeat((byte)0x07, 10).ToArray(),
-            expectedRequestElements: Enumerable.Range(0, 10).Select(_ => new EscPosElements.Bell { LengthInBytes = 1 }).ToArray(),
+            expectedRequestCommands: Enumerable.Range(0, 10).Select(_ => new EscPosCommands.Bell { LengthInBytes = 1 }).ToArray(),
             expectedViewElements: Enumerable.Range(0, 10)
-                .Select(_ => new ViewDebugElementDto("bell")
+                .Select(_ => new CanvasDebugElementDto("bell")
                 {
                     LengthInBytes = 1
                 })
@@ -57,7 +57,7 @@ public static class EscPosScenarioData
         new(
             id: 15003,
             input: "A"u8.ToArray(),
-            expectedRequestElements: [CreateAppendText("A")],
+            expectedRequestCommands: [CreateAppendText("A")],
             expectedViewElements:
             [
                 ViewAppend("A", lengthInBytes: 1)
@@ -65,10 +65,10 @@ public static class EscPosScenarioData
         new(
             id: 15004,
             input: "ABC\n"u8.ToArray(),
-            expectedRequestElements:
+            expectedRequestCommands:
             [
                 CreateAppendText("ABC"),
-                new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 }
+                new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 }
             ],
             expectedViewElements:
             [
@@ -79,11 +79,11 @@ public static class EscPosScenarioData
         new(
             id : 15005,
             input: [.. "ABC"u8, Cr, Lf],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
                 CreateAppendText("ABC"),
-                new EscPosElements.LegacyCarriageReturn { LengthInBytes = 1 },
-                new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 }
+                new EscPosCommands.LegacyCarriageReturn { LengthInBytes = 1 },
+                new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 }
             ],
             expectedViewElements:
             [
@@ -95,7 +95,7 @@ public static class EscPosScenarioData
         new(
             id: 15006,
             input: "ABC"u8.ToArray(),
-            expectedRequestElements: [CreateAppendText("ABC")],
+            expectedRequestCommands: [CreateAppendText("ABC")],
             expectedViewElements:
             [
                 ViewAppend("ABC", lengthInBytes: 3)
@@ -103,7 +103,7 @@ public static class EscPosScenarioData
         new(
             id: 15007,
             input: "ABC"u8.ToArray(),
-            expectedRequestElements: [CreateAppendText("ABC")],
+            expectedRequestCommands: [CreateAppendText("ABC")],
             expectedViewElements:
             [
                 ViewAppend("ABC", lengthInBytes: 3)
@@ -111,12 +111,12 @@ public static class EscPosScenarioData
         new(
             id: 15008,
             input: "ABC\nDEF\nG"u8.ToArray(),
-            expectedRequestElements:
+            expectedRequestCommands:
             [
                 CreateAppendText("ABC"),
-                new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 },
+                new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
                 CreateAppendText("DEF"),
-                new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 },
+                new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
                 CreateAppendText("G")
             ],
             expectedViewElements:
@@ -132,7 +132,7 @@ public static class EscPosScenarioData
         new(
             id: 15009,
             input: "ABC"u8.ToArray(),
-            expectedRequestElements: [CreateAppendText("ABC")],
+            expectedRequestCommands: [CreateAppendText("ABC")],
             expectedViewElements:
             [
                 ViewAppend("ABC", lengthInBytes: 3)
@@ -140,7 +140,7 @@ public static class EscPosScenarioData
         new(
             id: 15010,
             input: Encoding.ASCII.GetBytes(new string('A', 100)),
-            expectedRequestElements: [CreateAppendText(new string('A', 100))],
+            expectedRequestCommands: [CreateAppendText(new string('A', 100))],
             expectedViewElements:
             [
                 ViewAppend(new string('A', 100), lengthInBytes: 100)
@@ -148,10 +148,10 @@ public static class EscPosScenarioData
         new(
             id: 15011,
             input: [.. "ABC"u8, 0x07],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
                 CreateAppendText("ABC"),
-                new EscPosElements.Bell { LengthInBytes = 1 }
+                new EscPosCommands.Bell { LengthInBytes = 1 }
             ],
             expectedViewElements:
             [
@@ -161,12 +161,12 @@ public static class EscPosScenarioData
         new(
             id: 15012,
             input: [.. "ABC"u8, 0x07, .. "DEF"u8, 0x07],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
                 CreateAppendText("ABC"),
-                new EscPosElements.Bell { LengthInBytes = 1 },
+                new EscPosCommands.Bell { LengthInBytes = 1 },
                 CreateAppendText("DEF"),
-                new EscPosElements.Bell { LengthInBytes = 1 }
+                new EscPosCommands.Bell { LengthInBytes = 1 }
             ],
             expectedViewElements:
             [
@@ -178,13 +178,13 @@ public static class EscPosScenarioData
         new(
             id: 15013,
             input: [.. "ABC"u8, 0x07, .. "DEF\n"u8, 0x07],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
                 CreateAppendText("ABC"),
-                new EscPosElements.Bell { LengthInBytes = 1 },
+                new EscPosCommands.Bell { LengthInBytes = 1 },
                 CreateAppendText("DEF"),
-                new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 },
-                new EscPosElements.Bell { LengthInBytes = 1 }
+                new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
+                new EscPosCommands.Bell { LengthInBytes = 1 }
             ],
             expectedViewElements:
             [
@@ -199,12 +199,12 @@ public static class EscPosScenarioData
         new(
             id: 15016,
             input: [.. "ABC"u8, Esc, (byte)'i', .. "DEF\n"u8],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
                 CreateAppendText("ABC"),
-                new EscPosElements.CutPaper(DomainElements.PagecutMode.PartialOnePoint) { LengthInBytes = 2 },
+                new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.PartialOnePoint) { LengthInBytes = 2 },
                 CreateAppendText("DEF"),
-                new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 }
+                new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 }
             ],
             expectedViewElements:
             [
@@ -212,7 +212,7 @@ public static class EscPosScenarioData
                 ViewDebug(
                     "pagecut",
                     lengthInBytes: 2,
-                    parameters: PagecutParameters(DomainElements.PagecutMode.PartialOnePoint, null)),
+                    parameters: PagecutParameters(EscPosCommands.PagecutMode.PartialOnePoint, null)),
                 ViewAppend("DEF", lengthInBytes: 3),
                 ViewFlush(lengthInBytes: 1),
                 ViewText("ABC", x: 0, y: 0, lengthInBytes: 3),
@@ -229,37 +229,33 @@ public static class EscPosScenarioData
                 0x00, 0x00,
                 .. "DEF\n"u8
             ],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
                 CreateAppendText("ABC"),
-                new EscPosElements.RasterImageUpload(
+                new EscPosCommands.RasterImageUpload(
                     Width: 8,
                     Height: 2,
                     Media: CreateExpectedRasterMedia(8, 2, [0x00, 0x00]))
                 { LengthInBytes = 10 },
                 CreateAppendText("DEF"),
-                new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 }
+                new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 }
             ],
-            expectedPersistedElements:
+            expectedPersistedCommands:
             [
                 CreateAppendText("ABC"),
-                new EscPosElements.RasterImage(8, 2, Media.CreateDefaultPng(85)) { LengthInBytes = 10 },
+                new EscPosCommands.RasterImage(8, 2, Media.CreateDefaultPng(85)) { LengthInBytes = 10 },
                 CreateAppendText("DEF"),
-                new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 }
+                new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 }
             ],
             expectedViewElements:
             [
-                ViewAppend("ABC", lengthInBytes: 3),
                 ViewDebug("rasterImage", lengthInBytes: 10),
-                ViewImage(8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10),
-                ViewAppend("DEF", lengthInBytes: 3),
-                ViewFlush(lengthInBytes: 1),
-                ViewText("DEF", x: 0, y: 6, lengthInBytes: 3)
+                ViewImage(8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10)
             ]),
         new(
             id: 15014,
             input: "\n"u8.ToArray(),
-            expectedRequestElements: [new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 }],
+            expectedRequestCommands: [new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 }],
             expectedViewElements:
             [
                 ViewFlush(lengthInBytes: 1)
@@ -267,11 +263,11 @@ public static class EscPosScenarioData
         new(
             id: 15015,
             input: "\n\n\n"u8.ToArray(),
-            expectedRequestElements:
+            expectedRequestCommands:
             [
-                new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 },
-                new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 },
-                new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 }
+                new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
+                new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
+                new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 }
             ],
             expectedViewElements:
             [
@@ -287,7 +283,7 @@ public static class EscPosScenarioData
         new(
             id: 16001,
             input: [0x00],
-            expectedRequestElements: [new DomainElements.PrinterError("") { LengthInBytes = 1 }],
+            expectedRequestCommands: [new PrinterError("") { LengthInBytes = 1 }],
             expectedViewElements:
             [
                 ViewDebug("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
@@ -299,7 +295,7 @@ public static class EscPosScenarioData
         new(
             id: 16002,
             input: [0x00, 0x00],
-            expectedRequestElements: [new DomainElements.PrinterError("") { LengthInBytes = 2 }],
+            expectedRequestCommands: [new PrinterError("") { LengthInBytes = 2 }],
             expectedViewElements:
             [
                 ViewDebug("printerError", lengthInBytes: 2, parameters: new Dictionary<string, string>
@@ -311,7 +307,7 @@ public static class EscPosScenarioData
         new(
             id: 16003,
             input: [0x00, 0x01, 0x02],
-            expectedRequestElements: [new DomainElements.PrinterError("") { LengthInBytes = 3 }],
+            expectedRequestCommands: [new PrinterError("") { LengthInBytes = 3 }],
             expectedViewElements:
             [
                 ViewDebug("printerError", lengthInBytes: 3, parameters: new Dictionary<string, string>
@@ -323,8 +319,8 @@ public static class EscPosScenarioData
         new(
             id: 160004,
             input: [0x00, .. "ABC"u8],
-            expectedRequestElements: [
-                new DomainElements.PrinterError("") { LengthInBytes = 1 },
+            expectedRequestCommands: [
+                new PrinterError("") { LengthInBytes = 1 },
                 CreateAppendText("ABC")],
             expectedViewElements:
             [
@@ -338,9 +334,9 @@ public static class EscPosScenarioData
         new(
             id: 160005,
             input: [.. "ABC"u8, 0x00, .. "DEF"u8],
-            expectedRequestElements: [
+            expectedRequestCommands: [
                 CreateAppendText("ABC"),
-                new DomainElements.PrinterError("") { LengthInBytes = 1 },
+                new PrinterError("") { LengthInBytes = 1 },
                 CreateAppendText("DEF")],
             expectedViewElements:
             [
@@ -355,9 +351,9 @@ public static class EscPosScenarioData
         new(
             id: 160006,
             input: [0x00, 0x07],
-            expectedRequestElements: [
-                new DomainElements.PrinterError("") { LengthInBytes = 1 },
-                new EscPosElements.Bell { LengthInBytes = 1 }],
+            expectedRequestCommands: [
+                new PrinterError("") { LengthInBytes = 1 },
+                new EscPosCommands.Bell { LengthInBytes = 1 }],
             expectedViewElements:
             [
                 ViewDebug("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
@@ -373,90 +369,90 @@ public static class EscPosScenarioData
         new(
             id: 170001,
             input: [Esc, (byte)'i'],
-            expectedRequestElements: [new EscPosElements.CutPaper(DomainElements.PagecutMode.PartialOnePoint) { LengthInBytes = 2 }],
+            expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.PartialOnePoint) { LengthInBytes = 2 }],
             expectedViewElements:
             [
-                ViewDebug("pagecut", lengthInBytes: 2, parameters: PagecutParameters(DomainElements.PagecutMode.PartialOnePoint, null))
+                ViewDebug("pagecut", lengthInBytes: 2, parameters: PagecutParameters(EscPosCommands.PagecutMode.PartialOnePoint, null))
             ]),
         new(
             id: 170002,
             input: [Gs, 0x56, 0x00],
-            expectedRequestElements: [new EscPosElements.CutPaper(DomainElements.PagecutMode.Full) { LengthInBytes = 3 }],
+            expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Full) { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewDebug("pagecut", lengthInBytes: 3, parameters: PagecutParameters(DomainElements.PagecutMode.Full, null))
+                ViewDebug("pagecut", lengthInBytes: 3, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, null))
             ]),
         new(
             id: 170003,
             input: [Gs, 0x56, 0x30],
-            expectedRequestElements: [new EscPosElements.CutPaper(DomainElements.PagecutMode.Full) { LengthInBytes = 3 }],
+            expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Full) { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewDebug("pagecut", lengthInBytes: 3, parameters: PagecutParameters(DomainElements.PagecutMode.Full, null))
+                ViewDebug("pagecut", lengthInBytes: 3, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, null))
             ]),
         new(
             id: 170004,
             input: [Gs, 0x56, 0x01],
-            expectedRequestElements: [new EscPosElements.CutPaper(DomainElements.PagecutMode.Partial) { LengthInBytes = 3 }],
+            expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial) { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewDebug("pagecut", lengthInBytes: 3, parameters: PagecutParameters(DomainElements.PagecutMode.Partial, null))
+                ViewDebug("pagecut", lengthInBytes: 3, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, null))
             ]),
         new(
             id: 170005,
             input: [Gs, 0x56, 0x31],
-            expectedRequestElements: [new EscPosElements.CutPaper(DomainElements.PagecutMode.Partial) { LengthInBytes = 3 }],
+            expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial) { LengthInBytes = 3 }],
             expectedViewElements:
             [
-                ViewDebug("pagecut", lengthInBytes: 3, parameters: PagecutParameters(DomainElements.PagecutMode.Partial, null))
+                ViewDebug("pagecut", lengthInBytes: 3, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, null))
             ]),
         new(
             id: 170006,
             input: [Gs, 0x56, 0x41, 0x05],
-            expectedRequestElements: [new EscPosElements.CutPaper(DomainElements.PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
+            expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
             expectedViewElements:
             [
-                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(DomainElements.PagecutMode.Full, 0x05))
+                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, 0x05))
             ]),
         new(
             id: 170007,
             input: [Gs, 0x56, 0x42, 0x20],
-            expectedRequestElements: [new EscPosElements.CutPaper(DomainElements.PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
+            expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
             expectedViewElements:
             [
-                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(DomainElements.PagecutMode.Partial, 0x20))
+                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, 0x20))
             ]),
         new(
             id: 170008,
             input: [Gs, 0x56, 0x61, 0x05],
-            expectedRequestElements: [new EscPosElements.CutPaper(DomainElements.PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
+            expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
             expectedViewElements:
             [
-                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(DomainElements.PagecutMode.Full, 0x05))
+                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, 0x05))
             ]),
         new(
             id: 170009,
             input: [Gs, 0x56, 0x62, 0x20],
-            expectedRequestElements: [new EscPosElements.CutPaper(DomainElements.PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
+            expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
             expectedViewElements:
             [
-                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(DomainElements.PagecutMode.Partial, 0x20))
+                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, 0x20))
             ]),
         new(
             id: 170010,
             input: [Gs, 0x56, 0x67, 0x05],
-            expectedRequestElements: [new EscPosElements.CutPaper(DomainElements.PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
+            expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
             expectedViewElements:
             [
-                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(DomainElements.PagecutMode.Full, 0x05))
+                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, 0x05))
             ]),
         new(
             id: 170011,
             input: [Gs, 0x56, 0x68, 0x20],
-            expectedRequestElements: [new EscPosElements.CutPaper(DomainElements.PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
+            expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
             expectedViewElements:
             [
-                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(DomainElements.PagecutMode.Partial, 0x20))
+                ViewDebug("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, 0x20))
             ])
     ];
 
@@ -465,7 +461,7 @@ public static class EscPosScenarioData
         new(
             id: 180001,
             input: [Esc, (byte)'p', 0x01, 0x05, 0x0A],
-            expectedRequestElements: [new EscPosElements.Pulse(1, 0x05, 0x0A) { LengthInBytes = 5 }],
+            expectedRequestCommands: [new EscPosCommands.Pulse(1, 0x05, 0x0A) { LengthInBytes = 5 }],
             expectedViewElements:
             [
                 ViewDebug("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
@@ -478,7 +474,7 @@ public static class EscPosScenarioData
         new(
             id: 180002,
             input: [Esc, (byte)'p', 0x00, 0x7D, 0x7F],
-            expectedRequestElements: [new EscPosElements.Pulse(0, 0x7D, 0x7F) { LengthInBytes = 5 }],
+            expectedRequestCommands: [new EscPosCommands.Pulse(0, 0x7D, 0x7F) { LengthInBytes = 5 }],
             expectedViewElements:
             [
                 ViewDebug("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
@@ -495,10 +491,10 @@ public static class EscPosScenarioData
                 Esc, (byte)'p', 0x00, 0x08, 0x16,
                 Esc, (byte)'p', 0x01, 0x02, 0x03
             ],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
-                new EscPosElements.Pulse(0, 0x08, 0x16) { LengthInBytes = 5 },
-                new EscPosElements.Pulse(1, 0x02, 0x03) { LengthInBytes = 5 }
+                new EscPosCommands.Pulse(0, 0x08, 0x16) { LengthInBytes = 5 },
+                new EscPosCommands.Pulse(1, 0x02, 0x03) { LengthInBytes = 5 }
             ],
             expectedViewElements:
             [
@@ -532,17 +528,17 @@ public static class EscPosScenarioData
                 0b11100000, // Row 0: XXX_____ (X=colored/set, _=transparent/unset)
                 0b00011000  // Row 1: ___XX___ (X=colored/set, _=transparent/unset)
             ],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
-                new EscPosElements.RasterImageUpload(
+                new EscPosCommands.RasterImageUpload(
                     Width: 8,
                     Height: 2,
                     Media: CreateExpectedRasterMedia(8, 2, [0b11100000, 0b00011000]))
                 { LengthInBytes = 10 }
             ],
-            expectedPersistedElements:
+            expectedPersistedCommands:
             [
-                new EscPosElements.RasterImage(8, 2, Media.CreateDefaultPng(96)) { LengthInBytes = 10 }
+                new EscPosCommands.RasterImage(8, 2, Media.CreateDefaultPng(96)) { LengthInBytes = 10 }
             ],
             expectedViewElements:
             [
@@ -561,17 +557,17 @@ public static class EscPosScenarioData
                 0xFF,       // Row 0: all colored
                 0xFF        // Row 1: all colored
             ],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
-                new EscPosElements.RasterImageUpload(
+                new EscPosCommands.RasterImageUpload(
                     Width: 8,
                     Height: 2,
                     Media: CreateExpectedRasterMedia(8, 2, [0xFF, 0xFF]))
                 { LengthInBytes = 10 }
             ],
-            expectedPersistedElements:
+            expectedPersistedCommands:
             [
-                new EscPosElements.RasterImage(8, 2, Media.CreateDefaultPng(96)) { LengthInBytes = 10 }
+                new EscPosCommands.RasterImage(8, 2, Media.CreateDefaultPng(96)) { LengthInBytes = 10 }
             ],
             expectedViewElements:
             [
@@ -590,17 +586,17 @@ public static class EscPosScenarioData
                 0x00,       // Row 0: all transparent
                 0x00        // Row 1: all transparent
             ],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
-                new EscPosElements.RasterImageUpload(
+                new EscPosCommands.RasterImageUpload(
                     Width: 8,
                     Height: 2,
                     Media: CreateExpectedRasterMedia(8, 2, [0x00, 0x00]))
                 { LengthInBytes = 10 }
             ],
-            expectedPersistedElements:
+            expectedPersistedCommands:
             [
-                new EscPosElements.RasterImage(8, 2, Media.CreateDefaultPng(85)) { LengthInBytes = 10 }
+                new EscPosCommands.RasterImage(8, 2, Media.CreateDefaultPng(85)) { LengthInBytes = 10 }
             ],
             expectedViewElements:
             [
@@ -619,17 +615,17 @@ public static class EscPosScenarioData
                 0b10101010, // Row 0: X_X_X_X_
                 0b01010101  // Row 1: _X_X_X_X
             ],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
-                new EscPosElements.RasterImageUpload(
+                new EscPosCommands.RasterImageUpload(
                     Width: 8,
                     Height: 2,
                     Media: CreateExpectedRasterMedia(8, 2, [0b10101010, 0b01010101]))
                 { LengthInBytes = 10 }
             ],
-            expectedPersistedElements:
+            expectedPersistedCommands:
             [
-                new EscPosElements.RasterImage(8, 2, Media.CreateDefaultPng(93)) { LengthInBytes = 10 }
+                new EscPosCommands.RasterImage(8, 2, Media.CreateDefaultPng(93)) { LengthInBytes = 10 }
             ],
             expectedViewElements:
             [
@@ -668,18 +664,17 @@ public static class EscPosScenarioData
                 0x01, 0x00, // height: 1 row
                 .. bitmap
             ],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
-                new EscPosElements.RasterImageUpload(widthInDots, heightInDots, upload) { LengthInBytes = lengthInBytes }
+                new EscPosCommands.RasterImageUpload(widthInDots, heightInDots, upload) { LengthInBytes = lengthInBytes }
             ],
-            expectedPersistedElements:
+            expectedPersistedCommands:
             [
-                new EscPosElements.RasterImage(widthInDots, heightInDots, media) { LengthInBytes = lengthInBytes }
+                new EscPosCommands.RasterImage(widthInDots, heightInDots, media) { LengthInBytes = lengthInBytes }
             ],
             expectedViewElements:
             [
                 ViewDebug("rasterImage", lengthInBytes: lengthInBytes),
-                ViewDebug("error", lengthInBytes: 0),
                 ViewImage(widthInDots, heightInDots, media, lengthInBytes)
             ]);
     }
@@ -696,13 +691,13 @@ public static class EscPosScenarioData
                 Esc, 0x21, 0x31,
                 Esc, 0x21, 0x02
             ],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
-                new EscPosElements.SelectFont(0, false, false) { LengthInBytes = 3 },
-                new EscPosElements.SelectFont(1, false, false) { LengthInBytes = 3 },
-                new EscPosElements.SelectFont(0, true, false) { LengthInBytes = 3 },
-                new EscPosElements.SelectFont(1, true, true) { LengthInBytes = 3 },
-                new EscPosElements.SelectFont(2, false, false) { LengthInBytes = 3 }
+                new EscPosCommands.SelectFont(0, false, false) { LengthInBytes = 3 },
+                new EscPosCommands.SelectFont(1, false, false) { LengthInBytes = 3 },
+                new EscPosCommands.SelectFont(0, true, false) { LengthInBytes = 3 },
+                new EscPosCommands.SelectFont(1, true, true) { LengthInBytes = 3 },
+                new EscPosCommands.SelectFont(2, false, false) { LengthInBytes = 3 }
             ],
             expectedViewElements:
             [
@@ -721,12 +716,12 @@ public static class EscPosScenarioData
                 Esc, (byte)'E', 0x01,
                 Esc, (byte)'E', 0x00
             ],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
-                new EscPosElements.SetBoldMode(true) { LengthInBytes = 3 },
-                new EscPosElements.SetBoldMode(false) { LengthInBytes = 3 },
-                new EscPosElements.SetBoldMode(true) { LengthInBytes = 3 },
-                new EscPosElements.SetBoldMode(false) { LengthInBytes = 3 }
+                new EscPosCommands.SetBoldMode(true) { LengthInBytes = 3 },
+                new EscPosCommands.SetBoldMode(false) { LengthInBytes = 3 },
+                new EscPosCommands.SetBoldMode(true) { LengthInBytes = 3 },
+                new EscPosCommands.SetBoldMode(false) { LengthInBytes = 3 }
             ],
             expectedViewElements:
             [
@@ -746,14 +741,14 @@ public static class EscPosScenarioData
                 Gs, 0x42, 0x00,
                 Gs, 0x42, 0x01
             ],
-            expectedRequestElements:
+            expectedRequestCommands:
             [
-                new EscPosElements.SetUnderlineMode(true) { LengthInBytes = 3 },
-                new EscPosElements.SetUnderlineMode(true) { LengthInBytes = 3 },
-                new EscPosElements.SetUnderlineMode(false) { LengthInBytes = 3 },
-                new EscPosElements.SetReverseMode(true) { LengthInBytes = 3 },
-                new EscPosElements.SetReverseMode(false) { LengthInBytes = 3 },
-                new EscPosElements.SetReverseMode(true) { LengthInBytes = 3 }
+                new EscPosCommands.SetUnderlineMode(true) { LengthInBytes = 3 },
+                new EscPosCommands.SetUnderlineMode(true) { LengthInBytes = 3 },
+                new EscPosCommands.SetUnderlineMode(false) { LengthInBytes = 3 },
+                new EscPosCommands.SetReverseMode(true) { LengthInBytes = 3 },
+                new EscPosCommands.SetReverseMode(false) { LengthInBytes = 3 },
+                new EscPosCommands.SetReverseMode(true) { LengthInBytes = 3 }
             ],
             expectedViewElements:
             [
@@ -771,7 +766,7 @@ public static class EscPosScenarioData
         new(
             id: 230001,
             input: [Esc, 0x33, 0x40],
-            expectedRequestElements: [new EscPosElements.SetLineSpacing(0x40) { LengthInBytes = 3 }],
+            expectedRequestCommands: [new EscPosCommands.SetLineSpacing(0x40) { LengthInBytes = 3 }],
             expectedViewElements:
             [
                 ViewDebug("setLineSpacing", lengthInBytes: 3, parameters: LineSpacingParameters(0x40))
@@ -779,7 +774,7 @@ public static class EscPosScenarioData
         new(
             id: 230002,
             input: [Esc, 0x32],
-            expectedRequestElements: [new EscPosElements.ResetLineSpacing() { LengthInBytes = 2 }],
+            expectedRequestCommands: [new EscPosCommands.ResetLineSpacing() { LengthInBytes = 2 }],
             expectedViewElements:
             [
                 ViewDebug("resetLineSpacing", lengthInBytes: 2)
@@ -815,19 +810,18 @@ public static class EscPosScenarioData
 
     private static TheoryData<EscPosScenario> BuildCodePageScenarios(IReadOnlyList<CodePageVector> codePages)
     {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var scenarios = new TheoryData<EscPosScenario>();
         foreach (var vector in codePages)
         {
             var input = new List<byte>();
-            var expected = new List<DomainElements.Element>();
-            var expectedView = new List<ViewElementDto>();
+            var expected = new List<Command>();
+            var expectedView = new List<CanvasElementDto>();
             var currentY = 0;
 
             if (vector.Command.Length > 0)
             {
                 input.AddRange(vector.Command);
-                expected.Add(new EscPosElements.SetCodePage(vector.CodePage) { LengthInBytes = vector.Command.Length });
+                expected.Add(new EscPosCommands.SetCodePage(vector.CodePage) { LengthInBytes = vector.Command.Length });
                 expectedView.Add(ViewDebug(
                     "setCodePage",
                     lengthInBytes: vector.Command.Length,
@@ -841,8 +835,8 @@ public static class EscPosScenarioData
                 input.Add(Lf);
 
                 var normalized = vector.Encoding.GetString(bytes);
-                expected.Add(new EscPosElements.AppendText(bytes) { LengthInBytes = bytes.Length });
-                expected.Add(new EscPosElements.PrintAndLineFeed { LengthInBytes = 1 });
+                expected.Add(new EscPosCommands.AppendText(bytes) { LengthInBytes = bytes.Length });
+                expected.Add(new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 });
 
                 expectedView.Add(ViewAppend(normalized, lengthInBytes: bytes.Length));
                 expectedView.Add(ViewFlush(lengthInBytes: 1));
@@ -923,6 +917,12 @@ public static class EscPosScenarioData
         return Encoding.GetEncoding(codePage);
     }
 
+    private static bool RegisterEncodingProvider()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        return true;
+    }
+
     private sealed record CodePageVector(
         string CodePage,
         byte[] Command,
@@ -930,13 +930,13 @@ public static class EscPosScenarioData
         string Lowercase,
         Encoding Encoding);
 
-    // Default ESC/POS font A metrics and spacing, aligned with the converter defaults.
-    private const int DefaultFontWidth = EscPosViewConstants.FontAWidth;
-    private const int DefaultFontHeight = EscPosViewConstants.FontAHeight;
-    private const int DefaultLineSpacing = EscPosViewConstants.DefaultLineSpacing;
+    // Default ESC/POS font A metrics and spacing, aligned with renderer defaults.
+    private const int DefaultFontWidth = ProtocolFontConstants.EscPos.FontA.WidthInDots;
+    private const int DefaultFontHeight = ProtocolFontConstants.EscPos.FontA.HeightInDots;
+    private const int DefaultLineSpacing = ProtocolFontConstants.EscPos.DefaultLineSpacing;
     private const int DefaultLineHeight = DefaultFontHeight + DefaultLineSpacing;
 
-    private static ViewDebugElementDto ViewAppend(string text, int lengthInBytes)
+    private static CanvasDebugElementDto ViewAppend(string text, int lengthInBytes)
     {
         return ViewDebug(
             "appendToLineBuffer",
@@ -947,7 +947,7 @@ public static class EscPosScenarioData
             });
     }
 
-    private static ViewTextElementDto ViewText(
+    private static CanvasTextElementDto ViewText(
         string text,
         int x,
         int y,
@@ -955,54 +955,67 @@ public static class EscPosScenarioData
         int charScaleX = 1,
         int charScaleY = 1)
     {
-        return new ViewTextElementDto(
+        var element = new CanvasTextElementDto(
             text,
             x,
             y,
             text.Length * DefaultFontWidth * charScaleX,
             DefaultFontHeight * charScaleY,
-            Web.Contracts.Documents.Responses.View.Elements.ViewFontNames.EscPosA,
+            ProtocolFontConstants.EscPos.FontA.FontName,
             0,
             false,
             false,
-            false)
+            false,
+            CharScaleX: charScaleX,
+            CharScaleY: charScaleY);
+
+        return element with
         {
-            CharScaleX = charScaleX == 1 ? null : charScaleX,
-            CharScaleY = charScaleY == 1 ? null : charScaleY,
             LengthInBytes = lengthInBytes
         };
     }
 
-    private static ViewImageElementDto ViewImage(int width, int height, Media media, int lengthInBytes)
+    private static CanvasImageElementDto ViewImage(int width, int height, Media media, int lengthInBytes)
     {
-        return new ViewImageElementDto(
-            new ViewMediaDto(media.ContentType, media.Length, media.Sha256Checksum, media.Url),
+        var element = new CanvasImageElementDto(
+            new CanvasMediaDto(
+                media.ContentType,
+                ToMediaSize(media.Length),
+                media.Url,
+                media.FileName),
             0,
             0,
             width,
-            height)
+            height);
+
+        return element with
         {
             LengthInBytes = lengthInBytes
         };
     }
 
-    private static ViewDebugElementDto ViewDebug(
+    private static int ToMediaSize(long length)
+    {
+        return length > int.MaxValue ? int.MaxValue : (int)length;
+    }
+
+    private static CanvasDebugElementDto ViewDebug(
         string name,
         int lengthInBytes,
         IReadOnlyDictionary<string, string>? parameters = null)
     {
-        return new ViewDebugElementDto(name, parameters ?? new Dictionary<string, string>())
+        return new CanvasDebugElementDto(name, parameters ?? new Dictionary<string, string>())
         {
             LengthInBytes = lengthInBytes
         };
     }
 
-    private static ViewDebugElementDto ViewFlush(int lengthInBytes)
+    private static CanvasDebugElementDto ViewFlush(int lengthInBytes)
     {
         return ViewDebug("flushLineBufferAndFeed", lengthInBytes);
     }
 
-    private static IReadOnlyDictionary<string, string> PagecutParameters(DomainElements.PagecutMode mode, int? feedUnits)
+    private static IReadOnlyDictionary<string, string> PagecutParameters(EscPosCommands.PagecutMode mode, int? feedUnits)
     {
         return new Dictionary<string, string>
         {
@@ -1059,10 +1072,10 @@ public static class EscPosScenarioData
     private const string HebrewLetters = "אבגדהוזחטיךכלםמןנסעףפץצקרשת";
     private const string ArabicLetters = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي";
 
-    private static EscPosElements.AppendText CreateAppendText(string text, Encoding? encoding = null)
+    private static EscPosCommands.AppendText CreateAppendText(string text, Encoding? encoding = null)
     {
         encoding ??= Encoding.GetEncoding(437);
         var bytes = encoding.GetBytes(text);
-        return new EscPosElements.AppendText(bytes) { LengthInBytes = bytes.Length };
+        return new EscPosCommands.AppendText(bytes) { LengthInBytes = bytes.Length };
     }
 }

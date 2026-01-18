@@ -1,5 +1,5 @@
 using System.Runtime.InteropServices;
-using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printing;
 using Printify.Domain.Printers;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
@@ -32,11 +32,10 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
     private readonly IServiceScopeFactory? scopeFactory;
     private readonly Printer? printer;
     private readonly PrinterSettings? settings;
-    private readonly Action<Element> onElement;
+    private readonly Action<Command> onElement;
     private readonly Action<ReadOnlyMemory<byte>>? onResponse;
     private bool bufferOverflowEmitted;
     private CancellationToken currentCancellationToken;
-    private const int CommandRawMaxBytes = 64;
 
     /// <summary>
     /// Gets the service scope factory for resolving scoped services.
@@ -83,7 +82,7 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
         IServiceScopeFactory? scopeFactory,
         Printer? printer,
         PrinterSettings? settings,
-        Action<Element> onElement,
+        Action<Command> onElement,
         Action<ReadOnlyMemory<byte>>? onResponse)
     {
         TrieProvider = trieProvider;
@@ -275,6 +274,12 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
             EmitBufferForModeChange(oldMode, newMode);
         }
 
+        if (newMode == ParserMode.Command)
+        {
+            // Reset trie navigation to ensure each command starts from the root descriptor.
+            state.TrieNavigation.Reset();
+        }
+
         state.Mode = newMode;
     }
 
@@ -307,7 +312,7 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
     /// This is called after a successful parse but before emitting the element.
     /// Derived classes override to update protocol-specific state (encoding, label dimensions, etc.).
     /// </summary>
-    protected virtual void ModifyDeviceContext(Element element)
+    protected virtual void ModifyDeviceContext(Command element)
     {
         // Default implementation: no state modification
     }
@@ -316,7 +321,7 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
     /// Emits a parsed command from buffer and clears it.
     /// Derived classes can override to handle protocol-specific element processing.
     /// </summary>
-    protected virtual void EmitCommandElement(Element? element)
+    protected virtual void EmitCommandElement(Command? element)
     {
         if (element == null)
         {
@@ -328,7 +333,7 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
         var rawBytes = CollectionsMarshal.AsSpan(buffer);
         element = element with
         {
-            CommandRaw = BuildCommandRaw(rawBytes),
+            RawBytes = rawBytes.ToArray(),
             LengthInBytes = rawBytes.Length
         };
 
@@ -349,7 +354,7 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
 
         var element = new PrinterError($"Unrecognized {rawBytes.Length} bytes")
         {
-            CommandRaw = BuildCommandRaw(rawBytes),
+            RawBytes = rawBytes.ToArray(),
             LengthInBytes = rawBytes.Length
         };
         unrecognizedBuffer.Clear();
@@ -359,7 +364,7 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
     /// <summary>
     /// Emits an element to the callback.
     /// </summary>
-    protected void EmitElement(Element element, int lengthInBytes)
+    protected void EmitElement(Command element, int lengthInBytes)
     {
         // Check buffer overflow and emit PrinterError, if needed.
         if (!bufferOverflowEmitted &&
@@ -377,7 +382,7 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
                 bufferOverflowEmitted = true;
                 onElement.Invoke(new PrinterError("Buffer overflow")
                 {
-                    CommandRaw = string.Empty,
+                    RawBytes = Array.Empty<byte>(),
                     LengthInBytes = 0
                 });
             }
@@ -389,26 +394,9 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
     /// <summary>
     /// Derived classes can override to skip buffer overflow check for certain elements.
     /// </summary>
-    protected virtual bool ShouldSkipBufferOverflowCheck(Element element)
+    protected virtual bool ShouldSkipBufferOverflowCheck(Command element)
     {
         return element is ParseError or PrinterError;
-    }
-
-    /// <summary>
-    /// Builds a hex string representation of command bytes for debugging.
-    /// </summary>
-    protected static string BuildCommandRaw(ReadOnlySpan<byte> bytes)
-    {
-        if (bytes.IsEmpty)
-        {
-            return string.Empty;
-        }
-
-        var capped = bytes.Length > CommandRawMaxBytes
-            ? bytes[..CommandRawMaxBytes]
-            : bytes;
-
-        return Convert.ToHexString(capped);
     }
 
     /// <summary>

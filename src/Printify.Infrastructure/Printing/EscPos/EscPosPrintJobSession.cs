@@ -4,10 +4,11 @@ using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Core;
 using Printify.Domain.Documents;
-using Printify.Domain.Documents.Elements;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
+using Printify.Domain.Printing;
+using Printify.Infrastructure.Printing.EscPos.Parsers;
 
 namespace Printify.Infrastructure.Printing.EscPos;
 
@@ -26,7 +27,7 @@ public class EscPosPrintJobSession : PrintJobSession
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
   
-    private IList<Element> ElementBuffer => MutableElements;
+    private IList<Command> ElementBuffer => MutableElements;
     private readonly IClock idleClock;
     private readonly EscPosParser parser;
     private readonly IPrinterBufferCoordinator bufferCoordinator;
@@ -76,7 +77,7 @@ public class EscPosPrintJobSession : PrintJobSession
         return Task.CompletedTask;
     }
 
-    private void OnElement(Element element)
+    private void OnElement(Command element)
     {
         if (element.LengthInBytes > 0)
         {
@@ -117,20 +118,17 @@ public class EscPosPrintJobSession : PrintJobSession
 
 
         var snapshot = ElementBuffer.ToArray();
-        // Capture the printer dimensions so persisted documents reflect the exact rendering context.
         var document = new Document(
             Guid.NewGuid(),
             Job.Id,
             Printer.Id,
-            Document.CurrentVersion,
             DateTimeOffset.UtcNow,
             Settings.Protocol,
-            Settings.WidthInDots,
-            Settings.HeightInDots,
             Channel.ClientAddress,
             TotalBytesReceived,
             TotalBytesSentToClient,
-            snapshot);
+            snapshot,
+            null);
         SetDocument(document);
 
         return base.Complete(reason);

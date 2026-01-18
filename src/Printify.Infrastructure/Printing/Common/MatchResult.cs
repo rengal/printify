@@ -1,4 +1,4 @@
-using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printing;
 
 namespace Printify.Infrastructure.Printing.Common;
 
@@ -31,7 +31,7 @@ public readonly record struct MatchResult
     /// <summary>
     /// The parsed element (only set when Kind is Matched).
     /// </summary>
-    public Element? Element { get; }
+    public Command? Element { get; }
 
     /// <summary>
     /// Number of bytes consumed from the buffer (only set when Kind is Matched).
@@ -39,7 +39,7 @@ public readonly record struct MatchResult
     /// </summary>
     public int BytesConsumed { get; }
 
-    private MatchResult(MatchKind kind, Element? element, int bytesConsumed)
+    private MatchResult(MatchKind kind, Command? element, int bytesConsumed)
     {
         Kind = kind;
         Element = element;
@@ -50,7 +50,7 @@ public readonly record struct MatchResult
     /// Creates a successful match result with an element.
     /// The parser should use all available buffer for the command.
     /// </summary>
-    public static MatchResult Matched(Element element)
+    public static MatchResult Matched(Command element)
     {
         return new MatchResult(MatchKind.Matched, element, 0);
     }

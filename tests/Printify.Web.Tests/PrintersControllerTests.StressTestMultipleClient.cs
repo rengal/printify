@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using Printify.TestServices;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;

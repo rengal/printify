@@ -1,4 +1,4 @@
-using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Common;
 using System.Globalization;
 
@@ -38,7 +38,7 @@ public static class EplParsingHelpers
     public static MatchResult ParseCommaSeparatedArgs<T>(
         string content,
         string commandName,
-        Func<ArgsParser, T> resultFactory) where T : Element
+        Func<ArgsParser, T> resultFactory) where T : Command
     {
         var trimmed = content.TrimEnd('\n');
         var parts = trimmed.Split(',');
@@ -62,7 +62,7 @@ public static class EplParsingHelpers
     public static MatchResult ParseCommaSeparatedArgs(
         string content,
         string commandName,
-        Func<ArgsParser, Element> resultFactory)
+        Func<ArgsParser, Command> resultFactory)
     {
         var trimmed = content.TrimEnd('\n');
         var parts = trimmed.Split(',');
@@ -104,18 +104,18 @@ public static class EplParsingHelpers
 
     /// <summary>
     /// Creates a MatchResult for a successfully parsed element with command metadata.
-    /// Note: This requires the element to have CommandRaw and LengthInBytes as init-only properties.
+    /// Note: This requires the element to have RawBytes and LengthInBytes as init-only properties.
     /// </summary>
-    public static MatchResult Success(Element element, string commandRaw, int length)
+    public static MatchResult Success(Command element, ReadOnlySpan<byte> buffer, int length)
     {
         // Create a new element with the properties set via reflection (for init-only properties)
-        // This is needed because LengthInBytes is init-only
+        // This is needed because RawBytes and LengthInBytes are init-only
         var elementType = element.GetType();
-        var commandRawProperty = elementType.GetProperty(nameof(Element.CommandRaw));
-        var lengthInBytesProperty = elementType.GetProperty(nameof(Element.LengthInBytes));
+        var rawBytesProperty = elementType.GetProperty(nameof(Command.RawBytes));
+        var lengthInBytesProperty = elementType.GetProperty(nameof(Command.LengthInBytes));
 
-        if (commandRawProperty != null && commandRawProperty.CanWrite)
-            commandRawProperty.SetValue(element, commandRaw);
+        if (rawBytesProperty != null && rawBytesProperty.CanWrite)
+            rawBytesProperty.SetValue(element, buffer[..length].ToArray());
 
         if (lengthInBytesProperty != null && lengthInBytesProperty.CanWrite)
             lengthInBytesProperty.SetValue(element, length);
@@ -124,16 +124,6 @@ public static class EplParsingHelpers
             lengthInBytesProperty.SetMethod.Invoke(element, [length]);
 
         return MatchResult.Matched(element);
-    }
-
-    /// <summary>
-    /// Creates a MatchResult for a successfully parsed element with command metadata.
-    /// Converts the buffer to hex string.
-    /// </summary>
-    public static MatchResult Success(Element element, ReadOnlySpan<byte> buffer, int length)
-    {
-        var commandRaw = Convert.ToHexString(buffer[..length]);
-        return Success(element, commandRaw, length);
     }
 }
 

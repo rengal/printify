@@ -1,26 +1,20 @@
 using Mediator.Net.Contracts;
-using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printing;
 using Printify.Domain.Printers;
 
 namespace Printify.Domain.Documents;
 
 /// <summary>
-/// Represents a snapshot of a parsed document emitted when a print job completes.
+/// Protocol-agnostic document with parsed commands and metadata.
 /// </summary>
 public sealed record Document(
     Guid Id,
     Guid PrintJobId,
     Guid PrinterId,
-    int Version,
-    DateTimeOffset CreatedAt,
+    DateTimeOffset Timestamp,
     Protocol Protocol,
-    int WidthInDots,
-    int? HeightInDots,
     string? ClientAddress,
     int BytesReceived,
     int BytesSent,
-    IReadOnlyCollection<Element> Elements) : IResponse
-{
-    public const int CurrentVersion = 1;
-}
-
+    IReadOnlyList<Command> Commands,
+    string[]? ErrorMessages) : IResponse;

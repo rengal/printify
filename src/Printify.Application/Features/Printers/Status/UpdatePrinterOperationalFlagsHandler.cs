@@ -50,7 +50,7 @@ public sealed class UpdatePrinterOperationalFlagsHandler(
         var effectiveTargetState = existing?.TargetState ?? PrinterTargetState.Started;
         if (!string.IsNullOrWhiteSpace(request.TargetState))
         {
-            var desiredTargetState = Domain.Mapping.DomainMapper.ParsePrinterTargetState(request.TargetState);
+            var desiredTargetState = Enum.Parse<PrinterTargetState>(request.TargetState, ignoreCase: false);
             if (desiredTargetState != effectiveTargetState)
             {
                 if (desiredTargetState == PrinterTargetState.Started)

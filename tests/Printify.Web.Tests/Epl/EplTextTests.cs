@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Printify.Tests.Shared.Epl;
 
 namespace Printify.Web.Tests.Epl;

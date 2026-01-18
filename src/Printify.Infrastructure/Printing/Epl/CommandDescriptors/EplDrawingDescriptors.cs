@@ -1,6 +1,6 @@
-using Printify.Domain.Documents.Elements;
-using Printify.Domain.Documents.Elements.Epl;
+using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Common;
+using Printify.Infrastructure.Printing.Epl.Commands;
 using System.Text;
 
 namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
@@ -24,8 +24,6 @@ public sealed class ScalableTextDescriptor : ICommandDescriptor
 
         var length = newline + 1;
         var commandStr = Encoding.ASCII.GetString(buffer[..length]);
-        var commandRaw = Convert.ToHexString(buffer[..length]);
-
         // Find quote positions in the ASCII string for structure parsing
         var quoteStart = commandStr.IndexOf('"');
         if (quoteStart < 0)
@@ -66,7 +64,7 @@ public sealed class ScalableTextDescriptor : ICommandDescriptor
             var textBytes = buffer[(quoteStartByteIndex + 1)..quoteEndByteIndex].ToArray();
 
             var element = new ScalableText(x, y, rotation, font, hMul, vMul, reverse, textBytes);
-            return EplParsingHelpers.Success(element, commandRaw, length);
+            return EplParsingHelpers.Success(element, buffer, length);
         }
         catch (ParseException ex)
         {
@@ -104,8 +102,6 @@ public sealed class DrawHorizontalLineDescriptor : ICommandDescriptor
             return MatchResult.NeedMore();
 
         var length = newline + 1;
-        var commandRaw = Convert.ToHexString(buffer[..length]);
-
         return EplParsingHelpers.ParseCommaSeparatedArgs(
             System.Text.Encoding.ASCII.GetString(buffer[2..length]),
             "LO draw line",
@@ -116,7 +112,7 @@ public sealed class DrawHorizontalLineDescriptor : ICommandDescriptor
                 var thickness = p.GetInt(2, "thickness");
                 var lineLength = p.GetInt(3, "length");
                 return new DrawHorizontalLine(x, y, thickness, lineLength);
-            }).WithMetadata(commandRaw, length);
+            }).WithMetadata(buffer, length);
     }
 }
 
@@ -139,8 +135,6 @@ public sealed class PrintBarcodeDescriptor : ICommandDescriptor
 
         var length = newline + 1;
         var commandStr = System.Text.Encoding.ASCII.GetString(buffer[..length]);
-        var commandRaw = Convert.ToHexString(buffer[..length]);
-
         // Extract and unescape data between quotes first
         var quoteStart = commandStr.IndexOf('"');
         if (quoteStart < 0)
@@ -173,7 +167,7 @@ public sealed class PrintBarcodeDescriptor : ICommandDescriptor
             var hri = parser.GetChar(6, 'N');
 
             var element = new PrintBarcode(x, y, rotation, type, width, height, hri, data);
-            return EplParsingHelpers.Success(element, commandRaw, length);
+            return EplParsingHelpers.Success(element, buffer, length);
         }
         catch (ParseException ex)
         {
@@ -200,8 +194,6 @@ public sealed class DrawLineDescriptor : ICommandDescriptor
             return MatchResult.NeedMore();
 
         var length = newline + 1;
-        var commandRaw = Convert.ToHexString(buffer[..length]);
-
         return EplParsingHelpers.ParseCommaSeparatedArgs(
             System.Text.Encoding.ASCII.GetString(buffer[1..length]),
             "X draw line",
@@ -213,7 +205,7 @@ public sealed class DrawLineDescriptor : ICommandDescriptor
                 var x2 = p.GetInt(3, "x2");
                 var y2 = p.GetInt(4, "y2");
                 return new DrawLine(x1, y1, thickness, x2, y2);
-            }).WithMetadata(commandRaw, length);
+            }).WithMetadata(buffer, length);
     }
 }
 

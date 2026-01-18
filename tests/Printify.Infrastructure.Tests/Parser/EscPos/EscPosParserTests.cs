@@ -1,5 +1,6 @@
-using Printify.Domain.Documents.Elements;
+using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.EscPos;
+using Printify.Infrastructure.Printing.EscPos.Parsers;
 using Printify.Tests.Shared.Document;
 using System.Text;
 
@@ -16,7 +17,7 @@ public partial class EscPosParserTests(EscPosParserFixture fixture) : IClassFixt
 
     private void AssertScenario(EscPosScenario scenario)
     {
-        var elements = new List<Element>();
+        var elements = new List<Command>();
         var parser = new EscPosParser(trieProvider, elements.Add);
 
         // Send byte by byte
@@ -26,6 +27,6 @@ public partial class EscPosParserTests(EscPosParserFixture fixture) : IClassFixt
         }
 
         parser.Complete();
-        DocumentAssertions.Equal(scenario.ExpectedRequestElements, elements);
+        DocumentAssertions.Equal(scenario.ExpectedRequestCommands, elements);
     }
 }

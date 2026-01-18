@@ -1,5 +1,4 @@
-using Printify.Domain.Documents.Elements;
-using Printify.Domain.Documents.Elements.Epl;
+using Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Infrastructure.Printing.Common;
 using System.Globalization;
 
@@ -89,7 +88,7 @@ public sealed class PrintGraphicDescriptor : ICommandDescriptor
 
         var element = new PrintGraphic(x, y, width, height, graphicsData)
         {
-            CommandRaw = Convert.ToHexString(buffer[..totalLength]),
+            RawBytes = buffer[..totalLength].ToArray(),
             LengthInBytes = totalLength
         };
 

@@ -4,7 +4,7 @@ using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
-using Printify.Web.Contracts.Documents.Responses.View;
+using Printify.Web.Contracts.Documents.Responses.Canvas;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using PrinterRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterDto;
@@ -50,7 +50,7 @@ public sealed partial class PrintersControllerTests
         Assert.Null(clearedResponse!.Printer.LastDocumentReceivedAt);
     }
 
-    private static async Task<ViewDocumentDto> WaitForDocumentAsync(
+    private static async Task<CanvasDocumentDto> WaitForDocumentAsync(
         HttpClient client,
         Guid printerId,
         CancellationToken ct)
@@ -58,10 +58,10 @@ public sealed partial class PrintersControllerTests
         var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
         while (DateTimeOffset.UtcNow < deadline)
         {
-            var response = await client.GetAsync($"/api/printers/{printerId}/documents/view?limit=1", ct);
+            var response = await client.GetAsync($"/api/printers/{printerId}/documents/canvas?limit=1", ct);
             if (response.IsSuccessStatusCode)
             {
-                var list = await response.Content.ReadFromJsonAsync<ViewDocumentListResponseDto>(cancellationToken: ct);
+                var list = await response.Content.ReadFromJsonAsync<CanvasDocumentListResponseDto>(cancellationToken: ct);
                 var document = list?.Result.Items.FirstOrDefault();
                 if (document is not null)
                 {

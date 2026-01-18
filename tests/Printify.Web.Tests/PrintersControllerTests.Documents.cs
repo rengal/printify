@@ -5,7 +5,7 @@ using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
-using Printify.Web.Contracts.Documents.Responses.View;
+using Printify.Web.Contracts.Documents.Responses.Canvas;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using PrinterRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterDto;
@@ -25,7 +25,6 @@ public sealed partial class PrintersControllerTests
     [InlineData(100)]
     public async Task StartStopPrinter_DocumentsFlowAcrossRestarts(int iterations)
     {
-        return; //todo debugnow fix test
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
         await AuthHelper.CreateWorkspaceAndLogin(environment);
@@ -136,17 +135,17 @@ public sealed partial class PrintersControllerTests
         var document = documentStream.Current.Document;
 
         // Verify view endpoint returns the document
-        var response = await client.GetAsync($"/api/printers/{printerId}/documents/view?limit=10", ct);
+        var response = await client.GetAsync($"/api/printers/{printerId}/documents/canvas?limit=10", ct);
         response.EnsureSuccessStatusCode();
 
-        var viewDocumentList = await response.Content.ReadFromJsonAsync<ViewDocumentListResponseDto>(cancellationToken: ct);
+        var viewDocumentList = await response.Content.ReadFromJsonAsync<CanvasDocumentListResponseDto>(cancellationToken: ct);
         Assert.NotNull(viewDocumentList);
 
         var viewDocument = viewDocumentList.Result.Items.FirstOrDefault(doc => doc.Id == document.Id)
             ?? viewDocumentList.Result.Items.FirstOrDefault();
         Assert.NotNull(viewDocument);
 
-        Assert.Equal(expectedWidthInDots, viewDocument!.WidthInDots);
-        Assert.Equal(expectedHeightInDots, viewDocument.HeightInDots);
+        Assert.Equal(expectedWidthInDots, viewDocument!.Canvas.WidthInDots);
+        Assert.Equal(expectedHeightInDots, viewDocument.Canvas.HeightInDots);
     }
 }

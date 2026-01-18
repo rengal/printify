@@ -1,6 +1,6 @@
-using Printify.Domain.Documents.Elements;
-using Printify.Domain.Documents.Elements.Epl;
+using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Common;
+using Printify.Infrastructure.Printing.Epl.Commands;
 
 namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 

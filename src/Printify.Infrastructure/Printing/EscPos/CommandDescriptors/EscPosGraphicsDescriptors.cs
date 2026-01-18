@@ -1,8 +1,8 @@
-using Printify.Infrastructure.Printing.Common;
 using Printify.Application.Interfaces;
-using Printify.Domain.Documents.Elements;
-using Printify.Domain.Documents.Elements.EscPos;
+using Printify.Domain.Printing;
 using Printify.Domain.Media;
+using Printify.Infrastructure.Printing.Common;
+using Printify.Infrastructure.Printing.EscPos.Commands;
 using System.Text;
 
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
@@ -50,7 +50,7 @@ public sealed class QrCodeDescriptor : ICommandDescriptor
             return MatchResult.Matched(error);
         }
 
-        Element? element = fn switch
+        Command? element = fn switch
         {
             0x41 when payload.Length > 0 && TryGetQrModel(payload[0], out var model)
                 // GS ( k <Function 0x41> - QR Code: Select the model

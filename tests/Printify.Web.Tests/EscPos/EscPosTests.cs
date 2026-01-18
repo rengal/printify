@@ -1,16 +1,13 @@
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc.Testing;
-using ApplicationEvents = Printify.Application.Printing.Events;
-using DomainElements = Printify.Domain.Documents.Elements;
-using EscPosElements = Printify.Domain.Documents.Elements.EscPos;
+using EscPosCommands = Printify.Infrastructure.Printing.EscPos.Commands;
+using Printify.Domain.Printing;
 using Printify.Domain.Printers;
 using Printify.Tests.Shared.Document;
-using Printify.Tests.Shared.EscPos;
+using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
+using Printify.Web.Contracts.Documents.Responses.Canvas;
 using Printify.TestServices;
-using Printify.TestServices.Printing;
-using Printify.Web.Contracts.Documents.Responses.View;
-using Printify.Web.Contracts.Documents.Responses.View.Elements;
 
 namespace Printify.Web.Tests.EscPos;
 
@@ -60,7 +57,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory)
         clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(stepMs));
         await nextEventTask.WaitAsync(TimeSpan.FromMilliseconds(500));
 
-        var expectedElements = new List<DomainElements.Element> { new EscPosElements.Bell {LengthInBytes = 1} };
+        var expectedElements = new List<Command> { new EscPosCommands.Bell { LengthInBytes = 1 } };
 
         Assert.True(nextEventTask.Result);
         var documentEvent = streamEnumerator.Current;
@@ -74,28 +71,28 @@ public class EscPosTests(WebApplicationFactory<Program> factory)
 
         // Verify view endpoint works
         var ct = CancellationToken.None;
-        var viewResponse = await environment.Client.GetAsync($"/api/printers/{printerId}/documents/view?limit=10");
-        viewResponse.EnsureSuccessStatusCode();
-        var viewDocumentList = await viewResponse.Content.ReadFromJsonAsync<ViewDocumentListResponseDto>(cancellationToken: ct);
-        Assert.NotNull(viewDocumentList);
-        var viewDocuments = viewDocumentList.Result.Items;
+        var canvasResponse = await environment.Client.GetAsync($"/api/printers/{printerId}/documents/canvas?limit=10");
+        canvasResponse.EnsureSuccessStatusCode();
+        var canvasDocumentList = await canvasResponse.Content.ReadFromJsonAsync<CanvasDocumentListResponseDto>(cancellationToken: ct);
+        Assert.NotNull(canvasDocumentList);
+        var canvasDocuments = canvasDocumentList.Result.Items;
         var documentId = documentEvent.Document.Id;
-        var viewDocument = viewDocuments.FirstOrDefault(doc => doc.Id == documentId)
-            ?? viewDocuments.FirstOrDefault();
-        Assert.NotNull(viewDocument);
+        var canvasDocument = canvasDocuments.FirstOrDefault(doc => doc.Id == documentId)
+            ?? canvasDocuments.FirstOrDefault();
+        Assert.NotNull(canvasDocument);
 
-        DocumentAssertions.EqualView(
-            [],
+        DocumentAssertions.EqualCanvas(
+            [new CanvasDebugElementDto("bell") { LengthInBytes = 1 }],
             Protocol.EscPos,
-            viewDocument,
+            canvasDocument,
             DefaultPrinterWidthInDots,
             DefaultPrinterHeightInDots);
-        DocumentAssertions.EqualBytes(expectedElements.Sum(element => element.LengthInBytes), bytesSent, viewDocument);
+        DocumentAssertions.EqualBytes(expectedElements.Sum(element => element.LengthInBytes), bytesSent, canvasDocument);
 
         // Verify RasterImage elements have accessible Media URLs
-        foreach (var element in viewDocument.Elements)
+        foreach (var element in canvasDocument.Canvas.Items)
         {
-            if (element is ViewImageElementDto viewImage)
+            if (element is CanvasImageElementDto viewImage)
             {
                 Assert.False(string.IsNullOrWhiteSpace(viewImage.Media.Url));
 
@@ -111,17 +108,17 @@ public class EscPosTests(WebApplicationFactory<Program> factory)
 
                 var responseLength = mediaResponse.Content.Headers.ContentLength;
                 Assert.NotNull(responseLength);
-                Assert.Equal(viewImage.Media.Length, responseLength.Value);
+                Assert.Equal(viewImage.Media.Size, responseLength.Value);
 
                 var payload = await mediaResponse.Content.ReadAsByteArrayAsync();
                 Assert.Equal(responseLength.Value, payload.LongLength);
-                Assert.Equal(viewImage.Media.Length, payload.LongLength);
+                Assert.Equal(viewImage.Media.Size, payload.LongLength);
 
                 // Verify SHA-256 checksum is valid
-                if (!string.IsNullOrWhiteSpace(viewImage.Media.Sha256))
+                if (!string.IsNullOrWhiteSpace(viewImage.Media.StorageKey))
                 {
                     var computedChecksum = Convert.ToHexString(SHA256.HashData(payload)).ToLowerInvariant();
-                    Assert.Equal(viewImage.Media.Sha256, computedChecksum);
+                    Assert.Equal(viewImage.Media.StorageKey, computedChecksum);
 
                     var eTag = mediaResponse.Headers.ETag?.Tag;
                     Assert.NotNull(eTag);

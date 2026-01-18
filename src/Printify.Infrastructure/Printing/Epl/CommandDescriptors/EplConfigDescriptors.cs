@@ -1,6 +1,6 @@
-using Printify.Domain.Documents.Elements;
-using Printify.Domain.Documents.Elements.Epl;
+using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Common;
+using Printify.Infrastructure.Printing.Epl.Commands;
 
 namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 
@@ -52,8 +52,6 @@ public sealed class SetLabelHeightDescriptor : ICommandDescriptor
             return MatchResult.NeedMore();
 
         var length = newline + 1;
-        var commandRaw = Convert.ToHexString(buffer[..length]);
-
         return EplParsingHelpers.ParseCommaSeparatedArgs(
             System.Text.Encoding.ASCII.GetString(buffer[1..length]),
             "Q height",
@@ -63,7 +61,7 @@ public sealed class SetLabelHeightDescriptor : ICommandDescriptor
                 var param2 = p.GetIntOrDefault(1, 0);
 
                 return new SetLabelHeight(height, param2);
-            }).WithMetadata(commandRaw, length);
+            }).WithMetadata(buffer, length);
     }
 }
 
@@ -150,13 +148,23 @@ public sealed class SetPrintDirectionDescriptor : ICommandDescriptor
             return MatchResult.NeedMore();
 
         var direction = (char)buffer[1];
-        if (direction is 'T' or 'B' or 't' or 'b')
+        PrintDirection printDirection;
+        switch (direction)
         {
-            var element = new SetPrintDirection(char.ToUpper(direction));
-            return EplParsingHelpers.Success(element, buffer, length);
+            case 'T':
+            case 't':
+                printDirection = PrintDirection.TopToBottom;
+                break;
+            case 'B':
+            case 'b':
+                printDirection = PrintDirection.BottomToTop;
+                break;
+            default:
+                return MatchResult.Matched(new PrinterError($"Invalid Z direction: '{direction}' (expected 'T' or 'B')"));
         }
 
-        return MatchResult.Matched(new PrinterError($"Invalid Z direction: '{direction}' (expected 'T' or 'B')"));
+        var element = new SetPrintDirection(printDirection);
+        return EplParsingHelpers.Success(element, buffer, length);
     }
 }
 
@@ -209,8 +217,6 @@ public sealed class SetCodePageDescriptor : ICommandDescriptor
             return MatchResult.NeedMore();
 
         var length = newline + 1;
-        var commandRaw = Convert.ToHexString(buffer[..length]);
-
         return EplParsingHelpers.ParseCommaSeparatedArgs(
             System.Text.Encoding.ASCII.GetString(buffer[1..length]),
             "i codepage",
@@ -221,7 +227,7 @@ public sealed class SetCodePageDescriptor : ICommandDescriptor
 
                 // Note: Encoding updates are now handled in EplParser.ModifyDeviceContext()
                 return new SetCodePage(code, scaling);
-            }).WithMetadata(commandRaw, length);
+            }).WithMetadata(buffer, length);
     }
 }
 
@@ -230,11 +236,11 @@ public sealed class SetCodePageDescriptor : ICommandDescriptor
 /// </summary>
 internal static class MatchResultExtensions
 {
-    public static MatchResult WithMetadata(this MatchResult result, string commandRaw, int length)
+    public static MatchResult WithMetadata(this MatchResult result, ReadOnlySpan<byte> buffer, int length)
     {
-        if (result.Kind == MatchKind.Matched && result.Element is Element element)
+        if (result.Kind == MatchKind.Matched && result.Element is Command element)
         {
-            return EplParsingHelpers.Success(element, commandRaw, length);
+            return EplParsingHelpers.Success(element, buffer, length);
         }
         return result;
     }

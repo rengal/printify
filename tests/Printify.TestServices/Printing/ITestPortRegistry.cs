@@ -1,4 +1,4 @@
-﻿namespace Printify.TestServices.Printing;
+namespace Printify.TestServices.Printing;
 
 public interface ITestPortRegistry
 {

@@ -3,12 +3,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Documents;
-using Printify.Domain.Documents.Elements;
-using Printify.Domain.Documents.Elements.EscPos;
+using Printify.Domain.Printing;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Services;
 using Printify.Infrastructure.Cryptography;
+using Printify.Infrastructure.Printing.EscPos;
+using Printify.Infrastructure.Printing.EscPos.Commands;
 
 namespace Printify.Infrastructure.Printing;
 
@@ -85,12 +86,12 @@ public sealed class PrintJobSessionsOrchestrator(
             var documentRepository = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
             var printerRepository = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
             await documentRepository.AddAsync(finalizedDocument, ct).ConfigureAwait(false);
-            await printerRepository.SetLastDocumentReceivedAtAsync(finalizedDocument.PrinterId, finalizedDocument.CreatedAt, ct)
+            await printerRepository.SetLastDocumentReceivedAtAsync(finalizedDocument.PrinterId, finalizedDocument.Timestamp, ct)
                 .ConfigureAwait(false);
             // Update cash drawers status, if needed
             var drawerUpdate = await TryUpdateDrawerStateFromElementsAsync(
                 channel.Printer,
-                finalizedDocument.Elements,
+                finalizedDocument.Commands,
                 ct).ConfigureAwait(false);
             if (drawerUpdate is not null)
             {
@@ -117,10 +118,10 @@ public sealed class PrintJobSessionsOrchestrator(
         var mediaStorage = services.GetRequiredService<IMediaStorage>();
         var documentRepository = services.GetRequiredService<IDocumentRepository>();
         var printerRepository = services.GetRequiredService<IPrinterRepository>();
-        var mediaService = services.GetRequiredService<IMediaService>();
-        var sourceElements = document.Elements;
+        var barcodeService = services.GetRequiredService<IEscPosBarcodeService>();
+        var sourceElements = document.Commands;
         var changed = false;
-        var resultElements = new List<Element>(sourceElements.Count);
+        var resultCommands = new List<Command>(sourceElements.Count);
 
         var printer = await printerRepository.GetByIdAsync(document.PrinterId, ct).ConfigureAwait(false);
         var settings = printer is null
@@ -149,7 +150,7 @@ public sealed class PrintJobSessionsOrchestrator(
                     case PrintQrCodeUpload when string.IsNullOrEmpty(qrState.Payload):
                         continue;
                     case PrintQrCodeUpload:
-                        imageUpload = mediaService.GenerateQrMedia(new QrRenderOptions(
+                        imageUpload = barcodeService.GenerateQrMedia(new QrRenderOptions(
                             qrState.Payload,
                             qrState.Model,
                             qrState.ModuleSizeInDots,
@@ -160,7 +161,7 @@ public sealed class PrintJobSessionsOrchestrator(
                     case PrintBarcodeUpload barcodeUpload when string.IsNullOrEmpty(barcodeUpload.Data):
                         continue;
                     case PrintBarcodeUpload barcodeUpload:
-                        imageUpload = mediaService.GenerateBarcodeMedia(
+                        imageUpload = barcodeService.GenerateBarcodeMedia(
                             barcodeUpload,
                             new BarcodeRenderOptions(
                                 barcodeState.HeightInDots,
@@ -194,9 +195,9 @@ public sealed class PrintJobSessionsOrchestrator(
                 {
                     case RasterImageUpload:
                         // Preserve the original command bytes for downstream diagnostics.
-                        resultElements.Add(new RasterImage(imageUpload.Width, imageUpload.Height, savedMedia)
+                resultCommands.Add(new RasterImage(imageUpload.Width, imageUpload.Height, savedMedia)
                         {
-                            CommandRaw = sourceElement.CommandRaw,
+                            RawBytes = sourceElement.RawBytes,
                             LengthInBytes = sourceElement.LengthInBytes
                         });
                         break;
@@ -204,21 +205,21 @@ public sealed class PrintJobSessionsOrchestrator(
                         if (!string.IsNullOrEmpty(qrState.Payload))
                         {
                             // Preserve the original command bytes for downstream diagnostics.
-                            resultElements.Add(new PrintQrCode(qrState.Payload, imageUpload.Width, imageUpload.Height,
+                        resultCommands.Add(new PrintQrCode(qrState.Payload, imageUpload.Width, imageUpload.Height,
                                 savedMedia)
                             {
-                                CommandRaw = sourceElement.CommandRaw,
+                                RawBytes = sourceElement.RawBytes,
                                 LengthInBytes = sourceElement.LengthInBytes
                             });
                         }
                         break;
                     case PrintBarcodeUpload barcodeUpload:
                         // Preserve the original command bytes for downstream diagnostics.
-                        resultElements.Add(new PrintBarcode(barcodeUpload.Symbology, barcodeUpload.Data,
+                        resultCommands.Add(new PrintBarcode(barcodeUpload.Symbology, barcodeUpload.Data,
                             imageUpload.Width, imageUpload.Height,
                             savedMedia)
                         {
-                            CommandRaw = sourceElement.CommandRaw,
+                            RawBytes = sourceElement.RawBytes,
                             LengthInBytes = sourceElement.LengthInBytes
                         });
                         break;
@@ -245,11 +246,11 @@ public sealed class PrintJobSessionsOrchestrator(
             else if (sourceElement is SetJustification justificationElement)
                 justification = justificationElement.Justification;
 
-            resultElements.Add(sourceElement);
+            resultCommands.Add(sourceElement);
         }
 
         return changed
-            ? document with { Elements = resultElements.AsReadOnly() }
+            ? document with { Commands = resultCommands.AsReadOnly() }
             : document;
     }
 
@@ -269,7 +270,7 @@ public sealed class PrintJobSessionsOrchestrator(
     /// </summary>
     private static Task<PrinterStatusUpdate?> TryUpdateDrawerStateFromElementsAsync(
         Printer printer,
-        IReadOnlyCollection<Element> elements,
+        IReadOnlyCollection<Command> elements,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -295,7 +296,7 @@ public sealed class PrintJobSessionsOrchestrator(
     }
 
     private static (DrawerState? Drawer1State, DrawerState? Drawer2State) GetDrawerStateUpdates(
-        IReadOnlyCollection<Element> elements)
+        IReadOnlyCollection<Command> elements)
     {
         DrawerState? drawer1 = null;
         DrawerState? drawer2 = null;

@@ -1,5 +1,5 @@
-using Printify.Domain.Documents.Elements;
-using Printify.Web.Contracts.Documents.Responses.View.Elements;
+using Printify.Domain.Printing;
+using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
 
 namespace Printify.Tests.Shared;
 
@@ -10,9 +10,9 @@ public interface ITestScenario
 {
     int Id { get; }
     byte[] Input { get; }
-    IReadOnlyList<Element> ExpectedRequestElements { get; }
-    IReadOnlyList<Element>? ExpectedPersistedElements { get; }
-    IReadOnlyList<ViewElementDto> ExpectedViewElements { get; }
+    IReadOnlyList<Command> ExpectedRequestCommands { get; }
+    IReadOnlyList<Command>? ExpectedPersistedCommands { get; }
+    IReadOnlyList<CanvasElementDto> ExpectedCanvasElements { get; }
 
     // Override ToString to show scenario ID in test results
     string ToString();

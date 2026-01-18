@@ -1,6 +1,7 @@
+using Printify.Application.Features.Printers.Documents.Canvas;
 using Printify.Domain.Documents;
 using Printify.Domain.Printers;
-using Printify.Infrastructure.Printing.EscPos;
+using Printify.Infrastructure.Printing.EscPos.Renderers;
 using Printify.Tests.Shared.Document;
 using Printify.Tests.Shared.EscPos;
 
@@ -15,32 +16,31 @@ public sealed class EscPosViewDocumentConverterTests
     [MemberData(nameof(EscPosScenarioData.AllScenarios), MemberType = typeof(EscPosScenarioData))]
     public void EscPos_ViewConverter_Scenarios_ProduceExpectedView(EscPosScenario scenario)
     {
-        var elements = scenario.ExpectedPersistedElements ?? scenario.ExpectedRequestElements;
+        var elements = scenario.ExpectedPersistedCommands ?? scenario.ExpectedRequestCommands;
         var document = new Document(
             Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
-            Document.CurrentVersion,
             DateTimeOffset.UtcNow,
             Protocol.EscPos,
-            DefaultPrinterWidthInDots,
-            DefaultPrinterHeightInDots,
             null,
             0,
             0,
-            elements);
+            elements,
+            null);
 
-        var converter = new EscPosViewDocumentConverter();
-        var viewDocument = converter.ToViewDocument(document);
+        var renderer = new EscPosRenderer();
+        var canvas = renderer.Render(document);
+        var canvasDocument = RenderedDocument.From(document, canvas);
 
         try
         {
             DocumentAssertions.EqualView(
-                scenario.ExpectedViewElements,
+                scenario.ExpectedCanvasElements,
                 Protocol.EscPos,
-                viewDocument,
-                DefaultPrinterWidthInDots,
-                DefaultPrinterHeightInDots);
+                canvasDocument,
+                canvas.WidthInDots,
+                canvas.HeightInDots);
         }
         catch (Exception e)
         {

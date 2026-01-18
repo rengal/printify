@@ -81,6 +81,12 @@ public sealed class TestClock : IClock
         }
 
         var target = elapsed + (long)delay.TotalMilliseconds;
+        if (target <= elapsed)
+        {
+            // Complete immediately when the clock has already advanced past the target.
+            return Task.CompletedTask;
+        }
+
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (ct.CanBeCanceled)
         {

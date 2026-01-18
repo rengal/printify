@@ -1,7 +1,10 @@
 using System.Text;
-using Printify.Domain.Documents.Elements;
-using Printify.Domain.Documents.Elements.Epl;
-using Printify.Web.Contracts.Documents.Responses.View.Elements;
+using Printify.Domain.Layout.Primitives;
+using Printify.Domain.Printing;
+using Printify.Domain.Printing.Constants;
+using Printify.Infrastructure.Printing.Epl.Commands;
+using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
+using Printify.Web.Mapping;
 using Xunit;
 
 namespace Printify.Tests.Shared.Epl;
@@ -11,20 +14,17 @@ namespace Printify.Tests.Shared.Epl;
 /// </summary>
 public static class EplScenarioData
 {
-    static EplScenarioData()
-    {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-    }
+    private static readonly bool EncodingProviderRegistered = RegisterEncodingProvider();
 
     public static TheoryData<EplScenario> ClearBufferScenarios { get; } =
     [
         new(
             id: 1001,
             input: "N\n"u8.ToArray(),
-            expectedRequestElements: [new ClearBuffer { LengthInBytes = 2 }],
-            expectedViewElements:
+            expectedRequestCommands: [new ClearBuffer { LengthInBytes = 2 }],
+            expectedCanvasElements:
             [
-                ViewDebug("clearBuffer", lengthInBytes: 2)
+                DebugElement("clearBuffer", lengthInBytes: 2)
             ])
     ];
 
@@ -33,66 +33,66 @@ public static class EplScenarioData
         new(
             id: 2001,
             input: "q500\n"u8.ToArray(),
-            expectedRequestElements: [new SetLabelWidth(500) { LengthInBytes = 5 }],
-            expectedViewElements:
+            expectedRequestCommands: [new SetLabelWidth(500) { LengthInBytes = 5 }],
+            expectedCanvasElements:
             [
-                ViewDebug("setLabelWidth", lengthInBytes: 5, parameters: new Dictionary<string, string> { ["Width"] = "500" })
+                DebugElement("setLabelWidth", lengthInBytes: 5, parameters: new Dictionary<string, string> { ["Width"] = "500" })
             ]),
         new(
             id: 2002,
             input: "Q300,26\n"u8.ToArray(),
-            expectedRequestElements: [new SetLabelHeight(300, 26) { LengthInBytes = 8 }],
-            expectedViewElements:
+            expectedRequestCommands: [new SetLabelHeight(300, 26) { LengthInBytes = 8 }],
+            expectedCanvasElements:
             [
-                ViewDebug("setLabelHeight", lengthInBytes: 8, parameters: new Dictionary<string, string> { ["Height"] = "300", ["SecondParameter"] = "26" })
+                DebugElement("setLabelHeight", lengthInBytes: 8, parameters: new Dictionary<string, string> { ["Height"] = "300", ["SecondParameter"] = "26" })
             ]),
         new(
             id: 2003,
             input: "R3\n"u8.ToArray(),
-            expectedRequestElements: [new SetPrintSpeed(3) { LengthInBytes = 3 }],
-            expectedViewElements:
+            expectedRequestCommands: [new SetPrintSpeed(3) { LengthInBytes = 3 }],
+            expectedCanvasElements:
             [
-                ViewDebug("setPrintSpeed", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Speed"] = "3" })
+                DebugElement("setPrintSpeed", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Speed"] = "3" })
             ]),
         new(
             id: 2004,
             input: "S10\n"u8.ToArray(),
-            expectedRequestElements: [new SetPrintDarkness(10) { LengthInBytes = 4 }],
-            expectedViewElements:
+            expectedRequestCommands: [new SetPrintDarkness(10) { LengthInBytes = 4 }],
+            expectedCanvasElements:
             [
-                ViewDebug("setPrintDarkness", lengthInBytes: 4, parameters: new Dictionary<string, string> { ["Darkness"] = "10" })
+                DebugElement("setPrintDarkness", lengthInBytes: 4, parameters: new Dictionary<string, string> { ["Darkness"] = "10" })
             ]),
         new(
             id: 2005,
             input: "ZT\n"u8.ToArray(),
-            expectedRequestElements: [new SetPrintDirection('T') { LengthInBytes = 3 }],
-            expectedViewElements:
+            expectedRequestCommands: [new SetPrintDirection(PrintDirection.TopToBottom) { LengthInBytes = 3 }],
+            expectedCanvasElements:
             [
-                ViewDebug("setPrintDirection", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Direction"] = "T" })
+                DebugElement("setPrintDirection", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Direction"] = "TopToBottom" })
             ]),
         new(
             id: 2006,
             input: "ZB\n"u8.ToArray(),
-            expectedRequestElements: [new SetPrintDirection('B') { LengthInBytes = 3 }],
-            expectedViewElements:
+            expectedRequestCommands: [new SetPrintDirection(PrintDirection.BottomToTop) { LengthInBytes = 3 }],
+            expectedCanvasElements:
             [
-                ViewDebug("setPrintDirection", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Direction"] = "B" })
+                DebugElement("setPrintDirection", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Direction"] = "BottomToTop" })
             ]),
         new(
             id: 2007,
             input: "I8\n"u8.ToArray(),
-            expectedRequestElements: [new SetInternationalCharacter(8) { LengthInBytes = 3 }],
-            expectedViewElements:
+            expectedRequestCommands: [new SetInternationalCharacter(8) { LengthInBytes = 3 }],
+            expectedCanvasElements:
             [
-                ViewDebug("setInternationalCharacter", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Code"] = "8" })
+                DebugElement("setInternationalCharacter", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Code"] = "8" })
             ]),
         new(
             id: 2008,
             input: "i8,0\n"u8.ToArray(),
-            expectedRequestElements: [new SetCodePage(8, 0) { LengthInBytes = 5 }],
-            expectedViewElements:
+            expectedRequestCommands: [new SetCodePage(8, 0) { LengthInBytes = 5 }],
+            expectedCanvasElements:
             [
-                ViewDebug("setCodePage", lengthInBytes: 5, parameters: new Dictionary<string, string> { ["Code"] = "8", ["Scaling"] = "0" })
+                DebugElement("setCodePage", lengthInBytes: 5, parameters: new Dictionary<string, string> { ["Code"] = "8", ["Scaling"] = "0" })
             ])
     ];
 
@@ -101,10 +101,22 @@ public static class EplScenarioData
         new(
             id: 3001,
             input: "A10,20,0,2,1,1,N,\"Hello\"\n"u8.ToArray(),
-            expectedRequestElements: [CreateScalableText(10, 20, 0, 2, 1, 1, 'N', "Hello")],
-            expectedViewElements:
+            expectedRequestCommands:
             [
-                ViewDebug("scalableText", lengthInBytes: 25, parameters: new Dictionary<string, string>
+                CreateScalableTextCommand(
+                    10,
+                    20,
+                    0,
+                    2,
+                    1,
+                    1,
+                    'N',
+                    "Hello",
+                    lengthInBytes: "A10,20,0,2,1,1,N,\"Hello\"\n"u8.Length)
+            ],
+            expectedCanvasElements:
+            [
+                DebugElement("scalableText", lengthInBytes: 25, parameters: new Dictionary<string, string>
                 {
                     ["X"] = "10",
                     ["Y"] = "20",
@@ -114,15 +126,28 @@ public static class EplScenarioData
                     ["VerticalMultiplication"] = "1",
                     ["Reverse"] = "N",
                     ["Text"] = "Hello"
-                })
+                }),
+                TextElement("Hello", x: 10, y: 20, width: ProtocolFontConstants.Epl.Font2.BaseWidthInDots, height: ProtocolFontConstants.Epl.Font2.BaseHeightInDots, fontName: ProtocolFontConstants.Epl.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
             ]),
         new(
             id: 3002,
             input: "A50,100,1,3,2,2,R,\"World\"\n"u8.ToArray(),
-            expectedRequestElements: [CreateScalableText(50, 100, 1, 3, 2, 2, 'R', "World")],
-            expectedViewElements:
+            expectedRequestCommands:
             [
-                ViewDebug("scalableText", lengthInBytes: 26, parameters: new Dictionary<string, string>
+                CreateScalableTextCommand(
+                    50,
+                    100,
+                    1,
+                    3,
+                    2,
+                    2,
+                    'R',
+                    "World",
+                    lengthInBytes: "A50,100,1,3,2,2,R,\"World\"\n"u8.Length)
+            ],
+            expectedCanvasElements:
+            [
+                DebugElement("scalableText", lengthInBytes: 26, parameters: new Dictionary<string, string>
                 {
                     ["X"] = "50",
                     ["Y"] = "100",
@@ -132,15 +157,32 @@ public static class EplScenarioData
                     ["VerticalMultiplication"] = "2",
                     ["Reverse"] = "R",
                     ["Text"] = "World"
-                })
+                }),
+                // Font 3, scale 2x2: base 24x24, scaled 48x48, rotated (90°) = 48x48
+                TextElement("World", x: 50, y: 100,
+                    width: ProtocolFontConstants.Epl.Font3.BaseWidthInDots * 2, height: ProtocolFontConstants.Epl.Font3.BaseHeightInDots * 2,
+                    fontName: ProtocolFontConstants.Epl.Font3.FontName, charScaleX: 2, charScaleY: 2,
+                    rotation: Rotation.Rotate90, isReverse: true)
             ]),
         new(
             id: 3003,
             input: "A0,0,0,4,3,3,N,\"Test123\"\n"u8.ToArray(),
-            expectedRequestElements: [CreateScalableText(0, 0, 0, 4, 3, 3, 'N', "Test123")],
-            expectedViewElements:
+            expectedRequestCommands:
             [
-                ViewDebug("scalableText", lengthInBytes: 25, parameters: new Dictionary<string, string>
+                CreateScalableTextCommand(
+                    0,
+                    0,
+                    0,
+                    4,
+                    3,
+                    3,
+                    'N',
+                    "Test123",
+                    lengthInBytes: "A0,0,0,4,3,3,N,\"Test123\"\n"u8.Length)
+            ],
+            expectedCanvasElements:
+            [
+                DebugElement("scalableText", lengthInBytes: 25, parameters: new Dictionary<string, string>
                 {
                     ["X"] = "0",
                     ["Y"] = "0",
@@ -150,7 +192,9 @@ public static class EplScenarioData
                     ["VerticalMultiplication"] = "3",
                     ["Reverse"] = "N",
                     ["Text"] = "Test123"
-                })
+                }),
+                // Font 4, scale 3x3: base 24x24, scaled 72x72
+                TextElement("Test123", x: 0, y: 0, width: ProtocolFontConstants.Epl.Font4.BaseWidthInDots * 3, height: ProtocolFontConstants.Epl.Font4.BaseHeightInDots * 3, fontName: ProtocolFontConstants.Epl.Font4.FontName, charScaleX: 3, charScaleY: 3, rotation: 0, isReverse: false)
             ])
     ];
 
@@ -159,10 +203,10 @@ public static class EplScenarioData
         new(
             id: 4001,
             input: "B10,50,0,E30,2,100,B,\"123456789012\"\n"u8.ToArray(),
-            expectedRequestElements: [new PrintBarcode(10, 50, 0, "E30", 2, 100, 'B', "123456789012") { LengthInBytes = 36 }],
-            expectedViewElements:
+            expectedRequestCommands: [new PrintBarcode(10, 50, 0, "E30", 2, 100, 'B', "123456789012") { LengthInBytes = 36 }],
+            expectedCanvasElements:
             [
-                ViewDebug("printBarcode", lengthInBytes: 36, parameters: new Dictionary<string, string>
+                DebugElement("printBarcode", lengthInBytes: 36, parameters: new Dictionary<string, string>
                 {
                     ["X"] = "10",
                     ["Y"] = "50",
@@ -172,15 +216,16 @@ public static class EplScenarioData
                     ["Height"] = "100",
                     ["Hri"] = "B",
                     ["Data"] = "123456789012"
-                })
+                }),
+                ImageElement(x: 10, y: 50, width: 2, height: 100, rotation: 0, contentType: "image/barcode")
             ]),
         new(
             id: 4002,
             input: "B20,80,1,2A,3,120,N,\"ABC123\"\n"u8.ToArray(),
-            expectedRequestElements: [new PrintBarcode(20, 80, 1, "2A", 3, 120, 'N', "ABC123") { LengthInBytes = 29 }],
-            expectedViewElements:
+            expectedRequestCommands: [new PrintBarcode(20, 80, 1, "2A", 3, 120, 'N', "ABC123") { LengthInBytes = 29 }],
+            expectedCanvasElements:
             [
-                ViewDebug("printBarcode", lengthInBytes: 29, parameters: new Dictionary<string, string>
+                DebugElement("printBarcode", lengthInBytes: 29, parameters: new Dictionary<string, string>
                 {
                     ["X"] = "20",
                     ["Y"] = "80",
@@ -190,7 +235,9 @@ public static class EplScenarioData
                     ["Height"] = "120",
                     ["Hri"] = "N",
                     ["Data"] = "ABC123"
-                })
+                }),
+                // rotation=1 means 90° clockwise: width/height swap expected
+                ImageElement(x: 20, y: 80, width: 120, height: 3, rotation: Rotation.Rotate90, contentType: "image/barcode")
             ])
     ];
 
@@ -205,31 +252,37 @@ public static class EplScenarioData
         new(
             id: 6001,
             input: "LO10,20,2,100\n"u8.ToArray(),
-            expectedRequestElements: [new DrawHorizontalLine(10, 20, 2, 100) { LengthInBytes = 14 }],
-            expectedViewElements:
+            expectedRequestCommands: [new DrawHorizontalLine(10, 20, 2, 100) { LengthInBytes = 14 }],
+            expectedCanvasElements:
             [
-                ViewDebug("drawHorizontalLine", lengthInBytes: 14, parameters: new Dictionary<string, string>
+                DebugElement("drawHorizontalLine", lengthInBytes: 14, parameters: new Dictionary<string, string>
                 {
                     ["X"] = "10",
                     ["Y"] = "20",
                     ["Thickness"] = "2",
                     ["Length"] = "100"
-                })
+                }),
+                // Horizontal lines represented as empty text element with line dimensions
+                TextElement("", x: 10, y: 20, width: 100, height: 2)
             ]),
         new(
             id: 6002,
             input: "X5,10,1,200,50\n"u8.ToArray(),
-            expectedRequestElements: [new DrawLine(5, 10, 1, 200, 50) { LengthInBytes = 15 }],
-            expectedViewElements:
+            expectedRequestCommands: [new DrawLine(5, 10, 1, 200, 50) { LengthInBytes = 15 }],
+            expectedCanvasElements:
             [
-                ViewDebug("drawLine", lengthInBytes: 15, parameters: new Dictionary<string, string>
+                DebugElement("drawLine", lengthInBytes: 15, parameters: new Dictionary<string, string>
                 {
                     ["X1"] = "5",
                     ["Y1"] = "10",
                     ["Thickness"] = "1",
                     ["X2"] = "200",
                     ["Y2"] = "50"
-                })
+                }),
+                // Lines represented as empty text element with bounding box dimensions
+                // Bounding box: x=min(5,200)=5, y=min(10,50)=10, width=195, height=40
+                // width = max(|200-5|, thickness=1) = 195, height = max(|50-10|, thickness=1) = 40
+                TextElement("", x: 5, y: 10, width: 195, height: 40)
             ])
     ];
 
@@ -238,18 +291,18 @@ public static class EplScenarioData
         new(
             id: 7001,
             input: "P1\n"u8.ToArray(),
-            expectedRequestElements: [new Print(1) { LengthInBytes = 3 }],
-            expectedViewElements:
+            expectedRequestCommands: [new Print(1) { LengthInBytes = 3 }],
+            expectedCanvasElements:
             [
-                ViewDebug("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" })
+                DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" })
             ]),
         new(
             id: 7002,
             input: "P5\n"u8.ToArray(),
-            expectedRequestElements: [new Print(5) { LengthInBytes = 3 }],
-            expectedViewElements:
+            expectedRequestCommands: [new Print(5) { LengthInBytes = 3 }],
+            expectedCanvasElements:
             [
-                ViewDebug("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "5" })
+                DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "5" })
             ])
     ];
 
@@ -258,10 +311,10 @@ public static class EplScenarioData
         new(
             id: 8001,
             input: "\x00\x01\x02"u8.ToArray(),
-            expectedRequestElements: [new PrinterError("") { LengthInBytes = 3 }],
-            expectedViewElements:
+            expectedRequestCommands: [new PrinterError("") { LengthInBytes = 3 }],
+            expectedCanvasElements:
             [
-                ViewDebug("printerError", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Message"] = "" })
+                DebugElement("printerError", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Message"] = "" })
             ])
     ];
 
@@ -290,18 +343,66 @@ public static class EplScenarioData
         }
     }
 
-    private static ViewDebugElementDto ViewDebug(
+    private static CanvasDebugElementDto DebugElement(
         string name,
         int lengthInBytes,
         IReadOnlyDictionary<string, string>? parameters = null)
     {
-        return new ViewDebugElementDto(name, parameters ?? new Dictionary<string, string>())
+        return new CanvasDebugElementDto(name, parameters ?? new Dictionary<string, string>())
         {
             LengthInBytes = lengthInBytes
         };
     }
 
-    private static ScalableText CreateScalableText(
+    private static CanvasTextElementDto TextElement(
+        string text,
+        int x,
+        int y,
+        int width,
+        int height,
+        string? fontName = null,
+        int charSpacing = 0,
+        bool isBold = false,
+        bool isUnderline = false,
+        bool isReverse = false,
+        int charScaleX = 1,
+        int charScaleY = 1,
+        Rotation rotation = Rotation.None)
+    {
+        return new CanvasTextElementDto(
+            text,
+            x,
+            y,
+            width,
+            height,
+            fontName,
+            charSpacing,
+            isBold,
+            isUnderline,
+            isReverse,
+            charScaleX,
+            charScaleY,
+            RotationMapper.ToDto(rotation));
+    }
+
+    private static CanvasImageElementDto ImageElement(
+        int x,
+        int y,
+        int width,
+        int height,
+        Rotation rotation = Rotation.None,
+        string contentType = "image/barcode")
+    {
+        return new CanvasImageElementDto(
+            new CanvasMediaDto(contentType, 0, "", ""),
+            x,
+            y,
+            width,
+            height,
+            RotationMapper.ToDto(rotation));
+    }
+
+    private static ScalableText CreateScalableTextCommand(
         int x,
         int y,
         int rotation,
@@ -310,10 +411,20 @@ public static class EplScenarioData
         int vMul,
         char reverse,
         string text,
+        int? lengthInBytes = null,
         Encoding? encoding = null)
     {
         encoding ??= Encoding.GetEncoding(437);
         var bytes = encoding.GetBytes(text);
-        return new ScalableText(x, y, rotation, font, hMul, vMul, reverse, bytes) { LengthInBytes = text.Length + 15 }; // Approximate length
+        return new ScalableText(x, y, rotation, font, hMul, vMul, reverse, bytes)
+        {
+            LengthInBytes = lengthInBytes ?? text.Length + 15
+        };
+    }
+
+    private static bool RegisterEncodingProvider()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        return true;
     }
 }

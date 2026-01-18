@@ -1,4 +1,4 @@
-﻿using Printify.TestServices;
+using Printify.TestServices;
 using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Contracts.Auth.Responses;
 using Printify.Web.Contracts.Workspaces.Requests;

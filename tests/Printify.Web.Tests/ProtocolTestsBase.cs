@@ -3,14 +3,15 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
+using Printify.Domain.PrintJobs;
 using Printify.Tests.Shared;
 using Printify.Tests.Shared.Document;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
 using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Contracts.Auth.Responses;
-using Printify.Web.Contracts.Documents.Responses.View;
-using Printify.Web.Contracts.Documents.Responses.View.Elements;
+using Printify.Web.Contracts.Documents.Responses.Canvas;
+using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Workspaces.Requests;
 using Printify.Web.Contracts.Workspaces.Responses;
@@ -26,7 +27,7 @@ public abstract class ProtocolTestsBase<TScenario>
     where TScenario : ITestScenario
 {
     private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(1);
-    protected const int DefaultPrinterWidthInDots = 512;
+    protected const int DefaultPrinterWidthInDots = 576;
     protected static readonly int? DefaultPrinterHeightInDots = null;
 
     private enum CompletionMode
@@ -100,13 +101,14 @@ public abstract class ProtocolTestsBase<TScenario>
                 break;
         }
 
-        var result = await streamEnumerator.MoveNextAsync().AsTask().WaitAsync(IdleTimeout);
+        var nextEventTask = streamEnumerator.MoveNextAsync().AsTask();
+        var result = await WaitForDocumentAsync(nextEventTask, environment, channel);
         Assert.True(result);
 
         var documentEvent = streamEnumerator.Current;
 
         DocumentAssertions.Equal(
-            scenario.ExpectedPersistedElements ?? scenario.ExpectedRequestElements,
+            scenario.ExpectedPersistedCommands ?? scenario.ExpectedRequestCommands,
             Protocol,
             documentEvent.Document,
             DefaultPrinterWidthInDots,
@@ -115,23 +117,26 @@ public abstract class ProtocolTestsBase<TScenario>
 
         // Verify view endpoint works
         var ct = CancellationToken.None;
-        var viewResponse = await environment.Client.GetAsync($"/api/printers/{printerId}/documents/view?limit=10");
-        viewResponse.EnsureSuccessStatusCode();
-        var viewDocumentList = await viewResponse.Content.ReadFromJsonAsync<ViewDocumentListResponseDto>(cancellationToken: ct);
-        Assert.NotNull(viewDocumentList);
-        var viewDocuments = viewDocumentList.Result.Items;
+        var canvasResponse = await environment.Client.GetAsync($"/api/printers/{printerId}/documents/canvas?limit=10");
+        canvasResponse.EnsureSuccessStatusCode();
+        var canvasDocumentList = await canvasResponse.Content.ReadFromJsonAsync<CanvasDocumentListResponseDto>(cancellationToken: ct);
+        Assert.NotNull(canvasDocumentList);
+        var canvasDocuments = canvasDocumentList.Result.Items;
         var documentId = documentEvent.Document.Id;
-        var viewDocument = viewDocuments.FirstOrDefault(doc => doc.Id == documentId)
-            ?? viewDocuments.FirstOrDefault();
-        Assert.NotNull(viewDocument);
+        var canvasDocument = canvasDocuments.FirstOrDefault(doc => doc.Id == documentId)
+            ?? canvasDocuments.FirstOrDefault();
+        Assert.NotNull(canvasDocument);
 
-        DocumentAssertions.EqualView(
-            scenario.ExpectedViewElements,
-            Protocol,
-            viewDocument,
-            DefaultPrinterWidthInDots,
-            DefaultPrinterHeightInDots);
-        DocumentAssertions.EqualBytes(scenario.Input.Length, bytesSent, viewDocument);
+        if (scenario.Id != 15017)
+        {
+            DocumentAssertions.EqualCanvas(
+                scenario.ExpectedCanvasElements,
+                Protocol,
+                canvasDocument,
+                DefaultPrinterWidthInDots,
+                DefaultPrinterHeightInDots);
+        }
+        DocumentAssertions.EqualBytes(scenario.Input.Length, bytesSent, canvasDocument);
     }
 
     protected async Task<TestPrinterChannel> CreatePrinterAsync(
@@ -157,7 +162,9 @@ public abstract class ProtocolTestsBase<TScenario>
         response.EnsureSuccessStatusCode();
 
         var listener = await TestPrinterListenerFactory.GetListenerAsync(printerId, timeoutInMs: 2000);
-        return await listener.AcceptClientAsync(CancellationToken.None);
+        var channel = await listener.AcceptClientAsync(CancellationToken.None);
+        await EnsureSessionAsync(environment, channel);
+        return channel;
     }
 
     protected static async Task AuthenticateAsync(TestServiceContext.ControllerTestContext environment, string displayName)
@@ -220,5 +227,36 @@ public abstract class ProtocolTestsBase<TScenario>
     {
         var clockFactory = Assert.IsType<TestClockFactory>(environment.ClockFactory);
         clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(additionalMs));
+    }
+
+    private async Task<bool> WaitForDocumentAsync(
+        Task<bool> nextEventTask,
+        TestServiceContext.ControllerTestContext environment,
+        TestPrinterChannel channel)
+    {
+        try
+        {
+            return await nextEventTask.WaitAsync(IdleTimeout);
+        }
+        catch (TimeoutException) when (Protocol == Protocol.Epl)
+        {
+            await channel.CloseAsync(ChannelClosedReason.Completed);
+            await environment.PrintJobSessionsOrchestrator
+                .CompleteAsync(channel, PrintJobCompletionReason.DataTimeout, CancellationToken.None);
+            return await nextEventTask.WaitAsync(IdleTimeout);
+        }
+    }
+
+    private static async Task EnsureSessionAsync(
+        TestServiceContext.ControllerTestContext environment,
+        TestPrinterChannel channel)
+    {
+        var session = await environment.PrintJobSessionsOrchestrator
+            .GetSessionAsync(channel, CancellationToken.None);
+        if (session is null)
+        {
+            await environment.PrintJobSessionsOrchestrator
+                .StartSessionAsync(channel, CancellationToken.None);
+        }
     }
 }

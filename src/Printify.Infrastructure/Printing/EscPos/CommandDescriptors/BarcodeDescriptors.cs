@@ -1,7 +1,7 @@
-using Printify.Infrastructure.Printing.Common;
 using System.Text;
-using Printify.Domain.Documents.Elements;
-using Printify.Domain.Documents.Elements.EscPos;
+using Printify.Domain.Printing;
+using Printify.Infrastructure.Printing.Common;
+using Printify.Infrastructure.Printing.EscPos.Commands;
 
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 

@@ -369,354 +369,16 @@
             }
         }
 
-        // NEW: Render ViewDocument with absolute positioning
-        function renderViewDocument(elements, documentWidth, documentHeight, docId, errorMessages, includeDebug) {
-            const width = Math.max(documentWidth || 384, 200);
-            const hasErrors = errorMessages && errorMessages.length > 0;
-            const errorClass = hasErrors ? ' has-errors' : '';
-            const hasElements = Array.isArray(elements) && elements.length > 0;
-            const hasVisualElements = hasElements && elements.some(el => {
-                const type = (el?.type || '').toLowerCase();
-                return type === 'text' || type === 'image';
-            });
-            const shouldShowEmptyMessage = !hasVisualElements && !includeDebug;
-
-            if (!hasElements || shouldShowEmptyMessage) {
-                const emptyClass = ' empty-document';
-                const message = shouldShowEmptyMessage
-                    ? '<div class="document-empty-message">No visual elements detected.<br>Turn on Raw Data to see details</div>'
-                    : '';
-                return `<div class="document-paper${errorClass}${emptyClass}">
-                    <div class="document-content empty-document" style="width:${width}px; height: auto;">
-                        ${message}
-                    </div>
-                </div>`;
-            }
-
-            // Calculate height from elements if not provided
-            let height = documentHeight;
-            if (!height) {
-                // Find max Y + Height to determine content height
-                let maxBottom = 0;
-                for (const el of elements) {
-                    if (el.type === 'text' || el.type === 'image') {
-                        const bottom = (Number(el.y) || 0) + (Number(el.height) || 0);
-                        if (bottom > maxBottom) {
-                            maxBottom = bottom;
-                        }
-                    }
-                }
-                height = maxBottom || 100; // Minimum 100px
-            }
-
-            // Render elements in original order (don't sort - backend order is correct)
-            let elementIndex = 0;
-            const elementsHtml = elements.map(element => {
-                const id = `el-${docId}-${elementIndex++}`;
-                const desc = Array.isArray(element.commandDescription)
-                    ? element.commandDescription.join(' ')
-                    : (element.commandDescription || '');
-                const visualText = element.text ? ` text="${element.text.substring(0, 30)}"` : '';
-                const coords = element.type === 'text' || element.type === 'image'
-                    ? ` @(${element.x},${element.y})`
-                    : '';
-                return renderViewElement(element, id, includeDebug);
-            }).join('');
-
-            const contentId = `doc-content-${docId}`;
-
-            return `<div class="document-paper${errorClass}">
-                <div class="document-content" id="${contentId}" style="width:${width}px; height:${height}px;" data-debug="${includeDebug}">
-                    ${elementsHtml}
-                </div>
-            </div>`;
-        }
-
-        // Render individual ViewElement
-        function renderViewElement(element, id, includeDebug) {
-            const elementType = (element?.type || '').toLowerCase();
-
-            switch (elementType) {
-                case 'text':
-                    return renderViewTextElement(element, id);
-                case 'image':
-                    return renderViewImageElement(element, id);
-                case 'debug':
-                case 'none':
-                    // Debug-only element - only render debug table if debug mode enabled
-                    return includeDebug ? `<div id="${id}" data-element-type="debug" data-original-y="0">${renderDebugTable(element)}</div>` : '';
-                default:
-                    return '';
-            }
-        }
-
-        // Render text element with absolute positioning
-        function renderViewTextElement(element, id) {
-            const x = Number(element.x) || 0;
-            const y = Number(element.y) || 0;
-            const width = Number(element.width) || 0;
-            const height = Number(element.height) || 0;
-            const zIndex = Number(element.zIndex) || 0;
-            const text = element.text || '';
-            const font = element.font || 'ESCPOS_A';
-            const charSpacing = Number(element.charSpacing) || 0;
-            const charScaleX = Number(element.charScaleX) || 1;
-            const charScaleY = Number(element.charScaleY) || 1;
-
-            // Map font to CSS class
-            const fontClass = font === 'ESCPOS_B' ? 'escpos-font-b' : 'escpos-font-a';
-
-            // Build inline styles
-            const styles = [];
-            styles.push(`left: ${x}px`);
-            styles.push(`top: ${y}px`);
-            styles.push(`width: ${width}px`);
-            styles.push(`height: ${height}px`);
-            styles.push(`z-index: ${zIndex}`);
-
-            if (charSpacing !== 0) {
-                styles.push(`letter-spacing: ${charSpacing}px`);
-            }
-
-            // Apply character scaling (for double-width, double-height text)
-            if (charScaleX !== 1 || charScaleY !== 1) {
-                styles.push(`transform: scale(${charScaleX}, ${charScaleY})`);
-                styles.push('transform-origin: left top');
-            }
-
-            // Apply text styling modifiers inline
-            if (element.isBold) {
-                styles.push('font-weight: 700');
-            }
-            if (element.isUnderline) {
-                styles.push('text-decoration: underline');
-            }
-            if (element.isReverse) {
-                styles.push('background: #000');
-                styles.push('color: #fff');
-                styles.push('padding: 2px 4px');
-                styles.push('border-radius: 3px');
-            }
-
-            const textContent = escapeHtml(text);
-
-            return `<div id="${id}" data-element-type="text" data-original-y="${y}"><div class="view-text ${fontClass}" style="${styles.join('; ')};">${textContent}</div></div>`;
-        }
-
-        // Render image element with absolute positioning
-        function renderViewImageElement(element, id) {
-            const x = Number(element.x) || 0;
-            const y = Number(element.y) || 0;
-            const width = Number(element.width) || 0;
-            const height = Number(element.height) || 0;
-            const zIndex = Number(element.zIndex) || 0;
-
-            const mediaUrl = resolveMediaUrl(element?.media?.url || '');
-            if (!mediaUrl) {
-                return '';
-            }
-
-            const styles = [];
-            styles.push(`left: ${x}px`);
-            styles.push(`top: ${y}px`);
-            styles.push(`width: ${width}px`);
-            styles.push(`height: ${height}px`);
-            styles.push(`z-index: ${zIndex}`);
-
-            const altText = `Image ${width}x${height}`;
-
-            return `<div id="${id}" data-element-type="image" data-original-y="${y}"><img class="view-image" src="${escapeHtml(mediaUrl)}" alt="${escapeHtml(altText)}" style="${styles.join('; ')};" loading="lazy"></div>`;
-        }
-
-        function renderDebugTable(element) {
-            const commandRaw = element.commandRaw || '';
-            const commandDescription = Array.isArray(element.commandDescription)
-                ? element.commandDescription.join('\n')
-                : (element.commandDescription || '');
-            const debugType = element.debugType || '';
-
-            // Determine CSS class based on debug type
-            const isError = debugType === 'error' || debugType === 'printerError';
-            const isStatusResponse = debugType === 'statusResponse';
-            const typeClass = isError ? ' debug-error' : (isStatusResponse ? ' debug-statusResponse' : '');
-
-            // Format hex command with spaces
-            const hexFormatted = formatHexCommand(commandRaw);
-
-            // Truncate long text in descriptions
-            const descFormatted = truncateTextInDescription(commandDescription);
-
-            return `
-                <table class="debug-table${typeClass}">
-                    <tr>
-                        <td class="debug-hex">${hexFormatted}</td>
-                          <td class="debug-desc">${escapeHtml(descFormatted).replace(/\n/g, '<br>') || '<span class="debug-missing">??</span>'}</td>
-                    </tr>
-                </table>
-            `;
-        }
-
-        function truncateTextInDescription(desc) {
-            if (!desc) return '';
-
-            // Match text parameters like: Text="very long text here"
-            // Truncate text content to max 40 characters
-            return desc.replace(/Text="([^"]{40})[^"]*"/g, (match, captured) => {
-                const fullText = match.substring(6, match.length - 1); // Remove Text=" and "
-                if (fullText.length > 40) {
-                    return `Text="${captured}..."`;
-                }
-                return match;
-            });
-        }
-
-        function formatHexCommand(commandRaw) {
-            if (!commandRaw || commandRaw.trim() === '') {
-                return ''; // Leave blank if commandRaw is empty
-            }
-
-            // Remove any existing spaces
-            const hex = commandRaw.replace(/\s+/g, '');
-
-            // Add space between each pair of hex characters
-            let formatted = '';
-            for (let i = 0; i < hex.length; i += 2) {
-                if (i > 0) formatted += ' ';
-                formatted += hex.substr(i, 2);
-            }
-
-            // Split into lines of max 16 hex chars (8 bytes = 8*2 + 7 spaces = 23 chars)
-            const maxCharsPerLine = 23; // "XX XX XX XX XX XX XX XX"
-            const lines = [];
-            let currentLine = '';
-
-            const pairs = formatted.split(' ');
-            for (let i = 0; i < pairs.length; i++) {
-                if (lines.length >= 8) {
-                    // Truncate after 8 lines
-                    break;
-                }
-
-                const pair = pairs[i];
-                const testLine = currentLine ? currentLine + ' ' + pair : pair;
-
-                if (testLine.length <= maxCharsPerLine) {
-                    currentLine = testLine;
-                } else {
-                    if (currentLine) lines.push(currentLine);
-                    currentLine = pair;
-                }
-            }
-
-            if (currentLine && lines.length < 8) {
-                lines.push(currentLine);
-            }
-
-            let result = lines.join('<br>');
-
-            // Add truncation indicator if we cut off content
-            if (pairs.length > lines.join(' ').split(' ').length) {
-                result += '<br><span class="debug-truncated">... (truncated)</span>';
-            }
-
-            return result;
-        }
-
-        // Extract plain text from ViewDocument elements
-        function extractViewDocumentText(elements) {
-            return (elements || [])
-                .filter(el => el.type === 'text')
-                .map(el => el.text || '')
-                .join('\n');
-        }
-
-        // Adjust Y positions in debug mode to account for debug table heights
-        function adjustDebugYPositions(contentId, includeDebug) {
-            if (!includeDebug) return;
-
-            const container = document.getElementById(contentId);
-            if (!container) return;
-
-            // Get all element wrappers in DOM order (backend provides correct order)
-            const elements = Array.from(container.querySelectorAll('[data-original-y]'));
-
-            let currentY = 0; // Track current vertical position in the adjusted document
-
-            elements.forEach((wrapper, index) => {
-                const elementType = wrapper.getAttribute('data-element-type') || 'unknown';
-
-                if (elementType === 'debug') {
-                    // Debug-only element (type=debug or type=none from backend)
-                    const debugTable = wrapper.querySelector('.debug-table');
-                    if (debugTable) {
-                        debugTable.style.top = `${currentY}px`;
-                        const debugHeight = debugTable.offsetHeight || 20;
-                        const debugDesc = debugTable.querySelector('.debug-desc')?.textContent?.trim() || '';
-
-                        console.log(`[${index}] debug | Y=${currentY}px H=${debugHeight}px | ${debugDesc.substring(0, 50)}`);
-
-                        currentY += debugHeight;
-                    }
-                } else if (elementType === 'text' || elementType === 'image') {
-                    // Visual element (text or image)
-                    const visualElement = wrapper.querySelector('.view-text, .view-image');
-                    if (visualElement) {
-                        const elementHeight = parseInt(visualElement.style.height) || 0;
-                        const elementText = visualElement.textContent?.trim() || visualElement.alt || '';
-                        visualElement.style.top = `${currentY}px`;
-
-                        console.log(`[${index}] ${elementType} | Y=${currentY}px H=${elementHeight}px | ${elementText.substring(0, 50)}`);
-
-                        currentY += elementHeight;
-                    }
-                }
-            });
-
-            // Adjust container height to include all debug info
-            const originalHeight = parseInt(container.style.height) || 0;
-            if (currentY > originalHeight) {
-                container.style.height = `${currentY}px`;
-            }
-        }
-
-        // Map ViewDocumentDto to internal document object
-        function mapViewDocumentDto(dto) {
-            const width = Number(dto.widthInDots) || 384;
-            const height = dto.heightInDots ?? null;
-            const protocol = (dto.protocol || 'escpos').toLowerCase();
-            const elements = dto.elements || [];
-            const docId = dto.id || `doc-${Date.now()}`;
-            const errorMessages = dto.errorMessages || null;
-            // Respect the global debug toggle for newly loaded documents.
-            const previewHtml = renderViewDocument(elements, width, height, docId, errorMessages, debugMode);
-            const plainText = extractViewDocumentText(elements);
-            return {
-                id: dto.id,
-                printerId: dto.printerId,
-                timestamp: dto.timestamp ? new Date(dto.timestamp) : new Date(),
-                errorMessages: errorMessages,
-                protocol,
-                width,
-                widthInDots: width,
-                heightInDots: height,
-                bytesReceived: dto.bytesReceived ?? 0,
-                bytesSent: dto.bytesSent ?? 0,
-                elements, // Store raw elements for re-rendering
-                debugEnabled: false,
-                previewHtml,
-                plainText
-            };
-        }
-
         async function ensureDocumentsLoaded(printerId) {
             if (documents[printerId]) {
                 return;
             }
 
             console.debug('Loading documents for printer', printerId);
-            const response = await apiRequest(`/api/printers/${printerId}/documents/view?limit=50`);
+            const response = await apiRequest(`/api/printers/${printerId}/documents/canvas?limit=50`);
             const items = response?.result?.items || [];
-            documents[printerId] = items.map(dto => mapViewDocumentDto(dto));
+            const printer = getPrinterById(printerId);
+            documents[printerId] = items.map(dto => DocumentsPanel.mapViewDocumentDto(dto, printer));
         }
 
         async function startDocumentStream(printerId) {
@@ -736,7 +398,7 @@
             documentStreamPrinterId = printerId;
 
             try {
-                const response = await fetch(`/api/printers/${printerId}/documents/view/stream`, {
+                const response = await fetch(`/api/printers/${printerId}/documents/canvas/stream`, {
                     method: 'GET',
                     headers: { ...authHeaders(), 'Accept': 'text/event-stream' },
                     signal: controller.signal
@@ -773,7 +435,7 @@
                             }
                         }
 
-                        if (eventName === 'documentViewReady' && data) {
+                        if (eventName === 'documentCanvasReady' && data) {
                             handleDocumentEvent(printerId, data);
                         }
                     }
@@ -797,7 +459,8 @@
             try {
                 const payload = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
                 console.debug('Document event received', payload);
-                const mapped = mapViewDocumentDto(payload);
+                const printer = getPrinterById(printerId);
+                const mapped = DocumentsPanel.mapViewDocumentDto(payload, printer);
                 const list = documents[printerId] || [];
                 list.unshift(mapped);
                 list.sort((a, b) => b.timestamp - a.timestamp);
@@ -1530,7 +1193,7 @@
             };
 
             // Only re-render the requested document for performance.
-            updated.previewHtml = renderViewDocument(
+            updated.previewHtml = DocumentsPanel.renderViewDocument(
                 updated.elements || [],
                 updated.widthInDots,
                 updated.heightInDots,
@@ -1554,7 +1217,7 @@
                     documents[printerId] = docs.map(doc => ({
                         ...doc,
                         // Ensure global debug applies to every document, while preserving per-doc toggles.
-                        previewHtml: renderViewDocument(
+                        previewHtml: DocumentsPanel.renderViewDocument(
                             doc.elements || [],
                             doc.widthInDots,
                             doc.heightInDots,
@@ -1794,7 +1457,7 @@
                             documents[printerId] = docs.map(doc => ({
                                 ...doc,
                                 // Ensure global debug applies to every document, while preserving per-doc toggles.
-                                previewHtml: renderViewDocument(
+                                previewHtml: DocumentsPanel.renderViewDocument(
                                     doc.elements || [],
                                     doc.widthInDots,
                                     doc.heightInDots,
@@ -1903,7 +1566,9 @@
                 getWelcomeMessage: () => getWelcomeMessage(),
                 getDebugMode: () => debugMode,
                 getPrinterById: (id) => getPrinterById(id),
-                isDocumentRawDataActive: (doc) => isDocumentRawDataActive(doc)
+                isDocumentRawDataActive: (doc) => isDocumentRawDataActive(doc),
+                escapeHtml: (text) => escapeHtml(text),
+                resolveMediaUrl: (url) => resolveMediaUrl(url)
             });
         }
 

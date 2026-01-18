@@ -3,13 +3,11 @@ using System.Text.Json;
 using Mediator.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Printify.Application.Features.Printers.Create;
 using Printify.Application.Features.Printers.Delete;
 using Printify.Application.Features.Printers.Documents.Clear;
-using Printify.Application.Features.Printers.Documents.List;
-using Printify.Application.Features.Printers.Documents.View;
+using Printify.Application.Features.Printers.Documents.Canvas;
 using Printify.Application.Features.Printers.Get;
 using Printify.Application.Features.Printers.List;
 using Printify.Application.Features.Printers.Pin;
@@ -20,11 +18,10 @@ using Printify.Application.Mediation;
 using Printify.Application.Printing;
 using Printify.Domain.Config;
 using Printify.Domain.Documents;
-using Printify.Domain.Documents.View;
 using Printify.Domain.Printers;
 using Printify.Web.Contracts.Common.Pagination;
 using Printify.Web.Contracts.Documents.Requests;
-using Printify.Web.Contracts.Documents.Responses.View;
+using Printify.Web.Contracts.Documents.Responses.Canvas;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
 using Printify.Web.Infrastructure;
@@ -155,8 +152,8 @@ public sealed class PrintersController : ControllerBase
     }
 
     [Authorize]
-    [HttpGet("{id:guid}/documents/view/stream")]
-    public async Task StreamViewDocuments(Guid id, CancellationToken cancellationToken)
+    [HttpGet("{id:guid}/documents/canvas/stream")]
+    public async Task StreamCanvasDocuments(Guid id, CancellationToken cancellationToken)
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var printer = await mediator.RequestAsync<GetPrinterQuery, PrinterDetailsSnapshot?>(
@@ -174,45 +171,45 @@ public sealed class PrintersController : ControllerBase
 
         await foreach (var documentEvent in documentStream.Subscribe(id, cancellationToken))
         {
-            var viewDocument = await mediator.RequestAsync<GetPrinterViewDocumentQuery, ViewDocument?>(
-                new GetPrinterViewDocumentQuery(
+            var canvasDocument = await mediator.RequestAsync<GetPrinterCanvasDocumentQuery, RenderedDocument?>(
+                new GetPrinterCanvasDocumentQuery(
                     id,
                     documentEvent.Document.Id,
                     httpContext),
                 cancellationToken);
-            if (viewDocument is not null)
+            if (canvasDocument is not null)
             {
                 await WriteSseAsync(
-                    "documentViewReady",
-                    ViewDocumentMapper.ToViewResponseDto(viewDocument),
+                    "documentCanvasReady",
+                    CanvasDocumentMapper.ToCanvasResponseDto(canvasDocument),
                     cancellationToken);
             }
         }
     }
 
     [Authorize]
-    [HttpGet("{id:guid}/documents/view")]
-    public async Task<ActionResult<ViewDocumentListResponseDto>> ListViewDocuments(
+    [HttpGet("{id:guid}/documents/canvas")]
+    public async Task<ActionResult<CanvasDocumentListResponseDto>> ListCanvasDocuments(
         Guid id,
         [FromQuery] GetDocumentsRequestDto? request,
         CancellationToken cancellationToken = default)
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var effectiveLimit = request?.Limit ?? 20;
-        var documents = await mediator.RequestAsync<ListPrinterViewDocumentsQuery, PrinterViewDocumentListResponse>(
-            new ListPrinterViewDocumentsQuery(
+        var documents = await mediator.RequestAsync<ListPrinterCanvasDocumentsQuery, PrinterCanvasDocumentListResponse>(
+            new ListPrinterCanvasDocumentsQuery(
                 id,
                 httpContext,
                 request?.BeforeId,
                 effectiveLimit),
             cancellationToken);
         var items = documents.Documents
-            .Select(ViewDocumentMapper.ToViewResponseDto)
+            .Select(CanvasDocumentMapper.ToCanvasResponseDto)
             .ToList();
         var hasMore = effectiveLimit > 0 && documents.Documents.Count == effectiveLimit;
         var nextBeforeId = hasMore ? documents.Documents.Last().Id : (Guid?)null;
-        var response = new ViewDocumentListResponseDto(
-            new PagedResult<ViewDocumentDto>(
+        var response = new CanvasDocumentListResponseDto(
+            new PagedResult<CanvasDocumentDto>(
                 items,
                 hasMore,
                 nextBeforeId,
