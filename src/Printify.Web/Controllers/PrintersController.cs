@@ -181,7 +181,7 @@ public sealed class PrintersController : ControllerBase
             {
                 await WriteSseAsync(
                     "documentCanvasReady",
-                    CanvasDocumentMapper.ToCanvasResponseDto(canvasDocument),
+                    RenderedDocumentMapper.ToCanvasResponseDto(canvasDocument),
                     cancellationToken);
             }
         }
@@ -204,12 +204,12 @@ public sealed class PrintersController : ControllerBase
                 effectiveLimit),
             cancellationToken);
         var items = documents.Documents
-            .Select(CanvasDocumentMapper.ToCanvasResponseDto)
+            .Select(RenderedDocumentMapper.ToCanvasResponseDto)
             .ToList();
         var hasMore = effectiveLimit > 0 && documents.Documents.Count == effectiveLimit;
         var nextBeforeId = hasMore ? documents.Documents.Last().Id : (Guid?)null;
         var response = new CanvasDocumentListResponseDto(
-            new PagedResult<CanvasDocumentDto>(
+            new PagedResult<RenderedDocumentDto>(
                 items,
                 hasMore,
                 nextBeforeId,

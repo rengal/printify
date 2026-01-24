@@ -1,5 +1,6 @@
 namespace Printify.Tests.Shared.EscPos;
 
+using Printify.Domain.Printers;
 using Printify.Domain.Printing;
 using Printify.Tests.Shared;
 using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
@@ -34,4 +35,5 @@ public sealed record EscPosScenario : ITestScenario
     public IReadOnlyList<Command> ExpectedRequestCommands { get; }
     public IReadOnlyList<Command>? ExpectedPersistedCommands { get; }
     public IReadOnlyList<CanvasElementDto> ExpectedCanvasElements { get; }
+    public Protocol Protocol => Protocol.EscPos;
 }

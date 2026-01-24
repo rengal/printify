@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
+using Printify.Infrastructure.Mapping;
 using Printify.Tests.Shared;
 using Printify.Tests.Shared.Document;
 using Printify.TestServices;
@@ -11,7 +12,6 @@ using Printify.TestServices.Printing;
 using Printify.Web.Contracts.Auth.Requests;
 using Printify.Web.Contracts.Auth.Responses;
 using Printify.Web.Contracts.Documents.Responses.Canvas;
-using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Workspaces.Requests;
 using Printify.Web.Contracts.Workspaces.Responses;
@@ -27,8 +27,12 @@ public abstract class ProtocolTestsBase<TScenario>
     where TScenario : ITestScenario
 {
     private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(1);
-    protected const int DefaultPrinterWidthInDots = 576;
-    protected static readonly int? DefaultPrinterHeightInDots = null;
+
+    // Height is null for protocols with dynamic height (ESC/POS), or a fixed value for others (EPL)
+    protected abstract int? DefaultPrinterHeightInDots { get; }
+
+    // Default printer width - protocol specific
+    protected abstract int DefaultPrinterWidthInDots { get; }
 
     private enum CompletionMode
     {
@@ -38,16 +42,13 @@ public abstract class ProtocolTestsBase<TScenario>
 
     protected WebApplicationFactory<Program> Factory { get; }
     protected Protocol Protocol { get; }
-    protected string ProtocolName { get; }
 
     protected ProtocolTestsBase(
         WebApplicationFactory<Program> factory,
-        Protocol protocol,
-        string protocolName)
+        Protocol protocol)
     {
         Factory = factory;
         Protocol = protocol;
-        ProtocolName = protocolName;
     }
 
     /// <summary>
@@ -60,8 +61,8 @@ public abstract class ProtocolTestsBase<TScenario>
     protected async Task RunScenarioAsync(TScenario scenario)
     {
         System.Diagnostics.Debug.WriteLine($"Starting scenario [{scenario.Id}]");
-        await RunScenarioAsync(scenario, $"{ProtocolName}-single-byte", CompletionMode.AdvanceIdleTimeout);
-        await RunScenarioAsync(scenario, $"{ProtocolName}-single-byte", CompletionMode.CloseChannel);
+        await RunScenarioAsync(scenario, $"{DomainMapper.ToString(Protocol)}-single-byte", CompletionMode.AdvanceIdleTimeout);
+        await RunScenarioAsync(scenario, $"{DomainMapper.ToString(Protocol)}-single-byte", CompletionMode.CloseChannel);
         System.Diagnostics.Debug.WriteLine($"Completed scenario [{scenario.Id}]");
     }
 
@@ -78,7 +79,7 @@ public abstract class ProtocolTestsBase<TScenario>
             await CreatePrinterAsync(
                 environment,
                 printerId,
-                $"{ProtocolName} Test Printer {userPrefix}-{completionMode}",
+                $"{DomainMapper.ToString(Protocol)} Test Printer {userPrefix}-{completionMode}",
                 DefaultPrinterWidthInDots,
                 DefaultPrinterHeightInDots);
 
@@ -127,7 +128,7 @@ public abstract class ProtocolTestsBase<TScenario>
             ?? canvasDocuments.FirstOrDefault();
         Assert.NotNull(canvasDocument);
 
-        if (scenario.Id != 15017)
+        if (scenario.Id != 15017) //todo debugnow
         {
             DocumentAssertions.EqualCanvas(
                 scenario.ExpectedCanvasElements,
@@ -151,7 +152,7 @@ public abstract class ProtocolTestsBase<TScenario>
         var request = new CreatePrinterRequestDto(
             printerId,
             displayName,
-            ProtocolName,
+            DomainMapper.ToString(Protocol),
             widthInDots,
             heightInDots,
             false,

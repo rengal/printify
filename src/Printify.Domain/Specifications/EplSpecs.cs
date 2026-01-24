@@ -1,102 +1,31 @@
-namespace Printify.Domain.Printing.Constants;
+namespace Printify.Domain.Specifications;
 
 /// <summary>
-/// Defines font dimensions and spacing constants for ESC/POS and EPL protocols.
-/// These values represent the current implementation based on existing tests and behavior.
+/// EPL (Eltron Programming Language) protocol specifications.
 ///
-/// Note: According to official ESC/POS specifications, Font B should be more condensed
-/// (typically 9x24 vs Font A's 12x24), but the current implementation treats both as 12x24.
-/// This is documented here for future correction.
+/// EPL Font Numbering (from EPL2 specification):
+/// - Font 1: Non-scalable fixed font (not really supported in current implementation)
+/// - Font 2: Scalable, internally called "font 0" in EPL docs, command parameter = 2
+/// - Font 3: Scalable, internally called "font 1" in EPL docs, command parameter = 3
+/// - Font 4: Scalable, internally called "font 2" in EPL docs, command parameter = 4
+/// - Font 5: Scalable, internally called "font 3" in EPL docs, command parameter = 5
 ///
-/// Note: According to EPL2 specifications, fonts 2-5 have different base dimensions,
-/// but the current implementation uses 24x24 for all scalable fonts.
+/// The FontName values (e.g., "EplFont0", "EplFont1") are used in CanvasTextElementDto.
 /// </summary>
-public static class ProtocolFontConstants
+public static class EplSpecs
 {
     /// <summary>
-    /// ESC/POS protocol font constants.
+    /// Default canvas width for EPL documents.
     /// </summary>
-    public static class EscPos
-    {
-        /// <summary>
-        /// Font A (default, typically used for normal text).
-        /// Current implementation: 12 dots wide x 24 dots high.
-        ///
-        /// Used in CanvasTextElementDto as FontName.
-        /// </summary>
-        public static class FontA
-        {
-            public const int WidthInDots = 12;
-            public const int HeightInDots = 24;
-            public const string FontName = "EscPosA";
-        }
-
-        /// <summary>
-        /// Font B (intended for more condensed text).
-        /// Current implementation: 12 dots wide x 24 dots high (same as Font A).
-        ///
-        /// TODO: Per ESC/POS spec, Font B should be 9x24, but changing this would
-        /// require updating all existing tests that expect 12x24.
-        ///
-        /// Used in CanvasTextElementDto as FontName.
-        /// </summary>
-        public static class FontB
-        {
-            public const int WidthInDots = 12;
-            public const int HeightInDots = 24;
-            public const string FontName = "EscPosB";
-        }
-
-        /// <summary>
-        /// Default character spacing (in dots) when no specific spacing is set.
-        /// 0 means use the printer's default spacing.
-        /// </summary>
-        public const int DefaultCharSpacing = 0;
-
-        /// <summary>
-        /// Default line spacing (in dots) when no specific spacing is set.
-        /// 0 means use the printer's default line spacing.
-        /// </summary>
-        public const int DefaultLineSpacing = 0;
-
-        /// <summary>
-        /// Gets the font width for a given font number.
-        /// </summary>
-        /// <param name="fontNumber">The font number (0 for Font A, 1 for Font B).</param>
-        /// <returns>The width in dots.</returns>
-        public static int GetFontWidth(int fontNumber) =>
-            fontNumber == 1 ? FontB.WidthInDots : FontA.WidthInDots;
-
-        /// <summary>
-        /// Gets the font height for a given font number.
-        /// </summary>
-        /// <param name="fontNumber">The font number (0 for Font A, 1 for Font B).</param>
-        /// <returns>The height in dots.</returns>
-        public static int GetFontHeight(int fontNumber) =>
-            fontNumber == 1 ? FontB.HeightInDots : FontA.HeightInDots;
-
-        /// <summary>
-        /// Gets the font name for a given font number.
-        /// </summary>
-        /// <param name="fontNumber">The font number (0 for Font A, 1 for Font B).</param>
-        /// <returns>The font name used in CanvasTextElementDto.</returns>
-        public static string GetFontName(int fontNumber) =>
-            fontNumber == 1 ? FontB.FontName : FontA.FontName;
-    }
+    public const int DefaultCanvasWidth = 432;
 
     /// <summary>
-    /// EPL (Eltron Programming Language) protocol font constants.
+    /// Font specifications for EPL protocol.
     ///
-    /// EPL Font Numbering (from EPL2 specification):
-    /// - Font 1: Non-scalable fixed font (not really supported in current implementation)
-    /// - Font 2: Scalable, internally called "font 0" in EPL docs, command parameter = 2
-    /// - Font 3: Scalable, internally called "font 1" in EPL docs, command parameter = 3
-    /// - Font 4: Scalable, internally called "font 2" in EPL docs, command parameter = 4
-    /// - Font 5: Scalable, internally called "font 3" in EPL docs, command parameter = 5
-    ///
-    /// The FontName values (e.g., "EplFont0", "EplFont1") are used in CanvasTextElementDto.
+    /// Note: According to EPL2 specifications, fonts 2-5 have different base dimensions,
+    /// but the current implementation uses 24x24 for all scalable fonts.
     /// </summary>
-    public static class Epl
+    public static class Fonts
     {
         /// <summary>
         /// Font 1 (default font, non-scalable).
@@ -183,7 +112,7 @@ public static class ProtocolFontConstants
         /// </summary>
         /// <param name="internalFontIndex">The internal font index (1-5) as used in EPL commands.</param>
         /// <returns>The base width in dots (before horizontal multiplication).</returns>
-        public static int GetFontBaseWidth(int internalFontIndex)
+        public static int GetBaseWidth(int internalFontIndex)
         {
             return internalFontIndex switch
             {
@@ -201,7 +130,7 @@ public static class ProtocolFontConstants
         /// </summary>
         /// <param name="internalFontIndex">The internal font index (1-5) as used in EPL commands.</param>
         /// <returns>The base height in dots (before vertical multiplication).</returns>
-        public static int GetFontBaseHeight(int internalFontIndex)
+        public static int GetBaseHeight(int internalFontIndex)
         {
             return internalFontIndex switch
             {
@@ -219,7 +148,7 @@ public static class ProtocolFontConstants
         /// </summary>
         /// <param name="internalFontIndex">The internal font index (1-5) as used in EPL commands.</param>
         /// <returns>The font name used in CanvasTextElementDto.</returns>
-        public static string GetFontName(int internalFontIndex)
+        public static string GetName(int internalFontIndex)
         {
             return internalFontIndex switch
             {

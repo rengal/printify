@@ -13,7 +13,7 @@ namespace Printify.Web.Contracts.Documents.Responses.Canvas;
 /// <param name="BytesReceived">Total bytes received from the client during the session.</param>
 /// <param name="BytesSent">Total bytes sent to the client during the session.</param>
 /// <param name="ErrorMessages">Collection of error messages from parsing or device responses.</param>
-public sealed record CanvasDocumentDto(
+public sealed record RenderedDocumentDto(
     Guid Id,
     Guid PrintJobId,
     Guid PrinterId,

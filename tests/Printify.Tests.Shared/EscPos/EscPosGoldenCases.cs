@@ -2,7 +2,7 @@ using System.Text;
 using EscPosCommands = Printify.Infrastructure.Printing.EscPos.Commands;
 using Printify.Domain.Media;
 using Printify.Domain.Printing;
-using Printify.Domain.Printing.Constants;
+using Printify.Domain.Specifications;
 using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
 using Xunit;
 
@@ -49,7 +49,7 @@ public static class EscPosGoldenCases
                             0,
                             504,
                             24,
-                            ProtocolFontConstants.EscPos.FontA.FontName,
+                            EscPosSpecs.Fonts.FontA.FontName,
                             0,
                             false,
                             false,
@@ -89,7 +89,7 @@ public static class EscPosGoldenCases
                             0,
                             504,
                             24,
-                            ProtocolFontConstants.EscPos.FontA.FontName,
+                            EscPosSpecs.Fonts.FontA.FontName,
                             0,
                             false,
                             false,
@@ -104,7 +104,7 @@ public static class EscPosGoldenCases
                             24,
                             672,
                             48,
-                            ProtocolFontConstants.EscPos.FontB.FontName,
+                            EscPosSpecs.Fonts.FontB.FontName,
                             0,
                             false,
                             false,
@@ -122,7 +122,7 @@ public static class EscPosGoldenCases
                             72,
                             504,
                             48,
-                            ProtocolFontConstants.EscPos.FontA.FontName,
+                            EscPosSpecs.Fonts.FontA.FontName,
                             0,
                             false,
                             false,

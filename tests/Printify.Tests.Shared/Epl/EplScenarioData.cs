@@ -1,7 +1,7 @@
 using System.Text;
 using Printify.Domain.Layout.Primitives;
 using Printify.Domain.Printing;
-using Printify.Domain.Printing.Constants;
+using Printify.Domain.Specifications;
 using Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
 using Printify.Web.Mapping;
@@ -127,7 +127,7 @@ public static class EplScenarioData
                     ["Reverse"] = "N",
                     ["Text"] = "Hello"
                 }),
-                TextElement("Hello", x: 10, y: 20, width: ProtocolFontConstants.Epl.Font2.BaseWidthInDots, height: ProtocolFontConstants.Epl.Font2.BaseHeightInDots, fontName: ProtocolFontConstants.Epl.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                TextElement("Hello", x: 10, y: 20, width: EplSpecs.Fonts.Font2.BaseWidthInDots, height: EplSpecs.Fonts.Font2.BaseHeightInDots, fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
             ]),
         new(
             id: 3002,
@@ -160,8 +160,8 @@ public static class EplScenarioData
                 }),
                 // Font 3, scale 2x2: base 24x24, scaled 48x48, rotated (90°) = 48x48
                 TextElement("World", x: 50, y: 100,
-                    width: ProtocolFontConstants.Epl.Font3.BaseWidthInDots * 2, height: ProtocolFontConstants.Epl.Font3.BaseHeightInDots * 2,
-                    fontName: ProtocolFontConstants.Epl.Font3.FontName, charScaleX: 2, charScaleY: 2,
+                    width: EplSpecs.Fonts.Font3.BaseWidthInDots * 2, height: EplSpecs.Fonts.Font3.BaseHeightInDots * 2,
+                    fontName: EplSpecs.Fonts.Font3.FontName, charScaleX: 2, charScaleY: 2,
                     rotation: Rotation.Rotate90, isReverse: true)
             ]),
         new(
@@ -194,7 +194,7 @@ public static class EplScenarioData
                     ["Text"] = "Test123"
                 }),
                 // Font 4, scale 3x3: base 24x24, scaled 72x72
-                TextElement("Test123", x: 0, y: 0, width: ProtocolFontConstants.Epl.Font4.BaseWidthInDots * 3, height: ProtocolFontConstants.Epl.Font4.BaseHeightInDots * 3, fontName: ProtocolFontConstants.Epl.Font4.FontName, charScaleX: 3, charScaleY: 3, rotation: 0, isReverse: false)
+                TextElement("Test123", x: 0, y: 0, width: EplSpecs.Fonts.Font4.BaseWidthInDots * 3, height: EplSpecs.Fonts.Font4.BaseHeightInDots * 3, fontName: EplSpecs.Fonts.Font4.FontName, charScaleX: 3, charScaleY: 3, rotation: 0, isReverse: false)
             ])
     ];
 

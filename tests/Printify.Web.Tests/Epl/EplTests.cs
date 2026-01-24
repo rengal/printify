@@ -7,6 +7,7 @@ using Printify.Application.Printing.Events;
 using Printify.Application.Interfaces;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
+using Printify.Domain.Specifications;
 using Printify.Tests.Shared.Document;
 using Printify.Tests.Shared.Epl;
 using Printify.TestServices;
@@ -19,9 +20,12 @@ namespace Printify.Web.Tests.Epl;
 public class EplTests(WebApplicationFactory<Program> factory)
     : ProtocolTestsBase<EplScenario>(
         factory,
-        Protocol.Epl,
-        "epl")
+        Protocol.Epl)
 {
+    // EPL uses dynamic height (null) since content height varies
+    protected override int? DefaultPrinterHeightInDots => null;
+    protected override int DefaultPrinterWidthInDots => EplSpecs.DefaultCanvasWidth;
+
     public override async Task DocumentCompletesAfterIdleTimeout()
     {
         await using var environment = TestServiceContext.CreateForControllerTest(Factory);

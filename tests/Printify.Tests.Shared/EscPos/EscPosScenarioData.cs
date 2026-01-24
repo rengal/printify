@@ -2,7 +2,7 @@ using System.Text;
 using EscPosCommands = Printify.Infrastructure.Printing.EscPos.Commands;
 using Printify.Domain.Media;
 using Printify.Domain.Printing;
-using Printify.Domain.Printing.Constants;
+using Printify.Domain.Specifications;
 using Printify.Infrastructure.Media;
 using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
 using Xunit;
@@ -931,9 +931,9 @@ public static class EscPosScenarioData
         Encoding Encoding);
 
     // Default ESC/POS font A metrics and spacing, aligned with renderer defaults.
-    private const int DefaultFontWidth = ProtocolFontConstants.EscPos.FontA.WidthInDots;
-    private const int DefaultFontHeight = ProtocolFontConstants.EscPos.FontA.HeightInDots;
-    private const int DefaultLineSpacing = ProtocolFontConstants.EscPos.DefaultLineSpacing;
+    private const int DefaultFontWidth = EscPosSpecs.Fonts.FontA.WidthInDots;
+    private const int DefaultFontHeight = EscPosSpecs.Fonts.FontA.HeightInDots;
+    private const int DefaultLineSpacing = EscPosSpecs.Rendering.DefaultLineSpacing;
     private const int DefaultLineHeight = DefaultFontHeight + DefaultLineSpacing;
 
     private static CanvasDebugElementDto ViewAppend(string text, int lengthInBytes)
@@ -961,7 +961,7 @@ public static class EscPosScenarioData
             y,
             text.Length * DefaultFontWidth * charScaleX,
             DefaultFontHeight * charScaleY,
-            ProtocolFontConstants.EscPos.FontA.FontName,
+            EscPosSpecs.Fonts.FontA.FontName,
             0,
             false,
             false,

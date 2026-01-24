@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using EscPosCommands = Printify.Infrastructure.Printing.EscPos.Commands;
 using Printify.Domain.Printing;
 using Printify.Domain.Printers;
+using Printify.Domain.Specifications;
 using Printify.Tests.Shared.Document;
 using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
 using Printify.Web.Contracts.Documents.Responses.Canvas;
@@ -14,11 +15,14 @@ namespace Printify.Web.Tests.EscPos;
 public class EscPosTests(WebApplicationFactory<Program> factory)
     : ProtocolTestsBase<EscPosScenario>(
         factory,
-        Protocol.EscPos,
-        "EscPos")
+        Protocol.EscPos)
 {
     protected const byte Esc = 0x1B;
     protected const byte Gs = 0x1D;
+
+    // ESC/POS has dynamic height (null) since content height varies
+    protected override int? DefaultPrinterHeightInDots => null;
+    protected override int DefaultPrinterWidthInDots => EscPosSpecs.DefaultCanvasWidth;
 
     public override async Task DocumentCompletesAfterIdleTimeout()
     {

@@ -1,4 +1,4 @@
-﻿namespace Printify.Domain.Printers;
+namespace Printify.Domain.Printers;
 
 public static class PrinterConstants
 {
@@ -10,9 +10,6 @@ public static class PrinterConstants
 
     // Name constraints
     public const int MaxNameLength = 100;
-
-    // Dimension defaults
-    public const int DefaultWidthInDots = 576;
 
     // Tcp listener port constraints
     public const int MinTcpListenerPort = 3000;

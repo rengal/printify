@@ -1,3 +1,4 @@
+using Printify.Domain.Printers;
 using Printify.Domain.Printing;
 using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
 
@@ -13,6 +14,7 @@ public interface ITestScenario
     IReadOnlyList<Command> ExpectedRequestCommands { get; }
     IReadOnlyList<Command>? ExpectedPersistedCommands { get; }
     IReadOnlyList<CanvasElementDto> ExpectedCanvasElements { get; }
+    Protocol Protocol { get; }
 
     // Override ToString to show scenario ID in test results
     string ToString();

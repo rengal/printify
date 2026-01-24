@@ -4,8 +4,8 @@ using Printify.Domain.Documents;
 using Printify.Domain.Layout;
 using Printify.Domain.Layout.Primitives;
 using Printify.Domain.Printing;
-using Printify.Domain.Printing.Constants;
 using Printify.Domain.Printers;
+using Printify.Domain.Specifications;
 using Printify.Infrastructure.Mapping.Epl;
 using Printify.Infrastructure.Printing;
 using Printify.Infrastructure.Printing.Epl.Commands;
@@ -19,7 +19,7 @@ namespace Printify.Infrastructure.Printing.Epl.Renderers;
 /// </summary>
 public sealed class EplRenderer : IRenderer
 {
-    private const int DefaultWidthInDots = 576;
+    private const int DefaultWidthInDots = 432;
 
     public Canvas Render(Document document)
     {
@@ -403,12 +403,12 @@ public sealed class EplRenderer : IRenderer
     private static (int Width, int Height) GetFontDimensions(int font)
     {
         return (
-            ProtocolFontConstants.Epl.GetFontBaseWidth(font),
-            ProtocolFontConstants.Epl.GetFontBaseHeight(font));
+            EplSpecs.Fonts.GetBaseWidth(font),
+            EplSpecs.Fonts.GetBaseHeight(font));
     }
 
     private static string GetFontName(int font) =>
-        ProtocolFontConstants.Epl.GetFontName(font);
+        EplSpecs.Fonts.GetName(font);
 
     private static (int Width, int Height) CalculateRotatedDimensions(int width, int height, int rotation)
     {

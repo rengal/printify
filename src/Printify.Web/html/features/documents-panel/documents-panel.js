@@ -573,8 +573,8 @@ export function extractViewDocumentText(elements) {
 }
 
 /**
- * Map CanvasDocumentDto to internal document object
- * @param {Object} dto - CanvasDocumentDto from API
+ * Map RenderedDocumentDto to internal document object
+ * @param {Object} dto - RenderedDocumentDto from API
  * @param {Object} printer - Printer object (for default width)
  * @returns {Object} Internal document object
  */

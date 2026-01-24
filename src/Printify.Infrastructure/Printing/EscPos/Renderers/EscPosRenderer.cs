@@ -4,9 +4,8 @@ using Printify.Domain.Documents;
 using Printify.Domain.Layout;
 using Printify.Domain.Layout.Primitives;
 using Printify.Domain.Printing;
-using Printify.Domain.Printing.Constants;
 using Printify.Domain.Printers;
-using Printify.Infrastructure.Printing;
+using Printify.Domain.Specifications;
 using Printify.Infrastructure.Printing.EscPos.Commands;
 using System.Text;
 using LayoutMedia = Printify.Domain.Layout.Primitives.Media;
@@ -18,7 +17,7 @@ namespace Printify.Infrastructure.Printing.EscPos.Renderers;
 /// </summary>
 public sealed class EscPosRenderer : IRenderer
 {
-    private const int DefaultWidthInDots = 576;
+    private const int DefaultWidthInDots = 512;
 
     public Canvas Render(Document document)
     {
@@ -172,7 +171,7 @@ public sealed class EscPosRenderer : IRenderer
                     break;
 
                 case ResetLineSpacing:
-                    state.LineSpacing = ProtocolFontConstants.EscPos.DefaultLineSpacing;
+                    state.LineSpacing = EscPosSpecs.Rendering.DefaultLineSpacing;
                     items.Add(new DebugInfo(
                         "resetLineSpacing",
                         new Dictionary<string, string>(),
@@ -420,13 +419,13 @@ public sealed class EscPosRenderer : IRenderer
     }
 
     private static int GetFontWidth(int fontNumber) =>
-        ProtocolFontConstants.EscPos.GetFontWidth(fontNumber);
+        EscPosSpecs.Fonts.GetWidth(fontNumber);
 
     private static int GetFontHeight(int fontNumber) =>
-        ProtocolFontConstants.EscPos.GetFontHeight(fontNumber);
+        EscPosSpecs.Fonts.GetHeight(fontNumber);
 
     private static string GetFontLabel(int fontNumber) =>
-        ProtocolFontConstants.EscPos.GetFontName(fontNumber);
+        EscPosSpecs.Fonts.GetName(fontNumber);
 
     private static int CalculateTextWidth(string text, int charWidth, int charSpacing)
     {
@@ -471,7 +470,7 @@ public sealed class EscPosRenderer : IRenderer
     private sealed class RenderState
     {
         public TextJustification Justification { get; set; } = TextJustification.Left;
-        public int LineSpacing { get; set; } = ProtocolFontConstants.EscPos.DefaultLineSpacing;
+        public int LineSpacing { get; set; } = EscPosSpecs.Rendering.DefaultLineSpacing;
         public int FontNumber { get; set; }
         public int ScaleX { get; set; } = 1;
         public int ScaleY { get; set; } = 1;

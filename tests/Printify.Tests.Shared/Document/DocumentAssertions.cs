@@ -133,7 +133,7 @@ public static class DocumentAssertions
     public static void EqualCanvas(
         IReadOnlyList<CanvasElementDto> expectedCanvasElements,
         Protocol expectedProtocol,
-        CanvasDocumentDto? actual,
+        RenderedDocumentDto? actual,
         int expectedWidthInDots,
         int? expectedHeightInDots)
     {
@@ -143,6 +143,17 @@ public static class DocumentAssertions
         Assert.Equal(expectedHeightInDots, actual.Canvas.HeightInDots);
 
         EqualCanvasElements(expectedCanvasElements, actual.Canvas.Items.ToList());
+
+        // If there are any error debug elements, ErrorMessages must contain data
+        var hasErrorDebugElement = actual.Canvas.Items.Any(el =>
+            el is CanvasDebugElementDto debug &&
+            (debug.DebugType == "error" || debug.DebugType == "printerError"));
+
+        if (hasErrorDebugElement)
+        {
+            Assert.NotNull(actual.ErrorMessages);
+            Assert.NotEmpty(actual.ErrorMessages);
+        }
     }
 
     public static void EqualView(
@@ -153,7 +164,7 @@ public static class DocumentAssertions
         int? expectedHeightInDots)
     {
         Assert.NotNull(actual);
-        var dto = CanvasDocumentMapper.ToCanvasResponseDto(actual);
+        var dto = RenderedDocumentMapper.ToCanvasResponseDto(actual);
         EqualCanvas(expectedElements, expectedProtocol, dto, expectedWidthInDots, expectedHeightInDots);
     }
 
@@ -167,7 +178,7 @@ public static class DocumentAssertions
         Assert.Equal(expectedBytesSent, actual.BytesSent);
     }
 
-    public static void EqualBytes(int expectedBytesReceived, int expectedBytesSent, CanvasDocumentDto? actual)
+    public static void EqualBytes(int expectedBytesReceived, int expectedBytesSent, RenderedDocumentDto? actual)
     {
         Assert.NotNull(actual);
         Assert.Equal(expectedBytesReceived, actual.BytesReceived);

@@ -6,9 +6,9 @@ using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
 
 namespace Printify.Web.Mapping;
 
-internal static class CanvasDocumentMapper
+internal static class RenderedDocumentMapper
 {
-    internal static CanvasDocumentDto ToCanvasResponseDto(RenderedDocument document)
+    internal static RenderedDocumentDto ToCanvasResponseDto(RenderedDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
 
@@ -21,7 +21,7 @@ internal static class CanvasDocumentMapper
             document.Canvas.HeightInDots,
             items.AsReadOnly());
 
-        return new CanvasDocumentDto(
+        return new RenderedDocumentDto(
             document.Id,
             document.PrintJobId,
             document.PrinterId,

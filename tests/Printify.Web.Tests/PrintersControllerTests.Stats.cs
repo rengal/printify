@@ -50,7 +50,7 @@ public sealed partial class PrintersControllerTests
         Assert.Null(clearedResponse!.Printer.LastDocumentReceivedAt);
     }
 
-    private static async Task<CanvasDocumentDto> WaitForDocumentAsync(
+    private static async Task<RenderedDocumentDto> WaitForDocumentAsync(
         HttpClient client,
         Guid printerId,
         CancellationToken ct)
