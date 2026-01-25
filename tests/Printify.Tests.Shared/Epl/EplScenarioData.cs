@@ -81,18 +81,18 @@ public static class EplScenarioData
         new(
             id: 2007,
             input: "I8\n"u8.ToArray(),
-            expectedRequestCommands: [new SetInternationalCharacter(8) { LengthInBytes = 3 }],
+            expectedRequestCommands: [new SetInternationalCharacter(8, 0, 0) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("setInternationalCharacter", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Code"] = "8" })
+                DebugElement("setInternationalCharacter", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["P1"] = "8", ["P2"] = "0", ["P3"] = "0" })
             ]),
         new(
             id: 2008,
-            input: "i8,0\n"u8.ToArray(),
-            expectedRequestCommands: [new SetCodePage(8, 0) { LengthInBytes = 5 }],
+            input: "I8,10\n"u8.ToArray(),
+            expectedRequestCommands: [new SetInternationalCharacter(8, 10, 0) { LengthInBytes = 6 }],
             expectedCanvasElements:
             [
-                DebugElement("setCodePage", lengthInBytes: 5, parameters: new Dictionary<string, string> { ["Code"] = "8", ["Scaling"] = "0" })
+                DebugElement("setInternationalCharacter", lengthInBytes: 6, parameters: new Dictionary<string, string> { ["P1"] = "8", ["P2"] = "10", ["P3"] = "0" })
             ])
     ];
 
@@ -195,6 +195,102 @@ public static class EplScenarioData
                 }),
                 // Font 4, scale 3x3: base 24x24, scaled 72x72
                 TextElement("Test123", x: 0, y: 0, width: EplSpecs.Fonts.Font4.BaseWidthInDots * 3, height: EplSpecs.Fonts.Font4.BaseHeightInDots * 3, fontName: EplSpecs.Fonts.Font4.FontName, charScaleX: 3, charScaleY: 3, rotation: 0, isReverse: false)
+            ]),
+        // CR (carriage return) as no-op command
+        new(
+            id: 3004,
+            input: "\r"u8.ToArray(),
+            expectedRequestCommands: [new CarriageReturn { LengthInBytes = 1 }],
+            expectedCanvasElements:
+            [
+                DebugElement("carriageReturn", lengthInBytes: 1)
+            ]),
+        // LF (line feed) as no-op command
+        new(
+            id: 3005,
+            input: "\n"u8.ToArray(),
+            expectedRequestCommands: [new LineFeed { LengthInBytes = 1 }],
+            expectedCanvasElements:
+            [
+                DebugElement("lineFeed", lengthInBytes: 1)
+            ]),
+        // Clear buffer with CR terminator (not LF)
+        new(
+            id: 3006,
+            input: "N\r"u8.ToArray(),
+            expectedRequestCommands: [new ClearBuffer { LengthInBytes = 2 }],
+            expectedCanvasElements:
+            [
+                DebugElement("clearBuffer", lengthInBytes: 2)
+            ]),
+        // Clear buffer with LF terminator (standard)
+        new(
+            id: 3007,
+            input: "N\n"u8.ToArray(),
+            expectedRequestCommands: [new ClearBuffer { LengthInBytes = 2 }],
+            expectedCanvasElements:
+            [
+                DebugElement("clearBuffer", lengthInBytes: 2)
+            ]),
+        // Text command with CR terminator
+        new(
+            id: 3008,
+            input: "A10,20,0,2,1,1,N,\"Test\"\r"u8.ToArray(),
+            expectedRequestCommands:
+            [
+                CreateScalableTextCommand(
+                    10,
+                    20,
+                    0,
+                    2,
+                    1,
+                    1,
+                    'N',
+                    "Test",
+                    lengthInBytes: "A10,20,0,2,1,1,N,\"Test\"\r"u8.Length)
+            ],
+            expectedCanvasElements:
+            [
+                DebugElement("scalableText", lengthInBytes: 24, parameters: new Dictionary<string, string>
+                {
+                    ["X"] = "10",
+                    ["Y"] = "20",
+                    ["Rotation"] = "0",
+                    ["Font"] = "2",
+                    ["HorizontalMultiplication"] = "1",
+                    ["VerticalMultiplication"] = "1",
+                    ["Reverse"] = "N",
+                    ["Text"] = "Test"
+                }),
+                TextElement("Test", x: 10, y: 20, width: EplSpecs.Fonts.Font2.BaseWidthInDots, height: EplSpecs.Fonts.Font2.BaseHeightInDots, fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+            ]),
+        // CRLF sequence - CR terminates N command, remaining LF becomes LineFeed no-op
+        new(
+            id: 3009,
+            input: "N\r\n"u8.ToArray(),
+            expectedRequestCommands:
+            [
+                new ClearBuffer { LengthInBytes = 2 },
+                new LineFeed { LengthInBytes = 1 }
+            ],
+            expectedCanvasElements:
+            [
+                DebugElement("clearBuffer", lengthInBytes: 2),
+                DebugElement("lineFeed", lengthInBytes: 1)
+            ]),
+        // Text command with LF then CR sequence (two separate no-ops)
+        new(
+            id: 3010,
+            input: "\n\r"u8.ToArray(),
+            expectedRequestCommands:
+            [
+                new LineFeed { LengthInBytes = 1 },
+                new CarriageReturn { LengthInBytes = 1 }
+            ],
+            expectedCanvasElements:
+            [
+                DebugElement("lineFeed", lengthInBytes: 1),
+                DebugElement("carriageReturn", lengthInBytes: 1)
             ])
     ];
 

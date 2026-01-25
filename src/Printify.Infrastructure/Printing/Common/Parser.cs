@@ -204,7 +204,7 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
 
             EmitCommandElement(result.Element);
             // Command completed, restore default mode
-            ChangeState(GetDefaultMode());
+            state.Reset(GetDefaultMode());
             return true;
         }
 

@@ -76,6 +76,24 @@ public sealed class EplRenderer : IRenderer
                         CommandDescriptionBuilder.Build(command)));
                     break;
 
+                case CarriageReturn:
+                    items.Add(new DebugInfo(
+                        "carriageReturn",
+                        new Dictionary<string, string>(),
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        CommandDescriptionBuilder.Build(command)));
+                    break;
+
+                case LineFeed:
+                    items.Add(new DebugInfo(
+                        "lineFeed",
+                        new Dictionary<string, string>(),
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        CommandDescriptionBuilder.Build(command)));
+                    break;
+
                 case SetLabelWidth labelWidth:
                     items.Add(new DebugInfo(
                         "setLabelWidth",
@@ -138,30 +156,18 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case SetInternationalCharacter intlChar:
-                    state.CurrentEncoding = GetEncodingFromCodePage(intlChar.Code);
+                    state.CurrentEncoding = GetEncodingFromCodePage(intlChar.P1, intlChar.P2, intlChar.P3);
                     items.Add(new DebugInfo(
                         "setInternationalCharacter",
                         new Dictionary<string, string>
                         {
-                            ["Code"] = intlChar.Code.ToString()
+                            ["P1"] = intlChar.P1.ToString(),
+                            ["P2"] = intlChar.P2.ToString(),
+                            ["P3"] = intlChar.P3.ToString()
                         },
                         intlChar.RawBytes,
                         intlChar.LengthInBytes,
                         CommandDescriptionBuilder.Build(intlChar)));
-                    break;
-
-                case SetCodePage codePage:
-                    state.CurrentEncoding = GetEncodingFromCodePage(codePage.Code, codePage.Scaling);
-                    items.Add(new DebugInfo(
-                        "setCodePage",
-                        new Dictionary<string, string>
-                        {
-                            ["Code"] = codePage.Code.ToString(),
-                            ["Scaling"] = codePage.Scaling.ToString()
-                        },
-                        codePage.RawBytes,
-                        codePage.LengthInBytes,
-                        CommandDescriptionBuilder.Build(codePage)));
                     break;
 
                 case ParseError error:
@@ -231,7 +237,7 @@ public sealed class EplRenderer : IRenderer
 
         // Get font base dimensions
         var (baseWidth, baseHeight) = GetFontDimensions(scalableText.Font);
-        var width = baseWidth * scalableText.HorizontalMultiplication;
+        var width = baseWidth * scalableText.HorizontalMultiplication * decodedText.Length;
         var height = baseHeight * scalableText.VerticalMultiplication;
 
         // Calculate actual rendered dimensions based on rotation
@@ -419,11 +425,11 @@ public sealed class EplRenderer : IRenderer
         };
     }
 
-    private static Encoding GetEncodingFromCodePage(int code, int scaling = 0)
+    private static Encoding GetEncodingFromCodePage(int p1, int p2, int p3)
     {
         try
         {
-            return code switch
+            return p1 switch
             {
                 0 or 8 => Encoding.GetEncoding(866), // DOS 866 Cyrillic
                 _ => Encoding.GetEncoding(437)       // Default to CP437

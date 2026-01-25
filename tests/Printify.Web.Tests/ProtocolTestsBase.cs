@@ -233,17 +233,7 @@ public abstract class ProtocolTestsBase<TScenario>
         TestServiceContext.ControllerTestContext environment,
         TestPrinterChannel channel)
     {
-        try
-        {
-            return await nextEventTask.WaitAsync(IdleTimeout);
-        }
-        catch (TimeoutException) when (Protocol == Protocol.Epl)
-        {
-            await channel.CloseAsync(ChannelClosedReason.Completed);
-            await environment.PrintJobSessionsOrchestrator
-                .CompleteAsync(channel, PrintJobCompletionReason.DataTimeout, CancellationToken.None);
-            return await nextEventTask.WaitAsync(IdleTimeout);
-        }
+        return await nextEventTask.WaitAsync(IdleTimeout);
     }
 
     private static async Task EnsureSessionAsync(

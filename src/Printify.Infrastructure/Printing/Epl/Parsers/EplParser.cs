@@ -53,13 +53,9 @@ public sealed class EplParser : Parser<EplDeviceContext, EplCommandTrieProvider>
                 break;
             case SetInternationalCharacter setInternationalCharacter:
                 // Update encoding based on international character set
-                if (setInternationalCharacter.Code is 8 or 38) // DOS 866 Cyrillic
-                    State.DeviceContext.Encoding = System.Text.Encoding.GetEncoding(866);
-                break;
-            case SetCodePage setCodePage:
-                // Update encoding based on code page
-                if (setCodePage.Code is 0 or 8) // DOS 866 Cyrillic
-                    State.DeviceContext.Encoding = System.Text.Encoding.GetEncoding(866);
+                // P1 is the primary character set code
+                if (setInternationalCharacter.P1 is 8 or 38) // DOS 866 Cyrillic
+                    State.DeviceContext.Encoding = System.Text.Encoding.GetEncoding(866); //todo debugnow: move to dict, add all codepages
                 break;
         }
     }

@@ -174,11 +174,8 @@ public static class CommandDescriptionBuilder
                 "Z direction - Set print direction",
                 $"direction={direction.Direction.ToString()}"),
             EplCommands.SetInternationalCharacter intlChar => Lines(
-                "I code - Set international character set",
-                $"code={intlChar.Code}"),
-            EplCommands.SetCodePage eplCodePage => Lines(
-                "i code, scaling - Set code page",
-                $"code={eplCodePage.Code}, scaling={eplCodePage.Scaling}"),
+                "I p1,p2,p3 - Set international character set/codepage",
+                $"p1={intlChar.P1}, p2={intlChar.P2}, p3={intlChar.P3}"),
             _ => Lines("Unknown command")
         };
     }

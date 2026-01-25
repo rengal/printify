@@ -1,6 +1,7 @@
 using Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Infrastructure.Printing.Common;
 using System.Globalization;
+using Printify.Domain.Printing;
 
 namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 
@@ -79,12 +80,13 @@ public sealed class PrintGraphicDescriptor : ICommandDescriptor
             return MatchResult.NeedMore();
         }
 
+        // Verify newline at end (accept CR or LF)
+        var terminatorByte = buffer[headerEnd + totalDataBytes];
+        if (terminatorByte != 0x0A && terminatorByte != 0x0D) // LF or CR
+            return MatchResult.Matched(new ParseError(null, "Invalid terminator"));
+
         // Extract graphics data
         var graphicsData = buffer[headerEnd..(headerEnd + totalDataBytes)].ToArray();
-
-        // Verify newline at end
-        if (buffer[headerEnd + totalDataBytes] != (byte)'\n')
-            return MatchResult.NeedMore();
 
         var element = new PrintGraphic(x, y, width, height, graphicsData)
         {

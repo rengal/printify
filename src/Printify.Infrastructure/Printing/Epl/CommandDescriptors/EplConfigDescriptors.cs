@@ -186,9 +186,9 @@ public sealed class SetPrintDirectionDescriptor : ICommandDescriptor
 }
 
 /// <summary>
-/// Command: I code - Set international character set.
-/// ASCII: I {code}
-/// HEX: 49 {code}
+/// Command: I p1,p2,p3 - Set international character set/codepage.
+/// ASCII: I {p1},{p2},{p3}
+/// HEX: 49 {p1},{p2},{p3}
 /// </summary>
 public sealed class SetInternationalCharacterDescriptor : ICommandDescriptor
 {
@@ -207,51 +207,16 @@ public sealed class SetInternationalCharacterDescriptor : ICommandDescriptor
             return MatchResult.NeedMore();
 
         var length = newline + 1;
-        if (length < 2)
-            return MatchResult.Matched(new PrinterError("Invalid I code: too short"));
-
-        var parseResult = EplParsingHelpers.ParseSingleIntArg(buffer, 1, "I code", out var code);
-        if (parseResult.HasValue)
-            return parseResult.Value;
-
-        // Note: Encoding updates are now handled in EplParser.ModifyDeviceContext()
-        var element = new SetInternationalCharacter(code);
-        return EplParsingHelpers.Success(element, buffer, length);
-    }
-}
-
-/// <summary>
-/// Command: i code, scaling - Set codepage.
-/// ASCII: i {code},{scaling}
-/// HEX: 69 {code},{scaling}
-/// </summary>
-public sealed class SetCodePageDescriptor : ICommandDescriptor
-{
-    private const int MinLen = 2;
-
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x69 }; // 'i'
-    public int MinLength => MinLen;
-
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
-    {
-        var lastByte = buffer[^1];
-        if (lastByte != 0x0A && lastByte != 0x0D) // LF or CR
-            return MatchResult.NeedMore();
-
-        if (!EplParsingHelpers.TryFindTerminator(buffer, out var newline))
-            return MatchResult.NeedMore();
-
-        var length = newline + 1;
         return EplParsingHelpers.ParseCommaSeparatedArgs(
             System.Text.Encoding.ASCII.GetString(buffer[1..length]),
-            "i codepage",
+            "I charset",
             p =>
             {
-                var code = p.GetInt(0, "code");
-                var scaling = p.GetIntOrDefault(1, 0);
+                var p1 = p.GetInt(0, "p1");
+                var p2 = p.GetIntOrDefault(1, 0);
+                var p3 = p.GetIntOrDefault(2, 0);
 
-                // Note: Encoding updates are now handled in EplParser.ModifyDeviceContext()
-                return new SetCodePage(code, scaling);
+                return new SetInternationalCharacter(p1, p2, p3);
             }).WithMetadata(buffer, length);
     }
 }

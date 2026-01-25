@@ -55,18 +55,12 @@ public sealed record SetPrintDirection(PrintDirection Direction) : EplCommand;
 
 /// <summary>
 /// Set international character set/codepage.
-/// Command: I code
+/// Command: I p1,p2,p3
 /// </summary>
-/// <param name="Code">Character set/codepage number (e.g., 8 for DOS 866 Cyrillic).</param>
-public sealed record SetInternationalCharacter(int Code) : EplCommand;
-
-/// <summary>
-/// Set code page (alternative to I command).
-/// Command: i code, scaling
-/// </summary>
-/// <param name="Code">Codepage number (e.g., 38 for DOS 866).</param>
-/// <param name="Scaling">Character scaling (0-9).</param>
-public sealed record SetCodePage(int Code, int Scaling = 0) : EplCommand;
+/// <param name="P1">Primary parameter (character set number).</param>
+/// <param name="P2">Secondary parameter (optional).</param>
+/// <param name="P3">Tertiary parameter (optional).</param>
+public sealed record SetInternationalCharacter(int P1, int P2 = 0, int P3 = 0) : EplCommand;
 
 /// <summary>
 /// Carriage return (no-op command for debug/logging).

@@ -31,7 +31,6 @@ public sealed class EplCommandTrieProvider : CommandTrieProvider<ICommandDescrip
         new SetPrintDarknessDescriptor(),
         new SetPrintDirectionDescriptor(),
         new SetInternationalCharacterDescriptor(),
-        new SetCodePageDescriptor(),
         new ClearBufferDescriptor(),
 
         // Control characters (no-op commands)

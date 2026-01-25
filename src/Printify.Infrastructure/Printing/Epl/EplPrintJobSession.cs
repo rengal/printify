@@ -92,6 +92,11 @@ public class EplPrintJobSession : PrintJobSession
         {
             // expected if new data arrives or job is canceled
         }
+        catch (Exception e)
+        {
+            Console.WriteLine(e); // todo debugnow
+            throw;
+        }
     }
 
     public override Task Complete(PrintJobCompletionReason reason)

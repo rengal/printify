@@ -22,6 +22,8 @@ public static class CommandMapper
         return command switch
         {
             ClearBuffer => new ClearBufferElementPayload(),
+            CarriageReturn => new CarriageReturnElementPayload(),
+            LineFeed => new LineFeedElementPayload(),
             SetLabelWidth labelWidth => new SetLabelWidthElementPayload(labelWidth.Width),
             SetLabelHeight labelHeight => new SetLabelHeightElementPayload(
                 labelHeight.Height,
@@ -30,8 +32,7 @@ public static class CommandMapper
             SetPrintDarkness darkness => new SetPrintDarknessElementPayload(darkness.Darkness),
             SetPrintDirection direction => new SetPrintDirectionElementPayload(
                 EnumMapper.ToString(direction.Direction)),
-            SetInternationalCharacter intlChar => new SetInternationalCharacterElementPayload(intlChar.Code),
-            SetCodePage codePage => new SetCodePageElementPayload(codePage.Code, codePage.Scaling),
+            SetInternationalCharacter intlChar => new SetInternationalCharacterElementPayload(intlChar.P1, intlChar.P2, intlChar.P3),
             PrinterError printerError => new PrinterErrorElementPayload(printerError.Message),
             ScalableText text => new ScalableTextElementPayload(
                 text.X,
@@ -85,6 +86,8 @@ public static class CommandMapper
         return dto switch
         {
             ClearBufferElementPayload => new ClearBuffer(),
+            CarriageReturnElementPayload => new CarriageReturn(),
+            LineFeedElementPayload => new LineFeed(),
             SetLabelWidthElementPayload labelWidth => new SetLabelWidth(labelWidth.Width),
             SetLabelHeightElementPayload labelHeight => new SetLabelHeight(
                 labelHeight.Height,
@@ -93,8 +96,7 @@ public static class CommandMapper
             SetPrintDarknessElementPayload darkness => new SetPrintDarkness(darkness.Darkness),
             SetPrintDirectionElementPayload direction => new SetPrintDirection(
                 EnumMapper.ParsePrintDirection(direction.Direction ?? "TopToBottom")),
-            SetInternationalCharacterElementPayload intlChar => new SetInternationalCharacter(intlChar.Code),
-            SetCodePageElementPayload codePage => new SetCodePage(codePage.Code, codePage.Scaling),
+            SetInternationalCharacterElementPayload intlChar => new SetInternationalCharacter(intlChar.P1, intlChar.P2, intlChar.P3),
             PrinterErrorElementPayload printerError => new PrinterError(printerError.Message ?? string.Empty),
             ScalableTextElementPayload text => new ScalableText(
                 text.X,
@@ -178,13 +180,14 @@ public static class CommandMapper
         return entity.ElementType switch
         {
             EplDocumentElementTypeNames.ClearBuffer => JsonSerializer.Deserialize<ClearBufferElementPayload>(entity.Payload, SerializerOptions),
+            EplDocumentElementTypeNames.CarriageReturn => JsonSerializer.Deserialize<CarriageReturnElementPayload>(entity.Payload, SerializerOptions),
+            EplDocumentElementTypeNames.LineFeed => JsonSerializer.Deserialize<LineFeedElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.SetLabelWidth => JsonSerializer.Deserialize<SetLabelWidthElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.SetLabelHeight => JsonSerializer.Deserialize<SetLabelHeightElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.SetPrintSpeed => JsonSerializer.Deserialize<SetPrintSpeedElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.SetPrintDarkness => JsonSerializer.Deserialize<SetPrintDarknessElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.SetPrintDirection => JsonSerializer.Deserialize<SetPrintDirectionElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.SetInternationalCharacter => JsonSerializer.Deserialize<SetInternationalCharacterElementPayload>(entity.Payload, SerializerOptions),
-            EplDocumentElementTypeNames.SetCodePage => JsonSerializer.Deserialize<SetCodePageElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.PrinterError => JsonSerializer.Deserialize<PrinterErrorElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.ScalableText => JsonSerializer.Deserialize<ScalableTextElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.DrawHorizontalLine => JsonSerializer.Deserialize<DrawHorizontalLineElementPayload>(entity.Payload, SerializerOptions),
@@ -207,13 +210,14 @@ public static class CommandMapper
         return dto switch
         {
             ClearBufferElementPayload => EplDocumentElementTypeNames.ClearBuffer,
+            CarriageReturnElementPayload => EplDocumentElementTypeNames.CarriageReturn,
+            LineFeedElementPayload => EplDocumentElementTypeNames.LineFeed,
             SetLabelWidthElementPayload => EplDocumentElementTypeNames.SetLabelWidth,
             SetLabelHeightElementPayload => EplDocumentElementTypeNames.SetLabelHeight,
             SetPrintSpeedElementPayload => EplDocumentElementTypeNames.SetPrintSpeed,
             SetPrintDarknessElementPayload => EplDocumentElementTypeNames.SetPrintDarkness,
             SetPrintDirectionElementPayload => EplDocumentElementTypeNames.SetPrintDirection,
             SetInternationalCharacterElementPayload => EplDocumentElementTypeNames.SetInternationalCharacter,
-            SetCodePageElementPayload => EplDocumentElementTypeNames.SetCodePage,
             PrinterErrorElementPayload => EplDocumentElementTypeNames.PrinterError,
             ScalableTextElementPayload => EplDocumentElementTypeNames.ScalableText,
             DrawHorizontalLineElementPayload => EplDocumentElementTypeNames.DrawHorizontalLine,

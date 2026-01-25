@@ -9,6 +9,12 @@ public abstract record EplDocumentElementPayload;
 
 public sealed record ClearBufferElementPayload : EplDocumentElementPayload;
 
+public sealed record CarriageReturnElementPayload : EplDocumentElementPayload;
+
+public sealed record LineFeedElementPayload : EplDocumentElementPayload;
+
+public sealed record SetInternationalCharacterElementPayload(int P1, int P2, int P3) : EplDocumentElementPayload;
+
 public sealed record SetLabelWidthElementPayload(int Width) : EplDocumentElementPayload;
 
 public sealed record SetLabelHeightElementPayload(
@@ -20,8 +26,6 @@ public sealed record SetPrintSpeedElementPayload(int Speed) : EplDocumentElement
 public sealed record SetPrintDarknessElementPayload(int Darkness) : EplDocumentElementPayload;
 
 public sealed record SetPrintDirectionElementPayload(string Direction) : EplDocumentElementPayload;
-
-public sealed record SetInternationalCharacterElementPayload(int Code) : EplDocumentElementPayload;
 
 public sealed record SetCodePageElementPayload(
     int Code,
