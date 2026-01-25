@@ -128,15 +128,13 @@ public abstract class ProtocolTestsBase<TScenario>
             ?? canvasDocuments.FirstOrDefault();
         Assert.NotNull(canvasDocument);
 
-        if (scenario.Id != 15017) //todo debugnow
-        {
-            DocumentAssertions.EqualCanvas(
-                scenario.ExpectedCanvasElements,
-                Protocol,
-                canvasDocument,
-                DefaultPrinterWidthInDots,
-                DefaultPrinterHeightInDots);
-        }
+        DocumentAssertions.EqualCanvas(
+            scenario.ExpectedCanvasElements,
+            Protocol,
+            canvasDocument,
+            DefaultPrinterWidthInDots,
+            DefaultPrinterHeightInDots);
+
         DocumentAssertions.EqualBytes(scenario.Input.Length, bytesSent, canvasDocument);
     }
 
