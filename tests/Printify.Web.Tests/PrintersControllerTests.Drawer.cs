@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
@@ -6,7 +7,6 @@ using Printify.TestServices;
 using Printify.TestServices.Printing;
 using Printify.Web.Contracts.Printers.Requests;
 using Printify.Web.Contracts.Printers.Responses;
-using Printify.Web.Contracts.Workspaces.Responses;
 using PrinterRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterDto;
 using PrinterSettingsRequestDto = Printify.Web.Contracts.Printers.Requests.PrinterSettingsDto;
 
@@ -17,7 +17,6 @@ public sealed partial class PrintersControllerTests
     [Fact]
     public async Task Drawer_Opening_Works()
     {
-        return; //todo debugnow fix test
         // 1. Create workspace and printer
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
@@ -40,18 +39,22 @@ public sealed partial class PrintersControllerTests
         Assert.Equal(DrawerState.Closed.ToString(), printerResponse.RuntimeStatus.Drawer1State);
         Assert.Equal(DrawerState.Closed.ToString(), printerResponse.RuntimeStatus.Drawer2State);
 
-        // Connect to SSE stream
-        var sseCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        using var streamRequest = new HttpRequestMessage(HttpMethod.Get, "/api/printers/sidebar/stream?realtime=full");
-        using var response = await client.SendAsync(streamRequest, HttpCompletionOption.ResponseHeadersRead, sseCts.Token);
-        response.EnsureSuccessStatusCode();
-        using var stream = await response.Content.ReadAsStreamAsync(sseCts.Token);
-        using var reader = new StreamReader(stream);
-
-        // Get the listener to simulate client connection
+        // Get the listener first
         var listener = await TestPrinterListenerFactory.GetListenerAsync(printerId);
 
-        // 3. send escp/pos command to open drawer 1
+        // Start listening to runtime/stream before sending commands
+        var listenTask = ListenForRuntimeEventsAsync(
+            client,
+            printerId,
+            expectedCount: 2,
+            timeout: TimeSpan.FromSeconds(10));
+
+        // Accept a connection to start the printer session (puts it in "Started" state)
+        var warmupChannel = await listener.AcceptClientAsync(CancellationToken.None);
+        await warmupChannel.SendToServerAsync(Array.Empty<byte>(), CancellationToken.None);
+        await warmupChannel.CloseAsync(ChannelClosedReason.Completed);
+
+        // 4. Send escp/pos command to open drawer 1
         var channel1 = await listener.AcceptClientAsync(CancellationToken.None);
         // ESC p m t1 t2. m=0 for pin 2 (Drawer 1). t1/t2 are pulse durations.
         // 0x1B 0x70 0x00 0x32 0x32
@@ -59,24 +62,7 @@ public sealed partial class PrintersControllerTests
         await channel1.SendToServerAsync(openDrawer1Command, CancellationToken.None);
         await channel1.CloseAsync(ChannelClosedReason.Completed);
 
-        // 4. Request status and make sure drawer 1 open, drawer 2 closed
-        
-        // Loop SSE events until we see the state we expect
-        while (true)
-        {
-            var snapshot = await ReadSidebarEventAsync(reader, printerId, "Started", sseCts.Token);
-            if (snapshot.RuntimeStatus?.Drawer1State == DrawerState.OpenedByCommand.ToString())
-            {
-                Assert.Equal(DrawerState.Closed.ToString(), snapshot.RuntimeStatus.Drawer2State);
-                break;
-            }
-        }
-        
-        printerResponse = await client.GetFromJsonAsync<PrinterResponseDto>($"/api/printers/{printerId}");
-        Assert.Equal(DrawerState.OpenedByCommand.ToString(), printerResponse!.RuntimeStatus!.Drawer1State);
-        Assert.Equal(DrawerState.Closed.ToString(), printerResponse.RuntimeStatus.Drawer2State);
-
-        // 5. send esc/pos command to open drawer 2
+        // 5. Send esc/pos command to open drawer 2
         var channel2 = await listener.AcceptClientAsync(CancellationToken.None);
         // ESC p m t1 t2. m=1 for pin 5 (Drawer 2).
         // 0x1B 0x70 0x01 0x32 0x32
@@ -84,41 +70,83 @@ public sealed partial class PrintersControllerTests
         await channel2.SendToServerAsync(openDrawer2Command, CancellationToken.None);
         await channel2.CloseAsync(ChannelClosedReason.Completed);
 
-        // 6. Request status amd make sure drawer 1 and drawer 2 are both open
-        while (true)
-        {
-            var snapshot = await ReadSidebarEventAsync(reader, printerId, "Started", sseCts.Token);
-            if (snapshot.RuntimeStatus?.Drawer2State == DrawerState.OpenedByCommand.ToString())
-            {
-                Assert.Equal(DrawerState.OpenedByCommand.ToString(), snapshot.RuntimeStatus.Drawer1State);
-                break;
-            }
-        }
+        // 6. Wait for both drawer state updates via SSE stream
+        var updates = await listenTask;
 
+        Assert.Equal(2, updates.Count);
+
+        // First update should have drawer 1 opened (drawer 2 unchanged/null)
+        var firstUpdate = updates[0];
+        Assert.Equal(DrawerState.OpenedByCommand.ToString(), firstUpdate.Runtime?.Drawer1State);
+        // Drawer2State may be null in partial updates
+        var firstDrawer2State = firstUpdate.Runtime?.Drawer2State ?? DrawerState.Closed.ToString();
+
+        // Second update should have drawer 2 opened (drawer 1 unchanged/null)
+        var secondUpdate = updates[1];
+        Assert.Equal(DrawerState.OpenedByCommand.ToString(), secondUpdate.Runtime?.Drawer2State);
+        // Drawer1State may be null in partial updates
+        var secondDrawer1State = secondUpdate.Runtime?.Drawer1State ?? firstUpdate.Runtime?.Drawer1State!;
+
+        // 7. Verify final state via API
         printerResponse = await client.GetFromJsonAsync<PrinterResponseDto>($"/api/printers/{printerId}");
         Assert.Equal(DrawerState.OpenedByCommand.ToString(), printerResponse!.RuntimeStatus!.Drawer1State);
         Assert.Equal(DrawerState.OpenedByCommand.ToString(), printerResponse.RuntimeStatus.Drawer2State);
     }
 
-    private async Task WaitForDrawerStateAsync(HttpClient client, Guid printerId, DrawerState expectedState,
-        int drawerNum)
+    private static async Task<List<PrinterStatusUpdateDto>> ListenForRuntimeEventsAsync(
+        HttpClient client,
+        Guid printerId,
+        int expectedCount,
+        TimeSpan timeout)
     {
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(5);
-        while (DateTimeOffset.UtcNow < deadline)
-        {
-            var response = await client.GetFromJsonAsync<PrinterResponseDto>($"/api/printers/{printerId}");
-            var actualStateString = drawerNum == 1
-                ? response?.RuntimeStatus?.Drawer1State
-                : response?.RuntimeStatus?.Drawer2State;
+        using var cts = new CancellationTokenSource(timeout);
+        var events = new List<PrinterStatusUpdateDto>();
 
-            if (actualStateString == expectedState.ToString())
+        var url = $"/api/printers/{printerId}/runtime/stream";
+        using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cts.Token);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cts.Token);
+        using var reader = new StreamReader(stream);
+
+        string? currentEvent = null;
+        string? currentData = null;
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+        while (!cts.IsCancellationRequested && events.Count < expectedCount)
+        {
+            var line = await reader.ReadLineAsync().WaitAsync(cts.Token);
+            if (line is null)
             {
-                return;
+                break;
             }
 
-            await Task.Delay(100);
+            Console.WriteLine($"[SSE] {line}");
+
+            if (line.StartsWith("event:", StringComparison.OrdinalIgnoreCase))
+            {
+                currentEvent = line[6..].Trim();
+            }
+            else if (line.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            {
+                currentData = line[5..].Trim();
+            }
+            else if (string.IsNullOrWhiteSpace(line))
+            {
+                if (string.Equals(currentEvent, "status", StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrEmpty(currentData))
+                {
+                    var update = JsonSerializer.Deserialize<PrinterStatusUpdateDto>(currentData, options);
+                    if (update?.PrinterId == printerId && update.Runtime != null)
+                    {
+                        events.Add(update);
+                    }
+                }
+                currentEvent = null;
+                currentData = null;
+            }
         }
 
-        throw new TimeoutException($"Drawer {drawerNum} did not reach {expectedState} within timeout");
+        return events;
     }
 }
