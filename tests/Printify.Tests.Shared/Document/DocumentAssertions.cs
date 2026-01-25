@@ -190,15 +190,7 @@ public static class DocumentAssertions
         IReadOnlyList<CanvasElementDto> actualCanvasElements)
     {
         Assert.NotNull(expectedCanvasElements);
-        try
-        {
-            Assert.Equal(expectedCanvasElements.Count, actualCanvasElements.Count);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e); //todo debugnow
-            throw;
-        }
+        Assert.Equal(expectedCanvasElements.Count, actualCanvasElements.Count);
 
         for (var index = 0; index < expectedCanvasElements.Count; index++)
         {

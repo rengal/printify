@@ -1,15 +1,13 @@
-using Printify.Application.Features.Printers.Documents.Canvas;
 using Printify.Domain.Documents;
 using Printify.Domain.Printers;
+using Printify.Domain.Specifications;
 using Printify.Infrastructure.Printing.EscPos.Renderers;
 using Printify.Tests.Shared.Document;
-using Printify.Tests.Shared.EscPos;
 
 namespace Printify.Infrastructure.Tests.Printing.EscPos;
 
 public sealed class EscPosViewDocumentConverterTests
 {
-    /*
     [Theory]
     [MemberData(nameof(EscPosScenarioData.AllScenarios), MemberType = typeof(EscPosScenarioData))]
     public void EscPos_ViewConverter_Scenarios_ProduceExpectedView(EscPosScenario scenario)
@@ -24,6 +22,8 @@ public sealed class EscPosViewDocumentConverterTests
             null,
             0,
             0,
+            EscPosSpecs.DefaultCanvasWidth,
+            null,
             elements,
             null);
 
@@ -38,5 +38,4 @@ public sealed class EscPosViewDocumentConverterTests
             canvas.WidthInDots,
             canvas.HeightInDots);
     }
-    */
 }

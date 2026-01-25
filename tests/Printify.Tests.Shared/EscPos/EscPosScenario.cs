@@ -16,13 +16,13 @@ public sealed record EscPosScenario : ITestScenario
         byte[] input,
         IReadOnlyList<Command> expectedRequestCommands,
         IReadOnlyList<Command>? expectedPersistedCommands = null,
-        IReadOnlyList<CanvasElementDto>? expectedViewElements = null)
+        IReadOnlyList<CanvasElementDto>? expectedCanvasElements = null)
     {
         Id = id;
         Input = input;
         ExpectedRequestCommands = expectedRequestCommands;
         ExpectedPersistedCommands = expectedPersistedCommands;
-        ExpectedCanvasElements = expectedViewElements ?? [];
+        ExpectedCanvasElements = expectedCanvasElements ?? [];
     }
 
     public override string ToString()

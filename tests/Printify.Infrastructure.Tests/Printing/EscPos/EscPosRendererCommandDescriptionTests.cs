@@ -1,17 +1,15 @@
-using Printify.Application.Features.Printers.Documents.Canvas;
 using Printify.Domain.Documents;
 using Printify.Domain.Layout.Primitives;
 using Printify.Domain.Printers;
 using Printify.Domain.Printing;
+using Printify.Domain.Specifications;
 using Printify.Infrastructure.Printing.EscPos.Commands;
 using Printify.Infrastructure.Printing.EscPos.Renderers;
-using Printify.Tests.Shared.Document;
 
 namespace Printify.Infrastructure.Tests.Printing.EscPos;
 
 public sealed class EscPosRendererCommandDescriptionTests
 {
-    /*
     [Fact]
     public void EscPosRenderer_ProducesNonEmptyCommandDescriptions_ForKnownCommands()
     {
@@ -35,6 +33,8 @@ public sealed class EscPosRendererCommandDescriptionTests
             null,
             0,
             0,
+            EscPosSpecs.DefaultCanvasWidth,
+            null,
             commands,
             null);
 
@@ -78,6 +78,8 @@ public sealed class EscPosRendererCommandDescriptionTests
             null,
             0,
             0,
+            EscPosSpecs.DefaultCanvasWidth,
+            null,
             commands,
             null);
 
@@ -98,5 +100,4 @@ public sealed class EscPosRendererCommandDescriptionTests
             }
         }
     }
-    */
 }
