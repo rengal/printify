@@ -21,6 +21,9 @@ internal static class RenderedDocumentMapper
             document.Canvas.HeightInDots,
             items.AsReadOnly());
 
+        // Extract error messages from canvas debug elements
+        var errorMessages = ExtractErrorMessages(items, document.ErrorMessages);
+
         return new RenderedDocumentDto(
             document.Id,
             document.PrintJobId,
@@ -31,7 +34,32 @@ internal static class RenderedDocumentMapper
             document.ClientAddress,
             document.BytesReceived,
             document.BytesSent,
-            document.ErrorMessages);
+            errorMessages);
+    }
+
+    private static string[]? ExtractErrorMessages(List<CanvasElementDto> items, string[]? documentErrorMessages)
+    {
+        var errorMessages = new List<string>();
+
+        // Add document-level error messages if any
+        if (documentErrorMessages is { Length: > 0 })
+        {
+            errorMessages.AddRange(documentErrorMessages);
+        }
+
+        // Extract error messages from debug elements
+        foreach (var item in items)
+        {
+            if (item is CanvasDebugElementDto debug &&
+                (debug.DebugType == "error" || debug.DebugType == "printerError") &&
+                debug.Parameters is not null &&
+                debug.Parameters.TryGetValue("Message", out var message))
+            {
+                errorMessages.Add(message);
+            }
+        }
+
+        return errorMessages.Count > 0 ? errorMessages.ToArray() : null;
     }
 
     private static CanvasElementDto ToCanvasElementDto(BaseElement element)

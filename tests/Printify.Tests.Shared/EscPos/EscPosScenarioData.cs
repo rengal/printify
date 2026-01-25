@@ -249,8 +249,25 @@ public static class EscPosScenarioData
             ],
             expectedViewElements:
             [
+                // "ABC" added to buffer
+                ViewDebug("appendToLineBuffer", parameters: new Dictionary<string, string> { ["Text"] = "ABC" }, lengthInBytes: 3),
+                // Buffer cleared by image - synthetic error for lost data
+                new CanvasDebugElementDto("printerError")
+                {
+                    LengthInBytes = 0,
+                    Parameters = new Dictionary<string, string>
+                    {
+                        ["Message"] = "Text buffer cleared by raster image command, 3 bytes lost (\"ABC\")"
+                    }
+                },
+                // The image that cleared the buffer
                 ViewDebug("rasterImage", lengthInBytes: 10),
-                ViewImage(8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10)
+                ViewImage(8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10),
+                // "DEF" added to fresh buffer
+                ViewDebug("appendToLineBuffer", parameters: new Dictionary<string, string> { ["Text"] = "DEF" }, lengthInBytes: 3),
+                // Flush - only "DEF" prints (positioned below the image)
+                ViewDebug("flushLineBufferAndFeed", lengthInBytes: 1),
+                ViewText("DEF", x: 0, y: 2, lengthInBytes: 3)  // Y=2 because image (height=2) is above
             ]),
         new(
             id: 15014,

@@ -90,11 +90,11 @@ public class EplPrintJobSession : PrintJobSession
         catch (OperationCanceledException e)
         {
             // expected if new data arrives or job is canceled
-            Console.WriteLine(e.Message); //todo debugnow
         }
         catch (Exception e)
         {
             Console.WriteLine(e.Message); //todo debugnow
+            throw;
         }
     }
 

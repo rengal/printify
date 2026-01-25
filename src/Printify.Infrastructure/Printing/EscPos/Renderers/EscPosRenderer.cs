@@ -72,7 +72,7 @@ public sealed class EscPosRenderer : IRenderer
                     break;
 
                 case RasterImage raster:
-                    lineBuffer.Reset();
+                    ClearLineBufferWithError(lineBuffer, items, "raster image command");
                     items.Add(new DebugInfo(
                         "rasterImage",
                         new Dictionary<string, string>(),
@@ -86,6 +86,7 @@ public sealed class EscPosRenderer : IRenderer
                     throw new InvalidOperationException("Upload requests must not be emitted");
 
                 case PrintBarcode barcode:
+                    ClearLineBufferWithError(lineBuffer, items, "barcode command");
                     items.Add(new DebugInfo(
                         "printBarcode",
                         new Dictionary<string, string>(),
@@ -96,6 +97,7 @@ public sealed class EscPosRenderer : IRenderer
                     break;
 
                 case PrintQrCode qrCode:
+                    ClearLineBufferWithError(lineBuffer, items, "QR code command");
                     items.Add(new DebugInfo(
                         "printQrCode",
                         new Dictionary<string, string>(),
@@ -215,6 +217,28 @@ public sealed class EscPosRenderer : IRenderer
                     items.Add(new DebugInfo(
                         "resetPrinter",
                         new Dictionary<string, string>(),
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        CommandDescriptionBuilder.Build(command)));
+                    break;
+
+                case CutPaper pagecut:
+                    items.Add(new DebugInfo(
+                        "pagecut",
+                        BuildStateParameters(command),
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        CommandDescriptionBuilder.Build(command)));
+                    break;
+
+                case StoredLogo logo:
+                    ClearLineBufferWithError(lineBuffer, items, "stored logo command");
+                    items.Add(new DebugInfo(
+                        "storedLogo",
+                        new Dictionary<string, string>
+                        {
+                            ["LogoId"] = logo.LogoId.ToString()
+                        },
                         command.RawBytes,
                         command.LengthInBytes,
                         CommandDescriptionBuilder.Build(command)));
@@ -496,6 +520,48 @@ public sealed class EscPosRenderer : IRenderer
             LineWidth = 0;
             LineHeight = 0;
         }
+
+        public (string content, int byteCount) GetContent()
+        {
+            if (Segments.Count == 0)
+            {
+                return (string.Empty, 0);
+            }
+
+            var content = string.Concat(Segments.Select(s => s.Text));
+            // Byte count is sum of all segment lengths
+            var byteCount = Segments.Sum(s => s.Text.Length); // For ASCII, 1 char = 1 byte
+            return (content, byteCount);
+        }
+    }
+
+    private static void ClearLineBufferWithError(LineBufferState lineBuffer, List<BaseElement> items, string commandName)
+    {
+        var (content, byteCount) = lineBuffer.GetContent();
+        if (string.IsNullOrEmpty(content))
+        {
+            lineBuffer.Reset();
+            return;
+        }
+
+        // Add printer error for lost buffer content
+        var description = new List<string>
+        {
+            $"Text buffer cleared by {commandName}",
+            $"{byteCount} bytes lost (\"{content}\")"
+        };
+
+        items.Add(new DebugInfo(
+            "printerError",
+            new Dictionary<string, string>
+            {
+                ["Message"] = $"Text buffer cleared by {commandName}, {byteCount} bytes lost (\"{content}\")"
+            },
+            Array.Empty<byte>(),
+            0,
+            description));
+
+        lineBuffer.Reset();
     }
 
     private sealed record TextSegment(
