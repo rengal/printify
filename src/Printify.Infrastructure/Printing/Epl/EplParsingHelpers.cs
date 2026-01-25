@@ -10,24 +10,27 @@ namespace Printify.Infrastructure.Printing.Epl;
 public static class EplParsingHelpers
 {
     /// <summary>
-    /// Finds the newline character starting from the end of the buffer.
-    /// This is more efficient for EPL commands since \n is always the last byte.
+    /// Finds the line terminator (CR or LF) in the buffer by searching from beginning to end.
+    /// This is stable for streaming scenarios - as buffer grows, we scan forward and find the first terminator.
+    /// Accepts either CR (0x0D) or LF (0x0A) as command terminator.
     /// </summary>
     /// <param name="buffer">The buffer to search.</param>
-    /// <param name="newlineIndex">Outputs the index of the newline character.</param>
-    /// <returns>True if newline was found, false otherwise.</returns>
-    public static bool TryFindNewlineFromEnd(ReadOnlySpan<byte> buffer, out int newlineIndex)
+    /// <param name="terminatorIndex">Outputs the index of the terminator character.</param>
+    /// <returns>True if terminator was found, false otherwise.</returns>
+    public static bool TryFindTerminator(ReadOnlySpan<byte> buffer, out int terminatorIndex)
     {
-        // Search from the end backwards since \n is expected to be the last byte
-        for (int i = buffer.Length - 1; i >= 0; i--)
+        // Search forward from beginning - this is stable for streaming
+        // As buffer grows, we find the first terminator at its position
+        for (int i = 0; i < buffer.Length; i++)
         {
-            if (buffer[i] == (byte)'\n')
+            var b = buffer[i];
+            if (b == 0x0A || b == 0x0D) // LF or CR
             {
-                newlineIndex = i;
+                terminatorIndex = i;
                 return true;
             }
         }
-        newlineIndex = -1;
+        terminatorIndex = -1;
         return false;
     }
 
@@ -40,7 +43,7 @@ public static class EplParsingHelpers
         string commandName,
         Func<ArgsParser, T> resultFactory) where T : Command
     {
-        var trimmed = content.TrimEnd('\n');
+        var trimmed = content.TrimEnd('\n').TrimEnd('\r');
         var parts = trimmed.Split(',');
 
         try
@@ -64,7 +67,7 @@ public static class EplParsingHelpers
         string commandName,
         Func<ArgsParser, Command> resultFactory)
     {
-        var trimmed = content.TrimEnd('\n');
+        var trimmed = content.TrimEnd('\n').TrimEnd('\r');
         var parts = trimmed.Split(',');
 
         try
@@ -91,7 +94,7 @@ public static class EplParsingHelpers
     {
         value = 0;
         var content = System.Text.Encoding.ASCII.GetString(buffer[commandLength..]);
-        var trimmed = content.TrimEnd('\n');
+        var trimmed = content.TrimEnd('\n').TrimEnd('\r');
 
         if (int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed))
         {

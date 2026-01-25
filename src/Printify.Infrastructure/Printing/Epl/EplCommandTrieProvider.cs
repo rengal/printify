@@ -33,5 +33,9 @@ public sealed class EplCommandTrieProvider : CommandTrieProvider<ICommandDescrip
         new SetInternationalCharacterDescriptor(),
         new SetCodePageDescriptor(),
         new ClearBufferDescriptor(),
+
+        // Control characters (no-op commands)
+        new CarriageReturnDescriptor(),
+        new LineFeedDescriptor(),
     ];
 }

@@ -67,3 +67,15 @@ public sealed record SetInternationalCharacter(int Code) : EplCommand;
 /// <param name="Code">Codepage number (e.g., 38 for DOS 866).</param>
 /// <param name="Scaling">Character scaling (0-9).</param>
 public sealed record SetCodePage(int Code, int Scaling = 0) : EplCommand;
+
+/// <summary>
+/// Carriage return (no-op command for debug/logging).
+/// Command: CR (0x0D)
+/// </summary>
+public sealed record CarriageReturn : EplCommand;
+
+/// <summary>
+/// Line feed (no-op command for debug/logging).
+/// Command: LF (0x0A)
+/// </summary>
+public sealed record LineFeed : EplCommand;

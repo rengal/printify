@@ -19,7 +19,11 @@ public sealed class ScalableTextDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
-        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
+        var lastByte = buffer[^1];
+        if (lastByte != 0x0A && lastByte != 0x0D) // LF or CR
+            return MatchResult.NeedMore();
+
+        if (!EplParsingHelpers.TryFindTerminator(buffer, out var newline))
             return MatchResult.NeedMore();
 
         var length = newline + 1;
@@ -98,7 +102,11 @@ public sealed class DrawHorizontalLineDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
-        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
+        var lastByte = buffer[^1];
+        if (lastByte != 0x0A && lastByte != 0x0D) // LF or CR
+            return MatchResult.NeedMore();
+
+        if (!EplParsingHelpers.TryFindTerminator(buffer, out var newline))
             return MatchResult.NeedMore();
 
         var length = newline + 1;
@@ -130,7 +138,11 @@ public sealed class PrintBarcodeDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
-        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
+        var lastByte = buffer[^1];
+        if (lastByte != 0x0A && lastByte != 0x0D) // LF or CR
+            return MatchResult.NeedMore();
+
+        if (!EplParsingHelpers.TryFindTerminator(buffer, out var newline))
             return MatchResult.NeedMore();
 
         var length = newline + 1;
@@ -190,7 +202,11 @@ public sealed class DrawLineDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
-        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
+        var lastByte = buffer[^1];
+        if (lastByte != 0x0A && lastByte != 0x0D) // LF or CR
+            return MatchResult.NeedMore();
+
+        if (!EplParsingHelpers.TryFindTerminator(buffer, out var newline))
             return MatchResult.NeedMore();
 
         var length = newline + 1;
@@ -223,7 +239,11 @@ public sealed class PrintDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
-        if (!EplParsingHelpers.TryFindNewlineFromEnd(buffer, out var newline))
+        var lastByte = buffer[^1];
+        if (lastByte != 0x0A && lastByte != 0x0D) // LF or CR
+            return MatchResult.NeedMore();
+
+        if (!EplParsingHelpers.TryFindTerminator(buffer, out var newline))
             return MatchResult.NeedMore();
 
         var length = newline + 1;

@@ -23,8 +23,9 @@ public sealed class ClearBufferDescriptor : ICommandDescriptor
         if (buffer.Length < length)
             return MatchResult.NeedMore();
 
-        if (buffer[1] != (byte)'\n')
-            return MatchResult.Matched(new PrinterError("N command must be followed by newline"));
+        var terminatorByte = buffer[1];
+        if (terminatorByte != 0x0A && terminatorByte != 0x0D) // LF or CR
+            return MatchResult.Matched(new PrinterError("N command must be followed by CR or LF"));
 
         var element = new ClearBuffer();
         return EplParsingHelpers.Success(element, buffer, length);
