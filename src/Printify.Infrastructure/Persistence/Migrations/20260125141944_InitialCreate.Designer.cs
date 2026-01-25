@@ -11,7 +11,7 @@ using Printify.Infrastructure.Persistence;
 namespace Printify.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(PrintifyDbContext))]
-    [Migration("20260110093245_InitialCreate")]
+    [Migration("20260125141944_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -195,10 +195,6 @@ namespace Printify.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("display_name");
 
-                    b.Property<int?>("HeightInDots")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("height_in_dots");
-
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER")
                         .HasColumnName("is_deleted");
@@ -211,10 +207,6 @@ namespace Printify.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT")
                         .HasColumnName("protocol");
-
-                    b.Property<int>("WidthInDots")
-                        .HasColumnType("INTEGER")
-                        .HasColumnName("width_in_dots");
 
                     b.HasKey("Id");
 

@@ -39,12 +39,12 @@ namespace Printify.Infrastructure.Persistence.Migrations
                     printer_id = table.Column<Guid>(type: "TEXT", nullable: false),
                     version = table.Column<int>(type: "INTEGER", nullable: false),
                     created_at = table.Column<long>(type: "INTEGER", nullable: false),
-                    width_in_dots = table.Column<int>(type: "INTEGER", nullable: false),
-                    height_in_dots = table.Column<int>(type: "INTEGER", nullable: true),
                     protocol = table.Column<string>(type: "TEXT", nullable: false),
                     client_address = table.Column<string>(type: "TEXT", nullable: true),
                     bytes_received = table.Column<int>(type: "INTEGER", nullable: false),
-                    bytes_sent = table.Column<int>(type: "INTEGER", nullable: false)
+                    bytes_sent = table.Column<int>(type: "INTEGER", nullable: false),
+                    width_in_dots = table.Column<int>(type: "INTEGER", nullable: false),
+                    height_in_dots = table.Column<int>(type: "INTEGER", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -59,8 +59,6 @@ namespace Printify.Infrastructure.Persistence.Migrations
                     printer_id = table.Column<Guid>(type: "TEXT", nullable: false),
                     display_name = table.Column<string>(type: "TEXT", nullable: false),
                     protocol = table.Column<string>(type: "TEXT", nullable: false),
-                    width_in_dots = table.Column<int>(type: "INTEGER", nullable: false),
-                    height_in_dots = table.Column<int>(type: "INTEGER", nullable: true),
                     client_address = table.Column<string>(type: "TEXT", nullable: false),
                     created_at = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
                     is_deleted = table.Column<bool>(type: "INTEGER", nullable: false)
