@@ -81,6 +81,18 @@ public sealed class PrinterListenerOrchestrator(
     private async ValueTask Session_DataTimedOut(IPrintJobSession session, PrintJobSessionDataTimedOutEventArgs args)
     {
         await printJobSessions.CompleteAsync(args.Channel, PrintJobCompletionReason.DataTimeout, CancellationToken.None);
+
+        // Explicitly close the channel on timeout to avoid leaving the client connected indefinitely.
+        args.Channel.DataReceived -= Channel_DataReceived;
+        args.Channel.Closed -= Channel_Closed;
+
+        var printerId = args.Channel.Printer.Id;
+        if (printerChannels.TryGetValue(printerId, out var channels))
+        {
+            channels.Remove(args.Channel);
+        }
+
+        await args.Channel.DisposeAsync().ConfigureAwait(false);
     }
 
     private async ValueTask Channel_Closed(IPrinterChannel channel, PrinterChannelClosedEventArgs args)

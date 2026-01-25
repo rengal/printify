@@ -13,6 +13,7 @@ internal static class EplDocumentElementTypeNames
     public const string SetPrintDirection = "eplSetPrintDirection";
     public const string SetInternationalCharacter = "eplSetInternationalCharacter";
     public const string SetCodePage = "eplSetCodePage";
+    public const string PrinterError = "eplPrinterError";
     public const string ScalableText = "eplScalableText";
     public const string DrawHorizontalLine = "eplDrawHorizontalLine";
     public const string DrawLine = "eplDrawLine";

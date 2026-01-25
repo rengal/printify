@@ -1,9 +1,9 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Printify.Domain.Printing;
 using Printify.Infrastructure.Persistence.Entities.Documents;
 using Printify.Infrastructure.Persistence.Entities.Documents.Epl;
 using Printify.Infrastructure.Printing.Epl.Commands;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Printify.Infrastructure.Mapping.Protocols.Epl;
 
@@ -32,6 +32,7 @@ public static class CommandMapper
                 EnumMapper.ToString(direction.Direction)),
             SetInternationalCharacter intlChar => new SetInternationalCharacterElementPayload(intlChar.Code),
             SetCodePage codePage => new SetCodePageElementPayload(codePage.Code, codePage.Scaling),
+            PrinterError printerError => new PrinterErrorElementPayload(printerError.Message),
             ScalableText text => new ScalableTextElementPayload(
                 text.X,
                 text.Y,
@@ -94,6 +95,7 @@ public static class CommandMapper
                 EnumMapper.ParsePrintDirection(direction.Direction ?? "TopToBottom")),
             SetInternationalCharacterElementPayload intlChar => new SetInternationalCharacter(intlChar.Code),
             SetCodePageElementPayload codePage => new SetCodePage(codePage.Code, codePage.Scaling),
+            PrinterErrorElementPayload printerError => new PrinterError(printerError.Message ?? string.Empty),
             ScalableTextElementPayload text => new ScalableText(
                 text.X,
                 text.Y,
@@ -183,6 +185,7 @@ public static class CommandMapper
             EplDocumentElementTypeNames.SetPrintDirection => JsonSerializer.Deserialize<SetPrintDirectionElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.SetInternationalCharacter => JsonSerializer.Deserialize<SetInternationalCharacterElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.SetCodePage => JsonSerializer.Deserialize<SetCodePageElementPayload>(entity.Payload, SerializerOptions),
+            EplDocumentElementTypeNames.PrinterError => JsonSerializer.Deserialize<PrinterErrorElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.ScalableText => JsonSerializer.Deserialize<ScalableTextElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.DrawHorizontalLine => JsonSerializer.Deserialize<DrawHorizontalLineElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.DrawLine => JsonSerializer.Deserialize<DrawLineElementPayload>(entity.Payload, SerializerOptions),
@@ -211,6 +214,7 @@ public static class CommandMapper
             SetPrintDirectionElementPayload => EplDocumentElementTypeNames.SetPrintDirection,
             SetInternationalCharacterElementPayload => EplDocumentElementTypeNames.SetInternationalCharacter,
             SetCodePageElementPayload => EplDocumentElementTypeNames.SetCodePage,
+            PrinterErrorElementPayload => EplDocumentElementTypeNames.PrinterError,
             ScalableTextElementPayload => EplDocumentElementTypeNames.ScalableText,
             DrawHorizontalLineElementPayload => EplDocumentElementTypeNames.DrawHorizontalLine,
             DrawLineElementPayload => EplDocumentElementTypeNames.DrawLine,

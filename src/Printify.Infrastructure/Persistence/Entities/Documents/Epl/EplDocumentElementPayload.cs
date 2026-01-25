@@ -27,6 +27,8 @@ public sealed record SetCodePageElementPayload(
     int Code,
     int Scaling) : EplDocumentElementPayload;
 
+public sealed record PrinterErrorElementPayload(string? Message) : EplDocumentElementPayload;
+
 public sealed record ScalableTextElementPayload(
     int X,
     int Y,

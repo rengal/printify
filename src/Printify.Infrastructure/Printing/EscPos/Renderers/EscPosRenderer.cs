@@ -255,6 +255,9 @@ public sealed class EscPosRenderer : IRenderer
             }
         }
 
+        // Flush any unprinted text buffer to surface a printer error for truncated content.
+        ClearLineBufferWithError(lineBuffer, items, "end of document");
+
         return new Canvas(
             WidthInDots: canvasWidthInDots,
             HeightInDots: canvasHeightInDots,
