@@ -22,9 +22,8 @@ public class EplTests(WebApplicationFactory<Program> factory)
         factory,
         Protocol.Epl)
 {
-    // EPL uses dynamic height (null) since content height varies
-    protected override int? DefaultPrinterHeightInDots => null;
     protected override int DefaultPrinterWidthInDots => EplSpecs.DefaultCanvasWidth;
+    protected override int? DefaultPrinterHeightInDots => EplSpecs.DefaultCanvasHeight;
 
     public override async Task DocumentCompletesAfterIdleTimeout()
     {

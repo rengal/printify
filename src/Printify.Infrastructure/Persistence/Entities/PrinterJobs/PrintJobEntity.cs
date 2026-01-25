@@ -14,12 +14,6 @@ public sealed class PrintJobEntity : BaseEntity
     [Column("protocol")]
     public string Protocol { get; set; } = string.Empty;
 
-    [Column("width_in_dots")]
-    public int WidthInDots { get; set; }
-
-    [Column("height_in_dots")]
-    public int? HeightInDots { get; set; }
-
     [Column("client_address")]
     public string ClientAddress { get; set; } = string.Empty;
 }

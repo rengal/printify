@@ -1,15 +1,13 @@
+using System.Text;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents;
 using Printify.Domain.Layout;
 using Printify.Domain.Layout.Primitives;
-using Printify.Domain.Printing;
 using Printify.Domain.Printers;
+using Printify.Domain.Printing;
 using Printify.Domain.Specifications;
-using Printify.Infrastructure.Mapping.Protocols.Epl;
-using Printify.Infrastructure.Printing;
 using Printify.Infrastructure.Printing.Epl.Commands;
-using System.Text;
 using LayoutMedia = Printify.Domain.Layout.Primitives.Media;
 using EplRotationMapper = Printify.Infrastructure.Mapping.Protocols.Epl.RotationMapper;
 
@@ -20,8 +18,6 @@ namespace Printify.Infrastructure.Printing.Epl.Renderers;
 /// </summary>
 public sealed class EplRenderer : IRenderer
 {
-    private const int DefaultWidthInDots = 432;
-
     public Canvas Render(Document document)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -205,8 +201,8 @@ public sealed class EplRenderer : IRenderer
         }
 
         return new Canvas(
-            WidthInDots: DefaultWidthInDots,
-            HeightInDots: null,
+            WidthInDots: document.WidthInDots,
+            HeightInDots: document.HeightInDots,
             Items: items.AsReadOnly());
     }
 

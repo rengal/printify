@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;

@@ -1,4 +1,4 @@
-﻿using Printify.Domain.PrintJobs;
+using Printify.Domain.PrintJobs;
 
 namespace Printify.Application.Printing;
 

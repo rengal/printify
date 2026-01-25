@@ -1,8 +1,4 @@
-using Printify.Infrastructure.Mapping.Protocols.Epl;
-using Printify.Infrastructure.Mapping.Protocols.EscPos;
 using Printify.Infrastructure.Persistence.Entities.Documents;
-using Printify.Infrastructure.Persistence.Entities.Documents.Epl;
-using Printify.Infrastructure.Persistence.Entities.Documents.EscPos;
 using Printify.Domain.Documents;
 using Printify.Domain.Printers;
 using Printify.Domain.Printing;
@@ -31,19 +27,29 @@ internal static class DocumentMapper
             Protocol = EnumMapper.ToString(document.Protocol),
             ClientAddress = document.ClientAddress,
             BytesReceived = document.BytesReceived,
-            BytesSent = document.BytesSent
+            BytesSent = document.BytesSent,
+            WidthInDots = document.WidthInDots,
+            HeightInDots = document.HeightInDots
         };
 
         var elementEntities = new List<DocumentElementEntity>();
         var index = 0;
         foreach (var element in document.Commands)
         {
-            DocumentElementEntity elementEntity = document.Protocol switch
+            var elementEntity = document.Protocol switch
             {
                 Protocol.EscPos => ToElementEntity(
-                    document.Id, element, EscPosCommandMapper.ToCommandPayload, EscPosCommandMapper.ToEntity, ref index),
+                    document.Id,
+                    element,
+                    EscPosCommandMapper.ToCommandPayload,
+                    EscPosCommandMapper.ToEntity,
+                    ref index),
                 Protocol.Epl => ToElementEntity(
-                    document.Id, element, EplCommandMapper.ToCommandPayload, EplCommandMapper.ToEntity, ref index),
+                    document.Id,
+                    element,
+                    EplCommandMapper.ToCommandPayload,
+                    EplCommandMapper.ToEntity,
+                    ref index),
                 _ => throw new NotSupportedException($"Protocol '{document.Protocol}' is not supported.")
             };
 
@@ -113,6 +119,8 @@ internal static class DocumentMapper
             entity.ClientAddress,
             entity.BytesReceived,
             entity.BytesSent,
+            entity.WidthInDots,
+            entity.HeightInDots,
             elements,
             null);
     }
@@ -147,9 +155,7 @@ internal static class DocumentMapper
             return null;
         }
 
-        var media = elementEntity.Media is null
-            ? null
-            : MediaMapper.ToDomain(elementEntity.Media);
+        var media = elementEntity.Media?.ToDomain();
 
         return toDomain(dto, media);
     }
@@ -158,7 +164,7 @@ internal static class DocumentMapper
     {
         if (string.IsNullOrWhiteSpace(commandRaw))
         {
-            return Array.Empty<byte>();
+            return [];
         }
 
         try

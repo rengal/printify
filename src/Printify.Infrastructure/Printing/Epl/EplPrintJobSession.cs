@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
+using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Core;
@@ -70,7 +71,7 @@ public class EplPrintJobSession : PrintJobSession
     {
         if (element.LengthInBytes > 0)
         {
-            bufferCoordinator.AddBytes(Printer, Settings, element.LengthInBytes);
+            bufferCoordinator.AddBytes(Printer, Job.PrinterSettings, element.LengthInBytes);
         }
 
         ElementBuffer.Add(element);
@@ -87,14 +88,9 @@ public class EplPrintJobSession : PrintJobSession
                 await DataTimedOut.Invoke(this, args).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException e)
+        catch (OperationCanceledException)
         {
             // expected if new data arrives or job is canceled
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.Message); //todo debugnow
-            throw;
         }
     }
 
@@ -105,17 +101,19 @@ public class EplPrintJobSession : PrintJobSession
 
         parser.Complete();
 
-
         var snapshot = ElementBuffer.ToArray();
         var document = new Document(
             Guid.NewGuid(),
             Job.Id,
             Printer.Id,
             DateTimeOffset.UtcNow,
-            Settings.Protocol,
+            Job.PrinterSettings.Protocol,
+            // Capture the printer dimensions at print time so later rendering stays consistent.
             Channel.ClientAddress,
             TotalBytesReceived,
             TotalBytesSentToClient,
+            Job.PrinterSettings.WidthInDots,
+            Job.PrinterSettings.HeightInDots,
             snapshot,
             null);
         SetDocument(document);

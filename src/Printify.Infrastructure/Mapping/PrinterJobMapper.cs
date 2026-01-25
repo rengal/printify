@@ -1,10 +1,11 @@
+using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
 using Printify.Infrastructure.Persistence.Entities.PrinterJobs;
 
 namespace Printify.Infrastructure.Mapping;
 
 /// <summary>
-/// Mapper for PrintJob domain to persistence entity conversion.
+/// Bidirectional mapper between PrintJob domain and persistence entities.
 /// </summary>
 internal static class PrinterJobMapper
 {
@@ -19,9 +20,7 @@ internal static class PrinterJobMapper
             IsDeleted = job.IsDeleted,
             PrinterId = job.Printer.Id,
             DisplayName = job.Printer.DisplayName,
-            Protocol = EnumMapper.ToString(job.Settings.Protocol),
-            WidthInDots = job.Settings.WidthInDots,
-            HeightInDots = job.Settings.HeightInDots,
+            Protocol = EnumMapper.ToString(job.Protocol),
             ClientAddress = job.ClientAddress
         };
     }

@@ -34,6 +34,8 @@ public sealed class EplRendererCommandDescriptionTests
             null,
             0,
             0,
+            500,  // WidthInDots
+            300,  // HeightInDots
             commands,
             null);
 
@@ -77,6 +79,8 @@ public sealed class EplRendererCommandDescriptionTests
             null,
             0,
             0,
+            500,  // WidthInDots
+            300,  // HeightInDots
             commands,
             null);
 
@@ -118,6 +122,8 @@ public sealed class EplRendererCommandDescriptionTests
             null,
             0,
             0,
+            500,  // WidthInDots
+            300,  // HeightInDots
             commands,
             null);
 

@@ -34,17 +34,21 @@ public sealed class PrintJobSessionsOrchestrator(
 
         var printer = channel.Printer;
 
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var printerRepository = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
+        var printerSettings = await printerRepository.GetSettingsAsync(printer.Id, ct)
+            .ConfigureAwait(false) ?? channel.Settings;
+
         var printJob = new PrintJob(
             Guid.NewGuid(),
             printer,
-            channel.Settings,
+            printerSettings,
+            channel.Settings.Protocol,
             DateTimeOffset.Now,
             channel.ClientAddress);
-        await using (var scope = scopeFactory.CreateAsyncScope())
-        {
-            var printJobRepository = scope.ServiceProvider.GetRequiredService<IPrintJobRepository>();
-            await printJobRepository.AddAsync(printJob, ct).ConfigureAwait(false);
-        }
+
+        var printJobRepository = scope.ServiceProvider.GetRequiredService<IPrintJobRepository>();
+        await printJobRepository.AddAsync(printJob, ct).ConfigureAwait(false);
 
         var jobSession = await printJobSessionFactory.Create(printJob, channel, ct);
         jobSessions[channel] = jobSession;

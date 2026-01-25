@@ -1,5 +1,5 @@
-using Mediator.Net.Contracts;
 using Mediator.Net.Context;
+using Mediator.Net.Contracts;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents;

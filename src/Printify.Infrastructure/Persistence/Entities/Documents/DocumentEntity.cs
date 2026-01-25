@@ -30,12 +30,6 @@ public sealed class DocumentEntity
         set => CreatedAtUnixMs = value.ToUnixTimeMilliseconds();
     }
 
-    [Column("width_in_dots")]
-    public int WidthInDots { get; set; }
-
-    [Column("height_in_dots")]
-    public int? HeightInDots { get; set; }
-
     [Column("protocol")]
     public string Protocol { get; set; } = string.Empty;
 
@@ -47,6 +41,12 @@ public sealed class DocumentEntity
 
     [Column("bytes_sent")]
     public int BytesSent { get; set; }
+
+    [Column("width_in_dots")]
+    public int WidthInDots { get; set; }
+
+    [Column("height_in_dots")]
+    public int? HeightInDots { get; set; }
 
     [InverseProperty(nameof(DocumentElementEntity.Document))]
     public List<DocumentElementEntity> Elements { get; set; } = new();

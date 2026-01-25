@@ -20,6 +20,11 @@ public static class EplSpecs
     public const int DefaultCanvasWidth = 432;
 
     /// <summary>
+    /// Default height width for EPL documents.
+    /// </summary>
+    public const int DefaultCanvasHeight = 310;
+
+    /// <summary>
     /// Font specifications for EPL protocol.
     ///
     /// Note: According to EPL2 specifications, fonts 2-5 have different base dimensions,

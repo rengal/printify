@@ -26,7 +26,7 @@ public class EscPosPrintJobSession : PrintJobSession
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     }
-  
+
     private IList<Command> ElementBuffer => MutableElements;
     private readonly IClock idleClock;
     private readonly EscPosParser parser;
@@ -53,7 +53,7 @@ public class EscPosPrintJobSession : PrintJobSession
             trieProvider,
             scopeFactory,
             Printer,
-            Settings,
+            Job.PrinterSettings,
             OnElement,
             OnResponse);
     }
@@ -81,7 +81,7 @@ public class EscPosPrintJobSession : PrintJobSession
     {
         if (element.LengthInBytes > 0)
         {
-            bufferCoordinator.AddBytes(Printer, Settings, element.LengthInBytes);
+            bufferCoordinator.AddBytes(Printer, Job.PrinterSettings, element.LengthInBytes);
         }
 
         ElementBuffer.Add(element);
@@ -98,14 +98,9 @@ public class EscPosPrintJobSession : PrintJobSession
                 await DataTimedOut.Invoke(this, args).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException e)
+        catch (OperationCanceledException)
         {
             // expected if new data arrives or job is canceled
-            Console.WriteLine(e.Message); //todo debugnow
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.Message); //todo debugnow
         }
     }
 
@@ -123,10 +118,13 @@ public class EscPosPrintJobSession : PrintJobSession
             Job.Id,
             Printer.Id,
             DateTimeOffset.UtcNow,
-            Settings.Protocol,
+            Job.Protocol,
+            // Capture the printer dimensions at print time so later rendering stays consistent.
             Channel.ClientAddress,
             TotalBytesReceived,
             TotalBytesSentToClient,
+            Job.PrinterSettings.WidthInDots,
+            Job.PrinterSettings.HeightInDots,
             snapshot,
             null);
         SetDocument(document);

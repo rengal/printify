@@ -1,8 +1,8 @@
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Documents;
-using Printify.Domain.Printing;
 using Printify.Domain.Printers;
+using Printify.Domain.Printing;
 using Printify.Domain.PrintJobs;
 
 namespace Printify.Infrastructure.Printing;
@@ -27,7 +27,7 @@ public abstract class PrintJobSession : IPrintJobSession
     {
         get
         {
-            var snapshot = bufferCoordinator.GetSnapshot(Printer, Settings);
+            var snapshot = bufferCoordinator.GetSnapshot(Printer, Job.PrinterSettings);
             return snapshot.IsBusy;
         }
     }
@@ -36,7 +36,7 @@ public abstract class PrintJobSession : IPrintJobSession
     {
         get
         {
-            var snapshot = bufferCoordinator.GetSnapshot(Printer, Settings);
+            var snapshot = bufferCoordinator.GetSnapshot(Printer, Job.PrinterSettings);
             return snapshot.IsFull;
         }
     }
@@ -52,8 +52,9 @@ public abstract class PrintJobSession : IPrintJobSession
     protected PrintJob Job { get; }
     protected IPrinterChannel Channel { get; }
     protected Printer Printer => Job.Printer;
-    protected PrinterSettings Settings => Job.Settings;
+
     private readonly IPrinterBufferCoordinator bufferCoordinator;
+
     public virtual Task Feed(ReadOnlyMemory<byte> data, CancellationToken ct)
     {
         if (IsCompleted || data.Length == 0)

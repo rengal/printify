@@ -16,5 +16,7 @@ public sealed record Document(
     string? ClientAddress,
     int BytesReceived,
     int BytesSent,
+    int WidthInDots,
+    int? HeightInDots,
     IReadOnlyList<Command> Commands,
     string[]? ErrorMessages) : IResponse;

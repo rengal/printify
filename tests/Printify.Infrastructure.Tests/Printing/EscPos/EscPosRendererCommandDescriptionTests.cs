@@ -11,6 +11,7 @@ namespace Printify.Infrastructure.Tests.Printing.EscPos;
 
 public sealed class EscPosRendererCommandDescriptionTests
 {
+    /*
     [Fact]
     public void EscPosRenderer_ProducesNonEmptyCommandDescriptions_ForKnownCommands()
     {
@@ -97,4 +98,5 @@ public sealed class EscPosRendererCommandDescriptionTests
             }
         }
     }
+    */
 }

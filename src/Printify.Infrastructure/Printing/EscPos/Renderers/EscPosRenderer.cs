@@ -1,3 +1,4 @@
+using System.Text;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents;
@@ -7,7 +8,6 @@ using Printify.Domain.Printing;
 using Printify.Domain.Printers;
 using Printify.Domain.Specifications;
 using Printify.Infrastructure.Printing.EscPos.Commands;
-using System.Text;
 using LayoutMedia = Printify.Domain.Layout.Primitives.Media;
 
 namespace Printify.Infrastructure.Printing.EscPos.Renderers;
@@ -17,8 +17,6 @@ namespace Printify.Infrastructure.Printing.EscPos.Renderers;
 /// </summary>
 public sealed class EscPosRenderer : IRenderer
 {
-    private const int DefaultWidthInDots = 512;
-
     public Canvas Render(Document document)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -32,6 +30,8 @@ public sealed class EscPosRenderer : IRenderer
         var state = RenderState.CreateDefault();
         var items = new List<BaseElement>();
         var lineBuffer = new LineBufferState();
+        var canvasWidthInDots = document.WidthInDots;
+        var canvasHeightInDots = document.HeightInDots;
 
         foreach (var command in document.Commands)
         {
@@ -49,7 +49,7 @@ public sealed class EscPosRenderer : IRenderer
                         textLine.RawBytes,
                         textLine.LengthInBytes,
                         CommandDescriptionBuilder.Build(textLine)));
-                    AppendTextSegment(textLine, state, lineBuffer, decodedText);
+                    AppendTextSegment(state, lineBuffer, decodedText);
                     break;
 
                 case PrintAndLineFeed:
@@ -59,7 +59,7 @@ public sealed class EscPosRenderer : IRenderer
                         command.RawBytes,
                         command.LengthInBytes,
                         CommandDescriptionBuilder.Build(command)));
-                    FlushLine(state, lineBuffer, items, includeFlushState: true);
+                    FlushLine(state, lineBuffer, items, canvasWidthInDots);
                     break;
 
                 case LegacyCarriageReturn:
@@ -222,7 +222,7 @@ public sealed class EscPosRenderer : IRenderer
                         CommandDescriptionBuilder.Build(command)));
                     break;
 
-                case CutPaper pagecut:
+                case CutPaper:
                     items.Add(new DebugInfo(
                         "pagecut",
                         BuildStateParameters(command),
@@ -256,13 +256,12 @@ public sealed class EscPosRenderer : IRenderer
         }
 
         return new Canvas(
-            WidthInDots: DefaultWidthInDots,
-            HeightInDots: null,
+            WidthInDots: canvasWidthInDots,
+            HeightInDots: canvasHeightInDots,
             Items: items.AsReadOnly());
     }
 
     private static void AppendTextSegment(
-        AppendText textLine,
         RenderState state,
         LineBufferState lineBuffer,
         string decodedText)
@@ -294,14 +293,14 @@ public sealed class EscPosRenderer : IRenderer
         RenderState state,
         LineBufferState lineBuffer,
         List<BaseElement> items,
-        bool includeFlushState)
+        int canvasWidthInDots)
     {
         if (lineBuffer.Segments.Count == 0)
         {
             return;
         }
 
-        var baseX = CalculateJustifiedX(DefaultWidthInDots, lineBuffer.LineWidth, state.Justification);
+        var baseX = CalculateJustifiedX(canvasWidthInDots, lineBuffer.LineWidth, state.Justification);
 
         foreach (var segment in lineBuffer.Segments)
         {
@@ -331,8 +330,8 @@ public sealed class EscPosRenderer : IRenderer
             new LayoutMedia(
                 raster.Media.ContentType,
                 ToMediaSize(raster.Media.Length),
-                raster.Media.Url ?? string.Empty,
-                raster.Media.Sha256Checksum ?? string.Empty),
+                raster.Media.Url,
+                raster.Media.Sha256Checksum),
             0,
             state.CurrentY,
             raster.Width,
@@ -348,8 +347,8 @@ public sealed class EscPosRenderer : IRenderer
             new LayoutMedia(
                 barcode.Media.ContentType,
                 ToMediaSize(barcode.Media.Length),
-                barcode.Media.Url ?? string.Empty,
-                barcode.Media.Sha256Checksum ?? string.Empty),
+                barcode.Media.Url,
+                barcode.Media.Sha256Checksum),
             0,
             state.CurrentY,
             barcode.Width,
@@ -365,8 +364,8 @@ public sealed class EscPosRenderer : IRenderer
             new LayoutMedia(
                 qrCode.Media.ContentType,
                 ToMediaSize(qrCode.Media.Length),
-                qrCode.Media.Url ?? string.Empty,
-                qrCode.Media.Sha256Checksum ?? string.Empty),
+                qrCode.Media.Url,
+                qrCode.Media.Sha256Checksum),
             0,
             state.CurrentY,
             qrCode.Width,
@@ -498,7 +497,7 @@ public sealed class EscPosRenderer : IRenderer
         public int FontNumber { get; set; }
         public int ScaleX { get; set; } = 1;
         public int ScaleY { get; set; } = 1;
-        public int CharSpacing { get; set; }
+        public int CharSpacing => 0;
         public bool IsBold { get; set; }
         public bool IsUnderline { get; set; }
         public bool IsReverse { get; set; }
@@ -535,7 +534,10 @@ public sealed class EscPosRenderer : IRenderer
         }
     }
 
-    private static void ClearLineBufferWithError(LineBufferState lineBuffer, List<BaseElement> items, string commandName)
+    private static void ClearLineBufferWithError(
+        LineBufferState lineBuffer,
+        List<BaseElement> items,
+        string commandName)
     {
         var (content, byteCount) = lineBuffer.GetContent();
         if (string.IsNullOrEmpty(content))
@@ -557,7 +559,7 @@ public sealed class EscPosRenderer : IRenderer
             {
                 ["Message"] = $"Text buffer cleared by {commandName}, {byteCount} bytes lost (\"{content}\")"
             },
-            Array.Empty<byte>(),
+            [],
             0,
             description));
 
