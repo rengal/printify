@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-using Printify.Application.Printing;
 using Printify.Domain.Config;
 using Printify.Infrastructure.Mapping;
 using Printify.Domain.Printers;
@@ -9,18 +8,6 @@ namespace Printify.Web.Mapping;
 
 internal static class PrinterMapper
 {
-    internal static PrinterState MapListenerState(PrinterListenerStatus status)
-    {
-        return status switch
-        {
-            PrinterListenerStatus.OpeningPort => PrinterState.Starting,
-            PrinterListenerStatus.Listening => PrinterState.Started,
-            PrinterListenerStatus.Idle => PrinterState.Stopped,
-            PrinterListenerStatus.Failed => PrinterState.Error,
-            _ => throw new InvalidOperationException("unknown runtime status")
-        };
-    }
-
     internal static PrinterResponseDto ToResponseDto(
         this Printer printer,
         PrinterSettings settings,
@@ -60,7 +47,7 @@ internal static class PrinterMapper
         ArgumentNullException.ThrowIfNull(settings);
 
         return new PrinterSettingsDto(
-            DomainMapper.ToString(settings.Protocol),
+            EnumMapper.ToString(settings.Protocol),
             settings.WidthInDots,
             settings.HeightInDots,
             settings.ListenTcpPortNumber,

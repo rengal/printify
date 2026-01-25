@@ -6,12 +6,12 @@ using Printify.Infrastructure.Printing.EscPos.Commands;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Printify.Infrastructure.Mapping.EscPos;
+namespace Printify.Infrastructure.Mapping.Protocols.EscPos;
 
 /// <summary>
-/// Converts between ESC/POS domain document elements and their serialized infrastructure representation.
+/// Converts between ESC/POS domain document commands and their serialized infrastructure representation.
 /// </summary>
-public static class EscPosDocumentElementMapper
+public static class CommandMapper
 {
     private const QrErrorCorrectionLevel DefaultQrCorrection = QrErrorCorrectionLevel.Medium;
     private const QrModel DefaultQrModel = QrModel.Model2;
@@ -26,12 +26,12 @@ public static class EscPosDocumentElementMapper
             Bell => new BellElementPayload(),
             ParseError error => new ErrorElementPayload(error.Code, error.Message),
             CutPaper pagecut => new PagecutElementPayload(
-                DomainMapper.ToString(pagecut.Mode),
+                EnumMapper.ToString(pagecut.Mode),
                 pagecut.FeedMotionUnits),
             PrinterError printerError => new PrinterErrorElementPayload(printerError.Message),
             GetPrinterStatus status => new PrinterStatusElementPayload(status.StatusByte, status.AdditionalStatusByte),
             PrintBarcode barcode => new PrintBarcodeElementPayload(
-                DomainMapper.ToString(barcode.Symbology),
+                EnumMapper.ToString(barcode.Symbology),
                 barcode.Data,
                 barcode.Width,
                 barcode.Height,
@@ -46,18 +46,18 @@ public static class EscPosDocumentElementMapper
             Initialize => new ResetPrinterElementPayload(),
             SetBarcodeHeight height => new SetBarcodeHeightElementPayload(height.HeightInDots),
             SetBarcodeLabelPosition position => new SetBarcodeLabelPositionElementPayload(
-                DomainMapper.ToString(position.Position)),
+                EnumMapper.ToString(position.Position)),
             SetBarcodeModuleWidth moduleWidth => new SetBarcodeModuleWidthElementPayload(moduleWidth.ModuleWidth),
             SetBoldMode bold => new SetBoldModeElementPayload(SerializeBool(bold.IsEnabled)),
             SetCodePage codePage => new SetCodePageElementPayload(codePage.CodePage),
             SelectFont font => new SetFontElementPayload(font.FontNumber, SerializeBool(font.IsDoubleWidth), SerializeBool(font.IsDoubleHeight)),
             SetJustification justification => new SetJustificationElementPayload(
-                DomainMapper.ToString(justification.Justification)),
+                EnumMapper.ToString(justification.Justification)),
             SetLineSpacing spacing => new SetLineSpacingElementPayload(spacing.Spacing),
             ResetLineSpacing => new ResetLineSpacingElementPayload(),
             SetQrErrorCorrection correction => new SetQrErrorCorrectionElementPayload(
-                DomainMapper.ToString(correction.Level)),
-            SetQrModel model => new SetQrModelElementPayload(DomainMapper.ToString(model.Model)),
+                EnumMapper.ToString(correction.Level)),
+            SetQrModel model => new SetQrModelElementPayload(EnumMapper.ToString(model.Model)),
             SetQrModuleSize moduleSize => new SetQrModuleSizeElementPayload(moduleSize.ModuleSize),
             SetReverseMode reverse => new SetReverseModeElementPayload(SerializeBool(reverse.IsEnabled)),
             SetUnderlineMode underline => new SetUnderlineModeElementPayload(SerializeBool(underline.IsEnabled)),
@@ -86,12 +86,12 @@ public static class EscPosDocumentElementMapper
             BellElementPayload => new Bell(),
             ErrorElementPayload error => new ParseError(error.Code ?? string.Empty, error.Message ?? string.Empty),
             PagecutElementPayload pagecut => new CutPaper(
-                DomainMapper.ParsePagecutMode(pagecut.Mode ?? "Full"),
+                EnumMapper.ParsePagecutMode(pagecut.Mode ?? "Full"),
                 pagecut.FeedMotionUnits),
             PrinterErrorElementPayload printerError => new PrinterError(printerError.Message ?? string.Empty),
             PrinterStatusElementPayload status => new GetPrinterStatus(status.StatusByte, status.AdditionalStatusByte),
             PrintBarcodeElementPayload barcode => new PrintBarcode(
-                DomainMapper.ParseBarcodeSymbology(barcode.Symbology ?? "Code128"),
+                EnumMapper.ParseBarcodeSymbology(barcode.Symbology ?? "Code128"),
                 barcode.Data,
                 barcode.Width,
                 barcode.Height,
@@ -105,7 +105,7 @@ public static class EscPosDocumentElementMapper
             ResetPrinterElementPayload => new Initialize(),
             SetBarcodeHeightElementPayload height => new SetBarcodeHeight(height.HeightInDots),
             SetBarcodeLabelPositionElementPayload position => new SetBarcodeLabelPosition(
-                DomainMapper.ParseBarcodeLabelPosition(position.Position ?? "Below")),
+                EnumMapper.ParseBarcodeLabelPosition(position.Position ?? "Below")),
             SetBarcodeModuleWidthElementPayload moduleWidth => new SetBarcodeModuleWidth(moduleWidth.ModuleWidth),
             SetBoldModeElementPayload bold => new SetBoldMode(bold.IsEnabled ?? DefaultBoolean),
             SetCodePageElementPayload codePage => new SetCodePage(codePage.CodePage ?? "437"),
@@ -114,12 +114,12 @@ public static class EscPosDocumentElementMapper
                 font.IsDoubleWidth ?? DefaultBoolean,
                 font.IsDoubleHeight ?? DefaultBoolean),
             SetJustificationElementPayload justification => new SetJustification(
-                DomainMapper.ParseTextJustification(justification.Justification ?? "Left")),
+                EnumMapper.ParseTextJustification(justification.Justification ?? "Left")),
             SetLineSpacingElementPayload spacing => new SetLineSpacing(spacing.Spacing),
             ResetLineSpacingElementPayload => new ResetLineSpacing(),
             SetQrErrorCorrectionElementPayload correction => new SetQrErrorCorrection(
-                DomainMapper.ParseQrErrorCorrectionLevel(correction.Level ?? "Medium")),
-            SetQrModelElementPayload model => new SetQrModel(DomainMapper.ParseQrModel(model.Model ?? "Model2")),
+                EnumMapper.ParseQrErrorCorrectionLevel(correction.Level ?? "Medium")),
+            SetQrModelElementPayload model => new SetQrModel(EnumMapper.ParseQrModel(model.Model ?? "Model2")),
             SetQrModuleSizeElementPayload moduleSize => new SetQrModuleSize(moduleSize.ModuleSize),
             SetReverseModeElementPayload reverse => new SetReverseMode(reverse.IsEnabled ?? DefaultBoolean),
             SetUnderlineModeElementPayload underline => new SetUnderlineMode(underline.IsEnabled ?? DefaultBoolean),

@@ -4,7 +4,11 @@ using Printify.Infrastructure.Printing.EscPos.Commands;
 
 namespace Printify.Infrastructure.Mapping;
 
-public static class DomainMapper
+/// <summary>
+/// Converts between domain enums and their string representations.
+/// Used for API communication and database serialization.
+/// </summary>
+public static class EnumMapper
 {
     public static PagecutMode ParsePagecutMode(string mode)
     {

@@ -3,7 +3,10 @@ using Printify.Infrastructure.Persistence.Entities.Printers;
 
 namespace Printify.Infrastructure.Mapping;
 
-internal static class PrinterEntityMapper
+/// <summary>
+/// Bidirectional mapper between Printer domain and persistence entities.
+/// </summary>
+internal static class PrinterMapper
 {
     internal static void MapToEntity(this Printer printer, PrinterSettings settings, PrinterEntity entity)
     {
@@ -15,7 +18,7 @@ internal static class PrinterEntityMapper
         entity.DisplayName = printer.DisplayName;
         entity.CreatedAt = printer.CreatedAt;
         entity.CreatedFromIp = printer.CreatedFromIp;
-        entity.Settings.Protocol = DomainMapper.ToString(settings.Protocol);
+        entity.Settings.Protocol = EnumMapper.ToString(settings.Protocol);
         entity.Settings.WidthInDots = settings.WidthInDots;
         entity.Settings.HeightInDots = settings.HeightInDots;
         entity.Settings.ListenTcpPortNumber = settings.ListenTcpPortNumber;
@@ -60,7 +63,7 @@ internal static class PrinterEntityMapper
         ArgumentNullException.ThrowIfNull(entity);
 
         return new PrinterSettings(
-            DomainMapper.ParseProtocol(entity.Settings.Protocol),
+            EnumMapper.ParseProtocol(entity.Settings.Protocol),
             entity.Settings.WidthInDots,
             entity.Settings.HeightInDots,
             entity.Settings.ListenTcpPortNumber,

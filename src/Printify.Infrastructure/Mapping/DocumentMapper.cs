@@ -1,6 +1,5 @@
-using Printify.Infrastructure.Mapping;
-using Printify.Infrastructure.Mapping.Epl;
-using Printify.Infrastructure.Mapping.EscPos;
+using Printify.Infrastructure.Mapping.Protocols.Epl;
+using Printify.Infrastructure.Mapping.Protocols.EscPos;
 using Printify.Infrastructure.Persistence.Entities.Documents;
 using Printify.Infrastructure.Persistence.Entities.Documents.Epl;
 using Printify.Infrastructure.Persistence.Entities.Documents.EscPos;
@@ -8,10 +7,15 @@ using Printify.Domain.Documents;
 using Printify.Domain.Printers;
 using Printify.Domain.Printing;
 using EscPosCommands = Printify.Infrastructure.Printing.EscPos.Commands;
+using EplCommandMapper = Printify.Infrastructure.Mapping.Protocols.Epl.CommandMapper;
+using EscPosCommandMapper = Printify.Infrastructure.Mapping.Protocols.EscPos.CommandMapper;
 
 namespace Printify.Infrastructure.Mapping;
 
-internal static class DocumentEntityMapper
+/// <summary>
+/// Bidirectional mapper between Document domain and persistence entities.
+/// </summary>
+internal static class DocumentMapper
 {
     internal static DocumentEntity ToEntity(this Document document)
     {
@@ -24,7 +28,7 @@ internal static class DocumentEntityMapper
             PrinterId = document.PrinterId,
             Version = 1,
             CreatedAt = document.Timestamp,
-            Protocol = DomainMapper.ToString(document.Protocol),
+            Protocol = EnumMapper.ToString(document.Protocol),
             ClientAddress = document.ClientAddress,
             BytesReceived = document.BytesReceived,
             BytesSent = document.BytesSent
@@ -37,9 +41,9 @@ internal static class DocumentEntityMapper
             DocumentElementEntity elementEntity = document.Protocol switch
             {
                 Protocol.EscPos => ToElementEntity(
-                    document.Id, element, EscPosDocumentElementMapper.ToCommandPayload, EscPosDocumentElementMapper.ToEntity, ref index),
+                    document.Id, element, EscPosCommandMapper.ToCommandPayload, EscPosCommandMapper.ToEntity, ref index),
                 Protocol.Epl => ToElementEntity(
-                    document.Id, element, EplDocumentElementMapper.ToCommandPayload, EplDocumentElementMapper.ToEntity, ref index),
+                    document.Id, element, EplCommandMapper.ToCommandPayload, EplCommandMapper.ToEntity, ref index),
                 _ => throw new NotSupportedException($"Protocol '{document.Protocol}' is not supported.")
             };
 
@@ -70,7 +74,7 @@ internal static class DocumentEntityMapper
     {
         ArgumentNullException.ThrowIfNull(entity);
 
-        var protocol = DomainMapper.ParseProtocol(entity.Protocol);
+        var protocol = EnumMapper.ParseProtocol(entity.Protocol);
         var elements = entity.Elements
             .OrderBy(element => element.Sequence)
             .Select(elementEntity =>
@@ -78,9 +82,9 @@ internal static class DocumentEntityMapper
                 Command? element = protocol switch
                 {
                     Protocol.EscPos => ToDomainElement(
-                        elementEntity, EscPosDocumentElementMapper.ToDto, EscPosDocumentElementMapper.ToDomain),
+                        elementEntity, EscPosCommandMapper.ToDto, EscPosCommandMapper.ToDomain),
                     Protocol.Epl => ToDomainElement(
-                        elementEntity, EplDocumentElementMapper.ToDto, EplDocumentElementMapper.ToDomain),
+                        elementEntity, EplCommandMapper.ToDto, EplCommandMapper.ToDomain),
                     _ => throw new NotSupportedException($"Protocol '{protocol}' is not supported.")
                 };
 
@@ -145,7 +149,7 @@ internal static class DocumentEntityMapper
 
         var media = elementEntity.Media is null
             ? null
-            : DocumentMediaEntityMapper.ToDomain(elementEntity.Media);
+            : MediaMapper.ToDomain(elementEntity.Media);
 
         return toDomain(dto, media);
     }

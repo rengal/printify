@@ -3,7 +3,10 @@ using Printify.Infrastructure.Persistence.Entities.Workspaces;
 
 namespace Printify.Infrastructure.Mapping;
 
-internal static class WorkspaceEntityMapper
+/// <summary>
+/// Bidirectional mapper between Workspace domain and persistence entities.
+/// </summary>
+internal static class WorkspaceMapper
 {
     internal static WorkspaceEntity ToEntity(this Workspace workspace)
     {

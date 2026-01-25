@@ -1,17 +1,16 @@
 using Printify.Domain.Printing;
-using Printify.Infrastructure.Mapping;
 using Printify.Infrastructure.Persistence.Entities.Documents;
 using Printify.Infrastructure.Persistence.Entities.Documents.Epl;
 using Printify.Infrastructure.Printing.Epl.Commands;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Printify.Infrastructure.Mapping.Epl;
+namespace Printify.Infrastructure.Mapping.Protocols.Epl;
 
 /// <summary>
-/// Converts between EPL domain document elements and their serialized infrastructure representation.
+/// Converts between EPL domain document commands and their serialized infrastructure representation.
 /// </summary>
-public static class EplDocumentElementMapper
+public static class CommandMapper
 {
     private const PrintDirection DefaultPrintDirection = PrintDirection.TopToBottom;
     private const char DefaultCharReverse = 'N';
@@ -30,7 +29,7 @@ public static class EplDocumentElementMapper
             SetPrintSpeed speed => new SetPrintSpeedElementPayload(speed.Speed),
             SetPrintDarkness darkness => new SetPrintDarknessElementPayload(darkness.Darkness),
             SetPrintDirection direction => new SetPrintDirectionElementPayload(
-                DomainMapper.ToString(direction.Direction)),
+                EnumMapper.ToString(direction.Direction)),
             SetInternationalCharacter intlChar => new SetInternationalCharacterElementPayload(intlChar.Code),
             SetCodePage codePage => new SetCodePageElementPayload(codePage.Code, codePage.Scaling),
             ScalableText text => new ScalableTextElementPayload(
@@ -92,7 +91,7 @@ public static class EplDocumentElementMapper
             SetPrintSpeedElementPayload speed => new SetPrintSpeed(speed.Speed),
             SetPrintDarknessElementPayload darkness => new SetPrintDarkness(darkness.Darkness),
             SetPrintDirectionElementPayload direction => new SetPrintDirection(
-                DomainMapper.ParsePrintDirection(direction.Direction ?? "TopToBottom")),
+                EnumMapper.ParsePrintDirection(direction.Direction ?? "TopToBottom")),
             SetInternationalCharacterElementPayload intlChar => new SetInternationalCharacter(intlChar.Code),
             SetCodePageElementPayload codePage => new SetCodePage(codePage.Code, codePage.Scaling),
             ScalableTextElementPayload text => new ScalableText(

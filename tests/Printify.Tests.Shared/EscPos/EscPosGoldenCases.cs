@@ -20,7 +20,7 @@ public static class EscPosGoldenCases
                 new Dictionary<string, (
                     IReadOnlyList<Command> expectedRequestElement,
                     IReadOnlyList<Command>? expectedFinalizedElements,
-                    IReadOnlyList<CanvasElementDto> expectedViewElements)>
+                    IReadOnlyList<CanvasElementDto> expectedCanvasElements)>
             {
                 ["case01"] = (
                     expectedRequestElement:
@@ -34,7 +34,7 @@ public static class EscPosGoldenCases
                         new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
                     expectedFinalizedElements: null, // the same as elements
-                    expectedViewElements:
+                    expectedCanvasElements:
                     [
                         new CanvasDebugElementDto("resetPrinter") { LengthInBytes = 2 },
                         new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
@@ -74,7 +74,7 @@ public static class EscPosGoldenCases
                         new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
                     expectedFinalizedElements: null, // the same as elements
-                    expectedViewElements:
+                    expectedCanvasElements:
                     [
                         new CanvasDebugElementDto("resetPrinter") { LengthInBytes = 2 },
                         new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
@@ -163,7 +163,7 @@ public static class EscPosGoldenCases
                         new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
                         new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
-                    expectedViewElements:
+                    expectedCanvasElements:
                     [
                         new CanvasDebugElementDto("resetPrinter") { LengthInBytes = 2 },
                         new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
@@ -182,7 +182,7 @@ public static class EscPosGoldenCases
                             ToViewMediaDto(Media.CreateDefaultPng(1)),
                             0,
                             0,
-                            576,
+                            512,
                             101) { LengthInBytes = 17 },
                         new CanvasDebugElementDto(
                             "setJustification",
@@ -219,7 +219,7 @@ public static class EscPosGoldenCases
                         new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
                         new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
-                    expectedViewElements:
+                    expectedCanvasElements:
                     [
                         new CanvasDebugElementDto("resetPrinter") { LengthInBytes = 2 },
                         new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
@@ -240,7 +240,7 @@ public static class EscPosGoldenCases
                             ToViewMediaDto(Media.CreateDefaultPng(2)),
                             0,
                             0,
-                            576,
+                            512,
                             225) { LengthInBytes = 8 },
                         new CanvasDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.PagecutMode.Partial, 0)) { LengthInBytes = 4 }
@@ -254,7 +254,7 @@ public static class EscPosGoldenCases
                             new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0) { LengthInBytes = 4 }
                         ],
                         expectedFinalizedElements: null, // the same as elements
-                        expectedViewElements:
+                        expectedCanvasElements:
                         [
                             new CanvasDebugElementDto("resetPrinter") { LengthInBytes = 2 },
                             new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },

@@ -1,4 +1,4 @@
-using Printify.Infrastructure.Mapping.Epl;
+using Printify.Infrastructure.Mapping.Protocols.Epl;
 using Printify.Infrastructure.Persistence.Entities.Documents.Epl;
 using Printify.Infrastructure.Printing.Epl.Commands;
 using System.Text;
@@ -80,7 +80,7 @@ public class SerializationTests
         var command = new ScalableText(10, 20, 0, 2, 1, 1, 'N', textBytes);
 
         // Act - convert to payload
-        var payload = EplDocumentElementMapper.ToCommandPayload(command);
+        var payload = CommandMapper.ToCommandPayload(command);
         var textPayload = Assert.IsType<ScalableTextElementPayload>(payload);
 
         Console.WriteLine($"Original TextBytesHex: '{textPayload.TextBytesHex}'");
@@ -103,7 +103,7 @@ public class SerializationTests
         Assert.Equal("48656C6C6F", deserialized.TextBytesHex);
 
         // Act - convert back to domain
-        var roundtripCommand = EplDocumentElementMapper.ToDomain(deserialized) as ScalableText;
+        var roundtripCommand = CommandMapper.ToDomain(deserialized) as ScalableText;
         Assert.NotNull(roundtripCommand);
         var roundtripText = Encoding.GetEncoding(437).GetString(roundtripCommand.TextBytes);
         Assert.Equal("Hello", roundtripText);
@@ -137,7 +137,7 @@ public class SerializationTests
         Assert.Equal("", deserialized.TextBytesHex);
 
         // Act - convert back to domain
-        var roundtripCommand = EplDocumentElementMapper.ToDomain(deserialized) as ScalableText;
+        var roundtripCommand = CommandMapper.ToDomain(deserialized) as ScalableText;
         Assert.NotNull(roundtripCommand);
         Assert.Empty(roundtripCommand.TextBytes);
     }

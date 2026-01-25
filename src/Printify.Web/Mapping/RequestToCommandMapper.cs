@@ -6,7 +6,10 @@ using WebApi = Printify.Web.Contracts;
 
 namespace Printify.Web.Mapping;
 
-internal static class CommandMapper
+/// <summary>
+/// Maps API request DTOs to application commands.
+/// </summary>
+internal static class RequestToCommandMapper
 {
     internal static Features.Printers.Create.CreatePrinterCommand ToCommand(this WebApi.Printers.Requests.CreatePrinterRequestDto request,  RequestContext context)
     {

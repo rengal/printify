@@ -6,11 +6,12 @@ using Printify.Domain.Layout.Primitives;
 using Printify.Domain.Printing;
 using Printify.Domain.Printers;
 using Printify.Domain.Specifications;
-using Printify.Infrastructure.Mapping.Epl;
+using Printify.Infrastructure.Mapping.Protocols.Epl;
 using Printify.Infrastructure.Printing;
 using Printify.Infrastructure.Printing.Epl.Commands;
 using System.Text;
 using LayoutMedia = Printify.Domain.Layout.Primitives.Media;
+using EplRotationMapper = Printify.Infrastructure.Mapping.Protocols.Epl.RotationMapper;
 
 namespace Printify.Infrastructure.Printing.Epl.Renderers;
 

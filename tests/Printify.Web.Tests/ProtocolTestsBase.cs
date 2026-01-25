@@ -61,8 +61,8 @@ public abstract class ProtocolTestsBase<TScenario>
     protected async Task RunScenarioAsync(TScenario scenario)
     {
         System.Diagnostics.Debug.WriteLine($"Starting scenario [{scenario.Id}]");
-        await RunScenarioAsync(scenario, $"{DomainMapper.ToString(Protocol)}-single-byte", CompletionMode.AdvanceIdleTimeout);
-        await RunScenarioAsync(scenario, $"{DomainMapper.ToString(Protocol)}-single-byte", CompletionMode.CloseChannel);
+        await RunScenarioAsync(scenario, $"{EnumMapper.ToString(Protocol)}-single-byte", CompletionMode.AdvanceIdleTimeout);
+        await RunScenarioAsync(scenario, $"{EnumMapper.ToString(Protocol)}-single-byte", CompletionMode.CloseChannel);
         System.Diagnostics.Debug.WriteLine($"Completed scenario [{scenario.Id}]");
     }
 
@@ -79,7 +79,7 @@ public abstract class ProtocolTestsBase<TScenario>
             await CreatePrinterAsync(
                 environment,
                 printerId,
-                $"{DomainMapper.ToString(Protocol)} Test Printer {userPrefix}-{completionMode}",
+                $"{EnumMapper.ToString(Protocol)} Test Printer {userPrefix}-{completionMode}",
                 DefaultPrinterWidthInDots,
                 DefaultPrinterHeightInDots);
 
@@ -152,7 +152,7 @@ public abstract class ProtocolTestsBase<TScenario>
         var request = new CreatePrinterRequestDto(
             printerId,
             displayName,
-            DomainMapper.ToString(Protocol),
+            EnumMapper.ToString(Protocol),
             widthInDots,
             heightInDots,
             false,

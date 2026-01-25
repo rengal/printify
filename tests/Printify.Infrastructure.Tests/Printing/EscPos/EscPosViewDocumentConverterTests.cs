@@ -45,6 +45,7 @@ public sealed class EscPosViewDocumentConverterTests
         catch (Exception e)
         {
             Console.WriteLine(e); //todo debugnow
+            throw;
         }
     }
 }

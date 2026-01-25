@@ -1,12 +1,12 @@
 using Printify.Domain.Layout.Primitives;
 
-namespace Printify.Infrastructure.Mapping.Epl;
+namespace Printify.Infrastructure.Mapping.Protocols.Epl;
 
 /// <summary>
 /// Converts between EPL protocol-specific rotation values (0-3) and protocol-agnostic Rotation enum.
 /// EPL uses 0-3 for 90-degree increments.
 /// </summary>
-internal static class EplRotationMapper
+internal static class RotationMapper
 {
     /// <summary>
     /// Converts EPL rotation value to protocol-agnostic Rotation enum.

@@ -99,10 +99,10 @@ public static class CommandDescriptionBuilder
                 "ESC 2 - Select default line spacing"),
             SetQrErrorCorrection correction => Lines(
                 "GS ( k - QR Code: Select error correction level",
-                $"fn=0x45, level={DomainMapper.ToString(correction.Level)}"),
+                $"fn=0x45, level={EnumMapper.ToString(correction.Level)}"),
             SetQrModel model => Lines(
                 "GS ( k - QR Code: Select model",
-                $"fn=0x41, model={DomainMapper.ToString(model.Model)}"),
+                $"fn=0x41, model={EnumMapper.ToString(model.Model)}"),
             SetQrModuleSize moduleSize => Lines(
                 "GS ( k - QR Code: Set module size",
                 $"fn=0x43, size={moduleSize.ModuleSize} (dots)"),
@@ -263,7 +263,7 @@ public static class CommandDescriptionBuilder
 
         return Lines(
             "ESC a n - Select justification",
-            $"n={FormatHexByte((byte)value)} ({value}) - {DomainMapper.ToString(justification)}");
+            $"n={FormatHexByte((byte)value)} ({value}) - {EnumMapper.ToString(justification)}");
     }
 
     private static IReadOnlyList<string> BuildFontDescription(SelectFont font)
@@ -302,7 +302,7 @@ public static class CommandDescriptionBuilder
 
         return Lines(
             "GS H n - Select HRI character print position",
-            $"n={FormatHexByte((byte)value)} ({value}) - {DomainMapper.ToString(position.Position)}");
+            $"n={FormatHexByte((byte)value)} ({value}) - {EnumMapper.ToString(position.Position)}");
     }
 
     private static IReadOnlyList<string> BuildBarcodeDescription(
@@ -311,7 +311,7 @@ public static class CommandDescriptionBuilder
     {
         return Lines(
             "GS k m - Print barcode",
-            $"m={DomainMapper.ToString(symbology)}",
+            $"m={EnumMapper.ToString(symbology)}",
             $"DataLength={data.Length}",
             $"Data=\"{EscapeDescriptionText(data)}\"");
     }

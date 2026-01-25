@@ -3,7 +3,10 @@ using Printify.Infrastructure.Persistence.Entities.Printers;
 
 namespace Printify.Infrastructure.Mapping;
 
-internal static class PrinterOperationalFlagsEntityMapper
+/// <summary>
+/// Bidirectional mapper between PrinterOperationalFlags domain and persistence entities.
+/// </summary>
+internal static class PrinterOperationalFlagsMapper
 {
     internal static PrinterOperationalFlags ToDomain(this PrinterOperationalFlagsEntity entity)
     {

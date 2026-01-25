@@ -2,7 +2,10 @@ using Printify.Infrastructure.Persistence.Entities.Documents;
 
 namespace Printify.Infrastructure.Mapping;
 
-internal static class DocumentMediaEntityMapper
+/// <summary>
+/// Bidirectional mapper between Media domain and persistence entities.
+/// </summary>
+internal static class MediaMapper
 {
     internal static DocumentMediaEntity ToEntity(Domain.Media.Media media)
     {
@@ -22,7 +25,7 @@ internal static class DocumentMediaEntityMapper
         };
     }
 
-    internal static Domain.Media.Media ToDomain(DocumentMediaEntity entity)
+    internal static Domain.Media.Media ToDomain(this DocumentMediaEntity entity)
     {
         ArgumentNullException.ThrowIfNull(entity);
 

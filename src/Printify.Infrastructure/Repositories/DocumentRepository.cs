@@ -60,7 +60,7 @@ public sealed class DocumentRepository : IDocumentRepository
             .ConfigureAwait(false);
 
         var documents = entities
-            .Select(DocumentEntityMapper.ToDomain)
+            .Select(DocumentMapper.ToDomain)
             .ToList();
 
         return new ReadOnlyCollection<Document>(documents);
@@ -142,7 +142,7 @@ public sealed class DocumentRepository : IDocumentRepository
             .FirstOrDefaultAsync(media => media.Id == id, ct)
             .ConfigureAwait(false);
 
-        return entity is null ? null : DocumentMediaEntityMapper.ToDomain(entity);
+        return entity is null ? null : MediaMapper.ToDomain(entity);
     }
 
     public async ValueTask<Media?> GetMediaByChecksumAsync(string checksum, Guid? ownerWorkspaceId, CancellationToken ct)
@@ -156,14 +156,14 @@ public sealed class DocumentRepository : IDocumentRepository
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 
-        return entity is null ? null : DocumentMediaEntityMapper.ToDomain(entity);
+        return entity is null ? null : MediaMapper.ToDomain(entity);
     }
 
     public async Task AddMediaAsync(Media media, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(media);
 
-        var entity = DocumentMediaEntityMapper.ToEntity(media);
+        var entity = MediaMapper.ToEntity(media);
         await dbContext.DocumentMedia.AddAsync(entity, ct).ConfigureAwait(false);
         await dbContext.SaveChangesAsync(ct).ConfigureAwait(false);
     }

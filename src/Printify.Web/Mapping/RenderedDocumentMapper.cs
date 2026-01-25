@@ -26,7 +26,7 @@ internal static class RenderedDocumentMapper
             document.PrintJobId,
             document.PrinterId,
             document.Timestamp,
-            DomainMapper.ToString(document.Protocol),
+            EnumMapper.ToString(document.Protocol),
             canvasDto,
             document.ClientAddress,
             document.BytesReceived,

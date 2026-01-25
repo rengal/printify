@@ -1,6 +1,6 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Printify.Infrastructure.Mapping.Epl;
+using Printify.Infrastructure.Mapping.Protocols.Epl;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Persistence.Entities.Documents;
 using Printify.Infrastructure.Persistence.Entities.Documents.Epl;
@@ -49,7 +49,7 @@ public sealed class DatabasePayloadTests
         };
 
         // Convert to payload
-        var payload = EplDocumentElementMapper.ToCommandPayload(command);
+        var payload = CommandMapper.ToCommandPayload(command);
         var textPayload = Assert.IsType<ScalableTextElementPayload>(payload);
 
         Console.WriteLine($"[Step 1] Original TextBytesHex: '{textPayload.TextBytesHex}'");
@@ -117,7 +117,7 @@ public sealed class DatabasePayloadTests
         Assert.Equal("48656C6C6F", deserializedPayload.TextBytesHex);
 
         // Convert back to domain
-        var roundtripCommand = EplDocumentElementMapper.ToDomain(deserializedPayload);
+        var roundtripCommand = CommandMapper.ToDomain(deserializedPayload);
         var roundtripTextCommand = Assert.IsType<ScalableText>(roundtripCommand);
 
         Console.WriteLine($"[Step 7] Roundtrip TextBytes (hex): '{Convert.ToHexString(roundtripTextCommand.TextBytes)}'");

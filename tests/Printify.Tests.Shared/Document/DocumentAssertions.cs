@@ -138,7 +138,7 @@ public static class DocumentAssertions
         int? expectedHeightInDots)
     {
         Assert.NotNull(actual);
-        Assert.Equal(DomainMapper.ToString(expectedProtocol), actual.Protocol);
+        Assert.Equal(EnumMapper.ToString(expectedProtocol), actual.Protocol);
         Assert.Equal(expectedWidthInDots, actual.Canvas.WidthInDots);
         Assert.Equal(expectedHeightInDots, actual.Canvas.HeightInDots);
 

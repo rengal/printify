@@ -1,4 +1,4 @@
-using Printify.Infrastructure.Mapping.Epl;
+using Printify.Infrastructure.Mapping.Protocols.Epl;
 using Printify.Infrastructure.Persistence.Entities.Documents;
 using Printify.Infrastructure.Persistence.Entities.Documents.Epl;
 using Printify.Infrastructure.Printing.Epl.Commands;
@@ -36,7 +36,7 @@ public sealed class PersistenceDebugTests
 
         // Step 2: Convert to payload
         Console.WriteLine($"\n=== STEP 2: ToPayload ===");
-        var payload = EplDocumentElementMapper.ToCommandPayload(originalCommand);
+        var payload = CommandMapper.ToCommandPayload(originalCommand);
         var textPayload = Assert.IsType<ScalableTextElementPayload>(payload);
 
         Console.WriteLine($"  TextBytesHex: '{textPayload.TextBytesHex}'");
@@ -60,7 +60,7 @@ public sealed class PersistenceDebugTests
 
         // Step 5: Convert back to domain
         Console.WriteLine($"\n=== STEP 5: ToDomain ===");
-        var roundtripCommand = EplDocumentElementMapper.ToDomain(deserializedPayload);
+        var roundtripCommand = CommandMapper.ToDomain(deserializedPayload);
         var roundtripTextCommand = Assert.IsType<ScalableText>(roundtripCommand);
 
         Console.WriteLine($"  TextBytes (hex): '{Convert.ToHexString(roundtripTextCommand.TextBytes)}'");
@@ -91,7 +91,7 @@ public sealed class PersistenceDebugTests
 
         // Step 2: Convert to payload
         Console.WriteLine($"\n=== STEP 2: ToPayload ===");
-        var payload = EplDocumentElementMapper.ToCommandPayload(originalCommand);
+        var payload = CommandMapper.ToCommandPayload(originalCommand);
         var graphicPayload = Assert.IsType<PrintGraphicElementPayload>(payload);
 
         Console.WriteLine($"  DataHex: '{graphicPayload.DataHex}'");
@@ -111,7 +111,7 @@ public sealed class PersistenceDebugTests
 
         // Step 5: Convert back to domain
         Console.WriteLine($"\n=== STEP 5: ToDomain ===");
-        var roundtripCommand = EplDocumentElementMapper.ToDomain(deserializedPayload);
+        var roundtripCommand = CommandMapper.ToDomain(deserializedPayload);
         var roundtripGraphicCommand = Assert.IsType<PrintGraphic>(roundtripCommand);
 
         Console.WriteLine($"  Data (hex): '{Convert.ToHexString(roundtripGraphicCommand.Data)}'");
