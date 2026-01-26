@@ -35,7 +35,7 @@ public sealed class EscPosViewDocumentConverterTests
             scenario.ExpectedCanvasElements,
             Protocol.EscPos,
             canvasDocument,
-            canvas.WidthInDots,
-            canvas.HeightInDots);
+            canvas[0].WidthInDots,
+            canvas[0].HeightInDots);
     }
 }

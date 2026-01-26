@@ -5,7 +5,8 @@ using DomainCanvas = Printify.Domain.Layout.Canvas;
 namespace Printify.Domain.Documents;
 
 /// <summary>
-/// Document metadata combined with a rendered canvas.
+/// Document metadata combined with rendered canvases.
+/// Multiple canvases represent pages/labels within a single document.
 /// </summary>
 public sealed record RenderedDocument(
     Guid Id,
@@ -16,15 +17,15 @@ public sealed record RenderedDocument(
     string? ClientAddress,
     int BytesReceived,
     int BytesSent,
-    DomainCanvas Canvas,
+    DomainCanvas[] Canvases,
     string[]? ErrorMessages) : IResponse
 {
-    public static RenderedDocument From(Document document, DomainCanvas canvas)
+    public static RenderedDocument From(Document document, DomainCanvas[] canvases)
     {
         ArgumentNullException.ThrowIfNull(document);
-        ArgumentNullException.ThrowIfNull(canvas);
+        ArgumentNullException.ThrowIfNull(canvases);
 
-        // Preserve document metadata alongside the rendered canvas.
+        // Preserve document metadata alongside the rendered canvases.
         return new RenderedDocument(
             document.Id,
             document.PrintJobId,
@@ -34,7 +35,7 @@ public sealed record RenderedDocument(
             document.ClientAddress,
             document.BytesReceived,
             document.BytesSent,
-            canvas,
+            canvases,
             document.ErrorMessages);
     }
 }

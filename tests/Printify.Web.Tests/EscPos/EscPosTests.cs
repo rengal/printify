@@ -94,7 +94,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory)
         DocumentAssertions.EqualBytes(expectedElements.Sum(element => element.LengthInBytes), bytesSent, canvasDocument);
 
         // Verify RasterImage elements have accessible Media URLs
-        foreach (var element in canvasDocument.Canvas.Items)
+        foreach (var element in canvasDocument.Canvases[0].Items)
         {
             if (element is CanvasImageElementDto viewImage)
             {

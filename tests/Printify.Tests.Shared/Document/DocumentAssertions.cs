@@ -139,13 +139,18 @@ public static class DocumentAssertions
     {
         Assert.NotNull(actual);
         Assert.Equal(EnumMapper.ToString(expectedProtocol), actual.Protocol);
-        Assert.Equal(expectedWidthInDots, actual.Canvas.WidthInDots);
-        Assert.Equal(expectedHeightInDots, actual.Canvas.HeightInDots);
+        Assert.NotNull(actual.Canvases);
+        Assert.NotEmpty(actual.Canvases);
 
-        EqualCanvasElements(expectedCanvasElements, actual.Canvas.Items.ToList());
+        // Use the first canvas for comparison
+        var firstCanvas = actual.Canvases[0];
+        Assert.Equal(expectedWidthInDots, firstCanvas.WidthInDots);
+        Assert.Equal(expectedHeightInDots, firstCanvas.HeightInDots);
+
+        EqualCanvasElements(expectedCanvasElements, firstCanvas.Items.ToList());
 
         // If there are any error debug elements, ErrorMessages must contain data
-        var hasErrorDebugElement = actual.Canvas.Items.Any(el =>
+        var hasErrorDebugElement = firstCanvas.Items.Any(el =>
             el is CanvasDebugElementDto debug &&
             (debug.DebugType == "error" || debug.DebugType == "printerError"));
 
@@ -190,7 +195,15 @@ public static class DocumentAssertions
         IReadOnlyList<CanvasElementDto> actualCanvasElements)
     {
         Assert.NotNull(expectedCanvasElements);
-        Assert.Equal(expectedCanvasElements.Count, actualCanvasElements.Count);
+        try
+        {
+            Assert.Equal(expectedCanvasElements.Count, actualCanvasElements.Count);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
 
         for (var index = 0; index < expectedCanvasElements.Count; index++)
         {

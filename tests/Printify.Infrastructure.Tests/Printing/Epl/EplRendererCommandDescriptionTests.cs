@@ -45,7 +45,7 @@ public sealed class EplRendererCommandDescriptionTests
         var canvasDocument = RenderedDocument.From(document, canvas);
 
         // Assert - DebugInfo elements should have non-empty CommandDescription
-        var debugElements = canvas.Items.OfType<DebugInfo>().ToList();
+        var debugElements = canvas[0].Items.OfType<DebugInfo>().ToList();
         Assert.NotEmpty(debugElements);
         Assert.All(debugElements, element =>
         {
@@ -89,7 +89,7 @@ public sealed class EplRendererCommandDescriptionTests
         var canvas = renderer.Render(document);
 
         // Assert - verify debug elements have non-empty descriptions
-        var debugElements = canvas.Items.OfType<DebugInfo>().ToList();
+        var debugElements = canvas[0].Items.OfType<DebugInfo>().ToList();
 
         foreach (var element in debugElements)
         {
@@ -132,7 +132,7 @@ public sealed class EplRendererCommandDescriptionTests
         var canvas = renderer.Render(document);
 
         // Assert - verify debug elements have non-empty descriptions
-        var debugElements = canvas.Items.OfType<DebugInfo>().ToList();
+        var debugElements = canvas[0].Items.OfType<DebugInfo>().ToList();
 
         foreach (var element in debugElements)
         {

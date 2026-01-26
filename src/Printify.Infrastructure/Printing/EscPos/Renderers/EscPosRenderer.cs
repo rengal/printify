@@ -13,11 +13,12 @@ using LayoutMedia = Printify.Domain.Layout.Primitives.Media;
 namespace Printify.Infrastructure.Printing.EscPos.Renderers;
 
 /// <summary>
-/// Renders ESC/POS protocol commands to a canvas.
+/// Renders ESC/POS protocol commands to canvases.
+/// A new canvas is created on each CutPaper (pagecut) command.
 /// </summary>
 public sealed class EscPosRenderer : IRenderer
 {
-    public Canvas Render(Document document)
+    public Canvas[] Render(Document document)
     {
         ArgumentNullException.ThrowIfNull(document);
 
@@ -28,7 +29,8 @@ public sealed class EscPosRenderer : IRenderer
         }
 
         var state = RenderState.CreateDefault();
-        var items = new List<BaseElement>();
+        var canvases = new List<CanvasInfo>();
+        var currentItems = new List<BaseElement>();
         var lineBuffer = new LineBufferState();
         var canvasWidthInDots = document.WidthInDots;
         var canvasHeightInDots = document.HeightInDots;
@@ -39,7 +41,7 @@ public sealed class EscPosRenderer : IRenderer
             {
                 case AppendText textLine:
                     var decodedText = state.CurrentEncoding.GetString(textLine.TextBytes);
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "appendToLineBuffer",
                         new Dictionary<string, string>
                         {
@@ -53,17 +55,17 @@ public sealed class EscPosRenderer : IRenderer
                     break;
 
                 case PrintAndLineFeed:
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "flushLineBufferAndFeed",
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
                         CommandDescriptionBuilder.Build(command)));
-                    FlushLine(state, lineBuffer, items, canvasWidthInDots);
+                    FlushLine(state, lineBuffer, currentItems, canvasWidthInDots);
                     break;
 
                 case LegacyCarriageReturn:
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "legacyCarriageReturn",
                         new Dictionary<string, string>(),
                         command.RawBytes,
@@ -72,44 +74,44 @@ public sealed class EscPosRenderer : IRenderer
                     break;
 
                 case RasterImage raster:
-                    ClearLineBufferWithError(lineBuffer, items, "raster image command");
-                    items.Add(new DebugInfo(
+                    ClearLineBufferWithError(lineBuffer, currentItems, "raster image command");
+                    currentItems.Add(new DebugInfo(
                         "rasterImage",
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
                         CommandDescriptionBuilder.Build(command)));
-                    AddImageElement(raster, state, items);
+                    AddImageElement(raster, state, currentItems);
                     break;
 
                 case RasterImageUpload:
                     throw new InvalidOperationException("Upload requests must not be emitted");
 
                 case PrintBarcode barcode:
-                    ClearLineBufferWithError(lineBuffer, items, "barcode command");
-                    items.Add(new DebugInfo(
+                    ClearLineBufferWithError(lineBuffer, currentItems, "barcode command");
+                    currentItems.Add(new DebugInfo(
                         "printBarcode",
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
                         CommandDescriptionBuilder.Build(command)));
-                    AddImageElement(barcode, state, items);
+                    AddImageElement(barcode, state, currentItems);
                     break;
 
                 case PrintQrCode qrCode:
-                    ClearLineBufferWithError(lineBuffer, items, "QR code command");
-                    items.Add(new DebugInfo(
+                    ClearLineBufferWithError(lineBuffer, currentItems, "QR code command");
+                    currentItems.Add(new DebugInfo(
                         "printQrCode",
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
                         CommandDescriptionBuilder.Build(command)));
-                    AddImageElement(qrCode, state, items);
+                    AddImageElement(qrCode, state, currentItems);
                     break;
 
                 case SetJustification justification:
                     state.Justification = justification.Justification;
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "setJustification",
                         new Dictionary<string, string>
                         {
@@ -122,7 +124,7 @@ public sealed class EscPosRenderer : IRenderer
 
                 case SetBoldMode bold:
                     state.IsBold = bold.IsEnabled;
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "setBoldMode",
                         new Dictionary<string, string>
                         {
@@ -135,7 +137,7 @@ public sealed class EscPosRenderer : IRenderer
 
                 case SetUnderlineMode underline:
                     state.IsUnderline = underline.IsEnabled;
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "setUnderlineMode",
                         new Dictionary<string, string>
                         {
@@ -148,7 +150,7 @@ public sealed class EscPosRenderer : IRenderer
 
                 case SetReverseMode reverse:
                     state.IsReverse = reverse.IsEnabled;
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "setReverseMode",
                         new Dictionary<string, string>
                         {
@@ -161,7 +163,7 @@ public sealed class EscPosRenderer : IRenderer
 
                 case SetLineSpacing spacing:
                     state.LineSpacing = spacing.Spacing;
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "setLineSpacing",
                         new Dictionary<string, string>
                         {
@@ -174,7 +176,7 @@ public sealed class EscPosRenderer : IRenderer
 
                 case ResetLineSpacing:
                     state.LineSpacing = EscPosSpecs.Rendering.DefaultLineSpacing;
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "resetLineSpacing",
                         new Dictionary<string, string>(),
                         command.RawBytes,
@@ -184,7 +186,7 @@ public sealed class EscPosRenderer : IRenderer
 
                 case SetCodePage codePage:
                     state.CurrentEncoding = GetEncodingFromCodePage(codePage.CodePage);
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "setCodePage",
                         new Dictionary<string, string>
                         {
@@ -199,7 +201,7 @@ public sealed class EscPosRenderer : IRenderer
                     state.FontNumber = font.FontNumber;
                     state.ScaleX = font.IsDoubleWidth ? 2 : 1;
                     state.ScaleY = font.IsDoubleHeight ? 2 : 1;
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "setFont",
                         new Dictionary<string, string>
                         {
@@ -214,7 +216,7 @@ public sealed class EscPosRenderer : IRenderer
 
                 case Initialize:
                     state = RenderState.CreateDefault();
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "resetPrinter",
                         new Dictionary<string, string>(),
                         command.RawBytes,
@@ -223,17 +225,22 @@ public sealed class EscPosRenderer : IRenderer
                     break;
 
                 case CutPaper:
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         "pagecut",
                         BuildStateParameters(command),
                         command.RawBytes,
                         command.LengthInBytes,
                         CommandDescriptionBuilder.Build(command)));
+                    // Finalize current canvas and start a new one
+                    canvases.Add(new CanvasInfo(currentItems.ToList()));
+                    currentItems = new List<BaseElement>();
+                    // Reset PosX and PosY for new canvas, preserve other state
+                    state.CurrentY = 0;
                     break;
 
                 case StoredLogo logo:
-                    ClearLineBufferWithError(lineBuffer, items, "stored logo command");
-                    items.Add(new DebugInfo(
+                    ClearLineBufferWithError(lineBuffer, currentItems, "stored logo command");
+                    currentItems.Add(new DebugInfo(
                         "storedLogo",
                         new Dictionary<string, string>
                         {
@@ -245,7 +252,7 @@ public sealed class EscPosRenderer : IRenderer
                     break;
 
                 default:
-                    items.Add(new DebugInfo(
+                    currentItems.Add(new DebugInfo(
                         GetDebugType(command),
                         BuildStateParameters(command),
                         command.RawBytes,
@@ -256,12 +263,20 @@ public sealed class EscPosRenderer : IRenderer
         }
 
         // Flush any unprinted text buffer to surface a printer error for truncated content.
-        ClearLineBufferWithError(lineBuffer, items, "end of document");
+        ClearLineBufferWithError(lineBuffer, currentItems, "end of document");
 
-        return new Canvas(
-            WidthInDots: canvasWidthInDots,
-            HeightInDots: canvasHeightInDots,
-            Items: items.AsReadOnly());
+        // Add the final canvas if it has items
+        if (currentItems.Count > 0 || canvases.Count == 0)
+        {
+            canvases.Add(new CanvasInfo(currentItems));
+        }
+
+        return canvases
+            .Select(info => new Canvas(
+                WidthInDots: canvasWidthInDots,
+                HeightInDots: canvasHeightInDots,
+                Items: info.Items))
+            .ToArray();
     }
 
     private static void AppendTextSegment(
@@ -581,6 +596,8 @@ public sealed class EscPosRenderer : IRenderer
         bool IsBold,
         bool IsUnderline,
         bool IsReverse);
+
+    private sealed record CanvasInfo(IReadOnlyList<BaseElement> Items);
 
     private static int ToMediaSize(long length)
     {

@@ -127,7 +127,9 @@ public static class EplScenarioData
                     ["Reverse"] = "N",
                     ["Text"] = "Hello"
                 }),
-                TextElement("Hello", x: 10, y: 20, width: EplSpecs.Fonts.Font2.BaseWidthInDots, height: EplSpecs.Fonts.Font2.BaseHeightInDots, fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                TextElement("Hello", x: 10, y: 20, 
+                    width: EplSpecs.Fonts.Font2.BaseWidthInDots * "Hello".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                    fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
             ]),
         new(
             id: 3002,
@@ -160,7 +162,7 @@ public static class EplScenarioData
                 }),
                 // Font 3, scale 2x2: base 24x24, scaled 48x48, rotated (90°) = 48x48
                 TextElement("World", x: 50, y: 100,
-                    width: EplSpecs.Fonts.Font3.BaseWidthInDots * 2, height: EplSpecs.Fonts.Font3.BaseHeightInDots * 2,
+                    width: EplSpecs.Fonts.Font3.BaseHeightInDots * 2, height: EplSpecs.Fonts.Font3.BaseWidthInDots * 2 * "World".Length, // rotation 90
                     fontName: EplSpecs.Fonts.Font3.FontName, charScaleX: 2, charScaleY: 2,
                     rotation: Rotation.Rotate90, isReverse: true)
             ]),
@@ -194,7 +196,11 @@ public static class EplScenarioData
                     ["Text"] = "Test123"
                 }),
                 // Font 4, scale 3x3: base 24x24, scaled 72x72
-                TextElement("Test123", x: 0, y: 0, width: EplSpecs.Fonts.Font4.BaseWidthInDots * 3, height: EplSpecs.Fonts.Font4.BaseHeightInDots * 3, fontName: EplSpecs.Fonts.Font4.FontName, charScaleX: 3, charScaleY: 3, rotation: 0, isReverse: false)
+                TextElement("Test123", x: 0, y: 0,
+                    width: EplSpecs.Fonts.Font4.BaseWidthInDots * 3 * "Test123".Length,
+                    height: EplSpecs.Fonts.Font4.BaseHeightInDots * 3,
+                    fontName: EplSpecs.Fonts.Font4.FontName,
+                    charScaleX: 3, charScaleY: 3, rotation: 0, isReverse: false)
             ]),
         // CR (carriage return) as no-op command
         new(
@@ -262,7 +268,11 @@ public static class EplScenarioData
                     ["Reverse"] = "N",
                     ["Text"] = "Test"
                 }),
-                TextElement("Test", x: 10, y: 20, width: EplSpecs.Fonts.Font2.BaseWidthInDots, height: EplSpecs.Fonts.Font2.BaseHeightInDots, fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                TextElement("Test", x: 10, y: 20,
+                    width: EplSpecs.Fonts.Font2.BaseWidthInDots * "Test".Length,
+                    height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                    fontName: EplSpecs.Fonts.Font2.FontName,
+                    charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
             ]),
         // CRLF sequence - CR terminates N command, remaining LF becomes LineFeed no-op
         new(

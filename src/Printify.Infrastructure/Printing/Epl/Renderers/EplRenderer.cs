@@ -14,11 +14,13 @@ using EplRotationMapper = Printify.Infrastructure.Mapping.Protocols.Epl.Rotation
 namespace Printify.Infrastructure.Printing.Epl.Renderers;
 
 /// <summary>
-/// Renders EPL protocol commands to a canvas.
+/// Renders EPL protocol commands to canvases.
+/// A new canvas is generated on each Print (P) command.
+/// The first canvas contains all debug elements, subsequent canvases only contain visual elements.
 /// </summary>
 public sealed class EplRenderer : IRenderer
 {
-    public Canvas Render(Document document)
+    public Canvas[] Render(Document document)
     {
         ArgumentNullException.ThrowIfNull(document);
 
@@ -29,22 +31,24 @@ public sealed class EplRenderer : IRenderer
         }
 
         var state = RenderState.CreateDefault();
-        var items = new List<BaseElement>();
+        var allItems = new List<BaseElement>();
+        var printCommands = new List<PrintCommandInfo>();
 
+        // First pass: collect all items and track Print command positions
         foreach (var command in document.Commands)
         {
             switch (command)
             {
                 case ScalableText scalableText:
-                    AddScalableTextElement(scalableText, state, items);
+                    AddScalableTextElement(scalableText, state, allItems);
                     break;
 
                 case DrawHorizontalLine horizontalLine:
-                    AddDrawHorizontalLineElement(horizontalLine, items);
+                    AddDrawHorizontalLineElement(horizontalLine, allItems);
                     break;
 
                 case Print print:
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         "print",
                         new Dictionary<string, string>
                         {
@@ -53,22 +57,24 @@ public sealed class EplRenderer : IRenderer
                         print.RawBytes,
                         print.LengthInBytes,
                         CommandDescriptionBuilder.Build(print)));
+                    // Track this print command position
+                    printCommands.Add(new PrintCommandInfo(allItems.Count - 1, print.Copies));
                     break;
 
                 case PrintBarcode barcode:
-                    AddBarcodeElement(barcode, items);
+                    AddBarcodeElement(barcode, allItems);
                     break;
 
                 case PrintGraphic graphic:
-                    AddGraphicElement(graphic, items);
+                    AddGraphicElement(graphic, allItems);
                     break;
 
                 case DrawLine drawLine:
-                    AddDrawLineElement(drawLine, items);
+                    AddDrawLineElement(drawLine, allItems);
                     break;
 
                 case ClearBuffer:
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         "clearBuffer",
                         new Dictionary<string, string>(),
                         command.RawBytes,
@@ -77,7 +83,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case CarriageReturn:
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         "carriageReturn",
                         new Dictionary<string, string>(),
                         command.RawBytes,
@@ -86,7 +92,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case LineFeed:
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         "lineFeed",
                         new Dictionary<string, string>(),
                         command.RawBytes,
@@ -95,7 +101,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case SetLabelWidth labelWidth:
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         "setLabelWidth",
                         new Dictionary<string, string>
                         {
@@ -107,7 +113,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case SetLabelHeight labelHeight:
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         "setLabelHeight",
                         new Dictionary<string, string>
                         {
@@ -120,7 +126,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case SetPrintSpeed speed:
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         "setPrintSpeed",
                         new Dictionary<string, string>
                         {
@@ -132,7 +138,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case SetPrintDarkness darkness:
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         "setPrintDarkness",
                         new Dictionary<string, string>
                         {
@@ -144,7 +150,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case SetPrintDirection direction:
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         "setPrintDirection",
                         new Dictionary<string, string>
                         {
@@ -157,7 +163,7 @@ public sealed class EplRenderer : IRenderer
 
                 case SetInternationalCharacter intlChar:
                     state.CurrentEncoding = GetEncodingFromCodePage(intlChar.P1, intlChar.P2, intlChar.P3);
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         "setInternationalCharacter",
                         new Dictionary<string, string>
                         {
@@ -171,7 +177,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case ParseError error:
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         "error",
                         new Dictionary<string, string>
                         {
@@ -184,7 +190,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case PrinterError printerError:
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         "printerError",
                         new Dictionary<string, string>
                         {
@@ -196,7 +202,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 default:
-                    items.Add(new DebugInfo(
+                    allItems.Add(new DebugInfo(
                         command.GetType().Name,
                         new Dictionary<string, string>(),
                         command.RawBytes,
@@ -206,10 +212,110 @@ public sealed class EplRenderer : IRenderer
             }
         }
 
-        return new Canvas(
-            WidthInDots: document.WidthInDots,
-            HeightInDots: document.HeightInDots,
-            Items: items.AsReadOnly());
+        // If no print commands, return single canvas with all items (debug only + error)
+        if (printCommands.Count == 0)
+        {
+            return new[]
+            {
+                new Canvas(
+                    WidthInDots: document.WidthInDots,
+                    HeightInDots: document.HeightInDots,
+                    Items: allItems.AsReadOnly())
+            };
+        }
+
+        // Generate canvases based on print commands
+        var canvases = new List<Canvas>();
+        var startIndex = 0;
+
+        foreach (var printCmd in printCommands)
+        {
+            // Items for this segment (from after previous print to this print)
+            var segmentItems = allItems.GetRange(startIndex, printCmd.Index - startIndex);
+
+            // Extract visual elements (non-debug elements) from this segment
+            var visualElements = segmentItems
+                .Where(item => item is not DebugInfo)
+                .Select(CloneVisualElement)
+                .ToList();
+
+            // Create copies based on print command copies count
+            for (int copy = 0; copy < printCmd.Copies; copy++)
+            {
+                if (copy == 0 && startIndex == 0)
+                {
+                    // First canvas: all items (debug + visual)
+                    canvases.Add(new Canvas(
+                        WidthInDots: document.WidthInDots,
+                        HeightInDots: document.HeightInDots,
+                        Items: segmentItems.Concat(visualElements).ToList().AsReadOnly()));
+                }
+                else
+                {
+                    // Subsequent canvases: only visual elements (no debug)
+                    canvases.Add(new Canvas(
+                        WidthInDots: document.WidthInDots,
+                        HeightInDots: document.HeightInDots,
+                        Items: visualElements.ToList().AsReadOnly()));
+                }
+            }
+
+            startIndex = printCmd.Index + 1;
+        }
+
+        // If there are items after the last print command, create a final canvas with debug only
+        if (startIndex < allItems.Count)
+        {
+            var remainingItems = allItems.GetRange(startIndex, allItems.Count - startIndex);
+            canvases.Add(new Canvas(
+                WidthInDots: document.WidthInDots,
+                HeightInDots: document.HeightInDots,
+                Items: remainingItems.AsReadOnly()));
+        }
+
+        return canvases.ToArray();
+    }
+
+    private static BaseElement CloneVisualElement(BaseElement element)
+    {
+        return element switch
+        {
+            TextElement text => new TextElement(
+                text.Text,
+                text.X,
+                text.Y,
+                text.Width,
+                text.Height,
+                text.FontName,
+                text.CharSpacing,
+                text.IsBold,
+                text.IsUnderline,
+                text.IsReverse,
+                text.CharScaleX,
+                text.CharScaleY,
+                text.Rotation),
+            ImageElement image => new ImageElement(
+                image.Media,
+                image.X,
+                image.Y,
+                image.Width,
+                image.Height,
+                image.Rotation),
+            LineElement line => new LineElement(
+                line.X1,
+                line.Y1,
+                line.X2,
+                line.Y2,
+                line.Thickness),
+            BoxElement box => new BoxElement(
+                box.X,
+                box.Y,
+                box.Width,
+                box.Height,
+                box.Thickness,
+                box.IsFilled),
+            _ => element
+        };
     }
 
     private static void AddScalableTextElement(ScalableText scalableText, RenderState state, List<BaseElement> items)
@@ -440,6 +546,8 @@ public sealed class EplRenderer : IRenderer
             return Encoding.GetEncoding(437);
         }
     }
+
+    private sealed record PrintCommandInfo(int Index, int Copies);
 
     private sealed class RenderState
     {

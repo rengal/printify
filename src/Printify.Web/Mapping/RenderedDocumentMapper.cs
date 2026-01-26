@@ -12,17 +12,27 @@ internal static class RenderedDocumentMapper
     {
         ArgumentNullException.ThrowIfNull(document);
 
-        var items = document.Canvas.Items
+        // Convert all canvases to DTOs
+        var canvasDtos = document.Canvases
+            .Select(canvas =>
+            {
+                var items = canvas.Items
+                    .Select(ToCanvasElementDto)
+                    .ToList();
+
+                return new CanvasDto(
+                    canvas.WidthInDots,
+                    canvas.HeightInDots,
+                    items.AsReadOnly());
+            })
+            .ToArray();
+
+        // Extract error messages from all canvases
+        var allItems = document.Canvases
+            .SelectMany(c => c.Items)
             .Select(ToCanvasElementDto)
             .ToList();
-
-        var canvasDto = new CanvasDto(
-            document.Canvas.WidthInDots,
-            document.Canvas.HeightInDots,
-            items.AsReadOnly());
-
-        // Extract error messages from canvas debug elements
-        var errorMessages = ExtractErrorMessages(items, document.ErrorMessages);
+        var errorMessages = ExtractErrorMessages(allItems, document.ErrorMessages);
 
         return new RenderedDocumentDto(
             document.Id,
@@ -30,7 +40,7 @@ internal static class RenderedDocumentMapper
             document.PrinterId,
             document.Timestamp,
             EnumMapper.ToString(document.Protocol),
-            canvasDto,
+            canvasDtos,
             document.ClientAddress,
             document.BytesReceived,
             document.BytesSent,

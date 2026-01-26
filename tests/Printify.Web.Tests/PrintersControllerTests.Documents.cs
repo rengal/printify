@@ -143,8 +143,8 @@ public sealed partial class PrintersControllerTests
         var secondCanvas = canvasList.Result.Items.FirstOrDefault(doc => doc.Id == secondDocument.Id);
         Assert.NotNull(firstCanvas);
         Assert.NotNull(secondCanvas);
-        Assert.Equal(512, firstCanvas!.Canvas.WidthInDots);
-        Assert.Equal(576, secondCanvas!.Canvas.WidthInDots);
+        Assert.Equal(512, firstCanvas!.Canvases[0].WidthInDots);
+        Assert.Equal(576, secondCanvas!.Canvases[0].WidthInDots);
         */
     }
 
@@ -205,8 +205,8 @@ public sealed partial class PrintersControllerTests
             ?? viewDocumentList.Result.Items.FirstOrDefault();
         Assert.NotNull(viewDocument);
 
-        Assert.Equal(expectedWidthInDots, viewDocument.Canvas.WidthInDots);
-        Assert.Equal(expectedHeightInDots, viewDocument.Canvas.HeightInDots);
+        Assert.Equal(expectedWidthInDots, viewDocument.Canvases[0].WidthInDots);
+        Assert.Equal(expectedHeightInDots, viewDocument.Canvases[0].HeightInDots);
     }
 
     private static async Task<Document> SendDocumentAndReadStreamAsync(
