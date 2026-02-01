@@ -258,24 +258,24 @@ function renderDocumentItem(doc) {
         } else {
             // Render each canvas as a separate block with its own copy button
             const totalPages = canvases.length;
-            canvasesContainer.innerHTML = canvases.map((canvas, index) => `
+            const bytesText = formatByteCount(doc.bytesReceived);
+            canvasesContainer.innerHTML = canvases.map((canvas, index) => {
+                const isLastCanvas = index === totalPages - 1;
+                return `
                 <div class="document-canvas-block">
                     ${canvas.previewHtml || ''}
                     <div class="document-canvas-footer">
-                        <span class="document-meta-text document-footer-text">Page ${index + 1}/${totalPages}</span>
-                        <button class="copy-icon-btn document-copy-btn" data-docs-copy data-docs-canvas-index="${index}" title="Copy canvas content">
-                            <img src="assets/icons/copy.svg" width="14" height="14" alt="Copy">
-                        </button>
+                        ${isLastCanvas ? `<span class="document-meta-text document-footer-text">Size: ${bytesText} bytes</span>` : '<span></span>'}
+                        <div class="document-canvas-footer-right">
+                            <span class="document-meta-text document-footer-text">Page ${index + 1}/${totalPages}</span>
+                            <button class="copy-icon-btn document-copy-btn" data-docs-copy data-docs-canvas-index="${index}" title="Copy canvas content">
+                                <img src="assets/icons/copy.svg" width="14" height="14" alt="Copy">
+                            </button>
+                        </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
-    }
-
-    // Set bytes
-    const bytesEl = item.querySelector('[data-docs-bytes]');
-    if (bytesEl) {
-        bytesEl.textContent = formatByteCount(doc.bytesReceived);
     }
 
     // Set copy buttons (one per canvas)

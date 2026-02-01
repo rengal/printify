@@ -318,9 +318,15 @@
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
     gap: 6px;
     padding: 0;
+}
+
+.document-canvas-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .document-canvas-block:last-child {

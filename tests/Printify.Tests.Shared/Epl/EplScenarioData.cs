@@ -148,7 +148,11 @@ public static class EplScenarioData
                     }),
                     TextElement("Hello", x: 10, y: 20,
                         width: EplSpecs.Fonts.Font2.BaseWidthInDots * "Hello".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
-                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false),
+                    DebugElement("bufferDiscarded", lengthInBytes: 0, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = "10 bytes in buffer discarded"
+                    })
                 ]
             ]),
         new(
@@ -185,7 +189,11 @@ public static class EplScenarioData
                     TextElement("World", x: 50, y: 100,
                         width: EplSpecs.Fonts.Font3.BaseHeightInDots * 2, height: EplSpecs.Fonts.Font3.BaseWidthInDots * 2 * "World".Length, // rotation 90
                         fontName: EplSpecs.Fonts.Font3.FontName, charScaleX: 2, charScaleY: 2,
-                        rotation: Rotation.Rotate90, isReverse: true)
+                        rotation: Rotation.Rotate90, isReverse: true),
+                    DebugElement("bufferDiscarded", lengthInBytes: 0, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = "10 bytes in buffer discarded"
+                    })
                 ]
             ]),
         new(
@@ -223,7 +231,11 @@ public static class EplScenarioData
                         width: EplSpecs.Fonts.Font4.BaseWidthInDots * 3 * "Test123".Length,
                         height: EplSpecs.Fonts.Font4.BaseHeightInDots * 3,
                         fontName: EplSpecs.Fonts.Font4.FontName,
-                        charScaleX: 3, charScaleY: 3, rotation: 0, isReverse: false)
+                        charScaleX: 3, charScaleY: 3, rotation: 0, isReverse: false),
+                    DebugElement("bufferDiscarded", lengthInBytes: 0, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = "14 bytes in buffer discarded"
+                    })
                 ]
             ]),
         // CR (carriage return) as no-op command
@@ -305,7 +317,11 @@ public static class EplScenarioData
                         width: EplSpecs.Fonts.Font2.BaseWidthInDots * "Test".Length,
                         height: EplSpecs.Fonts.Font2.BaseHeightInDots,
                         fontName: EplSpecs.Fonts.Font2.FontName,
-                        charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                        charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false),
+                    DebugElement("bufferDiscarded", lengthInBytes: 0, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = "8 bytes in buffer discarded"
+                    })
                 ]
             ]),
         // CRLF sequence - CR terminates N command, remaining LF becomes LineFeed no-op
@@ -362,7 +378,11 @@ public static class EplScenarioData
                         ["Hri"] = "B",
                         ["Data"] = "123456789012"
                     }),
-                    ImageElement(x: 10, y: 50, width: 2, height: 100, rotation: 0, contentType: "image/barcode")
+                    ImageElement(x: 10, y: 50, width: 2, height: 100, rotation: 0, contentType: "image/barcode"),
+                    DebugElement("bufferDiscarded", lengthInBytes: 0, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = "0 bytes in buffer discarded"
+                    })
                 ]
             ]),
         new(
@@ -384,7 +404,11 @@ public static class EplScenarioData
                         ["Data"] = "ABC123"
                     }),
                     // rotation=1 means 90° clockwise: width/height swap expected
-                    ImageElement(x: 20, y: 80, width: 120, height: 3, rotation: Rotation.Rotate90, contentType: "image/barcode")
+                    ImageElement(x: 20, y: 80, width: 120, height: 3, rotation: Rotation.Rotate90, contentType: "image/barcode"),
+                    DebugElement("bufferDiscarded", lengthInBytes: 0, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = "0 bytes in buffer discarded"
+                    })
                 ]
             ])
     ];
@@ -392,8 +416,82 @@ public static class EplScenarioData
     // TODO: GW graphic command needs further parser implementation verification
     public static TheoryData<EplScenario> GraphicScenarios { get; } = [];
 
-    // TODO: Combined scenario needs parser behavior investigation - currently produces individual byte elements
-    public static TheoryData<EplScenario> CombinedScenarios { get; } = [];
+    /// <summary>
+    /// Combined scenarios with multiple commands (text + print) to test page mode behavior.
+    /// In page mode (EPL), the first canvas contains all debug elements first, then all visual elements.
+    /// Subsequent canvases (copies) contain only visual elements.
+    /// </summary>
+    public static TheoryData<EplScenario> CombinedScenarios { get; } =
+    [
+        // Scenario: Text command followed by PRINT 1 (single copy)
+        // Expected: Single canvas with debug elements first, then visual elements
+        new(
+            id: 5001,
+            input: "A10,20,0,2,1,1,N,\"ABC\"\nP1\n"u8.ToArray(),
+            expectedRequestCommands:
+            [
+                CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "ABC"),
+                new Print(1) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    // Canvas 0: Debug elements first, then visual elements
+                    DebugElement("scalableText", lengthInBytes: 24, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10",
+                        ["Y"] = "20",
+                        ["Rotation"] = "0",
+                        ["Font"] = "2",
+                        ["HorizontalMultiplication"] = "1",
+                        ["VerticalMultiplication"] = "1",
+                        ["Reverse"] = "N",
+                        ["Text"] = "ABC"
+                    }),
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
+                    TextElement("ABC", x: 10, y: 20,
+                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "ABC".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                ]
+            ]),
+        // Scenario: Text command followed by PRINT 2 (two copies)
+        // Expected: First canvas with debug+visual, second canvas with only visual
+        new(
+            id: 5002,
+            input: "A10,20,0,2,1,1,N,\"ABC\"\nP2\n"u8.ToArray(),
+            expectedRequestCommands:
+            [
+                CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "ABC"),
+                new Print(2) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    // Canvas 0: Debug elements first, then visual elements
+                    DebugElement("scalableText", lengthInBytes: 24, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10",
+                        ["Y"] = "20",
+                        ["Rotation"] = "0",
+                        ["Font"] = "2",
+                        ["HorizontalMultiplication"] = "1",
+                        ["VerticalMultiplication"] = "1",
+                        ["Reverse"] = "N",
+                        ["Text"] = "ABC"
+                    }),
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "2" }),
+                    TextElement("ABC", x: 10, y: 20,
+                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "ABC".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                ],
+                [
+                    // Canvas 1: Only visual elements (no debug)
+                    TextElement("ABC", x: 10, y: 20,
+                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "ABC".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                ]
+            ])
+    ];
 
     public static TheoryData<EplScenario> ShapeScenarios { get; } =
     [
@@ -476,6 +574,44 @@ public static class EplScenarioData
             ])
     ];
 
+    /// <summary>
+    /// Warning scenarios for when visual elements are in buffer but never printed.
+    /// In page mode (EPL), visual elements must be followed by a Print command to be rendered.
+    /// If visual elements exist without a Print command, a warning is added.
+    /// </summary>
+    public static TheoryData<EplScenario> WarningScenarios { get; } =
+    [
+        // Scenario: Text command without Print command - buffer discarded
+        new(
+            id: 9001,
+            input: "A10,20,0,2,1,1,N,\"ABC\"\n"u8.ToArray(),
+            expectedRequestCommands:
+            [
+                CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "ABC")
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    // Canvas with debug elements + warning, NO visual elements
+                    DebugElement("scalableText", lengthInBytes: 24, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10",
+                        ["Y"] = "20",
+                        ["Rotation"] = "0",
+                        ["Font"] = "2",
+                        ["HorizontalMultiplication"] = "1",
+                        ["VerticalMultiplication"] = "1",
+                        ["Reverse"] = "N",
+                        ["Text"] = "ABC"
+                    }),
+                    DebugElement("bufferDiscarded", lengthInBytes: 0, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = "3 bytes in buffer discarded"
+                    })
+                ]
+            ])
+    ];
+
     public static TheoryData<EplScenario> AllScenarios { get; } = BuildAllScenarios();
 
     private static TheoryData<EplScenario> BuildAllScenarios()
@@ -490,6 +626,7 @@ public static class EplScenarioData
         AddRange(data, PrintScenarios);
         AddRange(data, ErrorScenarios);
         AddRange(data, CombinedScenarios);
+        AddRange(data, WarningScenarios);
         return data;
     }
 

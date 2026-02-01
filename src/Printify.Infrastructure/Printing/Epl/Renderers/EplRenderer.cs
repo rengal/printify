@@ -31,24 +31,27 @@ public sealed class EplRenderer : IRenderer
         }
 
         var state = RenderState.CreateDefault();
-        var allItems = new List<BaseElement>();
-        var printCommands = new List<PrintCommandInfo>();
+        var canvases = new List<Canvas>();
+        var debugElements = new List<BaseElement>();
+        var viewElements = new List<BaseElement>();
 
-        // First pass: collect all items and track Print command positions
+        // Process all commands - debug elements go to debugElements, visual elements go to viewElements
         foreach (var command in document.Commands)
         {
             switch (command)
             {
                 case ScalableText scalableText:
-                    AddScalableTextElement(scalableText, state, allItems);
+                    AddScalableTextElement(scalableText, state, debugElements);
+                    AddScalableTextElement(scalableText, state, viewElements);
                     break;
 
                 case DrawHorizontalLine horizontalLine:
-                    AddDrawHorizontalLineElement(horizontalLine, allItems);
+                    AddDrawHorizontalLineElement(horizontalLine, debugElements);
+                    AddDrawHorizontalLineElement(horizontalLine, viewElements);
                     break;
 
                 case Print print:
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         "print",
                         new Dictionary<string, string>
                         {
@@ -57,24 +60,30 @@ public sealed class EplRenderer : IRenderer
                         print.RawBytes,
                         print.LengthInBytes,
                         CommandDescriptionBuilder.Build(print)));
-                    // Track this print command position
-                    printCommands.Add(new PrintCommandInfo(allItems.Count - 1, print.Copies));
+                    // On Print command, produce canvases with debug + view elements
+                    ProduceCanvases(document, debugElements, viewElements, print.Copies, canvases);
+                    // Clear elements for next canvas
+                    debugElements.Clear();
+                    viewElements.Clear();
                     break;
 
                 case PrintBarcode barcode:
-                    AddBarcodeElement(barcode, allItems);
+                    AddBarcodeElement(barcode, debugElements);
+                    AddBarcodeElement(barcode, viewElements);
                     break;
 
                 case PrintGraphic graphic:
-                    AddGraphicElement(graphic, allItems);
+                    AddGraphicElement(graphic, debugElements);
+                    AddGraphicElement(graphic, viewElements);
                     break;
 
                 case DrawLine drawLine:
-                    AddDrawLineElement(drawLine, allItems);
+                    AddDrawLineElement(drawLine, debugElements);
+                    AddDrawLineElement(drawLine, viewElements);
                     break;
 
                 case ClearBuffer:
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         "clearBuffer",
                         new Dictionary<string, string>(),
                         command.RawBytes,
@@ -83,7 +92,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case CarriageReturn:
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         "carriageReturn",
                         new Dictionary<string, string>(),
                         command.RawBytes,
@@ -92,7 +101,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case LineFeed:
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         "lineFeed",
                         new Dictionary<string, string>(),
                         command.RawBytes,
@@ -101,7 +110,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case SetLabelWidth labelWidth:
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         "setLabelWidth",
                         new Dictionary<string, string>
                         {
@@ -113,7 +122,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case SetLabelHeight labelHeight:
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         "setLabelHeight",
                         new Dictionary<string, string>
                         {
@@ -126,7 +135,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case SetPrintSpeed speed:
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         "setPrintSpeed",
                         new Dictionary<string, string>
                         {
@@ -138,7 +147,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case SetPrintDarkness darkness:
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         "setPrintDarkness",
                         new Dictionary<string, string>
                         {
@@ -150,7 +159,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case SetPrintDirection direction:
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         "setPrintDirection",
                         new Dictionary<string, string>
                         {
@@ -163,7 +172,7 @@ public sealed class EplRenderer : IRenderer
 
                 case SetInternationalCharacter intlChar:
                     state.CurrentEncoding = GetEncodingFromCodePage(intlChar.P1, intlChar.P2, intlChar.P3);
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         "setInternationalCharacter",
                         new Dictionary<string, string>
                         {
@@ -177,7 +186,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case ParseError error:
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         "error",
                         new Dictionary<string, string>
                         {
@@ -190,7 +199,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case PrinterError printerError:
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         "printerError",
                         new Dictionary<string, string>
                         {
@@ -202,7 +211,7 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 default:
-                    allItems.Add(new DebugInfo(
+                    debugElements.Add(new DebugInfo(
                         command.GetType().Name,
                         new Dictionary<string, string>(),
                         command.RawBytes,
@@ -212,70 +221,82 @@ public sealed class EplRenderer : IRenderer
             }
         }
 
-        // If no print commands, return single canvas with all items (debug only + error)
-        if (printCommands.Count == 0)
+        // After processing all commands, check if there are any remaining elements
+        if (debugElements.Count > 0 || viewElements.Count > 0)
         {
+            // If there are view elements without a Print command, add buffer discarded warning
+            if (viewElements.Count > 0)
+            {
+                var byteCount = viewElements.Sum(e => e switch
+                {
+                    TextElement text => text.Text.Length * 2, // Approximate bytes for text
+                    ImageElement img => img.Media.Size,
+                    LineElement => 0,
+                    BoxElement => 0,
+                    _ => 0
+                });
+
+                debugElements.Add(new DebugInfo(
+                    "bufferDiscarded",
+                    new Dictionary<string, string>
+                    {
+                        ["Message"] = $"{byteCount} bytes in buffer discarded"
+                    },
+                    Array.Empty<byte>(),
+                    0,
+                    new List<string>
+                    {
+                        $"{byteCount} bytes in buffer discarded (no Print command)"
+                    }));
+            }
+
+            // Return single canvas with debug elements only (no visual elements)
             return new[]
             {
                 new Canvas(
                     WidthInDots: document.WidthInDots,
                     HeightInDots: document.HeightInDots,
-                    Items: allItems.AsReadOnly())
+                    Items: debugElements.AsReadOnly())
             };
         }
 
-        // Generate canvases based on print commands
-        var canvases = new List<Canvas>();
-        var startIndex = 0;
-
-        foreach (var printCmd in printCommands)
-        {
-            // Items for this segment (from after previous print to this print)
-            var segmentItems = allItems.GetRange(startIndex, printCmd.Index - startIndex);
-
-            // Separate debug and visual elements from this segment
-            var debugElements = segmentItems.Where(item => item is DebugInfo).ToList();
-            var visualElements = segmentItems
-                .Where(item => item is not DebugInfo)
-                .Select(CloneVisualElement)
-                .ToList();
-
-            // Create copies based on print command copies count
-            for (int copy = 0; copy < printCmd.Copies; copy++)
-            {
-                if (copy == 0 && startIndex == 0)
-                {
-                    // First canvas: all debug elements first, then all visual elements
-                    var allElements = debugElements.Concat(visualElements).ToList();
-                    canvases.Add(new Canvas(
-                        WidthInDots: document.WidthInDots,
-                        HeightInDots: document.HeightInDots,
-                        Items: allElements.AsReadOnly()));
-                }
-                else
-                {
-                    // Subsequent canvases: only visual elements (no debug)
-                    canvases.Add(new Canvas(
-                        WidthInDots: document.WidthInDots,
-                        HeightInDots: document.HeightInDots,
-                        Items: visualElements.ToList().AsReadOnly()));
-                }
-            }
-
-            startIndex = printCmd.Index + 1;
-        }
-
-        // If there are items after the last print command, create a final canvas with debug only
-        if (startIndex < allItems.Count)
-        {
-            var remainingItems = allItems.GetRange(startIndex, allItems.Count - startIndex);
-            canvases.Add(new Canvas(
-                WidthInDots: document.WidthInDots,
-                HeightInDots: document.HeightInDots,
-                Items: remainingItems.AsReadOnly()));
-        }
-
+        // Return canvases produced by Print commands (or empty array if none)
         return canvases.ToArray();
+    }
+
+    /// <summary>
+    /// Produces canvases with debug elements first, then visual elements.
+    /// Creates multiple copies if copies > 1.
+    /// </summary>
+    private static void ProduceCanvases(
+        Document document,
+        List<BaseElement> debugElements,
+        List<BaseElement> viewElements,
+        int copies,
+        List<Canvas> canvases)
+    {
+        var allElements = debugElements.Concat(viewElements).ToList();
+
+        for (int copy = 0; copy < copies; copy++)
+        {
+            if (copy == 0)
+            {
+                // First copy: all elements (debug + visual)
+                canvases.Add(new Canvas(
+                    WidthInDots: document.WidthInDots,
+                    HeightInDots: document.HeightInDots,
+                    Items: allElements.AsReadOnly()));
+            }
+            else
+            {
+                // Subsequent copies: only visual elements (no debug)
+                var visualOnlyElements = viewElements.Select(CloneVisualElement).ToList();
+                canvases.Add(new Canvas(
+                    WidthInDots: document.WidthInDots,
+                    HeightInDots: document.HeightInDots,
+                    Items: visualOnlyElements.AsReadOnly()));
+            }
+        }
     }
 
     private static BaseElement CloneVisualElement(BaseElement element)
@@ -549,7 +570,7 @@ public sealed class EplRenderer : IRenderer
         }
     }
 
-    private sealed record PrintCommandInfo(int Index, int Copies);
+    private sealed record PrintCommandInfo(int Index, int Copies, int UnprintedVisualCount);
 
     private sealed class RenderState
     {
