@@ -93,7 +93,7 @@ public class EplTests(WebApplicationFactory<Program> factory)
         Assert.NotNull(canvasDocument);
 
         DocumentAssertions.EqualCanvas(
-            [new CanvasDebugElementDto("clearBuffer") { LengthInBytes = 2 }],
+            [[new CanvasDebugElementDto("clearBuffer") { LengthInBytes = 2 }]],
             Protocol.Epl,
             canvasDocument,
             DefaultPrinterWidthInDots,

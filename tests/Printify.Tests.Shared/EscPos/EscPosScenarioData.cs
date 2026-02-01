@@ -36,21 +36,26 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.Bell { LengthInBytes = 1 }],
             expectedCanvasElements:
             [
-                new CanvasDebugElementDto("bell")
-                {
-                    LengthInBytes = 1
-                }
+                [
+                    new CanvasDebugElementDto("bell")
+                    {
+                        LengthInBytes = 1
+                    }
+                ]
             ]),
         new(
             id: 15002,
             input: Enumerable.Repeat((byte)0x07, 10).ToArray(),
             expectedRequestCommands: Enumerable.Range(0, 10).Select(_ => new EscPosCommands.Bell { LengthInBytes = 1 }).ToArray(),
-            expectedCanvasElements: Enumerable.Range(0, 10)
-                .Select(_ => new CanvasDebugElementDto("bell")
-                {
-                    LengthInBytes = 1
-                })
-                .ToArray())
+            expectedCanvasElements:
+            [
+                Enumerable.Range(0, 10)
+                    .Select(_ => new CanvasDebugElementDto("bell")
+                    {
+                        LengthInBytes = 1
+                    })
+                    .ToArray()
+            ])
     ];
 
     public static TheoryData<EscPosScenario> TextScenarios { get; } =
@@ -61,8 +66,10 @@ public static class EscPosScenarioData
             expectedRequestCommands: [CommandAppendText("A")],
             expectedCanvasElements:
             [
-                DebugAppendText("A", lengthInBytes: 1),
-                DebugDiscardedError()
+                [
+                    DebugAppendText("A", lengthInBytes: 1),
+                    DebugDiscardedError()
+                ]
             ]),
         new(
             id: 15004,
@@ -74,9 +81,11 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugAppendText("ABC", lengthInBytes: 3),
-                DebugFlush(lengthInBytes: 1),
-                TextElement("ABC", x: 0, y: 0, lengthInBytes: 3)
+                [
+                    DebugAppendText("ABC", lengthInBytes: 3),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement("ABC", x: 0, y: 0, lengthInBytes: 3)
+                ]
             ]),
         new(
             id : 15005,
@@ -89,10 +98,12 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugAppendText("ABC", lengthInBytes: 3),
-                DebugElement("legacyCarriageReturn", lengthInBytes: 1),
-                DebugFlush(lengthInBytes: 1),
-                TextElement("ABC", x: 0, y: 0, lengthInBytes: 3)
+                [
+                    DebugAppendText("ABC", lengthInBytes: 3),
+                    DebugElement("legacyCarriageReturn", lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement("ABC", x: 0, y: 0, lengthInBytes: 3)
+                ]
             ]),
         new(
             id: 15006,
@@ -100,8 +111,10 @@ public static class EscPosScenarioData
             expectedRequestCommands: [CommandAppendText("ABC")],
             expectedCanvasElements:
             [
-                DebugAppendText("ABC", lengthInBytes: 3),
-                DebugDiscardedError()
+                [
+                    DebugAppendText("ABC", lengthInBytes: 3),
+                    DebugDiscardedError()
+                ]
             ]),
         new(
             id: 15007,
@@ -109,8 +122,10 @@ public static class EscPosScenarioData
             expectedRequestCommands: [CommandAppendText("ABC")],
             expectedCanvasElements:
             [
-                DebugAppendText("ABC", lengthInBytes: 3),
-                DebugDiscardedError()
+                [
+                    DebugAppendText("ABC", lengthInBytes: 3),
+                    DebugDiscardedError()
+                ]
             ]),
         new(
             id: 15008,
@@ -125,14 +140,16 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugAppendText("ABC", lengthInBytes: 3),
-                DebugFlush(lengthInBytes: 1),
-                TextElement("ABC", x: 0, y: 0, lengthInBytes: 3),
-                DebugAppendText("DEF", lengthInBytes: 3),
-                DebugFlush(lengthInBytes: 1),
-                TextElement("DEF", x: 0, y: DefaultLineHeight, lengthInBytes: 3),
-                DebugAppendText("G", lengthInBytes: 1),
-                DebugDiscardedError()
+                [
+                    DebugAppendText("ABC", lengthInBytes: 3),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement("ABC", x: 0, y: 0, lengthInBytes: 3),
+                    DebugAppendText("DEF", lengthInBytes: 3),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement("DEF", x: 0, y: DefaultLineHeight, lengthInBytes: 3),
+                    DebugAppendText("G", lengthInBytes: 1),
+                    DebugDiscardedError()
+                ]
             ]),
         new(
             id: 15009,
@@ -140,8 +157,10 @@ public static class EscPosScenarioData
             expectedRequestCommands: [CommandAppendText("ABC")],
             expectedCanvasElements:
             [
-                DebugAppendText("ABC", lengthInBytes: 3),
-                DebugDiscardedError()
+                [
+                    DebugAppendText("ABC", lengthInBytes: 3),
+                    DebugDiscardedError()
+                ]
             ]),
         new(
             id: 15010,
@@ -149,8 +168,10 @@ public static class EscPosScenarioData
             expectedRequestCommands: [CommandAppendText(new string('A', 100))],
             expectedCanvasElements:
             [
-                DebugAppendText(new string('A', 100), lengthInBytes: 100),
-                DebugDiscardedError()
+                [
+                    DebugAppendText(new string('A', 100), lengthInBytes: 100),
+                    DebugDiscardedError()
+                ]
             ]),
         new(
             id: 15011,
@@ -162,9 +183,11 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugAppendText("ABC", lengthInBytes: 3),
-                DebugElement("bell", lengthInBytes: 1),
-                DebugDiscardedError()
+                [
+                    DebugAppendText("ABC", lengthInBytes: 3),
+                    DebugElement("bell", lengthInBytes: 1),
+                    DebugDiscardedError()
+                ]
             ]),
         new(
             id: 15012,
@@ -178,11 +201,13 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugAppendText("ABC", lengthInBytes: 3),
-                DebugElement("bell", lengthInBytes: 1),
-                DebugAppendText("DEF", lengthInBytes: 3),
-                DebugElement("bell", lengthInBytes: 1),
-                DebugDiscardedError()
+                [
+                    DebugAppendText("ABC", lengthInBytes: 3),
+                    DebugElement("bell", lengthInBytes: 1),
+                    DebugAppendText("DEF", lengthInBytes: 3),
+                    DebugElement("bell", lengthInBytes: 1),
+                    DebugDiscardedError()
+                ]
             ]),
         new(
             id: 15013,
@@ -197,13 +222,15 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugAppendText("ABC", lengthInBytes: 3),
-                DebugElement("bell", lengthInBytes: 1),
-                DebugAppendText("DEF", lengthInBytes: 3),
-                DebugFlush(lengthInBytes: 1),
-                TextElement("ABC", x: 0, y: 0, lengthInBytes: 3),
-                TextElement("DEF", x: 36, y: 0, lengthInBytes: 3),
-                DebugElement("bell", lengthInBytes: 1)
+                [
+                    DebugAppendText("ABC", lengthInBytes: 3),
+                    DebugElement("bell", lengthInBytes: 1),
+                    DebugAppendText("DEF", lengthInBytes: 3),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement("ABC", x: 0, y: 0, lengthInBytes: 3),
+                    TextElement("DEF", x: 36, y: 0, lengthInBytes: 3),
+                    DebugElement("bell", lengthInBytes: 1)
+                ]
             ]),
         new(
             id: 15016,
@@ -217,15 +244,21 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugAppendText("ABC", lengthInBytes: 3),
-                DebugElement(
-                    "pagecut",
-                    lengthInBytes: 2,
-                    parameters: PagecutParameters(EscPosCommands.PagecutMode.PartialOnePoint, null)),
-                DebugAppendText("DEF", lengthInBytes: 3),
-                DebugFlush(lengthInBytes: 1),
-                TextElement("ABC", x: 0, y: 0, lengthInBytes: 3),
-                TextElement("DEF", x: 36, y: 0, lengthInBytes: 3)
+                // Canvas 1: ABC added to buffer (not flushed) + pagecut debug
+                [
+                    DebugAppendText("ABC", lengthInBytes: 3),
+                    DebugDiscardedError(),
+                    DebugElement(
+                        "pagecut",
+                        lengthInBytes: 2,
+                        parameters: PagecutParameters(EscPosCommands.PagecutMode.PartialOnePoint, null))
+                ],
+                // Canvas 2: DEF added to buffer, then flushed. Note: ABC from canvas 1 is lost (not flushed)
+                [
+                    DebugAppendText("DEF", lengthInBytes: 3),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement("DEF", x: 0, y: 0, lengthInBytes: 3)
+                ]
             ]),
         new(
             id: 15017,
@@ -258,25 +291,27 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                // "ABC" added to buffer
-                DebugElement("appendToLineBuffer", parameters: new Dictionary<string, string> { ["Text"] = "ABC" }, lengthInBytes: 3),
-                // Buffer cleared by image - synthetic error for lost data
-                new CanvasDebugElementDto("printerError")
-                {
-                    LengthInBytes = 0,
-                    Parameters = new Dictionary<string, string>
+                [
+                    // "ABC" added to buffer
+                    DebugElement("appendToLineBuffer", parameters: new Dictionary<string, string> { ["Text"] = "ABC" }, lengthInBytes: 3),
+                    // Buffer cleared by image - synthetic error for lost data
+                    new CanvasDebugElementDto("printerError")
                     {
-                        ["Message"] = "Text buffer cleared by raster image command, 3 bytes lost (\"ABC\")"
-                    }
-                },
-                // The image that cleared the buffer
-                DebugElement("rasterImage", lengthInBytes: 10),
-                ViewImage(8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10),
-                // "DEF" added to fresh buffer
-                DebugElement("appendToLineBuffer", parameters: new Dictionary<string, string> { ["Text"] = "DEF" }, lengthInBytes: 3),
-                // Flush - only "DEF" prints (positioned below the image)
-                DebugElement("flushLineBufferAndFeed", lengthInBytes: 1),
-                TextElement("DEF", x: 0, y: 2, lengthInBytes: 3)  // Y=2 because image (height=2) is above
+                        LengthInBytes = 0,
+                        Parameters = new Dictionary<string, string>
+                        {
+                            ["Message"] = "Text buffer cleared by raster image command, 3 bytes lost (\"ABC\")"
+                        }
+                    },
+                    // The image that cleared the buffer
+                    DebugElement("rasterImage", lengthInBytes: 10),
+                    ViewImage(8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10),
+                    // "DEF" added to fresh buffer
+                    DebugElement("appendToLineBuffer", parameters: new Dictionary<string, string> { ["Text"] = "DEF" }, lengthInBytes: 3),
+                    // Flush - only "DEF" prints (positioned below the image)
+                    DebugElement("flushLineBufferAndFeed", lengthInBytes: 1),
+                    TextElement("DEF", x: 0, y: 2, lengthInBytes: 3)  // Y=2 because image (height=2) is above
+                ]
             ]),
         new(
             id: 15014,
@@ -284,7 +319,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [CommandPrintAndLineFeed()],
             expectedCanvasElements:
             [
-                DebugFlush(lengthInBytes: 1)
+                [
+                    DebugFlush(lengthInBytes: 1)
+                ]
             ]),
         new(
             id: 15015,
@@ -297,9 +334,11 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugFlush(lengthInBytes: 1),
-                DebugFlush(lengthInBytes: 1),
-                DebugFlush(lengthInBytes: 1)
+                [
+                    DebugFlush(lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1)
+                ]
             ])
     ];
 
@@ -312,10 +351,12 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new PrinterError("") { LengthInBytes = 1 }],
             expectedCanvasElements:
             [
-                DebugElement("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
-                {
-                    ["Message"] = string.Empty
-                })
+                [
+                    DebugElement("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = string.Empty
+                    })
+                ]
             ]),
         // Two consecutive null bytes produce one error (accumulated)
         new(
@@ -324,10 +365,12 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new PrinterError("") { LengthInBytes = 2 }],
             expectedCanvasElements:
             [
-                DebugElement("printerError", lengthInBytes: 2, parameters: new Dictionary<string, string>
-                {
-                    ["Message"] = string.Empty
-                })
+                [
+                    DebugElement("printerError", lengthInBytes: 2, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = string.Empty
+                    })
+                ]
             ]),
         // Multiple invalid bytes produce one error
         new(
@@ -336,10 +379,12 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new PrinterError("") { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("printerError", lengthInBytes: 3, parameters: new Dictionary<string, string>
-                {
-                    ["Message"] = string.Empty
-                })
+                [
+                    DebugElement("printerError", lengthInBytes: 3, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = string.Empty
+                    })
+                ]
             ]),
         // Invalid byte followed by text transitions correctly
         new(
@@ -350,12 +395,14 @@ public static class EscPosScenarioData
                 CommandAppendText("ABC")],
             expectedCanvasElements:
             [
-                DebugElement("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
-                {
-                    ["Message"] = string.Empty
-                }),
-                DebugAppendText("ABC", lengthInBytes: 3),
-                DebugDiscardedError()
+                [
+                    DebugElement("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = string.Empty
+                    }),
+                    DebugAppendText("ABC", lengthInBytes: 3),
+                    DebugDiscardedError()
+                ]
             ]),
         // Text followed by invalid byte followed by text
         new(
@@ -367,13 +414,15 @@ public static class EscPosScenarioData
                 CommandAppendText("DEF")],
             expectedCanvasElements:
             [
-                DebugAppendText("ABC", lengthInBytes: 3),
-                DebugElement("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
-                {
-                    ["Message"] = string.Empty
-                }),
-                DebugAppendText("DEF", lengthInBytes: 3),
-                DebugDiscardedError()
+                [
+                    DebugAppendText("ABC", lengthInBytes: 3),
+                    DebugElement("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = string.Empty
+                    }),
+                    DebugAppendText("DEF", lengthInBytes: 3),
+                    DebugDiscardedError()
+                ]
             ]),
         // Invalid byte followed by command
         new(
@@ -384,11 +433,13 @@ public static class EscPosScenarioData
                 new EscPosCommands.Bell { LengthInBytes = 1 }],
             expectedCanvasElements:
             [
-                DebugElement("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
-                {
-                    ["Message"] = string.Empty
-                }),
-                DebugElement("bell", lengthInBytes: 1)
+                [
+                    DebugElement("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = string.Empty
+                    }),
+                    DebugElement("bell", lengthInBytes: 1)
+                ]
             ])
     ];
 
@@ -400,7 +451,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.PartialOnePoint) { LengthInBytes = 2 }],
             expectedCanvasElements:
             [
-                DebugElement("pagecut", lengthInBytes: 2, parameters: PagecutParameters(EscPosCommands.PagecutMode.PartialOnePoint, null))
+                [
+                    DebugElement("pagecut", lengthInBytes: 2, parameters: PagecutParameters(EscPosCommands.PagecutMode.PartialOnePoint, null))
+                ]
             ]),
         new(
             id: 170002,
@@ -408,7 +461,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Full) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("pagecut", lengthInBytes: 3, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, null))
+                [
+                    DebugElement("pagecut", lengthInBytes: 3, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, null))
+                ]
             ]),
         new(
             id: 170003,
@@ -416,7 +471,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Full) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("pagecut", lengthInBytes: 3, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, null))
+                [
+                    DebugElement("pagecut", lengthInBytes: 3, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, null))
+                ]
             ]),
         new(
             id: 170004,
@@ -424,7 +481,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("pagecut", lengthInBytes: 3, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, null))
+                [
+                    DebugElement("pagecut", lengthInBytes: 3, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, null))
+                ]
             ]),
         new(
             id: 170005,
@@ -432,7 +491,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("pagecut", lengthInBytes: 3, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, null))
+                [
+                    DebugElement("pagecut", lengthInBytes: 3, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, null))
+                ]
             ]),
         new(
             id: 170006,
@@ -440,7 +501,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
             expectedCanvasElements:
             [
-                DebugElement("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, 0x05))
+                [
+                    DebugElement("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, 0x05))
+                ]
             ]),
         new(
             id: 170007,
@@ -448,7 +511,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
             expectedCanvasElements:
             [
-                DebugElement("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, 0x20))
+                [
+                    DebugElement("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, 0x20))
+                ]
             ]),
         new(
             id: 170008,
@@ -456,7 +521,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
             expectedCanvasElements:
             [
-                DebugElement("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, 0x05))
+                [
+                    DebugElement("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, 0x05))
+                ]
             ]),
         new(
             id: 170009,
@@ -464,7 +531,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
             expectedCanvasElements:
             [
-                DebugElement("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, 0x20))
+                [
+                    DebugElement("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, 0x20))
+                ]
             ]),
         new(
             id: 170010,
@@ -472,7 +541,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Full, 0x05) { LengthInBytes = 4 }],
             expectedCanvasElements:
             [
-                DebugElement("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, 0x05))
+                [
+                    DebugElement("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Full, 0x05))
+                ]
             ]),
         new(
             id: 170011,
@@ -480,7 +551,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0x20) { LengthInBytes = 4 }],
             expectedCanvasElements:
             [
-                DebugElement("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, 0x20))
+                [
+                    DebugElement("pagecut", lengthInBytes: 4, parameters: PagecutParameters(EscPosCommands.PagecutMode.Partial, 0x20))
+                ]
             ])
     ];
 
@@ -492,12 +565,14 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.Pulse(1, 0x05, 0x0A) { LengthInBytes = 5 }],
             expectedCanvasElements:
             [
-                DebugElement("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
-                {
-                    ["Pin"] = "1",
-                    ["OnTimeMs"] = "5",
-                    ["OffTimeMs"] = "10"
-                })
+                [
+                    DebugElement("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
+                    {
+                        ["Pin"] = "1",
+                        ["OnTimeMs"] = "5",
+                        ["OffTimeMs"] = "10"
+                    })
+                ]
             ]),
         new(
             id: 180002,
@@ -505,12 +580,14 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.Pulse(0, 0x7D, 0x7F) { LengthInBytes = 5 }],
             expectedCanvasElements:
             [
-                DebugElement("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
-                {
-                    ["Pin"] = "0",
-                    ["OnTimeMs"] = "125",
-                    ["OffTimeMs"] = "127"
-                })
+                [
+                    DebugElement("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
+                    {
+                        ["Pin"] = "0",
+                        ["OnTimeMs"] = "125",
+                        ["OffTimeMs"] = "127"
+                    })
+                ]
             ]),
         new(
             id: 180003,
@@ -526,18 +603,20 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
-                {
-                    ["Pin"] = "0",
-                    ["OnTimeMs"] = "8",
-                    ["OffTimeMs"] = "22"
-                }),
-                DebugElement("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
-                {
-                    ["Pin"] = "1",
-                    ["OnTimeMs"] = "2",
-                    ["OffTimeMs"] = "3"
-                })
+                [
+                    DebugElement("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
+                    {
+                        ["Pin"] = "0",
+                        ["OnTimeMs"] = "8",
+                        ["OffTimeMs"] = "22"
+                    }),
+                    DebugElement("pulse", lengthInBytes: 5, parameters: new Dictionary<string, string>
+                    {
+                        ["Pin"] = "1",
+                        ["OnTimeMs"] = "2",
+                        ["OffTimeMs"] = "3"
+                    })
+                ]
             ])
     ];
 
@@ -570,8 +649,10 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("rasterImage", lengthInBytes: 10),
-                ViewImage(8, 2, Media.CreateDefaultPng(96), lengthInBytes: 10)
+                [
+                    DebugElement("rasterImage", lengthInBytes: 10),
+                    ViewImage(8, 2, Media.CreateDefaultPng(96), lengthInBytes: 10)
+                ]
             ]),
 
         // GS v 0: All bits set (8x2, all colored pixels)
@@ -599,8 +680,10 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("rasterImage", lengthInBytes: 10),
-                ViewImage(8, 2, Media.CreateDefaultPng(96), lengthInBytes: 10)
+                [
+                    DebugElement("rasterImage", lengthInBytes: 10),
+                    ViewImage(8, 2, Media.CreateDefaultPng(96), lengthInBytes: 10)
+                ]
             ]),
 
         // GS v 0: All bits unset (8x2, all transparent pixels)
@@ -628,8 +711,10 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("rasterImage", lengthInBytes: 10),
-                ViewImage(8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10)
+                [
+                    DebugElement("rasterImage", lengthInBytes: 10),
+                    ViewImage(8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10)
+                ]
             ]),
 
         // GS v 0: Checkerboard pattern (8x2)
@@ -657,8 +742,10 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("rasterImage", lengthInBytes: 10),
-                ViewImage(8, 2, Media.CreateDefaultPng(93), lengthInBytes: 10)
+                [
+                    DebugElement("rasterImage", lengthInBytes: 10),
+                    ViewImage(8, 2, Media.CreateDefaultPng(93), lengthInBytes: 10)
+                ]
             ]),
         CreateOversizeRasterScenario()
     ];
@@ -702,8 +789,10 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("rasterImage", lengthInBytes: lengthInBytes),
-                ViewImage(widthInDots, heightInDots, media, lengthInBytes)
+                [
+                    DebugElement("rasterImage", lengthInBytes: lengthInBytes),
+                    ViewImage(widthInDots, heightInDots, media, lengthInBytes)
+                ]
             ]);
     }
 
@@ -729,11 +818,13 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, false, false)),
-                DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, false, false)),
-                DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, true, false)),
-                DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, true, true)),
-                DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(2, false, false))
+                [
+                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, false, false)),
+                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, false, false)),
+                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, true, false)),
+                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, true, true)),
+                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(2, false, false))
+                ]
             ]),
         new(
             id: 220002,
@@ -753,10 +844,12 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
-                DebugElement("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
-                DebugElement("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
-                DebugElement("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(false))
+                [
+                    DebugElement("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                    DebugElement("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
+                    DebugElement("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                    DebugElement("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(false))
+                ]
             ]),
         new(
             id: 220003,
@@ -780,12 +873,14 @@ public static class EscPosScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
-                DebugElement("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
-                DebugElement("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
-                DebugElement("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
-                DebugElement("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
-                DebugElement("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true))
+                [
+                    DebugElement("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                    DebugElement("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                    DebugElement("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
+                    DebugElement("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                    DebugElement("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
+                    DebugElement("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true))
+                ]
             ])
     ];
 
@@ -797,7 +892,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.SetLineSpacing(0x40) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("setLineSpacing", lengthInBytes: 3, parameters: LineSpacingParameters(0x40))
+                [
+                    DebugElement("setLineSpacing", lengthInBytes: 3, parameters: LineSpacingParameters(0x40))
+                ]
             ]),
         new(
             id: 230002,
@@ -805,7 +902,9 @@ public static class EscPosScenarioData
             expectedRequestCommands: [new EscPosCommands.ResetLineSpacing() { LengthInBytes = 2 }],
             expectedCanvasElements:
             [
-                DebugElement("resetLineSpacing", lengthInBytes: 2)
+                [
+                    DebugElement("resetLineSpacing", lengthInBytes: 2)
+                ]
             ])
     ];
 
@@ -876,7 +975,7 @@ public static class EscPosScenarioData
             AppendText(vector.Uppercase);
             AppendText(vector.Lowercase);
 
-            scenarios.Add(new EscPosScenario(id: 240001, input.ToArray(), expected, expectedCanvasElements: expectedView));
+            scenarios.Add(new EscPosScenario(id: 240001, input.ToArray(), expected, expectedCanvasElements: [expectedView.ToArray()]));
         }
 
         return scenarios;

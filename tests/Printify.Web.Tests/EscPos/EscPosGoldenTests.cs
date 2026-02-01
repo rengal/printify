@@ -14,7 +14,7 @@ public class EscPosGoldenTests(WebApplicationFactory<Program> factory) : EscPosT
             payload,
             value.expectedRequestElement,
             value.expectedPersistedElements,
-            value.expectedViewElements);
+            [value.expectedViewElements]);
         await RunScenarioAsync(scenario);
     }
 }

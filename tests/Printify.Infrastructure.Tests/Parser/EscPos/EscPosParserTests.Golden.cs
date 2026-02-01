@@ -12,7 +12,7 @@ public partial class EscPosParserTests
             payload,
             value.expectedRequestElement,
             value.expectedPersistedElements,
-            value.expectedViewElements);
+            [value.expectedViewElements]);
         AssertScenario(scenario);
     }
 }

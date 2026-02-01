@@ -28,14 +28,14 @@ public sealed class EscPosViewDocumentConverterTests
             null);
 
         var renderer = new EscPosRenderer();
-        var canvas = renderer.Render(document);
-        var canvasDocument = RenderedDocument.From(document, canvas);
+        var canvases = renderer.Render(document);
+        var canvasDocument = RenderedDocument.From(document, canvases);
 
         DocumentAssertions.EqualView(
             scenario.ExpectedCanvasElements,
             Protocol.EscPos,
             canvasDocument,
-            canvas[0].WidthInDots,
-            canvas[0].HeightInDots);
+            canvases[0].WidthInDots,
+            canvases[0].HeightInDots);
     }
 }

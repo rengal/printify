@@ -16,7 +16,7 @@ public sealed record EscPosScenario : ITestScenario
         byte[] input,
         IReadOnlyList<Command> expectedRequestCommands,
         IReadOnlyList<Command>? expectedPersistedCommands = null,
-        IReadOnlyList<CanvasElementDto>? expectedCanvasElements = null)
+        IReadOnlyList<IReadOnlyList<CanvasElementDto>>? expectedCanvasElements = null)
     {
         Id = id;
         Input = input;
@@ -34,6 +34,6 @@ public sealed record EscPosScenario : ITestScenario
     public byte[] Input { get; }
     public IReadOnlyList<Command> ExpectedRequestCommands { get; }
     public IReadOnlyList<Command>? ExpectedPersistedCommands { get; }
-    public IReadOnlyList<CanvasElementDto> ExpectedCanvasElements { get; }
+    public IReadOnlyList<IReadOnlyList<CanvasElementDto>> ExpectedCanvasElements { get; }
     public Protocol Protocol => Protocol.EscPos;
 }

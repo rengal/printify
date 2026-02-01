@@ -13,7 +13,8 @@ public interface ITestScenario
     byte[] Input { get; }
     IReadOnlyList<Command> ExpectedRequestCommands { get; }
     IReadOnlyList<Command>? ExpectedPersistedCommands { get; }
-    IReadOnlyList<CanvasElementDto> ExpectedCanvasElements { get; }
+    // Array of arrays: outer array = list of canvases, inner array = list of elements inside each canvas
+    IReadOnlyList<IReadOnlyList<CanvasElementDto>> ExpectedCanvasElements { get; }
     Protocol Protocol { get; }
 
     // Override ToString to show scenario ID in test results

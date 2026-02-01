@@ -131,7 +131,7 @@ public static class DocumentAssertions
     }
 
     public static void EqualCanvas(
-        IReadOnlyList<CanvasElementDto> expectedCanvasElements,
+        IReadOnlyList<IReadOnlyList<CanvasElementDto>> expectedCanvases,
         Protocol expectedProtocol,
         RenderedDocumentDto? actual,
         int expectedWidthInDots,
@@ -140,24 +140,28 @@ public static class DocumentAssertions
         Assert.NotNull(actual);
         Assert.Equal(EnumMapper.ToString(expectedProtocol), actual.Protocol);
         Assert.NotNull(actual.Canvases);
-        Assert.NotEmpty(actual.Canvases);
+        Assert.Equal(expectedCanvases.Count, actual.Canvases.Length);
 
-        // Use the first canvas for comparison
-        var firstCanvas = actual.Canvases[0];
-        Assert.Equal(expectedWidthInDots, firstCanvas.WidthInDots);
-        Assert.Equal(expectedHeightInDots, firstCanvas.HeightInDots);
-
-        EqualCanvasElements(expectedCanvasElements, firstCanvas.Items.ToList());
-
-        // If there are any error debug elements, ErrorMessages must contain data
-        var hasErrorDebugElement = firstCanvas.Items.Any(el =>
-            el is CanvasDebugElementDto debug &&
-            (debug.DebugType == "error" || debug.DebugType == "printerError"));
-
-        if (hasErrorDebugElement)
+        for (var canvasIndex = 0; canvasIndex < expectedCanvases.Count; canvasIndex++)
         {
-            Assert.NotNull(actual.ErrorMessages);
-            Assert.NotEmpty(actual.ErrorMessages);
+            var expectedCanvas = expectedCanvases[canvasIndex];
+            var actualCanvas = actual.Canvases[canvasIndex];
+
+            Assert.Equal(expectedWidthInDots, actualCanvas.WidthInDots);
+            Assert.Equal(expectedHeightInDots, actualCanvas.HeightInDots);
+
+            EqualCanvasElements(expectedCanvas, actualCanvas.Items.ToList());
+
+            // If there are any error debug elements, ErrorMessages must contain data
+            var hasErrorDebugElement = actualCanvas.Items.Any(el =>
+                el is CanvasDebugElementDto debug &&
+                (debug.DebugType == "error" || debug.DebugType == "printerError"));
+
+            if (hasErrorDebugElement)
+            {
+                Assert.NotNull(actual.ErrorMessages);
+                Assert.NotEmpty(actual.ErrorMessages);
+            }
         }
     }
 
@@ -170,7 +174,19 @@ public static class DocumentAssertions
     {
         Assert.NotNull(actual);
         var dto = RenderedDocumentMapper.ToCanvasResponseDto(actual);
-        EqualCanvas(expectedElements, expectedProtocol, dto, expectedWidthInDots, expectedHeightInDots);
+        EqualCanvas([expectedElements], expectedProtocol, dto, expectedWidthInDots, expectedHeightInDots);
+    }
+
+    public static void EqualView(
+        IReadOnlyList<IReadOnlyList<CanvasElementDto>> expectedCanvases,
+        Protocol expectedProtocol,
+        RenderedDocument? actual,
+        int expectedWidthInDots,
+        int? expectedHeightInDots)
+    {
+        Assert.NotNull(actual);
+        var dto = RenderedDocumentMapper.ToCanvasResponseDto(actual);
+        EqualCanvas(expectedCanvases, expectedProtocol, dto, expectedWidthInDots, expectedHeightInDots);
     }
 
     public static void EqualBytes(

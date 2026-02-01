@@ -86,7 +86,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory)
         Assert.NotNull(canvasDocument);
 
         DocumentAssertions.EqualCanvas(
-            [new CanvasDebugElementDto("bell") { LengthInBytes = 1 }],
+            [[new CanvasDebugElementDto("bell") { LengthInBytes = 1 }]],
             Protocol.EscPos,
             canvasDocument,
             DefaultPrinterWidthInDots,

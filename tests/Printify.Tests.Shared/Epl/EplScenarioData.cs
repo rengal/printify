@@ -24,7 +24,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new ClearBuffer { LengthInBytes = 2 }],
             expectedCanvasElements:
             [
-                DebugElement("clearBuffer", lengthInBytes: 2)
+                [
+                    DebugElement("clearBuffer", lengthInBytes: 2)
+                ]
             ])
     ];
 
@@ -36,7 +38,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new SetLabelWidth(500) { LengthInBytes = 5 }],
             expectedCanvasElements:
             [
-                DebugElement("setLabelWidth", lengthInBytes: 5, parameters: new Dictionary<string, string> { ["Width"] = "500" })
+                [
+                    DebugElement("setLabelWidth", lengthInBytes: 5, parameters: new Dictionary<string, string> { ["Width"] = "500" })
+                ]
             ]),
         new(
             id: 2002,
@@ -44,7 +48,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new SetLabelHeight(300, 26) { LengthInBytes = 8 }],
             expectedCanvasElements:
             [
-                DebugElement("setLabelHeight", lengthInBytes: 8, parameters: new Dictionary<string, string> { ["Height"] = "300", ["SecondParameter"] = "26" })
+                [
+                    DebugElement("setLabelHeight", lengthInBytes: 8, parameters: new Dictionary<string, string> { ["Height"] = "300", ["SecondParameter"] = "26" })
+                ]
             ]),
         new(
             id: 2003,
@@ -52,7 +58,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new SetPrintSpeed(3) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("setPrintSpeed", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Speed"] = "3" })
+                [
+                    DebugElement("setPrintSpeed", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Speed"] = "3" })
+                ]
             ]),
         new(
             id: 2004,
@@ -60,7 +68,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new SetPrintDarkness(10) { LengthInBytes = 4 }],
             expectedCanvasElements:
             [
-                DebugElement("setPrintDarkness", lengthInBytes: 4, parameters: new Dictionary<string, string> { ["Darkness"] = "10" })
+                [
+                    DebugElement("setPrintDarkness", lengthInBytes: 4, parameters: new Dictionary<string, string> { ["Darkness"] = "10" })
+                ]
             ]),
         new(
             id: 2005,
@@ -68,7 +78,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new SetPrintDirection(PrintDirection.TopToBottom) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("setPrintDirection", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Direction"] = "TopToBottom" })
+                [
+                    DebugElement("setPrintDirection", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Direction"] = "TopToBottom" })
+                ]
             ]),
         new(
             id: 2006,
@@ -76,7 +88,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new SetPrintDirection(PrintDirection.BottomToTop) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("setPrintDirection", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Direction"] = "BottomToTop" })
+                [
+                    DebugElement("setPrintDirection", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Direction"] = "BottomToTop" })
+                ]
             ]),
         new(
             id: 2007,
@@ -84,7 +98,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new SetInternationalCharacter(8, 0, 0) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("setInternationalCharacter", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["P1"] = "8", ["P2"] = "0", ["P3"] = "0" })
+                [
+                    DebugElement("setInternationalCharacter", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["P1"] = "8", ["P2"] = "0", ["P3"] = "0" })
+                ]
             ]),
         new(
             id: 2008,
@@ -92,7 +108,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new SetInternationalCharacter(8, 10, 0) { LengthInBytes = 6 }],
             expectedCanvasElements:
             [
-                DebugElement("setInternationalCharacter", lengthInBytes: 6, parameters: new Dictionary<string, string> { ["P1"] = "8", ["P2"] = "10", ["P3"] = "0" })
+                [
+                    DebugElement("setInternationalCharacter", lengthInBytes: 6, parameters: new Dictionary<string, string> { ["P1"] = "8", ["P2"] = "10", ["P3"] = "0" })
+                ]
             ])
     ];
 
@@ -116,20 +134,22 @@ public static class EplScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("scalableText", lengthInBytes: 25, parameters: new Dictionary<string, string>
-                {
-                    ["X"] = "10",
-                    ["Y"] = "20",
-                    ["Rotation"] = "0",
-                    ["Font"] = "2",
-                    ["HorizontalMultiplication"] = "1",
-                    ["VerticalMultiplication"] = "1",
-                    ["Reverse"] = "N",
-                    ["Text"] = "Hello"
-                }),
-                TextElement("Hello", x: 10, y: 20, 
-                    width: EplSpecs.Fonts.Font2.BaseWidthInDots * "Hello".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
-                    fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                [
+                    DebugElement("scalableText", lengthInBytes: 25, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10",
+                        ["Y"] = "20",
+                        ["Rotation"] = "0",
+                        ["Font"] = "2",
+                        ["HorizontalMultiplication"] = "1",
+                        ["VerticalMultiplication"] = "1",
+                        ["Reverse"] = "N",
+                        ["Text"] = "Hello"
+                    }),
+                    TextElement("Hello", x: 10, y: 20,
+                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "Hello".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                ]
             ]),
         new(
             id: 3002,
@@ -149,22 +169,24 @@ public static class EplScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("scalableText", lengthInBytes: 26, parameters: new Dictionary<string, string>
-                {
-                    ["X"] = "50",
-                    ["Y"] = "100",
-                    ["Rotation"] = "1",
-                    ["Font"] = "3",
-                    ["HorizontalMultiplication"] = "2",
-                    ["VerticalMultiplication"] = "2",
-                    ["Reverse"] = "R",
-                    ["Text"] = "World"
-                }),
-                // Font 3, scale 2x2: base 24x24, scaled 48x48, rotated (90°) = 48x48
-                TextElement("World", x: 50, y: 100,
-                    width: EplSpecs.Fonts.Font3.BaseHeightInDots * 2, height: EplSpecs.Fonts.Font3.BaseWidthInDots * 2 * "World".Length, // rotation 90
-                    fontName: EplSpecs.Fonts.Font3.FontName, charScaleX: 2, charScaleY: 2,
-                    rotation: Rotation.Rotate90, isReverse: true)
+                [
+                    DebugElement("scalableText", lengthInBytes: 26, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "50",
+                        ["Y"] = "100",
+                        ["Rotation"] = "1",
+                        ["Font"] = "3",
+                        ["HorizontalMultiplication"] = "2",
+                        ["VerticalMultiplication"] = "2",
+                        ["Reverse"] = "R",
+                        ["Text"] = "World"
+                    }),
+                    // Font 3, scale 2x2: base 24x24, scaled 48x48, rotated (90°) = 48x48
+                    TextElement("World", x: 50, y: 100,
+                        width: EplSpecs.Fonts.Font3.BaseHeightInDots * 2, height: EplSpecs.Fonts.Font3.BaseWidthInDots * 2 * "World".Length, // rotation 90
+                        fontName: EplSpecs.Fonts.Font3.FontName, charScaleX: 2, charScaleY: 2,
+                        rotation: Rotation.Rotate90, isReverse: true)
+                ]
             ]),
         new(
             id: 3003,
@@ -184,23 +206,25 @@ public static class EplScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("scalableText", lengthInBytes: 25, parameters: new Dictionary<string, string>
-                {
-                    ["X"] = "0",
-                    ["Y"] = "0",
-                    ["Rotation"] = "0",
-                    ["Font"] = "4",
-                    ["HorizontalMultiplication"] = "3",
-                    ["VerticalMultiplication"] = "3",
-                    ["Reverse"] = "N",
-                    ["Text"] = "Test123"
-                }),
-                // Font 4, scale 3x3: base 24x24, scaled 72x72
-                TextElement("Test123", x: 0, y: 0,
-                    width: EplSpecs.Fonts.Font4.BaseWidthInDots * 3 * "Test123".Length,
-                    height: EplSpecs.Fonts.Font4.BaseHeightInDots * 3,
-                    fontName: EplSpecs.Fonts.Font4.FontName,
-                    charScaleX: 3, charScaleY: 3, rotation: 0, isReverse: false)
+                [
+                    DebugElement("scalableText", lengthInBytes: 25, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "0",
+                        ["Y"] = "0",
+                        ["Rotation"] = "0",
+                        ["Font"] = "4",
+                        ["HorizontalMultiplication"] = "3",
+                        ["VerticalMultiplication"] = "3",
+                        ["Reverse"] = "N",
+                        ["Text"] = "Test123"
+                    }),
+                    // Font 4, scale 3x3: base 24x24, scaled 72x72
+                    TextElement("Test123", x: 0, y: 0,
+                        width: EplSpecs.Fonts.Font4.BaseWidthInDots * 3 * "Test123".Length,
+                        height: EplSpecs.Fonts.Font4.BaseHeightInDots * 3,
+                        fontName: EplSpecs.Fonts.Font4.FontName,
+                        charScaleX: 3, charScaleY: 3, rotation: 0, isReverse: false)
+                ]
             ]),
         // CR (carriage return) as no-op command
         new(
@@ -209,7 +233,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new CarriageReturn { LengthInBytes = 1 }],
             expectedCanvasElements:
             [
-                DebugElement("carriageReturn", lengthInBytes: 1)
+                [
+                    DebugElement("carriageReturn", lengthInBytes: 1)
+                ]
             ]),
         // LF (line feed) as no-op command
         new(
@@ -218,7 +244,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new LineFeed { LengthInBytes = 1 }],
             expectedCanvasElements:
             [
-                DebugElement("lineFeed", lengthInBytes: 1)
+                [
+                    DebugElement("lineFeed", lengthInBytes: 1)
+                ]
             ]),
         // Clear buffer with CR terminator (not LF)
         new(
@@ -227,7 +255,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new ClearBuffer { LengthInBytes = 2 }],
             expectedCanvasElements:
             [
-                DebugElement("clearBuffer", lengthInBytes: 2)
+                [
+                    DebugElement("clearBuffer", lengthInBytes: 2)
+                ]
             ]),
         // Clear buffer with LF terminator (standard)
         new(
@@ -236,7 +266,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new ClearBuffer { LengthInBytes = 2 }],
             expectedCanvasElements:
             [
-                DebugElement("clearBuffer", lengthInBytes: 2)
+                [
+                    DebugElement("clearBuffer", lengthInBytes: 2)
+                ]
             ]),
         // Text command with CR terminator
         new(
@@ -257,22 +289,24 @@ public static class EplScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("scalableText", lengthInBytes: 24, parameters: new Dictionary<string, string>
-                {
-                    ["X"] = "10",
-                    ["Y"] = "20",
-                    ["Rotation"] = "0",
-                    ["Font"] = "2",
-                    ["HorizontalMultiplication"] = "1",
-                    ["VerticalMultiplication"] = "1",
-                    ["Reverse"] = "N",
-                    ["Text"] = "Test"
-                }),
-                TextElement("Test", x: 10, y: 20,
-                    width: EplSpecs.Fonts.Font2.BaseWidthInDots * "Test".Length,
-                    height: EplSpecs.Fonts.Font2.BaseHeightInDots,
-                    fontName: EplSpecs.Fonts.Font2.FontName,
-                    charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                [
+                    DebugElement("scalableText", lengthInBytes: 24, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10",
+                        ["Y"] = "20",
+                        ["Rotation"] = "0",
+                        ["Font"] = "2",
+                        ["HorizontalMultiplication"] = "1",
+                        ["VerticalMultiplication"] = "1",
+                        ["Reverse"] = "N",
+                        ["Text"] = "Test"
+                    }),
+                    TextElement("Test", x: 10, y: 20,
+                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "Test".Length,
+                        height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                        fontName: EplSpecs.Fonts.Font2.FontName,
+                        charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                ]
             ]),
         // CRLF sequence - CR terminates N command, remaining LF becomes LineFeed no-op
         new(
@@ -285,8 +319,10 @@ public static class EplScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("clearBuffer", lengthInBytes: 2),
-                DebugElement("lineFeed", lengthInBytes: 1)
+                [
+                    DebugElement("clearBuffer", lengthInBytes: 2),
+                    DebugElement("lineFeed", lengthInBytes: 1)
+                ]
             ]),
         // Text command with LF then CR sequence (two separate no-ops)
         new(
@@ -299,8 +335,10 @@ public static class EplScenarioData
             ],
             expectedCanvasElements:
             [
-                DebugElement("lineFeed", lengthInBytes: 1),
-                DebugElement("carriageReturn", lengthInBytes: 1)
+                [
+                    DebugElement("lineFeed", lengthInBytes: 1),
+                    DebugElement("carriageReturn", lengthInBytes: 1)
+                ]
             ])
     ];
 
@@ -312,18 +350,20 @@ public static class EplScenarioData
             expectedRequestCommands: [new PrintBarcode(10, 50, 0, "E30", 2, 100, 'B', "123456789012") { LengthInBytes = 36 }],
             expectedCanvasElements:
             [
-                DebugElement("printBarcode", lengthInBytes: 36, parameters: new Dictionary<string, string>
-                {
-                    ["X"] = "10",
-                    ["Y"] = "50",
-                    ["Rotation"] = "0",
-                    ["Type"] = "E30",
-                    ["Width"] = "2",
-                    ["Height"] = "100",
-                    ["Hri"] = "B",
-                    ["Data"] = "123456789012"
-                }),
-                ImageElement(x: 10, y: 50, width: 2, height: 100, rotation: 0, contentType: "image/barcode")
+                [
+                    DebugElement("printBarcode", lengthInBytes: 36, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10",
+                        ["Y"] = "50",
+                        ["Rotation"] = "0",
+                        ["Type"] = "E30",
+                        ["Width"] = "2",
+                        ["Height"] = "100",
+                        ["Hri"] = "B",
+                        ["Data"] = "123456789012"
+                    }),
+                    ImageElement(x: 10, y: 50, width: 2, height: 100, rotation: 0, contentType: "image/barcode")
+                ]
             ]),
         new(
             id: 4002,
@@ -331,19 +371,21 @@ public static class EplScenarioData
             expectedRequestCommands: [new PrintBarcode(20, 80, 1, "2A", 3, 120, 'N', "ABC123") { LengthInBytes = 29 }],
             expectedCanvasElements:
             [
-                DebugElement("printBarcode", lengthInBytes: 29, parameters: new Dictionary<string, string>
-                {
-                    ["X"] = "20",
-                    ["Y"] = "80",
-                    ["Rotation"] = "1",
-                    ["Type"] = "2A",
-                    ["Width"] = "3",
-                    ["Height"] = "120",
-                    ["Hri"] = "N",
-                    ["Data"] = "ABC123"
-                }),
-                // rotation=1 means 90° clockwise: width/height swap expected
-                ImageElement(x: 20, y: 80, width: 120, height: 3, rotation: Rotation.Rotate90, contentType: "image/barcode")
+                [
+                    DebugElement("printBarcode", lengthInBytes: 29, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "20",
+                        ["Y"] = "80",
+                        ["Rotation"] = "1",
+                        ["Type"] = "2A",
+                        ["Width"] = "3",
+                        ["Height"] = "120",
+                        ["Hri"] = "N",
+                        ["Data"] = "ABC123"
+                    }),
+                    // rotation=1 means 90° clockwise: width/height swap expected
+                    ImageElement(x: 20, y: 80, width: 120, height: 3, rotation: Rotation.Rotate90, contentType: "image/barcode")
+                ]
             ])
     ];
 
@@ -361,15 +403,17 @@ public static class EplScenarioData
             expectedRequestCommands: [new DrawHorizontalLine(10, 20, 2, 100) { LengthInBytes = 14 }],
             expectedCanvasElements:
             [
-                DebugElement("drawHorizontalLine", lengthInBytes: 14, parameters: new Dictionary<string, string>
-                {
-                    ["X"] = "10",
-                    ["Y"] = "20",
-                    ["Thickness"] = "2",
-                    ["Length"] = "100"
-                }),
-                // Horizontal lines represented as empty text element with line dimensions
-                TextElement("", x: 10, y: 20, width: 100, height: 2)
+                [
+                    DebugElement("drawHorizontalLine", lengthInBytes: 14, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10",
+                        ["Y"] = "20",
+                        ["Thickness"] = "2",
+                        ["Length"] = "100"
+                    }),
+                    // Horizontal lines represented as empty text element with line dimensions
+                    TextElement("", x: 10, y: 20, width: 100, height: 2)
+                ]
             ]),
         new(
             id: 6002,
@@ -377,18 +421,20 @@ public static class EplScenarioData
             expectedRequestCommands: [new DrawLine(5, 10, 1, 200, 50) { LengthInBytes = 15 }],
             expectedCanvasElements:
             [
-                DebugElement("drawLine", lengthInBytes: 15, parameters: new Dictionary<string, string>
-                {
-                    ["X1"] = "5",
-                    ["Y1"] = "10",
-                    ["Thickness"] = "1",
-                    ["X2"] = "200",
-                    ["Y2"] = "50"
-                }),
-                // Lines represented as empty text element with bounding box dimensions
-                // Bounding box: x=min(5,200)=5, y=min(10,50)=10, width=195, height=40
-                // width = max(|200-5|, thickness=1) = 195, height = max(|50-10|, thickness=1) = 40
-                TextElement("", x: 5, y: 10, width: 195, height: 40)
+                [
+                    DebugElement("drawLine", lengthInBytes: 15, parameters: new Dictionary<string, string>
+                    {
+                        ["X1"] = "5",
+                        ["Y1"] = "10",
+                        ["Thickness"] = "1",
+                        ["X2"] = "200",
+                        ["Y2"] = "50"
+                    }),
+                    // Lines represented as empty text element with bounding box dimensions
+                    // Bounding box: x=min(5,200)=5, y=min(10,50)=10, width=195, height=40
+                    // width = max(|200-5|, thickness=1) = 195, height = max(|50-10|, thickness=1) = 40
+                    TextElement("", x: 5, y: 10, width: 195, height: 40)
+                ]
             ])
     ];
 
@@ -400,7 +446,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new Print(1) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" })
+                [
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" })
+                ]
             ]),
         new(
             id: 7002,
@@ -408,7 +456,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new Print(5) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "5" })
+                [
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "5" })
+                ]
             ])
     ];
 
@@ -420,7 +470,9 @@ public static class EplScenarioData
             expectedRequestCommands: [new PrinterError("") { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
-                DebugElement("printerError", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Message"] = "" })
+                [
+                    DebugElement("printerError", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Message"] = "" })
+                ]
             ])
     ];
 
