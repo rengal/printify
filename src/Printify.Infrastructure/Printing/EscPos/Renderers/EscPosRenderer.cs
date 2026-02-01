@@ -225,6 +225,9 @@ public sealed class EscPosRenderer : IRenderer
                     break;
 
                 case CutPaper:
+                    // Flush any unprinted text buffer to surface a printer error for truncated content.
+                    ClearLineBufferWithError(lineBuffer, currentItems, "end of page");
+
                     currentItems.Add(new DebugInfo(
                         "pagecut",
                         BuildStateParameters(command),

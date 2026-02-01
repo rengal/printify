@@ -184,8 +184,17 @@ export async function renderDocumentsList(documents, printer, targetContainer) {
     if (debugDocs.length > 0) {
         requestAnimationFrame(() => {
             debugDocs.forEach(doc => {
-                const contentId = `doc-content-${doc.id}`;
-                adjustDebugYPositions(contentId, true);
+                if (doc.canvases && doc.canvases.length > 0) {
+                    // Adjust each canvas individually
+                    doc.canvases.forEach((canvas, index) => {
+                        const contentId = `doc-content-${doc.id}-canvas-${index}`;
+                        adjustDebugYPositions(contentId, true);
+                    });
+                } else {
+                    // Fallback for old single canvas format
+                    const contentId = `doc-content-${doc.id}`;
+                    adjustDebugYPositions(contentId, true);
+                }
             });
         });
     }
@@ -239,10 +248,28 @@ function renderDocumentItem(doc) {
         }
     }
 
-    // Set preview HTML (rendered by main.js)
-    const previewEl = item.querySelector('[data-docs-preview]');
-    if (previewEl) {
-        previewEl.innerHTML = doc.previewHtml || '';
+    // Set canvases container (multiple canvases)
+    const canvasesContainer = item.querySelector('[data-docs-canvases-container]');
+    if (canvasesContainer) {
+        const canvases = doc.canvases || [];
+        if (canvases.length === 0) {
+            // Fallback for old single canvas format
+            canvasesContainer.innerHTML = doc.previewHtml || '';
+        } else {
+            // Render each canvas as a separate block with its own copy button
+            const totalPages = canvases.length;
+            canvasesContainer.innerHTML = canvases.map((canvas, index) => `
+                <div class="document-canvas-block">
+                    ${canvas.previewHtml || ''}
+                    <div class="document-canvas-footer">
+                        <span class="document-meta-text document-footer-text">Page ${index + 1}/${totalPages}</span>
+                        <button class="copy-icon-btn document-copy-btn" data-docs-copy data-docs-canvas-index="${index}" title="Copy canvas content">
+                            <img src="assets/icons/copy.svg" width="14" height="14" alt="Copy">
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
     }
 
     // Set bytes
@@ -251,13 +278,16 @@ function renderDocumentItem(doc) {
         bytesEl.textContent = formatByteCount(doc.bytesReceived);
     }
 
-    // Set copy button
-    const copyBtn = item.querySelector('[data-docs-copy]');
-    if (copyBtn) {
-        copyBtn.addEventListener('click', () => {
-            callbacks.onCopyDocument?.(doc.plainText || '');
+    // Set copy buttons (one per canvas)
+    const copyButtons = item.querySelectorAll('[data-docs-copy]');
+    copyButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const canvasIndex = Number(btn.getAttribute('data-docs-canvas-index') || 0);
+            const canvases = doc.canvases || [];
+            const text = canvases[canvasIndex]?.plainText || doc.plainText || '';
+            callbacks.onCopyDocument?.(text);
         });
-    }
+    });
 
     return item;
 }
@@ -579,18 +609,35 @@ export function extractViewDocumentText(elements) {
  * @returns {Object} Internal document object
  */
 export function mapViewDocumentDto(dto, printer) {
-    const canvas = dto.canvas || {};
-    const width = Number(canvas.widthInDots) || printer?.width || 384;
-    const height = canvas.heightInDots ?? null;
+    const canvases = dto.canvases || [];
     const protocol = (dto.protocol || 'escpos').toLowerCase();
-    const elements = canvas.items || [];
-    const docId = dto.id || `doc-${Date.now()}`;
     const errorMessages = dto.errorMessages || null;
-
-    // Respect the global debug toggle for newly loaded documents.
     const debugMode = callbacks.getDebugMode?.() || false;
-    const previewHtml = renderViewDocument(elements, width, height, docId, errorMessages, debugMode);
-    const plainText = extractViewDocumentText(elements);
+    const docId = dto.id || `doc-${Date.now()}`;
+
+    // Build canvas previews - one entry per canvas
+    const canvasPreviews = canvases.map((canvas, index) => {
+        const width = Number(canvas.widthInDots) || printer?.width || 384;
+        const height = canvas.heightInDots ?? null;
+        const elements = canvas.items || [];
+        const canvasId = `${docId}-canvas-${index}`;
+
+        const previewHtml = renderViewDocument(elements, width, height, canvasId, errorMessages, debugMode);
+        const plainText = extractViewDocumentText(elements);
+
+        return {
+            index,
+            width,
+            heightInDots: height,
+            elements,
+            previewHtml,
+            plainText
+        };
+    });
+
+    // Use first canvas for backward compatibility (width, elements)
+    const firstCanvas = canvasPreviews[0] || {};
+    const width = firstCanvas.width || printer?.width || 384;
 
     return {
         id: dto.id,
@@ -600,13 +647,12 @@ export function mapViewDocumentDto(dto, printer) {
         protocol,
         width,
         widthInDots: width,
-        heightInDots: height,
+        heightInDots: firstCanvas.heightInDots || null,
         bytesReceived: dto.bytesReceived ?? 0,
         bytesSent: dto.bytesSent ?? 0,
-        elements, // Store raw elements for re-rendering
+        elements: firstCanvas.elements || [], // Store raw elements for re-rendering
         debugEnabled: false,
-        previewHtml,
-        plainText
+        canvases: canvasPreviews // Multiple canvases
     };
 }
 

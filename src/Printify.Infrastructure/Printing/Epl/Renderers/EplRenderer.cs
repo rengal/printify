@@ -233,7 +233,8 @@ public sealed class EplRenderer : IRenderer
             // Items for this segment (from after previous print to this print)
             var segmentItems = allItems.GetRange(startIndex, printCmd.Index - startIndex);
 
-            // Extract visual elements (non-debug elements) from this segment
+            // Separate debug and visual elements from this segment
+            var debugElements = segmentItems.Where(item => item is DebugInfo).ToList();
             var visualElements = segmentItems
                 .Where(item => item is not DebugInfo)
                 .Select(CloneVisualElement)
@@ -244,11 +245,12 @@ public sealed class EplRenderer : IRenderer
             {
                 if (copy == 0 && startIndex == 0)
                 {
-                    // First canvas: all items (debug + visual)
+                    // First canvas: all debug elements first, then all visual elements
+                    var allElements = debugElements.Concat(visualElements).ToList();
                     canvases.Add(new Canvas(
                         WidthInDots: document.WidthInDots,
                         HeightInDots: document.HeightInDots,
-                        Items: segmentItems.Concat(visualElements).ToList().AsReadOnly()));
+                        Items: allElements.AsReadOnly()));
                 }
                 else
                 {

@@ -1193,14 +1193,30 @@
             };
 
             // Only re-render the requested document for performance.
-            updated.previewHtml = DocumentsPanel.renderViewDocument(
-                updated.elements || [],
-                updated.widthInDots,
-                updated.heightInDots,
-                updated.id,
-                updated.errorMessages,
-                isDocumentRawDataActive(updated)
-            );
+            if (updated.canvases && updated.canvases.length > 0) {
+                // Re-render all canvases with new debug mode
+                updated.canvases = updated.canvases.map((canvas, index) => ({
+                    ...canvas,
+                    previewHtml: DocumentsPanel.renderViewDocument(
+                        canvas.elements || [],
+                        canvas.width,
+                        canvas.heightInDots,
+                        `${updated.id}-canvas-${index}`,
+                        updated.errorMessages,
+                        isDocumentRawDataActive(updated)
+                    )
+                }));
+            } else {
+                // Fallback for old single canvas format
+                updated.previewHtml = DocumentsPanel.renderViewDocument(
+                    updated.elements || [],
+                    updated.widthInDots,
+                    updated.heightInDots,
+                    updated.id,
+                    updated.errorMessages,
+                    isDocumentRawDataActive(updated)
+                );
+            }
 
             documents[printerId][docIndex] = updated;
             renderDocuments();
@@ -1214,18 +1230,38 @@
                 const docs = documents[printerId];
                 const printer = getPrinterById(printerId);
                 if (printer && docs) {
-                    documents[printerId] = docs.map(doc => ({
-                        ...doc,
-                        // Ensure global debug applies to every document, while preserving per-doc toggles.
-                        previewHtml: DocumentsPanel.renderViewDocument(
-                            doc.elements || [],
-                            doc.widthInDots,
-                            doc.heightInDots,
-                            doc.id,
-                            doc.errorMessages,
-                            isDocumentRawDataActive(doc)
-                        )
-                    }));
+                    documents[printerId] = docs.map(doc => {
+                        if (doc.canvases && doc.canvases.length > 0) {
+                            // Re-render all canvases with new debug mode
+                            return {
+                                ...doc,
+                                canvases: doc.canvases.map((canvas, index) => ({
+                                    ...canvas,
+                                    previewHtml: DocumentsPanel.renderViewDocument(
+                                        canvas.elements || [],
+                                        canvas.width,
+                                        canvas.heightInDots,
+                                        `${doc.id}-canvas-${index}`,
+                                        doc.errorMessages,
+                                        isDocumentRawDataActive(doc)
+                                    )
+                                }))
+                            };
+                        } else {
+                            // Fallback for old single canvas format
+                            return {
+                                ...doc,
+                                previewHtml: DocumentsPanel.renderViewDocument(
+                                    doc.elements || [],
+                                    doc.widthInDots,
+                                    doc.heightInDots,
+                                    doc.id,
+                                    doc.errorMessages,
+                                    isDocumentRawDataActive(doc)
+                                )
+                            };
+                        }
+                    });
                 }
             }
 
@@ -1454,18 +1490,38 @@
                         const docs = documents[printerId];
                         const printer = getPrinterById(printerId);
                         if (printer && docs) {
-                            documents[printerId] = docs.map(doc => ({
-                                ...doc,
-                                // Ensure global debug applies to every document, while preserving per-doc toggles.
-                                previewHtml: DocumentsPanel.renderViewDocument(
-                                    doc.elements || [],
-                                    doc.widthInDots,
-                                    doc.heightInDots,
-                                    doc.id,
-                                    doc.errorMessages,
-                                    isDocumentRawDataActive(doc)
-                                )
-                            }));
+                            documents[printerId] = docs.map(doc => {
+                                if (doc.canvases && doc.canvases.length > 0) {
+                                    // Re-render all canvases with new debug mode
+                                    return {
+                                        ...doc,
+                                        canvases: doc.canvases.map((canvas, index) => ({
+                                            ...canvas,
+                                            previewHtml: DocumentsPanel.renderViewDocument(
+                                                canvas.elements || [],
+                                                canvas.width,
+                                                canvas.heightInDots,
+                                                `${doc.id}-canvas-${index}`,
+                                                doc.errorMessages,
+                                                isDocumentRawDataActive(doc)
+                                            )
+                                        }))
+                                    };
+                                } else {
+                                    // Fallback for old single canvas format
+                                    return {
+                                        ...doc,
+                                        previewHtml: DocumentsPanel.renderViewDocument(
+                                            doc.elements || [],
+                                            doc.widthInDots,
+                                            doc.heightInDots,
+                                            doc.id,
+                                            doc.errorMessages,
+                                            isDocumentRawDataActive(doc)
+                                        )
+                                    };
+                                }
+                            });
                         }
                     }
                     renderDocuments();
