@@ -1,16 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using Printify.Domain.Printing;
 using Printify.Infrastructure.Mapping;
-using Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Infrastructure.Printing.EscPos.Commands;
-using EplCommands = Printify.Infrastructure.Printing.Epl.Commands;
-using EscPosCommands = Printify.Infrastructure.Printing.EscPos.Commands;
 
-namespace Printify.Infrastructure.Printing;
+namespace Printify.Infrastructure.Printing.EscPos;
 
-public static class CommandDescriptionBuilder
+public static class EscPosCommandHelper
 {
     // ESC t n uses these ESC/POS code page IDs.
     private static readonly IReadOnlyDictionary<string, byte> CodePageIds =
@@ -54,20 +52,37 @@ public static class CommandDescriptionBuilder
             ["866"] = "Cyrillic"
         };
 
-    public static IReadOnlyList<string> Build(Command element)
+    public static IReadOnlyList<string> GetDescription(Command command, CultureInfo? culture = null)
     {
-        ArgumentNullException.ThrowIfNull(element);
+        ArgumentNullException.ThrowIfNull(command);
+
+        // For EscPosCommand, delegate to the typed overload
+        if (command is EscPosCommand escPosCommand)
+        {
+            return GetDescription(escPosCommand, culture);
+        }
+
+        return Lines(
+            $"Unknown command ({command.GetType().Name})",
+            $"Raw bytes length={command.RawBytes?.Length ?? 0}");
+    }
+
+    public static IReadOnlyList<string> GetDescription(EscPosCommand command, CultureInfo? culture = null)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+
+        // TODO: Use culture parameter for future localization
 
         // Keep command descriptions short and stable for UI/debug consumers.
-        return element switch
+        return command switch
         {
             Bell => Lines(
                 "BEL - Buzzer (beeper)"),
-            ParseError error => Lines(
+            EscPosParseError error => Lines(
                 "Parser error",
                 $"Code={error.Code}",
                 $"Message=\"{EscapeDescriptionText(error.Message)}\""),
-            PrinterError printerError => Lines(
+            EscPosPrinterError printerError => Lines(
                 "Printer error",
                 $"Message=\"{EscapeDescriptionText(printerError.Message)}\""),
             GetPrinterStatus status => BuildPrinterStatusDescription(status),
@@ -89,7 +104,7 @@ public static class CommandDescriptionBuilder
             SetBoldMode bold => Lines(
                 "ESC E n - Turn emphasized (bold) mode on/off",
                 $"n={(bold.IsEnabled ? 1 : 0)} ({(bold.IsEnabled ? "on" : "off")})"),
-            EscPosCommands.SetCodePage codePage => BuildCodePageDescription(codePage.CodePage),
+            SetCodePage codePage => BuildCodePageDescription(codePage.CodePage),
             SelectFont font => BuildFontDescription(font),
             SetJustification justification => BuildJustificationDescription(justification.Justification),
             SetLineSpacing spacing => Lines(
@@ -125,10 +140,10 @@ public static class CommandDescriptionBuilder
                 "fn=0x51",
                 $"DataLength={qr.Data.Length}",
                 $"Data=\"{EscapeDescriptionText(qr.Data)}\""),
-            EscPosCommands.PrintBarcodeUpload barcodeUpload => BuildBarcodeDescription(
+            PrintBarcodeUpload barcodeUpload => BuildBarcodeDescription(
                 barcodeUpload.Symbology,
                 barcodeUpload.Data),
-            EscPosCommands.PrintBarcode barcode => BuildBarcodeDescription(
+            PrintBarcode barcode => BuildBarcodeDescription(
                 barcode.Symbology,
                 barcode.Data),
             StoredLogo storedLogo => Lines(
@@ -146,37 +161,9 @@ public static class CommandDescriptionBuilder
             RasterImage raster => BuildRasterImageDescription(raster.Width, raster.Height),
             RasterImageUpload upload => BuildRasterImageDescription(upload.Width, upload.Height),
             CutPaper pagecut => BuildPagecutDescription(pagecut),
-            // EPL Text Elements
-            ScalableText scalableText => BuildScalableTextDescription(scalableText),
-            DrawHorizontalLine horizontalLine => BuildDrawHorizontalLineDescription(horizontalLine),
-            Print print => BuildPrintDescription(print),
-            // EPL Barcode Elements
-            EplCommands.PrintBarcode eplBarcode => BuildEplBarcodeDescription(eplBarcode),
-            // EPL Graphics Elements
-            PrintGraphic graphic => BuildPrintGraphicDescription(graphic),
-            // EPL Shape Elements
-            DrawLine drawLine => BuildDrawLineDescription(drawLine),
-            // EPL Config Elements
-            EplCommands.ClearBuffer => Lines("N - Clear buffer (acknowledge/clear image buffer)"),
-            EplCommands.SetLabelWidth labelWidth => Lines(
-                "q width - Set label width",
-                $"width={labelWidth.Width} (dots)"),
-            EplCommands.SetLabelHeight labelHeight => Lines(
-                "Q height, param2 - Set label height",
-                $"height={labelHeight.Height} (dots)"),
-            EplCommands.SetPrintSpeed speed => Lines(
-                "R speed - Set print speed",
-                $"speed={speed.Speed} (ips)"),
-            EplCommands.SetPrintDarkness darkness => Lines(
-                "S darkness - Set print darkness",
-                $"darkness={darkness.Darkness}"),
-            EplCommands.SetPrintDirection direction => Lines(
-                "Z direction - Set print direction",
-                $"direction={direction.Direction.ToString()}"),
-            EplCommands.SetInternationalCharacter intlChar => Lines(
-                "I p1,p2,p3 - Set international character set/codepage",
-                $"p1={intlChar.P1}, p2={intlChar.P2}, p3={intlChar.P3}"),
-            _ => Lines("Unknown command")
+            _ => Lines(
+                $"Unknown command ({command.GetType().Name})",
+                $"Raw bytes length={command.RawBytes?.Length ?? 0}")
         };
     }
 
@@ -370,81 +357,5 @@ public static class CommandDescriptionBuilder
     private static string FormatHexByte(byte value)
     {
         return $"0x{value:X2}";
-    }
-
-    // EPL command description builders
-
-    private static IReadOnlyList<string> BuildScalableTextDescription(ScalableText scalableText)
-    {
-        var rotationLabel = scalableText.Rotation switch
-        {
-            0 => "normal",
-            1 => "90°",
-            2 => "180°",
-            3 => "270°",
-            _ => scalableText.Rotation.ToString()
-        };
-
-        return Lines(
-            "A x,y,rotation,font,h,v,reverse,\"text\" - Scalable/rotatable text",
-            $"x={scalableText.X}, y={scalableText.Y}",
-            $"rotation={rotationLabel}",
-            $"font={scalableText.Font}, h-mul={scalableText.HorizontalMultiplication}, v-mul={scalableText.VerticalMultiplication}",
-            $"reverse={scalableText.Reverse}",
-            $"text=\"{EscapeDescriptionText(Encoding.GetEncoding(437).GetString(scalableText.TextBytes))}\"");
-    }
-
-    private static IReadOnlyList<string> BuildDrawHorizontalLineDescription(DrawHorizontalLine horizontalLine)
-    {
-        return Lines(
-            "LO x,y,thickness,length - Draw horizontal line",
-            $"x={horizontalLine.X}, y={horizontalLine.Y}",
-            $"thickness={horizontalLine.Thickness}, length={horizontalLine.Length}");
-    }
-
-    private static IReadOnlyList<string> BuildPrintDescription(Print print)
-    {
-        return Lines(
-            "P n - Print format and feed label",
-            $"n={print.Copies} (copies)");
-    }
-
-    private static IReadOnlyList<string> BuildEplBarcodeDescription(EplCommands.PrintBarcode barcode)
-    {
-        var rotationLabel = barcode.Rotation switch
-        {
-            0 => "normal",
-            1 => "90°",
-            2 => "180°",
-            3 => "270°",
-            _ => barcode.Rotation.ToString()
-        };
-
-        return Lines(
-            "B x,y,rotation,type,width,height,hri,\"data\" - Print barcode",
-            $"x={barcode.X}, y={barcode.Y}",
-            $"rotation={rotationLabel}",
-            $"type={barcode.Type}",
-            $"width={barcode.Width}, height={barcode.Height}",
-            $"hri={barcode.Hri}",
-            $"data=\"{EscapeDescriptionText(barcode.Data)}\"");
-    }
-
-    private static IReadOnlyList<string> BuildPrintGraphicDescription(PrintGraphic graphic)
-    {
-        return Lines(
-            "GW x,y,width,height,[data] - Print graphic",
-            $"x={graphic.X}, y={graphic.Y}",
-            $"width={graphic.Width} (dots), height={graphic.Height} (dots)",
-            $"dataLength={graphic.Data.Length} (bytes)");
-    }
-
-    private static IReadOnlyList<string> BuildDrawLineDescription(DrawLine drawLine)
-    {
-        return Lines(
-            "X x1,y1,thickness,x2,y2 - Draw line or box",
-            $"x1={drawLine.X1}, y1={drawLine.Y1}",
-            $"thickness={drawLine.Thickness}",
-            $"x2={drawLine.X2}, y2={drawLine.Y2}");
     }
 }

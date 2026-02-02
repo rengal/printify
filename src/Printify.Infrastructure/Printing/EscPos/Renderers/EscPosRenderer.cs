@@ -9,6 +9,7 @@ using Printify.Domain.Printers;
 using Printify.Domain.Specifications;
 using Printify.Infrastructure.Printing.EscPos.Commands;
 using LayoutMedia = Printify.Domain.Layout.Primitives.Media;
+using static Printify.Infrastructure.Printing.EscPos.EscPosCommandHelper;
 
 namespace Printify.Infrastructure.Printing.EscPos.Renderers;
 
@@ -50,7 +51,7 @@ public sealed class EscPosRenderer : IRenderer
                         },
                         textLine.RawBytes,
                         textLine.LengthInBytes,
-                        CommandDescriptionBuilder.Build(textLine)));
+                        GetDescription(textLine)));
                     AppendTextSegment(state, lineBuffer, decodedText);
                     break;
 
@@ -60,7 +61,7 @@ public sealed class EscPosRenderer : IRenderer
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     FlushLine(state, lineBuffer, currentItems, canvasWidthInDots);
                     break;
 
@@ -70,7 +71,7 @@ public sealed class EscPosRenderer : IRenderer
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case RasterImage raster:
@@ -80,11 +81,13 @@ public sealed class EscPosRenderer : IRenderer
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     AddImageElement(raster, state, currentItems);
                     break;
 
                 case RasterImageUpload:
+                case PrintBarcodeUpload:
+                case PrintQrCodeUpload:
                     throw new InvalidOperationException("Upload requests must not be emitted");
 
                 case PrintBarcode barcode:
@@ -94,7 +97,7 @@ public sealed class EscPosRenderer : IRenderer
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     AddImageElement(barcode, state, currentItems);
                     break;
 
@@ -105,7 +108,7 @@ public sealed class EscPosRenderer : IRenderer
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     AddImageElement(qrCode, state, currentItems);
                     break;
 
@@ -119,7 +122,7 @@ public sealed class EscPosRenderer : IRenderer
                         },
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case SetBoldMode bold:
@@ -132,7 +135,7 @@ public sealed class EscPosRenderer : IRenderer
                         },
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case SetUnderlineMode underline:
@@ -145,7 +148,7 @@ public sealed class EscPosRenderer : IRenderer
                         },
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case SetReverseMode reverse:
@@ -158,7 +161,7 @@ public sealed class EscPosRenderer : IRenderer
                         },
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case SetLineSpacing spacing:
@@ -171,7 +174,7 @@ public sealed class EscPosRenderer : IRenderer
                         },
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case ResetLineSpacing:
@@ -181,7 +184,7 @@ public sealed class EscPosRenderer : IRenderer
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case SetCodePage codePage:
@@ -194,7 +197,7 @@ public sealed class EscPosRenderer : IRenderer
                         },
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case SelectFont font:
@@ -211,7 +214,7 @@ public sealed class EscPosRenderer : IRenderer
                         },
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case Initialize:
@@ -221,7 +224,7 @@ public sealed class EscPosRenderer : IRenderer
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case CutPaper:
@@ -233,7 +236,7 @@ public sealed class EscPosRenderer : IRenderer
                         BuildStateParameters(command),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     // Finalize current canvas and start a new one
                     canvases.Add(new CanvasInfo(currentItems.ToList()));
                     currentItems = new List<BaseElement>();
@@ -251,7 +254,7 @@ public sealed class EscPosRenderer : IRenderer
                         },
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 default:
@@ -260,7 +263,7 @@ public sealed class EscPosRenderer : IRenderer
                         BuildStateParameters(command),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
             }
         }

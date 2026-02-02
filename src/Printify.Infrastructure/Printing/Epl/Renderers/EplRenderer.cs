@@ -10,6 +10,7 @@ using Printify.Domain.Specifications;
 using Printify.Infrastructure.Printing.Epl.Commands;
 using LayoutMedia = Printify.Domain.Layout.Primitives.Media;
 using EplRotationMapper = Printify.Infrastructure.Mapping.Protocols.Epl.RotationMapper;
+using static Printify.Infrastructure.Printing.Epl.EplCommandHelper;
 
 namespace Printify.Infrastructure.Printing.Epl.Renderers;
 
@@ -41,13 +42,13 @@ public sealed class EplRenderer : IRenderer
             switch (command)
             {
                 case ScalableText scalableText:
-                    AddScalableTextElement(scalableText, state, debugElements);
-                    AddScalableTextElement(scalableText, state, viewElements);
+                    AddScalableTextDebugElement(scalableText, state, debugElements);
+                    AddScalableTextVisualElement(scalableText, state, viewElements);
                     break;
 
                 case DrawHorizontalLine horizontalLine:
-                    AddDrawHorizontalLineElement(horizontalLine, debugElements);
-                    AddDrawHorizontalLineElement(horizontalLine, viewElements);
+                    AddDrawHorizontalLineDebugElement(horizontalLine, debugElements);
+                    AddDrawHorizontalLineVisualElement(horizontalLine, viewElements);
                     break;
 
                 case Print print:
@@ -59,7 +60,7 @@ public sealed class EplRenderer : IRenderer
                         },
                         print.RawBytes,
                         print.LengthInBytes,
-                        CommandDescriptionBuilder.Build(print)));
+                        GetDescription(print)));
                     // On Print command, produce canvases with debug + view elements
                     ProduceCanvases(document, debugElements, viewElements, print.Copies, canvases);
                     // Clear elements for next canvas
@@ -68,18 +69,18 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 case PrintBarcode barcode:
-                    AddBarcodeElement(barcode, debugElements);
-                    AddBarcodeElement(barcode, viewElements);
+                    AddBarcodeDebugElement(barcode, debugElements);
+                    AddBarcodeVisualElement(barcode, viewElements);
                     break;
 
                 case PrintGraphic graphic:
-                    AddGraphicElement(graphic, debugElements);
-                    AddGraphicElement(graphic, viewElements);
+                    AddGraphicDebugElement(graphic, debugElements);
+                    AddGraphicVisualElement(graphic, viewElements);
                     break;
 
                 case DrawLine drawLine:
-                    AddDrawLineElement(drawLine, debugElements);
-                    AddDrawLineElement(drawLine, viewElements);
+                    AddDrawLineDebugElement(drawLine, debugElements);
+                    AddDrawLineVisualElement(drawLine, viewElements);
                     break;
 
                 case ClearBuffer:
@@ -88,7 +89,7 @@ public sealed class EplRenderer : IRenderer
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case CarriageReturn:
@@ -97,7 +98,7 @@ public sealed class EplRenderer : IRenderer
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case LineFeed:
@@ -106,7 +107,7 @@ public sealed class EplRenderer : IRenderer
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
 
                 case SetLabelWidth labelWidth:
@@ -118,7 +119,7 @@ public sealed class EplRenderer : IRenderer
                         },
                         labelWidth.RawBytes,
                         labelWidth.LengthInBytes,
-                        CommandDescriptionBuilder.Build(labelWidth)));
+                        GetDescription(labelWidth)));
                     break;
 
                 case SetLabelHeight labelHeight:
@@ -131,7 +132,7 @@ public sealed class EplRenderer : IRenderer
                         },
                         labelHeight.RawBytes,
                         labelHeight.LengthInBytes,
-                        CommandDescriptionBuilder.Build(labelHeight)));
+                        GetDescription(labelHeight)));
                     break;
 
                 case SetPrintSpeed speed:
@@ -143,7 +144,7 @@ public sealed class EplRenderer : IRenderer
                         },
                         speed.RawBytes,
                         speed.LengthInBytes,
-                        CommandDescriptionBuilder.Build(speed)));
+                        GetDescription(speed)));
                     break;
 
                 case SetPrintDarkness darkness:
@@ -155,7 +156,7 @@ public sealed class EplRenderer : IRenderer
                         },
                         darkness.RawBytes,
                         darkness.LengthInBytes,
-                        CommandDescriptionBuilder.Build(darkness)));
+                        GetDescription(darkness)));
                     break;
 
                 case SetPrintDirection direction:
@@ -167,7 +168,7 @@ public sealed class EplRenderer : IRenderer
                         },
                         direction.RawBytes,
                         direction.LengthInBytes,
-                        CommandDescriptionBuilder.Build(direction)));
+                        GetDescription(direction)));
                     break;
 
                 case SetInternationalCharacter intlChar:
@@ -182,7 +183,7 @@ public sealed class EplRenderer : IRenderer
                         },
                         intlChar.RawBytes,
                         intlChar.LengthInBytes,
-                        CommandDescriptionBuilder.Build(intlChar)));
+                        GetDescription(intlChar)));
                     break;
 
                 case ParseError error:
@@ -195,7 +196,7 @@ public sealed class EplRenderer : IRenderer
                         },
                         error.RawBytes,
                         error.LengthInBytes,
-                        CommandDescriptionBuilder.Build(error)));
+                        GetDescription(error)));
                     break;
 
                 case PrinterError printerError:
@@ -207,7 +208,7 @@ public sealed class EplRenderer : IRenderer
                         },
                         printerError.RawBytes,
                         printerError.LengthInBytes,
-                        CommandDescriptionBuilder.Build(printerError)));
+                        GetDescription(printerError)));
                     break;
 
                 default:
@@ -216,7 +217,7 @@ public sealed class EplRenderer : IRenderer
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        CommandDescriptionBuilder.Build(command)));
+                        GetDescription(command)));
                     break;
             }
         }
@@ -341,13 +342,13 @@ public sealed class EplRenderer : IRenderer
         };
     }
 
-    private static void AddScalableTextElement(ScalableText scalableText, RenderState state, List<BaseElement> items)
+    private static void AddScalableTextDebugElement(ScalableText scalableText, RenderState state, List<BaseElement> debugElements)
     {
         // Decode raw bytes using current codepage
         var decodedText = state.CurrentEncoding.GetString(scalableText.TextBytes);
 
         // Add debug element for the command
-        items.Add(new DebugInfo(
+        debugElements.Add(new DebugInfo(
             "scalableText",
             new Dictionary<string, string>
             {
@@ -362,7 +363,13 @@ public sealed class EplRenderer : IRenderer
             },
             scalableText.RawBytes,
             scalableText.LengthInBytes,
-            CommandDescriptionBuilder.Build(scalableText)));
+            GetDescription(scalableText)));
+    }
+
+    private static void AddScalableTextVisualElement(ScalableText scalableText, RenderState state, List<BaseElement> viewElements)
+    {
+        // Decode raw bytes using current codepage
+        var decodedText = state.CurrentEncoding.GetString(scalableText.TextBytes);
 
         // Get font base dimensions
         var (baseWidth, baseHeight) = GetFontDimensions(scalableText.Font);
@@ -376,7 +383,7 @@ public sealed class EplRenderer : IRenderer
             scalableText.Rotation);
 
         // Add the text element
-        items.Add(new TextElement(
+        viewElements.Add(new TextElement(
             decodedText,
             scalableText.X,
             scalableText.Y,
@@ -392,9 +399,9 @@ public sealed class EplRenderer : IRenderer
             EplRotationMapper.ToDomainRotation(scalableText.Rotation)));
     }
 
-    private static void AddDrawHorizontalLineElement(DrawHorizontalLine horizontalLine, List<BaseElement> items)
+    private static void AddDrawHorizontalLineDebugElement(DrawHorizontalLine horizontalLine, List<BaseElement> debugElements)
     {
-        items.Add(new DebugInfo(
+        debugElements.Add(new DebugInfo(
             "drawHorizontalLine",
             new Dictionary<string, string>
             {
@@ -405,10 +412,13 @@ public sealed class EplRenderer : IRenderer
             },
             horizontalLine.RawBytes,
             horizontalLine.LengthInBytes,
-            CommandDescriptionBuilder.Build(horizontalLine)));
+            GetDescription(horizontalLine)));
+    }
 
+    private static void AddDrawHorizontalLineVisualElement(DrawHorizontalLine horizontalLine, List<BaseElement> viewElements)
+    {
         // Horizontal lines are represented as text elements for rendering
-        items.Add(new TextElement(
+        viewElements.Add(new TextElement(
             string.Empty, // No actual text content
             horizontalLine.X,
             horizontalLine.Y,
@@ -424,9 +434,9 @@ public sealed class EplRenderer : IRenderer
             0));
     }
 
-    private static void AddBarcodeElement(PrintBarcode barcode, List<BaseElement> items)
+    private static void AddBarcodeDebugElement(PrintBarcode barcode, List<BaseElement> debugElements)
     {
-        items.Add(new DebugInfo(
+        debugElements.Add(new DebugInfo(
             "printBarcode",
             new Dictionary<string, string>
             {
@@ -441,8 +451,11 @@ public sealed class EplRenderer : IRenderer
             },
             barcode.RawBytes,
             barcode.LengthInBytes,
-            CommandDescriptionBuilder.Build(barcode)));
+            GetDescription(barcode)));
+    }
 
+    private static void AddBarcodeVisualElement(PrintBarcode barcode, List<BaseElement> viewElements)
+    {
         // Calculate actual rendered dimensions based on rotation
         var (renderedWidth, renderedHeight) = CalculateRotatedDimensions(
             barcode.Width,
@@ -450,7 +463,7 @@ public sealed class EplRenderer : IRenderer
             barcode.Rotation);
 
         // Barcodes are represented as image elements with placeholder media
-        items.Add(new ImageElement(
+        viewElements.Add(new ImageElement(
             new LayoutMedia(
                 "image/barcode",
                 0,
@@ -463,9 +476,9 @@ public sealed class EplRenderer : IRenderer
             EplRotationMapper.ToDomainRotation(barcode.Rotation)));
     }
 
-    private static void AddGraphicElement(PrintGraphic graphic, List<BaseElement> items)
+    private static void AddGraphicDebugElement(PrintGraphic graphic, List<BaseElement> debugElements)
     {
-        items.Add(new DebugInfo(
+        debugElements.Add(new DebugInfo(
             "printGraphic",
             new Dictionary<string, string>
             {
@@ -477,10 +490,13 @@ public sealed class EplRenderer : IRenderer
             },
             graphic.RawBytes,
             graphic.LengthInBytes,
-            CommandDescriptionBuilder.Build(graphic)));
+            GetDescription(graphic)));
+    }
 
+    private static void AddGraphicVisualElement(PrintGraphic graphic, List<BaseElement> viewElements)
+    {
         // Graphics are represented as image elements
-        items.Add(new ImageElement(
+        viewElements.Add(new ImageElement(
             new LayoutMedia(
                 "image/epl-graphic",
                 graphic.Data.Length,
@@ -493,9 +509,9 @@ public sealed class EplRenderer : IRenderer
             0));
     }
 
-    private static void AddDrawLineElement(DrawLine drawLine, List<BaseElement> items)
+    private static void AddDrawLineDebugElement(DrawLine drawLine, List<BaseElement> debugElements)
     {
-        items.Add(new DebugInfo(
+        debugElements.Add(new DebugInfo(
             "drawLine",
             new Dictionary<string, string>
             {
@@ -507,8 +523,11 @@ public sealed class EplRenderer : IRenderer
             },
             drawLine.RawBytes,
             drawLine.LengthInBytes,
-            CommandDescriptionBuilder.Build(drawLine)));
+            GetDescription(drawLine)));
+    }
 
+    private static void AddDrawLineVisualElement(DrawLine drawLine, List<BaseElement> viewElements)
+    {
         // Lines are represented as text elements for rendering
         // The bounding box is calculated from the line endpoints
         var x = Math.Min(drawLine.X1, drawLine.X2);
@@ -516,7 +535,7 @@ public sealed class EplRenderer : IRenderer
         var width = Math.Abs(drawLine.X2 - drawLine.X1);
         var height = Math.Abs(drawLine.Y2 - drawLine.Y1);
 
-        items.Add(new TextElement(
+        viewElements.Add(new TextElement(
             string.Empty,
             x,
             y,
