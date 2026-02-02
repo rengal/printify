@@ -16,7 +16,7 @@ public sealed class EplCommandTrieProvider : CommandTrieProvider<ICommandDescrip
         // Drawing commands
         new DrawHorizontalLineDescriptor(),
         new PrintBarcodeDescriptor(),
-        new DrawLineDescriptor(),
+        new DrawBoxDescriptor(),
 
         // Graphics commands
         new PrintGraphicDescriptor(),

@@ -78,7 +78,7 @@ public sealed class EplRenderer : IRenderer
                     AddGraphicVisualElement(graphic, viewElements);
                     break;
 
-                case DrawLine drawLine:
+                case DrawBox drawLine:
                     AddDrawLineDebugElement(drawLine, debugElements);
                     AddDrawLineVisualElement(drawLine, viewElements);
                     break;
@@ -228,37 +228,26 @@ public sealed class EplRenderer : IRenderer
             // If there are view elements without a Print command, add buffer discarded warning
             if (viewElements.Count > 0)
             {
-                var byteCount = viewElements.Sum(e => e switch
-                {
-                    TextElement text => text.Text.Length * 2, // Approximate bytes for text
-                    ImageElement img => img.Media.Size,
-                    LineElement => 0,
-                    BoxElement => 0,
-                    _ => 0
-                });
-
                 debugElements.Add(new DebugInfo(
                     "bufferDiscarded",
                     new Dictionary<string, string>
                     {
-                        ["Message"] = $"{byteCount} bytes in buffer discarded"
+                        ["Message"] = $"{viewElements} commands in buffer discarded"
                     },
-                    Array.Empty<byte>(),
+                    [],
                     0,
                     new List<string>
                     {
-                        $"{byteCount} bytes in buffer discarded (no Print command)"
+                        $"{viewElements} commands in buffer discarded (no Print command)"
                     }));
             }
 
             // Return single canvas with debug elements only (no visual elements)
-            return new[]
-            {
-                new Canvas(
-                    WidthInDots: document.WidthInDots,
-                    HeightInDots: document.HeightInDots,
-                    Items: debugElements.AsReadOnly())
-            };
+            var canvas = new Canvas(
+                WidthInDots: document.WidthInDots,
+                HeightInDots: document.HeightInDots,
+                Items: debugElements.AsReadOnly());
+            canvases.Add(canvas);
         }
 
         // Return canvases produced by Print commands (or empty array if none)
@@ -278,6 +267,12 @@ public sealed class EplRenderer : IRenderer
     {
         var allElements = debugElements.Concat(viewElements).ToList();
 
+        // Don't produce empty canvases
+        if (allElements.Count == 0 && viewElements.Count == 0)
+        {
+            return;
+        }
+
         for (int copy = 0; copy < copies; copy++)
         {
             if (copy == 0)
@@ -291,11 +286,15 @@ public sealed class EplRenderer : IRenderer
             else
             {
                 // Subsequent copies: only visual elements (no debug)
-                var visualOnlyElements = viewElements.Select(CloneVisualElement).ToList();
-                canvases.Add(new Canvas(
-                    WidthInDots: document.WidthInDots,
-                    HeightInDots: document.HeightInDots,
-                    Items: visualOnlyElements.AsReadOnly()));
+                // Only create if there are visual elements
+                if (viewElements.Count > 0)
+                {
+                    var visualOnlyElements = viewElements.Select(CloneVisualElement).ToList();
+                    canvases.Add(new Canvas(
+                        WidthInDots: document.WidthInDots,
+                        HeightInDots: document.HeightInDots,
+                        Items: visualOnlyElements.AsReadOnly()));
+                }
             }
         }
     }
@@ -509,46 +508,31 @@ public sealed class EplRenderer : IRenderer
             0));
     }
 
-    private static void AddDrawLineDebugElement(DrawLine drawLine, List<BaseElement> debugElements)
+    private static void AddDrawLineDebugElement(DrawBox drawBox, List<BaseElement> debugElements)
     {
         debugElements.Add(new DebugInfo(
             "drawLine",
             new Dictionary<string, string>
             {
-                ["X1"] = drawLine.X1.ToString(),
-                ["Y1"] = drawLine.Y1.ToString(),
-                ["Thickness"] = drawLine.Thickness.ToString(),
-                ["X2"] = drawLine.X2.ToString(),
-                ["Y2"] = drawLine.Y2.ToString()
+                ["X1"] = drawBox.X1.ToString(),
+                ["Y1"] = drawBox.Y1.ToString(),
+                ["Thickness"] = drawBox.Thickness.ToString(),
+                ["X2"] = drawBox.X2.ToString(),
+                ["Y2"] = drawBox.Y2.ToString()
             },
-            drawLine.RawBytes,
-            drawLine.LengthInBytes,
-            GetDescription(drawLine)));
+            drawBox.RawBytes,
+            drawBox.LengthInBytes,
+            GetDescription(drawBox)));
     }
 
-    private static void AddDrawLineVisualElement(DrawLine drawLine, List<BaseElement> viewElements)
+    private static void AddDrawLineVisualElement(DrawBox drawBox, List<BaseElement> viewElements)
     {
-        // Lines are represented as text elements for rendering
-        // The bounding box is calculated from the line endpoints
-        var x = Math.Min(drawLine.X1, drawLine.X2);
-        var y = Math.Min(drawLine.Y1, drawLine.Y2);
-        var width = Math.Abs(drawLine.X2 - drawLine.X1);
-        var height = Math.Abs(drawLine.Y2 - drawLine.Y1);
-
-        viewElements.Add(new TextElement(
-            string.Empty,
-            x,
-            y,
-            Math.Max(width, drawLine.Thickness),
-            Math.Max(height, drawLine.Thickness),
-            null,
-            0,
-            false,
-            false,
-            false,
-            1,
-            1,
-            0));
+        viewElements.Add(new LineElement(
+            drawBox.X1,
+            drawBox.Y1,
+            drawBox.X2,
+            drawBox.Y2,
+            drawBox.Thickness));
     }
 
     private static (int Width, int Height) GetFontDimensions(int font)

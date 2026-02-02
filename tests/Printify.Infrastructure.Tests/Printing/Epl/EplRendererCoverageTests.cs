@@ -43,15 +43,19 @@ public sealed class EplRendererCoverageTests
             new PrintGraphic(10, 20, 100, 50, new byte[20]),
 
             // Shape commands
-            new DrawLine(10, 20, 2, 100, 80),
+            new DrawBox(10, 20, 2, 100, 80),
 
-            // Print commands
-            new Print(1),
-            new Print(2),
-
-            // Error commands
+            // Error commands (placed before Print to be included in canvases)
             new EplParseError("ERR_CODE", "Test error message"),
             new EplPrinterError("Test printer error"),
+
+            // Print command to finalize the canvas
+            new Print(1),
+
+            // Additional commands after print to test multiple canvases
+            new ScalableText(10, 20, 0, 1, 1, 1, 'N', "test2"u8.ToArray()),
+            new DrawBox(20, 40, 2, 150, 100),
+            new Print(1),
         };
 
         // Verify the list is complete via reflection
@@ -111,15 +115,19 @@ public sealed class EplRendererCoverageTests
             new PrintGraphic(10, 20, 100, 50, new byte[20]),
 
             // Shape commands
-            new DrawLine(10, 20, 2, 100, 80),
+            new DrawBox(10, 20, 2, 100, 80),
 
-            // Print commands
-            new Print(1),
-            new Print(2),
-
-            // Error commands
+            // Error commands (placed before Print to be included in canvases)
             new EplParseError("ERR_CODE", "Test error message"),
             new EplPrinterError("Test printer error"),
+
+            // Print command to finalize the canvas
+            new Print(1),
+
+            // Additional commands after print to test multiple canvases
+            new ScalableText(10, 20, 0, 1, 1, 1, 'N', "test2"u8.ToArray()),
+            new DrawBox(20, 40, 2, 150, 100),
+            new Print(1),
         };
 
         // Verify the list is complete via reflection

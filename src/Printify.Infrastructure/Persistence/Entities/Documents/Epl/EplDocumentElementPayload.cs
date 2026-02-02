@@ -49,7 +49,7 @@ public sealed record DrawHorizontalLineElementPayload(
     int Thickness,
     int Length) : EplDocumentElementPayload;
 
-public sealed record DrawLineElementPayload(
+public sealed record DrawBoxElementPayload(
     int X1,
     int Y1,
     int Thickness,

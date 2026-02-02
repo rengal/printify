@@ -43,7 +43,7 @@ public static class EplCommandHelper
             Print print => BuildPrintDescription(print),
             PrintBarcode eplBarcode => BuildEplBarcodeDescription(eplBarcode),
             PrintGraphic graphic => BuildPrintGraphicDescription(graphic),
-            DrawLine drawLine => BuildDrawLineDescription(drawLine),
+            DrawBox drawLine => BuildDrawLineDescription(drawLine),
             ClearBuffer => Lines("N - Clear buffer (acknowledge/clear image buffer)"),
             CarriageReturn => Lines("CR - Carriage return (0x0D)"),
             LineFeed => Lines("LF - Line feed (0x0A)"),
@@ -136,13 +136,13 @@ public static class EplCommandHelper
             $"dataLength={graphic.Data.Length} (bytes)");
     }
 
-    private static IReadOnlyList<string> BuildDrawLineDescription(DrawLine drawLine)
+    private static IReadOnlyList<string> BuildDrawLineDescription(DrawBox drawBox)
     {
         return Lines(
             "X x1,y1,thickness,x2,y2 - Draw line or box",
-            $"x1={drawLine.X1}, y1={drawLine.Y1}",
-            $"thickness={drawLine.Thickness}",
-            $"x2={drawLine.X2}, y2={drawLine.Y2}");
+            $"x1={drawBox.X1}, y1={drawBox.Y1}",
+            $"thickness={drawBox.Thickness}",
+            $"x2={drawBox.X2}, y2={drawBox.Y2}");
     }
 
     private static IReadOnlyList<string> Lines(params string[] lines)

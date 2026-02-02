@@ -39,7 +39,7 @@ public sealed class EplCommandHelperTests
             new PrintGraphic(10, 20, 100, 50, new byte[20]),
 
             // Shape commands
-            new DrawLine(10, 20, 2, 100, 80),
+            new DrawBox(10, 20, 2, 100, 80),
 
             // Print commands
             new Print(1),

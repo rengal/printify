@@ -494,7 +494,7 @@ public static class EplScenarioData
         new(
             id: 6002,
             input: "X5,10,1,200,50\n"u8.ToArray(),
-            expectedRequestCommands: [new DrawLine(5, 10, 1, 200, 50) { LengthInBytes = 15 }],
+            expectedRequestCommands: [new DrawBox(5, 10, 1, 200, 50) { LengthInBytes = 15 }],
             expectedCanvasElements:
             [
                 [

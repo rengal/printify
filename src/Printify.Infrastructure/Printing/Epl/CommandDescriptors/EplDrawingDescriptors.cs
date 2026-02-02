@@ -193,7 +193,7 @@ public sealed class PrintBarcodeDescriptor : ICommandDescriptor
 /// ASCII: X {x1},{y1},{thickness},{x2},{y2}
 /// HEX: 58 {x1},{y1},{thickness},{x2},{y2}
 /// </summary>
-public sealed class DrawLineDescriptor : ICommandDescriptor
+public sealed class DrawBoxDescriptor : ICommandDescriptor
 {
     private const int MinLen = 5;
 
@@ -220,7 +220,7 @@ public sealed class DrawLineDescriptor : ICommandDescriptor
                 var thickness = p.GetInt(2, "thickness");
                 var x2 = p.GetInt(3, "x2");
                 var y2 = p.GetInt(4, "y2");
-                return new DrawLine(x1, y1, thickness, x2, y2);
+                return new DrawBox(x1, y1, thickness, x2, y2);
             }).WithMetadata(buffer, length);
     }
 }

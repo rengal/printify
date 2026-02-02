@@ -383,6 +383,8 @@ function renderViewElement(element, id, includeDebug) {
             return renderViewTextElement(element, id);
         case 'image':
             return renderViewImageElement(element, id);
+        case 'line':
+            return renderViewLineElement(element, id);
         case 'debug':
         case 'none':
             // Debug-only element - only render debug table if debug mode enabled
@@ -479,6 +481,38 @@ function renderViewImageElement(element, id) {
     const escapedUrl = callbacks.escapeHtml?.(mediaUrl) || mediaUrl;
 
     return `<div id="${id}" data-element-type="image" data-original-y="${y}"><img class="view-image" src="${escapedUrl}" alt="${altText}" style="${styles.join('; ')};" loading="lazy"></div>`;
+}
+
+/**
+ * Render line element (DrawBox - draws a rectangular box)
+ * @param {Object} element - Line element with x1, y1, x2, y2, thickness
+ * @param {string} id - Element identifier
+ * @returns {string} HTML string
+ */
+function renderViewLineElement(element, id) {
+    const x1 = Number(element.x1) || 0;
+    const y1 = Number(element.y1) || 0;
+    const x2 = Number(element.x2) || 0;
+    const y2 = Number(element.y2) || 0;
+    const thickness = Number(element.thickness) || 1;
+
+    // Calculate box bounds
+    const minX = Math.min(x1, x2);
+    const minY = Math.min(y1, y2);
+    const maxX = Math.max(x1, x2);
+    const maxY = Math.max(y1, y2);
+    const width = maxX - minX;
+    const height = maxY - minY;
+
+    // Use SVG for drawing the box (rectangle with stroke)
+    return `
+        <div id="${id}" data-element-type="line" data-original-y="${minY}" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none;">
+            <svg style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible;" xmlns="http://www.w3.org/2000/svg">
+                <rect x="${minX}" y="${minY}" width="${width}" height="${height}"
+                      fill="none" stroke="black" stroke-width="${thickness}" vector-effect="non-scaling-stroke" />
+            </svg>
+        </div>
+    `;
 }
 
 /**
@@ -720,6 +754,26 @@ function adjustDebugYPositions(contentId, includeDebug) {
                 visualElement.style.top = `${currentY}px`;
                 console.log(`[${index}] ${elementType} | Y=${currentY}px H=${elementHeight}px | ${elementText.substring(0, 50)}`);
                 currentY += elementHeight;
+            }
+        } else if (elementType === 'line') {
+            // For line/box elements, we need to adjust the SVG rect coordinates
+            const svg = wrapper.querySelector('svg');
+            if (svg) {
+                const rect = svg.querySelector('rect');
+                if (rect) {
+                    const originalY = parseInt(wrapper.getAttribute('data-original-y')) || 0;
+                    const originalHeight = parseInt(rect.getAttribute('height')) || 0;
+
+                    // Adjust rect position
+                    const newY = currentY + (originalY - originalY); // offset from original Y
+                    const yOffset = currentY - originalY;
+
+                    rect.setAttribute('y', parseInt(rect.getAttribute('y')) + yOffset);
+                    console.log(`[${index}] ${elementType} | Y adjusted by ${yOffset}px | box at ${rect.getAttribute('x')},${rect.getAttribute('y')}`);
+
+                    // Move currentY down by the box height (using box height, not line thickness)
+                    currentY += originalHeight;
+                }
             }
         }
     });

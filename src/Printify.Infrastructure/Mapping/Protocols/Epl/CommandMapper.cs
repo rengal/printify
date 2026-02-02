@@ -48,7 +48,7 @@ public static class CommandMapper
                 line.Y,
                 line.Thickness,
                 line.Length),
-            DrawLine line => new DrawLineElementPayload(
+            DrawBox line => new DrawBoxElementPayload(
                 line.X1,
                 line.Y1,
                 line.Thickness,
@@ -112,7 +112,7 @@ public static class CommandMapper
                 line.Y,
                 line.Thickness,
                 line.Length),
-            DrawLineElementPayload line => new DrawLine(
+            DrawBoxElementPayload line => new DrawBox(
                 line.X1,
                 line.Y1,
                 line.Thickness,
@@ -191,7 +191,7 @@ public static class CommandMapper
             EplDocumentElementTypeNames.PrinterError => JsonSerializer.Deserialize<PrinterErrorElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.ScalableText => JsonSerializer.Deserialize<ScalableTextElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.DrawHorizontalLine => JsonSerializer.Deserialize<DrawHorizontalLineElementPayload>(entity.Payload, SerializerOptions),
-            EplDocumentElementTypeNames.DrawLine => JsonSerializer.Deserialize<DrawLineElementPayload>(entity.Payload, SerializerOptions),
+            EplDocumentElementTypeNames.DrawLine => JsonSerializer.Deserialize<DrawBoxElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.Print => JsonSerializer.Deserialize<PrintElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.PrintBarcode => JsonSerializer.Deserialize<PrintBarcodeElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.PrintGraphic => JsonSerializer.Deserialize<PrintGraphicElementPayload>(entity.Payload, SerializerOptions),
@@ -221,7 +221,7 @@ public static class CommandMapper
             PrinterErrorElementPayload => EplDocumentElementTypeNames.PrinterError,
             ScalableTextElementPayload => EplDocumentElementTypeNames.ScalableText,
             DrawHorizontalLineElementPayload => EplDocumentElementTypeNames.DrawHorizontalLine,
-            DrawLineElementPayload => EplDocumentElementTypeNames.DrawLine,
+            DrawBoxElementPayload => EplDocumentElementTypeNames.DrawLine,
             PrintElementPayload => EplDocumentElementTypeNames.Print,
             PrintBarcodeElementPayload => EplDocumentElementTypeNames.PrintBarcode,
             PrintGraphicElementPayload => EplDocumentElementTypeNames.PrintGraphic,
