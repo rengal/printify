@@ -3,6 +3,7 @@ using Printify.Domain.Documents;
 using Printify.Domain.Printers;
 using Printify.Domain.Printing;
 using EscPosCommands = Printify.Infrastructure.Printing.EscPos.Commands;
+using EplCommands = Printify.Infrastructure.Printing.Epl.Commands;
 using EplCommandMapper = Printify.Infrastructure.Mapping.Protocols.Epl.CommandMapper;
 using EscPosCommandMapper = Printify.Infrastructure.Mapping.Protocols.EscPos.CommandMapper;
 
@@ -66,6 +67,14 @@ internal static class DocumentMapper
             else if (element is EscPosCommands.PrintQrCode qr)
             {
                 elementEntity.MediaId = qr.Media.Id;
+            }
+            else if (element is EplCommands.EplRasterImage eplRaster)
+            {
+                elementEntity.MediaId = eplRaster.Media.Id;
+            }
+            else if (element is EplCommands.EplPrintBarcode eplBarcode)
+            {
+                elementEntity.MediaId = eplBarcode.Media.Id;
             }
 
             elementEntities.Add(elementEntity);

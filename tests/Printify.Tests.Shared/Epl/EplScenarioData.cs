@@ -483,20 +483,24 @@ public static class EplScenarioData
                 .."GW10,50,1,2,"u8.ToArray(),  // GW x,y,bytesPerRow,height,
                 0b11100000,  // Row 0: XXX_____ (X=colored/set, _=transparent/unset)
                 0b00011000,  // Row 1: ___XX___ (X=colored/set, _=transparent/unset)
-                0x0A          // LF terminator
+                0x0A,        // LF terminator
+                .."P1\n"u8.ToArray(), // Print one copy
             ],
             expectedRequestCommands:
             [
-                new EplRasterImageUpload(10, 50, 8, 2, CreateExpectedRasterMedia(8, 2, [0b11100000, 0b00011000])) { LengthInBytes = 15 }
+                new EplRasterImageUpload(10, 50, 8, 2, CreateExpectedRasterMedia(8, 2, [0b11100000, 0b00011000])) { LengthInBytes = 15 },
+                new EplPrint(1) { LengthInBytes = 3 }
             ],
             expectedPersistedCommands:
             [
-                new EplRasterImage(10, 50, 8, 2, DomainMedia.CreateDefaultPng(96)) { LengthInBytes = 15 }
+                new EplRasterImage(10, 50, 8, 2, DomainMedia.CreateDefaultPng(94)) { LengthInBytes = 15 },
+                new EplPrint(1) { LengthInBytes = 3 }
             ],
             expectedCanvasElements:
             [
                 [
                     DebugElement("rasterImage", lengthInBytes: 15),
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
                     CanvasImageElement(10, 50, 8, 2, DomainMedia.CreateDefaultPng(96), lengthInBytes: 15)
                 ]
             ]),
@@ -509,20 +513,24 @@ public static class EplScenarioData
                 .."GW10,60,1,2,"u8.ToArray(),
                 0xFF,  // Row 0: All colored
                 0xFF,  // Row 1: All colored
-                0x0A
+                0x0A,
+                .."P1\n"u8.ToArray()
             ],
             expectedRequestCommands:
             [
-                new EplRasterImageUpload(10, 60, 8, 2, CreateExpectedRasterMedia(8, 2, [0xFF, 0xFF])) { LengthInBytes = 15 }
+                new EplRasterImageUpload(10, 60, 8, 2, CreateExpectedRasterMedia(8, 2, [0xFF, 0xFF])) { LengthInBytes = 15 },
+                new EplPrint(1) { LengthInBytes = 3 }
             ],
             expectedPersistedCommands:
             [
-                new EplRasterImage(10, 60, 8, 2, DomainMedia.CreateDefaultPng(96)) { LengthInBytes = 15 }
+                new EplRasterImage(10, 60, 8, 2, DomainMedia.CreateDefaultPng(85)) { LengthInBytes = 15 },
+                new EplPrint(1) { LengthInBytes = 3 }
             ],
             expectedCanvasElements:
             [
                 [
                     DebugElement("rasterImage", lengthInBytes: 15),
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
                     CanvasImageElement(10, 60, 8, 2, DomainMedia.CreateDefaultPng(96), lengthInBytes: 15)
                 ]
             ]),
@@ -535,20 +543,24 @@ public static class EplScenarioData
                 .."GW10,70,1,2,"u8.ToArray(),
                 0x00,  // Row 0: All transparent
                 0x00,  // Row 1: All transparent
-                0x0A
+                0x0A,
+                .."P1\n"u8.ToArray()
             ],
             expectedRequestCommands:
             [
-                new EplRasterImageUpload(10, 70, 8, 2, CreateExpectedRasterMedia(8, 2, [0x00, 0x00])) { LengthInBytes = 15 }
+                new EplRasterImageUpload(10, 70, 8, 2, CreateExpectedRasterMedia(8, 2, [0x00, 0x00])) { LengthInBytes = 15 },
+                new EplPrint(1) { LengthInBytes = 3 }
             ],
             expectedPersistedCommands:
             [
-                new EplRasterImage(10, 70, 8, 2, DomainMedia.CreateDefaultPng(85)) { LengthInBytes = 15 }
+                new EplRasterImage(10, 70, 8, 2, DomainMedia.CreateDefaultPng(96)) { LengthInBytes = 15 },
+                new EplPrint(1) { LengthInBytes = 3 }
             ],
             expectedCanvasElements:
             [
                 [
                     DebugElement("rasterImage", lengthInBytes: 15),
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
                     CanvasImageElement(10, 70, 8, 2, DomainMedia.CreateDefaultPng(85), lengthInBytes: 15)
                 ]
             ]),
@@ -561,20 +573,24 @@ public static class EplScenarioData
                 .."GW10,80,1,2,"u8.ToArray(),
                 0b10101010,  // Checkerboard pattern row 0
                 0b01010101,  // Checkerboard pattern row 1
-                0x0A
+                0x0A,
+                .."P1\n"u8.ToArray()
             ],
             expectedRequestCommands:
             [
-                new EplRasterImageUpload(10, 80, 8, 2, CreateExpectedRasterMedia(8, 2, [0b10101010, 0b01010101])) { LengthInBytes = 15 }
+                new EplRasterImageUpload(10, 80, 8, 2, CreateExpectedRasterMedia(8, 2, [0b10101010, 0b01010101])) { LengthInBytes = 15 },
+                new EplPrint(1) { LengthInBytes = 3 }
             ],
             expectedPersistedCommands:
             [
-                new EplRasterImage(10, 80, 8, 2, DomainMedia.CreateDefaultPng(93)) { LengthInBytes = 15 }
+                new EplRasterImage(10, 80, 8, 2, DomainMedia.CreateDefaultPng(89)) { LengthInBytes = 15 },
+                new EplPrint(1) { LengthInBytes = 3 }
             ],
             expectedCanvasElements:
             [
                 [
                     DebugElement("rasterImage", lengthInBytes: 15),
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
                     CanvasImageElement(10, 80, 8, 2, DomainMedia.CreateDefaultPng(93), lengthInBytes: 15)
                 ]
             ])
@@ -834,7 +850,13 @@ public static class EplScenarioData
     /// </summary>
     private static MediaUpload CreateExpectedRasterMedia(int width, int height, byte[] bitmapData)
     {
-        var bitmap = new MonochromeBitmap(width, height, bitmapData);
+        var normalized = new byte[bitmapData.Length];
+        for (var i = 0; i < bitmapData.Length; i++)
+        {
+            normalized[i] = (byte)~bitmapData[i];
+        }
+
+        var bitmap = new MonochromeBitmap(width, height, normalized);
         var mediaService = new MediaService();
         return mediaService.ConvertToMediaUpload(bitmap);
     }

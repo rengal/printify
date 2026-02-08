@@ -119,11 +119,15 @@ public sealed class PrintGraphicDescriptor(IMediaService mediaService) : IComman
         if (terminatorByte != 0x0A && terminatorByte != 0x0D) // LF or CR
             return MatchResult.Matched(new ParseError(null, "Invalid terminator"));
 
-        // Extract graphics data
+        // Extract graphics data.
         var graphicsData = buffer[headerEnd..(headerEnd + totalDataBytes)].ToArray();
 
-        // Convert raster data to bitmap (same as EscPos GS v 0)
-        var bitmap = new MonochromeBitmap(width, height, graphicsData);
+        // EPL GW payloads are observed inverted vs ESC/POS raster semantics in persisted media.
+        // Normalize here so stored/rendered images match the expected black/transparent output.
+        var normalizedGraphicsData = InvertBits(graphicsData);
+
+        // Convert normalized raster data to bitmap.
+        var bitmap = new MonochromeBitmap(width, height, normalizedGraphicsData);
 
         // Convert to MediaUpload using IMediaService
         var media = mediaService.ConvertToMediaUpload(bitmap, "image/png");
@@ -136,5 +140,16 @@ public sealed class PrintGraphicDescriptor(IMediaService mediaService) : IComman
         };
 
         return MatchResult.Matched(element);
+    }
+
+    private static byte[] InvertBits(byte[] data)
+    {
+        var inverted = new byte[data.Length];
+        for (var i = 0; i < data.Length; i++)
+        {
+            inverted[i] = (byte)~data[i];
+        }
+
+        return inverted;
     }
 }
