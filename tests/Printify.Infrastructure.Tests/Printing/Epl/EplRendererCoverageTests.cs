@@ -1,16 +1,21 @@
 using Printify.Domain.Documents;
 using Printify.Domain.Layout.Primitives;
+using Printify.Domain.Media;
 using Printify.Domain.Printers;
 using Printify.Domain.Printing;
 using Printify.Domain.Specifications;
 using Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Infrastructure.Printing.Epl.Renderers;
 using Printify.Tests.Shared;
+using DomainMedia = Printify.Domain.Media.Media;
 
 namespace Printify.Infrastructure.Tests.Printing.Epl;
 
 public sealed class EplRendererCoverageTests
 {
+    private static DomainMedia CreateTestMedia() =>
+        DomainMedia.CreateDefaultPng(100);
+
     [Fact]
     public void Renderer_DoesNotThrowException_ForAllEplCommandTypes()
     {
@@ -38,9 +43,13 @@ public sealed class EplRendererCoverageTests
             // Barcode commands
             new PrintBarcode(10, 20, 0, "CODE128", 2, 100, 'N', "12345"),
             new PrintBarcode(10, 20, 1, "CODE39", 3, 80, 'B', "ABC"),
+            new EplPrintBarcode(10, 20, 0, "CODE128", 2, 100, 'N', "12345", CreateTestMedia()),
+            // Note: EplPrintBarcodeUpload is excluded because it's an upload command not meant to be rendered
 
             // Graphics commands
             new PrintGraphic(10, 20, 100, 50, new byte[20]),
+            new EplRasterImage(10, 20, 100, 50, CreateTestMedia()),
+            // Note: EplRasterImageUpload is excluded because it's an upload command not meant to be rendered
 
             // Shape commands
             new DrawBox(10, 20, 2, 100, 80),
@@ -58,8 +67,8 @@ public sealed class EplRendererCoverageTests
             new Print(1),
         };
 
-        // Verify the list is complete via reflection
-        CommandTestExtensions.VerifyAllEplCommandTypesAreTested(commands);
+        // Verify the list is complete via reflection (excluding upload commands)
+        CommandTestExtensions.VerifyAllRenderableEplCommandTypesAreTested(commands);
 
         // Create document and render
         var document = new Document(
@@ -110,9 +119,11 @@ public sealed class EplRendererCoverageTests
             // Barcode commands
             new PrintBarcode(10, 20, 0, "CODE128", 2, 100, 'N', "12345"),
             new PrintBarcode(10, 20, 1, "CODE39", 3, 80, 'B', "ABC"),
+            new EplPrintBarcode(10, 20, 0, "CODE128", 2, 100, 'N', "12345", CreateTestMedia()),
 
             // Graphics commands
             new PrintGraphic(10, 20, 100, 50, new byte[20]),
+            new EplRasterImage(10, 20, 100, 50, CreateTestMedia()),
 
             // Shape commands
             new DrawBox(10, 20, 2, 100, 80),
@@ -130,8 +141,8 @@ public sealed class EplRendererCoverageTests
             new Print(1),
         };
 
-        // Verify the list is complete via reflection
-        CommandTestExtensions.VerifyAllEplCommandTypesAreTested(commands);
+        // Verify the list is complete via reflection (excluding upload commands)
+        CommandTestExtensions.VerifyAllRenderableEplCommandTypesAreTested(commands);
 
         // Create document and render
         var document = new Document(

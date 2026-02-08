@@ -2,6 +2,7 @@ using Printify.Application.Interfaces;
 using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.EscPos.Commands;
 using Printify.Infrastructure.Printing.EscPos;
+using Printify.Infrastructure.Printing.Epl;
 using Printify.Domain.Media;
 using SkiaSharp;
 using ZXing;
@@ -14,9 +15,9 @@ namespace Printify.Infrastructure.Media;
 
 /// <summary>
 /// Converts monochrome bitmaps to media upload format using SkiaSharp.
-/// Implements both generic media conversion and ESC/POS-specific barcode/QR generation.
+/// Implements both generic media conversion and ESC/POS/EPL-specific barcode/QR generation.
 /// </summary>
-public sealed class MediaService : IMediaService, IEscPosBarcodeService
+public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBarcodeService
 {
     /// <inheritdoc />
     public MediaUpload ConvertToMediaUpload(MonochromeBitmap bitmap, string format = "image/png")
@@ -112,6 +113,36 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService
         return new RasterImageUpload(aligned.Width, aligned.Height, uploadMedia);
     }
 
+    /// <inheritdoc />
+    public MediaUpload GenerateBarcodeMedia(string type, string data, int width, int height, char hri)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        ArgumentNullException.ThrowIfNull(data);
+
+        // Map EPL barcode type to ZXing BarcodeFormat
+        var format = MapEplBarcodeType(type);
+        var moduleWidth = Math.Max(1, width);
+
+        // Estimate width based on data length and module width
+        var rawWidth = Math.Clamp(moduleWidth * data.Length * 8, 64, 400);
+
+        var writer = new BarcodeWriter
+        {
+            Format = format,
+            Options = new EncodingOptions
+            {
+                Height = Math.Max(10, height),
+                Width = rawWidth,
+                Margin = 0,
+                PureBarcode = hri == 'N' // No text if HRI is 'N' (none)
+            }
+        };
+
+        using var image = writer.Write(data);
+        ConvertWhiteToTransparent(image);
+        return EncodeMediaUpload(image);
+    }
+
     private static MediaUpload EncodeMediaUpload(SKBitmap bitmap)
     {
         var bytes = EncodePng(bitmap);
@@ -180,6 +211,29 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService
             BarcodeSymbology.Codabar => BarcodeFormat.CODABAR,
             BarcodeSymbology.Code93 => BarcodeFormat.CODE_93,
             BarcodeSymbology.Code128 => BarcodeFormat.CODE_128,
+            _ => BarcodeFormat.CODE_128
+        };
+    }
+
+    /// <summary>
+    /// Maps EPL barcode type strings to ZXing BarcodeFormat.
+    /// EPL barcode types: 1=Code 39, 2=Code 39 with checksum, 3=EAN-8, 4=EAN-13,
+    /// 5=UPC-A, 6=UPC-E, 7=Codabar, 8=Code 128, 9=Interleaved 2 of 5, etc.
+    /// </summary>
+    private static BarcodeFormat MapEplBarcodeType(string type)
+    {
+        // Handle both numeric and character-based type codes
+        return type.ToUpperInvariant() switch
+        {
+            "1" or "A" => BarcodeFormat.CODE_39,  // Code 39
+            "2" => BarcodeFormat.CODE_39,         // Code 39 with checksum
+            "3" or "E8" => BarcodeFormat.EAN_8,   // EAN-8
+            "4" or "E30" => BarcodeFormat.EAN_13, // EAN-13
+            "5" or "UA" => BarcodeFormat.UPC_A,   // UPC-A
+            "6" or "UE" => BarcodeFormat.UPC_E,   // UPC-E
+            "7" or "C" => BarcodeFormat.CODABAR,  // Codabar
+            "8" or "B" => BarcodeFormat.CODE_128, // Code 128
+            "9" or "I" => BarcodeFormat.ITF,      // Interleaved 2 of 5
             _ => BarcodeFormat.CODE_128
         };
     }

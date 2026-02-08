@@ -85,6 +85,76 @@ public static class DocumentAssertions
                     Assert.False(string.IsNullOrWhiteSpace(actualQr.Media.Sha256Checksum));
                     Assert.False(string.IsNullOrWhiteSpace(actualQr.Media.Url));
                     break;
+                case EplCommands.EplRasterImageUpload expectedRasterImageUpload:
+                    var actualEplRasterImageUpload = Assert.IsType<EplCommands.EplRasterImageUpload>(actualElement);
+                    Assert.Equal(expectedRasterImageUpload.X, actualEplRasterImageUpload.X);
+                    Assert.Equal(expectedRasterImageUpload.Y, actualEplRasterImageUpload.Y);
+                    Assert.Equal(expectedRasterImageUpload.Width, actualEplRasterImageUpload.Width);
+                    Assert.Equal(expectedRasterImageUpload.Height, actualEplRasterImageUpload.Height);
+                    Assert.Equal(expectedRasterImageUpload.MediaUpload.ContentType, actualEplRasterImageUpload.MediaUpload.ContentType);
+                    Assert.True(actualEplRasterImageUpload.MediaUpload.Content.Length > 0);
+
+                    // If expected media has content, verify pixels match
+                    if (expectedRasterImageUpload.MediaUpload.Content.Length > 0)
+                    {
+                        AssertImagePixelsMatch(
+                            expectedRasterImageUpload.MediaUpload.Content.ToArray(),
+                            actualEplRasterImageUpload.MediaUpload.Content.ToArray(),
+                            expectedRasterImageUpload.Width,
+                            expectedRasterImageUpload.Height);
+                    }
+                    break;
+                case EplCommands.EplRasterImage expectedRasterImage:
+                    var actualEplRasterImage = Assert.IsType<EplCommands.EplRasterImage>(actualElement);
+                    Assert.Equal(expectedRasterImage.X, actualEplRasterImage.X);
+                    Assert.Equal(expectedRasterImage.Y, actualEplRasterImage.Y);
+                    Assert.Equal(expectedRasterImage.Width, actualEplRasterImage.Width);
+                    Assert.Equal(expectedRasterImage.Height, actualEplRasterImage.Height);
+                    Assert.Equal(expectedRasterImage.Media.ContentType, actualEplRasterImage.Media.ContentType);
+                    Assert.NotEmpty(actualEplRasterImage.Media.Sha256Checksum);
+                    Assert.NotEmpty(actualEplRasterImage.Media.Url);
+                    Assert.Equal(expectedRasterImage.Media.Length, actualEplRasterImage.Media.Length);
+                    break;
+                case EplCommands.EplPrintBarcodeUpload expectedBarcodeUpload:
+                    var actualEplBarcodeUpload = Assert.IsType<EplCommands.EplPrintBarcodeUpload>(actualElement);
+                    Assert.Equal(expectedBarcodeUpload.X, actualEplBarcodeUpload.X);
+                    Assert.Equal(expectedBarcodeUpload.Y, actualEplBarcodeUpload.Y);
+                    Assert.Equal(expectedBarcodeUpload.Rotation, actualEplBarcodeUpload.Rotation);
+                    Assert.Equal(expectedBarcodeUpload.Type, actualEplBarcodeUpload.Type);
+                    Assert.Equal(expectedBarcodeUpload.Width, actualEplBarcodeUpload.Width);
+                    Assert.Equal(expectedBarcodeUpload.Height, actualEplBarcodeUpload.Height);
+                    Assert.Equal(expectedBarcodeUpload.Hri, actualEplBarcodeUpload.Hri);
+                    Assert.Equal(expectedBarcodeUpload.Data, actualEplBarcodeUpload.Data);
+                    Assert.Equal(expectedBarcodeUpload.MediaUpload.ContentType, actualEplBarcodeUpload.MediaUpload.ContentType);
+                    Assert.True(actualEplBarcodeUpload.MediaUpload.Content.Length > 0);
+                    break;
+                case EplCommands.EplPrintBarcode expectedBarcode:
+                    var actualEplBarcode = Assert.IsType<EplCommands.EplPrintBarcode>(actualElement);
+                    Assert.Equal(expectedBarcode.X, actualEplBarcode.X);
+                    Assert.Equal(expectedBarcode.Y, actualEplBarcode.Y);
+                    Assert.Equal(expectedBarcode.Rotation, actualEplBarcode.Rotation);
+                    Assert.Equal(expectedBarcode.Type, actualEplBarcode.Type);
+                    Assert.Equal(expectedBarcode.Width, actualEplBarcode.Width);
+                    Assert.Equal(expectedBarcode.Height, actualEplBarcode.Height);
+                    Assert.Equal(expectedBarcode.Hri, actualEplBarcode.Hri);
+                    Assert.Equal(expectedBarcode.Data, actualEplBarcode.Data);
+                    Assert.NotNull(actualEplBarcode.Media);
+                    Assert.False(string.IsNullOrWhiteSpace(actualEplBarcode.Media.ContentType));
+                    Assert.True(actualEplBarcode.Media.Length > 0);
+                    Assert.False(string.IsNullOrWhiteSpace(actualEplBarcode.Media.Sha256Checksum));
+                    Assert.False(string.IsNullOrWhiteSpace(actualEplBarcode.Media.Url));
+                    break;
+                case EplCommands.PrintBarcode expectedLegacyBarcode:
+                    var actualLegacyBarcode = Assert.IsType<EplCommands.PrintBarcode>(actualElement);
+                    Assert.Equal(expectedLegacyBarcode.X, actualLegacyBarcode.X);
+                    Assert.Equal(expectedLegacyBarcode.Y, actualLegacyBarcode.Y);
+                    Assert.Equal(expectedLegacyBarcode.Rotation, actualLegacyBarcode.Rotation);
+                    Assert.Equal(expectedLegacyBarcode.Type, actualLegacyBarcode.Type);
+                    Assert.Equal(expectedLegacyBarcode.Width, actualLegacyBarcode.Width);
+                    Assert.Equal(expectedLegacyBarcode.Height, actualLegacyBarcode.Height);
+                    Assert.Equal(expectedLegacyBarcode.Hri, actualLegacyBarcode.Hri);
+                    Assert.Equal(expectedLegacyBarcode.Data, actualLegacyBarcode.Data);
+                    break;
                 case EscPosCommands.RasterImageUpload expectedRasterImageUpload:
                     var actualRasterImageUpload = Assert.IsType<EscPosCommands.RasterImageUpload>(actualElement);
                     Assert.Equal(expectedRasterImageUpload.Width, actualRasterImageUpload.Width);

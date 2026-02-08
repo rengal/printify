@@ -101,4 +101,31 @@ public static class CommandTestExtensions
                 "Add test instances for these commands to the test list.");
         }
     }
+
+    /// <summary>
+    /// Verifies that the tested command list contains all renderable EplCommand types from the assembly.
+    /// Excludes upload commands which are not meant to be rendered directly.
+    /// </summary>
+    public static void VerifyAllRenderableEplCommandTypesAreTested(
+        List<DomainCommand> testedCommands,
+        [System.Runtime.CompilerServices.CallerMemberName] string testName = "")
+    {
+        var allCommandTypes = GetAllEplCommandTypes();
+        var testedTypes = testedCommands.Select(c => c.GetType()).ToHashSet();
+
+        // Upload commands that should not be rendered
+        var uploadCommandTypes = new[] { "EplPrintBarcodeUpload", "EplRasterImageUpload" };
+
+        var missingTypes = allCommandTypes
+            .Where(t => !testedTypes.Contains(t) && !uploadCommandTypes.Contains(t.Name))
+            .Select(t => t.FullName ?? t.Name)
+            .ToList();
+
+        if (missingTypes.Any())
+        {
+            throw new InvalidOperationException(
+                $"The following EplCommand types are not tested in {testName}:\n{string.Join("\n", missingTypes)}\n" +
+                "Add test instances for these commands to the test list.");
+        }
+    }
 }

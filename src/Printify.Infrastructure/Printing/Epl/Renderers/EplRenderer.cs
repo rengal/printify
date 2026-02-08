@@ -41,6 +41,20 @@ public sealed class EplRenderer : IRenderer
         {
             switch (command)
             {
+                case EplRasterImageUpload or EplPrintBarcodeUpload:
+                    // Upload requests must not be emitted (should be finalized before rendering)
+                    throw new InvalidOperationException("Upload requests must not be emitted");
+
+                case EplRasterImage rasterImage:
+                    AddRasterImageDebugElement(rasterImage, debugElements);
+                    AddRasterImageVisualElement(rasterImage, viewElements);
+                    break;
+
+                case EplPrintBarcode barcode:
+                    AddBarcodeDebugElement(barcode, debugElements);
+                    AddBarcodeVisualElement(barcode, viewElements);
+                    break;
+
                 case ScalableText scalableText:
                     AddScalableTextDebugElement(scalableText, state, debugElements);
                     AddScalableTextVisualElement(scalableText, state, viewElements);
@@ -68,11 +82,13 @@ public sealed class EplRenderer : IRenderer
                     viewElements.Clear();
                     break;
 
-                case PrintBarcode barcode:
-                    AddBarcodeDebugElement(barcode, debugElements);
-                    AddBarcodeVisualElement(barcode, viewElements);
+                // Legacy PrintBarcode without media (for backward compatibility)
+                case PrintBarcode legacyBarcode:
+                    AddLegacyBarcodeDebugElement(legacyBarcode, debugElements);
+                    AddLegacyBarcodeVisualElement(legacyBarcode, viewElements);
                     break;
 
+                // Legacy PrintGraphic without media (for backward compatibility)
                 case PrintGraphic graphic:
                     AddGraphicDebugElement(graphic, debugElements);
                     AddGraphicVisualElement(graphic, viewElements);
@@ -533,6 +549,132 @@ public sealed class EplRenderer : IRenderer
             drawBox.X2,
             drawBox.Y2,
             drawBox.Thickness));
+    }
+
+    private static void AddRasterImageDebugElement(EplRasterImage rasterImage, List<BaseElement> debugElements)
+    {
+        debugElements.Add(new DebugInfo(
+            "rasterImage",
+            new Dictionary<string, string>
+            {
+                ["X"] = rasterImage.X.ToString(),
+                ["Y"] = rasterImage.Y.ToString(),
+                ["Width"] = rasterImage.Width.ToString(),
+                ["Height"] = rasterImage.Height.ToString(),
+                ["ContentType"] = rasterImage.Media.ContentType,
+                ["Url"] = rasterImage.Media.Url
+            },
+            rasterImage.RawBytes,
+            rasterImage.LengthInBytes,
+            GetDescription(rasterImage)));
+    }
+
+    private static void AddRasterImageVisualElement(EplRasterImage rasterImage, List<BaseElement> viewElements)
+    {
+        // Raster images are represented as image elements with actual media
+        viewElements.Add(new ImageElement(
+            new LayoutMedia(
+                rasterImage.Media.ContentType,
+                ToMediaSize(rasterImage.Media.Length),
+                rasterImage.Media.Url,
+                rasterImage.Media.Sha256Checksum),
+            rasterImage.X,
+            rasterImage.Y,
+            rasterImage.Width,
+            rasterImage.Height,
+            Rotation.None));
+    }
+
+    private static void AddBarcodeDebugElement(EplPrintBarcode barcode, List<BaseElement> debugElements)
+    {
+        debugElements.Add(new DebugInfo(
+            "printBarcode",
+            new Dictionary<string, string>
+            {
+                ["X"] = barcode.X.ToString(),
+                ["Y"] = barcode.Y.ToString(),
+                ["Rotation"] = barcode.Rotation.ToString(),
+                ["Type"] = barcode.Type,
+                ["Width"] = barcode.Width.ToString(),
+                ["Height"] = barcode.Height.ToString(),
+                ["Hri"] = barcode.Hri.ToString(),
+                ["Data"] = barcode.Data,
+                ["ContentType"] = barcode.Media.ContentType,
+                ["Url"] = barcode.Media.Url
+            },
+            barcode.RawBytes,
+            barcode.LengthInBytes,
+            GetDescription(barcode)));
+    }
+
+    private static void AddBarcodeVisualElement(EplPrintBarcode barcode, List<BaseElement> viewElements)
+    {
+        // Calculate actual rendered dimensions based on rotation
+        var (renderedWidth, renderedHeight) = CalculateRotatedDimensions(
+            barcode.Width,
+            barcode.Height,
+            barcode.Rotation);
+
+        // Barcodes are represented as image elements with actual media
+        viewElements.Add(new ImageElement(
+            new LayoutMedia(
+                barcode.Media.ContentType,
+                ToMediaSize(barcode.Media.Length),
+                barcode.Media.Url,
+                barcode.Media.Sha256Checksum),
+            barcode.X,
+            barcode.Y,
+            renderedWidth,
+            renderedHeight,
+            EplRotationMapper.ToDomainRotation(barcode.Rotation)));
+    }
+
+    private static void AddLegacyBarcodeDebugElement(PrintBarcode barcode, List<BaseElement> debugElements)
+    {
+        debugElements.Add(new DebugInfo(
+            "printBarcode",
+            new Dictionary<string, string>
+            {
+                ["X"] = barcode.X.ToString(),
+                ["Y"] = barcode.Y.ToString(),
+                ["Rotation"] = barcode.Rotation.ToString(),
+                ["Type"] = barcode.Type,
+                ["Width"] = barcode.Width.ToString(),
+                ["Height"] = barcode.Height.ToString(),
+                ["Hri"] = barcode.Hri.ToString(),
+                ["Data"] = barcode.Data
+            },
+            barcode.RawBytes,
+            barcode.LengthInBytes,
+            GetDescription(barcode)));
+    }
+
+    private static void AddLegacyBarcodeVisualElement(PrintBarcode barcode, List<BaseElement> viewElements)
+    {
+        // Calculate actual rendered dimensions based on rotation
+        var (renderedWidth, renderedHeight) = CalculateRotatedDimensions(
+            barcode.Width,
+            barcode.Height,
+            barcode.Rotation);
+
+        // Barcodes are represented as image elements with placeholder media
+        viewElements.Add(new ImageElement(
+            new LayoutMedia(
+                "image/barcode",
+                0,
+                string.Empty,
+                string.Empty),
+            barcode.X,
+            barcode.Y,
+            renderedWidth,
+            renderedHeight,
+            EplRotationMapper.ToDomainRotation(barcode.Rotation)));
+    }
+
+    private static int ToMediaSize(long length)
+    {
+        // Clamp to int to satisfy layout metadata without overflowing.
+        return length > int.MaxValue ? int.MaxValue : (int)length;
     }
 
     private static (int Width, int Height) GetFontDimensions(int font)

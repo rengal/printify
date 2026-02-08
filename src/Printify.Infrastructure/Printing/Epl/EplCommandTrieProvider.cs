@@ -1,3 +1,5 @@
+using Printify.Application.Interfaces;
+using Printify.Infrastructure.Media;
 using Printify.Infrastructure.Printing.Common;
 using Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 
@@ -8,6 +10,9 @@ namespace Printify.Infrastructure.Printing.Epl;
 /// </summary>
 public sealed class EplCommandTrieProvider : CommandTrieProvider<ICommandDescriptor>
 {
+    private static readonly IMediaService MediaServiceInstance = new MediaService();
+    private static readonly IEplBarcodeService BarcodeServiceInstance = new MediaService();
+
     protected override IEnumerable<ICommandDescriptor> AllDescriptors =>
     [
         // Text commands
@@ -15,11 +20,11 @@ public sealed class EplCommandTrieProvider : CommandTrieProvider<ICommandDescrip
 
         // Drawing commands
         new DrawHorizontalLineDescriptor(),
-        new PrintBarcodeDescriptor(),
+        new PrintBarcodeDescriptor(BarcodeServiceInstance),
         new DrawBoxDescriptor(),
 
         // Graphics commands
-        new PrintGraphicDescriptor(),
+        new PrintGraphicDescriptor(MediaServiceInstance),
 
         // Print commands
         new PrintDescriptor(),

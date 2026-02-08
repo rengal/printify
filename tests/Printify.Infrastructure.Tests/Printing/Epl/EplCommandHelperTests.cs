@@ -1,12 +1,16 @@
+using Printify.Domain.Media;
 using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Epl;
 using Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Tests.Shared;
+using DomainMedia = Printify.Domain.Media.Media;
 
 namespace Printify.Infrastructure.Tests.Printing.Epl;
 
 public sealed class EplCommandHelperTests
 {
+    private static readonly DomainMedia TestMedia = DomainMedia.CreateDefaultPng(100);
+
     [Fact]
     public void GetDescription_ReturnsNonEmptyDescription_ForAllEplCommandTypes()
     {
@@ -34,9 +38,13 @@ public sealed class EplCommandHelperTests
             // Barcode commands
             new PrintBarcode(10, 20, 0, "CODE128", 2, 100, 'N', "12345"),
             new PrintBarcode(10, 20, 1, "CODE39", 3, 80, 'B', "ABC"),
+            new EplPrintBarcode(10, 20, 0, "CODE128", 2, 100, 'N', "12345", TestMedia),
+            // Note: EplPrintBarcodeUpload is excluded because it's an upload command not meant to be rendered
 
             // Graphics commands
             new PrintGraphic(10, 20, 100, 50, new byte[20]),
+            new EplRasterImage(10, 20, 100, 50, TestMedia),
+            // Note: EplRasterImageUpload is excluded because it's an upload command not meant to be rendered
 
             // Shape commands
             new DrawBox(10, 20, 2, 100, 80),
@@ -50,8 +58,8 @@ public sealed class EplCommandHelperTests
             new EplPrinterError("Test printer error"),
         };
 
-        // Verify the list is complete via reflection (shared extension)
-        CommandTestExtensions.VerifyAllEplCommandTypesAreTested(commands);
+        // Verify the list is complete via reflection (excluding upload commands)
+        CommandTestExtensions.VerifyAllRenderableEplCommandTypesAreTested(commands);
 
         // Test each command's description
         var failures = new List<string>();

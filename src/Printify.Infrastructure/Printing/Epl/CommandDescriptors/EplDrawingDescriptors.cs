@@ -128,8 +128,9 @@ public sealed class DrawHorizontalLineDescriptor : ICommandDescriptor
 /// Command: B x, y, rotation, type, width, height, hri, "data" - Barcode.
 /// ASCII: B {x},{y},{rotation},{type},{width},{height},{hri},"{data}"
 /// HEX: 42 {x},{y},{rotation},{type},{width},{height},{hri},{data}
+/// Creates an EplPrintBarcodeUpload command with MediaUpload for finalization.
 /// </summary>
-public sealed class PrintBarcodeDescriptor : ICommandDescriptor
+public sealed class PrintBarcodeDescriptor(IEplBarcodeService barcodeService) : ICommandDescriptor
 {
     private const int MinLen = 10;
 
@@ -178,13 +179,36 @@ public sealed class PrintBarcodeDescriptor : ICommandDescriptor
             var height = parser.GetInt(5, "height");
             var hri = parser.GetChar(6, 'N');
 
-            var element = new PrintBarcode(x, y, rotation, type, width, height, hri, data);
-            return EplParsingHelpers.Success(element, buffer, length);
+            // Generate barcode media using IEplBarcodeService
+            var mediaUpload = barcodeService.GenerateBarcodeMedia(type, data, width, height, hri);
+
+            // Calculate rendered dimensions based on rotation
+            var (renderedWidth, renderedHeight) = CalculateRotatedDimensions(width, height, rotation);
+
+            // Create EplPrintBarcodeUpload element instead of PrintBarcode
+            var element = new EplPrintBarcodeUpload(x, y, rotation, type, width, height, hri, data, mediaUpload)
+            {
+                RawBytes = buffer[..length].ToArray(),
+                LengthInBytes = length
+            };
+            return MatchResult.Matched(element);
         }
         catch (ParseException ex)
         {
             return MatchResult.Matched(new PrinterError($"Invalid B barcode: {ex.Message}"));
         }
+    }
+
+    private static (int Width, int Height) CalculateRotatedDimensions(int width, int height, int rotation)
+    {
+        return rotation switch
+        {
+            0 => (width, height),    // Normal
+            1 => (height, width),    // 90° clockwise
+            2 => (width, height),    // 180°
+            3 => (height, width),    // 270° clockwise
+            _ => (width, height)
+        };
     }
 }
 

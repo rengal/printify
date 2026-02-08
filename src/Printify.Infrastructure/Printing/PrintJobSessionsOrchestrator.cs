@@ -119,12 +119,48 @@ public sealed class PrintJobSessionsOrchestrator(
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(services);
 
+        var sourceElements = document.Commands;
+        var resultCommands = new List<Command>(sourceElements.Count);
+
+        // Check if this document has any upload commands that need finalization
+        var hasUploadCommands = sourceElements.Any(c =>
+            c is EscPos.Commands.RasterImageUpload
+            or EscPos.Commands.PrintBarcodeUpload
+            or EscPos.Commands.PrintQrCodeUpload
+            or Epl.Commands.EplRasterImageUpload
+            or Epl.Commands.EplPrintBarcodeUpload);
+
+        if (!hasUploadCommands)
+        {
+            // No finalization needed, return original document
+            return document;
+        }
+
+        // Protocol-specific finalization
+        if (document.Protocol == Protocol.EscPos)
+        {
+            return await FinalizeEscPosDocumentAsync(document, services, ct).ConfigureAwait(false);
+        }
+        else if (document.Protocol == Protocol.Epl)
+        {
+            return await FinalizeEplDocumentAsync(document, services, ct).ConfigureAwait(false);
+        }
+
+        // Unknown protocol, return original document
+        return document;
+    }
+
+    /// <summary>
+    /// Finalizes ESC/POS documents by converting upload commands to final commands with persisted media.
+    /// </summary>
+    private static async Task<Document> FinalizeEscPosDocumentAsync(Document document, IServiceProvider services,
+        CancellationToken ct)
+    {
         var mediaStorage = services.GetRequiredService<IMediaStorage>();
         var documentRepository = services.GetRequiredService<IDocumentRepository>();
         var printerRepository = services.GetRequiredService<IPrinterRepository>();
         var barcodeService = services.GetRequiredService<IEscPosBarcodeService>();
         var sourceElements = document.Commands;
-        var changed = false;
         var resultCommands = new List<Command>(sourceElements.Count);
 
         var printer = await printerRepository.GetByIdAsync(document.PrinterId, ct).ConfigureAwait(false);
@@ -137,23 +173,22 @@ public sealed class PrintJobSessionsOrchestrator(
 
         foreach (var sourceElement in sourceElements)
         {
-            if (sourceElement is RasterImageUpload or PrintQrCodeUpload or PrintBarcodeUpload)
+            if (sourceElement is EscPos.Commands.RasterImageUpload or EscPos.Commands.PrintQrCodeUpload or EscPos.Commands.PrintBarcodeUpload)
             {
                 // Media rendering depends on printer settings; skip conversion if settings are missing.
                 if (printer == null || settings is null)
                     continue;
 
-                //Domain.Media.MediaUpload media = null;
-                RasterImageUpload? imageUpload = null;
+                EscPos.Commands.RasterImageUpload? imageUpload = null;
 
                 switch (sourceElement)
                 {
-                    case RasterImageUpload rasterImageUpload:
+                    case EscPos.Commands.RasterImageUpload rasterImageUpload:
                         imageUpload = rasterImageUpload;
                         break;
-                    case PrintQrCodeUpload when string.IsNullOrEmpty(qrState.Payload):
+                    case EscPos.Commands.PrintQrCodeUpload when string.IsNullOrEmpty(qrState.Payload):
                         continue;
-                    case PrintQrCodeUpload:
+                    case EscPos.Commands.PrintQrCodeUpload:
                         imageUpload = barcodeService.GenerateQrMedia(new QrRenderOptions(
                             qrState.Payload,
                             qrState.Model,
@@ -162,9 +197,9 @@ public sealed class PrintJobSessionsOrchestrator(
                             justification,
                             settings.WidthInDots));
                         break;
-                    case PrintBarcodeUpload barcodeUpload when string.IsNullOrEmpty(barcodeUpload.Data):
+                    case EscPos.Commands.PrintBarcodeUpload barcodeUpload when string.IsNullOrEmpty(barcodeUpload.Data):
                         continue;
-                    case PrintBarcodeUpload barcodeUpload:
+                    case EscPos.Commands.PrintBarcodeUpload barcodeUpload:
                         imageUpload = barcodeService.GenerateBarcodeMedia(
                             barcodeUpload,
                             new BarcodeRenderOptions(
@@ -194,32 +229,31 @@ public sealed class PrintJobSessionsOrchestrator(
                     await documentRepository.AddMediaAsync(savedMedia, ct).ConfigureAwait(false);
                 }
 
-
                 switch (sourceElement)
                 {
-                    case RasterImageUpload:
+                    case EscPos.Commands.RasterImageUpload:
                         // Preserve the original command bytes for downstream diagnostics.
-                resultCommands.Add(new RasterImage(imageUpload.Width, imageUpload.Height, savedMedia)
+                        resultCommands.Add(new EscPos.Commands.RasterImage(imageUpload.Width, imageUpload.Height, savedMedia)
                         {
                             RawBytes = sourceElement.RawBytes,
                             LengthInBytes = sourceElement.LengthInBytes
                         });
                         break;
-                    case PrintQrCodeUpload:
+                    case EscPos.Commands.PrintQrCodeUpload:
                         if (!string.IsNullOrEmpty(qrState.Payload))
                         {
                             // Preserve the original command bytes for downstream diagnostics.
-                        resultCommands.Add(new PrintQrCode(qrState.Payload, imageUpload.Width, imageUpload.Height,
-                                savedMedia)
-                            {
-                                RawBytes = sourceElement.RawBytes,
-                                LengthInBytes = sourceElement.LengthInBytes
-                            });
+                            resultCommands.Add(new EscPos.Commands.PrintQrCode(qrState.Payload, imageUpload.Width, imageUpload.Height,
+                                    savedMedia)
+                                {
+                                    RawBytes = sourceElement.RawBytes,
+                                    LengthInBytes = sourceElement.LengthInBytes
+                                });
                         }
                         break;
-                    case PrintBarcodeUpload barcodeUpload:
+                    case EscPos.Commands.PrintBarcodeUpload barcodeUpload:
                         // Preserve the original command bytes for downstream diagnostics.
-                        resultCommands.Add(new PrintBarcode(barcodeUpload.Symbology, barcodeUpload.Data,
+                        resultCommands.Add(new EscPos.Commands.PrintBarcode(barcodeUpload.Symbology, barcodeUpload.Data,
                             imageUpload.Width, imageUpload.Height,
                             savedMedia)
                         {
@@ -229,33 +263,150 @@ public sealed class PrintJobSessionsOrchestrator(
                         break;
                 }
 
-                changed = true;
                 continue;
             }
 
-            if (sourceElement is SetBarcodeHeight barcodeHeight)
+            if (sourceElement is EscPos.Commands.SetBarcodeHeight barcodeHeight)
                 barcodeState = barcodeState with { HeightInDots = barcodeHeight.HeightInDots };
-            else if (sourceElement is SetBarcodeModuleWidth moduleWidth)
+            else if (sourceElement is EscPos.Commands.SetBarcodeModuleWidth moduleWidth)
                 barcodeState = barcodeState with { ModuleWidthInDots = moduleWidth.ModuleWidth };
-            else if (sourceElement is SetBarcodeLabelPosition labelPosition)
+            else if (sourceElement is EscPos.Commands.SetBarcodeLabelPosition labelPosition)
                 barcodeState = barcodeState with { LabelPosition = labelPosition.Position };
-            else if (sourceElement is SetQrModel qrModel)
+            else if (sourceElement is EscPos.Commands.SetQrModel qrModel)
                 qrState = qrState with { Model = qrModel.Model };
-            else if (sourceElement is SetQrModuleSize qrModuleSize)
+            else if (sourceElement is EscPos.Commands.SetQrModuleSize qrModuleSize)
                 qrState = qrState with { ModuleSizeInDots = qrModuleSize.ModuleSize };
-            else if (sourceElement is SetQrErrorCorrection qrErrorCorrection)
+            else if (sourceElement is EscPos.Commands.SetQrErrorCorrection qrErrorCorrection)
                 qrState = qrState with { ErrorCorrectionLevel = qrErrorCorrection.Level };
-            else if (sourceElement is StoreQrData qrData)
+            else if (sourceElement is EscPos.Commands.StoreQrData qrData)
                 qrState = qrState with { Payload = qrData.Content };
-            else if (sourceElement is SetJustification justificationElement)
+            else if (sourceElement is EscPos.Commands.SetJustification justificationElement)
                 justification = justificationElement.Justification;
 
             resultCommands.Add(sourceElement);
         }
 
-        return changed
-            ? document with { Commands = resultCommands.AsReadOnly() }
-            : document;
+        return document with { Commands = resultCommands.AsReadOnly() };
+    }
+
+    /// <summary>
+    /// Finalizes EPL documents by converting upload commands to final commands with persisted media.
+    /// </summary>
+    private static async Task<Document> FinalizeEplDocumentAsync(Document document, IServiceProvider services,
+        CancellationToken ct)
+    {
+        var mediaStorage = services.GetRequiredService<IMediaStorage>();
+        var documentRepository = services.GetRequiredService<IDocumentRepository>();
+        var printerRepository = services.GetRequiredService<IPrinterRepository>();
+        var sourceElements = document.Commands;
+        var resultCommands = new List<Command>(sourceElements.Count);
+
+        var printer = await printerRepository.GetByIdAsync(document.PrinterId, ct).ConfigureAwait(false);
+
+        if (printer == null)
+        {
+            // Can't finalize without printer info
+            return document;
+        }
+
+        foreach (var sourceElement in sourceElements)
+        {
+            if (sourceElement is Epl.Commands.EplRasterImageUpload or Epl.Commands.EplPrintBarcodeUpload)
+            {
+                Domain.Media.MediaUpload? mediaUpload = null;
+                int? x = null;
+                int? y = null;
+                int? width = null;
+                int? height = null;
+                int? rotation = null;
+                string? barcodeType = null;
+                char? hri = null;
+                string? barcodeData = null;
+
+                switch (sourceElement)
+                {
+                    case Epl.Commands.EplRasterImageUpload rasterImageUpload:
+                        mediaUpload = rasterImageUpload.MediaUpload;
+                        x = rasterImageUpload.X;
+                        y = rasterImageUpload.Y;
+                        width = rasterImageUpload.Width;
+                        height = rasterImageUpload.Height;
+                        break;
+                    case Epl.Commands.EplPrintBarcodeUpload barcodeUpload:
+                        mediaUpload = barcodeUpload.MediaUpload;
+                        x = barcodeUpload.X;
+                        y = barcodeUpload.Y;
+                        rotation = barcodeUpload.Rotation;
+                        barcodeType = barcodeUpload.Type;
+                        width = barcodeUpload.Width;
+                        height = barcodeUpload.Height;
+                        hri = barcodeUpload.Hri;
+                        barcodeData = barcodeUpload.Data;
+                        break;
+                }
+
+                if (mediaUpload == null)
+                    continue;
+
+                // Images are content-addressed (SHA-256), enabling safe deduplication without relying on file names or IDs.
+                var sha256Checksum = Sha256Checksum.ComputeLowerHex(mediaUpload.Content.Span);
+
+                var savedMedia = await documentRepository
+                                     .GetMediaByChecksumAsync(sha256Checksum, printer.OwnerWorkspaceId, ct)
+                                     .ConfigureAwait(false);
+
+                if (savedMedia == null)
+                {
+                    // Save file to disk
+                    savedMedia = await mediaStorage.SaveAsync(mediaUpload, printer.OwnerWorkspaceId,
+                            sha256Checksum, ct)
+                        .ConfigureAwait(false);
+
+                    // Save media entity to database
+                    await documentRepository.AddMediaAsync(savedMedia, ct).ConfigureAwait(false);
+                }
+
+                switch (sourceElement)
+                {
+                    case Epl.Commands.EplRasterImageUpload:
+                        // Preserve the original command bytes for downstream diagnostics.
+                        resultCommands.Add(new Epl.Commands.EplRasterImage(
+                            x ?? 0,
+                            y ?? 0,
+                            width ?? 0,
+                            height ?? 0,
+                            savedMedia)
+                        {
+                            RawBytes = sourceElement.RawBytes,
+                            LengthInBytes = sourceElement.LengthInBytes
+                        });
+                        break;
+                    case Epl.Commands.EplPrintBarcodeUpload:
+                        // Preserve the original command bytes for downstream diagnostics.
+                        resultCommands.Add(new Epl.Commands.EplPrintBarcode(
+                            x ?? 0,
+                            y ?? 0,
+                            rotation ?? 0,
+                            barcodeType ?? string.Empty,
+                            width ?? 0,
+                            height ?? 0,
+                            hri ?? 'N',
+                            barcodeData ?? string.Empty,
+                            savedMedia)
+                        {
+                            RawBytes = sourceElement.RawBytes,
+                            LengthInBytes = sourceElement.LengthInBytes
+                        });
+                        break;
+                }
+
+                continue;
+            }
+
+            resultCommands.Add(sourceElement);
+        }
+
+        return document with { Commands = resultCommands.AsReadOnly() };
     }
 
     private sealed record BarcodeState(

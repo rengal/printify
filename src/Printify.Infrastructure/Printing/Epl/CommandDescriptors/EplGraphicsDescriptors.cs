@@ -2,8 +2,8 @@ using Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Infrastructure.Printing.Common;
 using System.Globalization;
 using Printify.Domain.Printing;
-
-namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
+using Printify.Application.Interfaces;
+using Printify.Domain.Media;
 
 /// <summary>
 /// Command: GW x, y, bytesPerRow, height, - Graphic write.
@@ -14,8 +14,9 @@ namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 /// <remarks>
 /// This descriptor is special - it has a useful TryGetExactLength implementation
 /// because the command length can be calculated from the header parameters.
-/// </remarks>
-public sealed class PrintGraphicDescriptor : ICommandDescriptor
+/// Creates an EplRasterImageUpload command with MediaUpload for finalization.
+/// </summary>
+public sealed class PrintGraphicDescriptor(IMediaService mediaService) : ICommandDescriptor
 {
     private const int MinLen = 10; // 'GW' + minimum params
 
@@ -24,13 +25,30 @@ public sealed class PrintGraphicDescriptor : ICommandDescriptor
 
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
     {
-        // Find the comma at end of header
-        var commaIndex = buffer.IndexOf((byte)',');
-        if (commaIndex < 3) // Must be after "GW"
-            return null;
+        // GW command format: GW{x},{y},{bytesPerRow},{height},
+        // We need to find the comma AFTER all 4 parameters (the 4th comma overall)
+        // First 2 chars are "GW", then we have 4 comma-separated values, then a final comma
+        var commaCount = 0;
+        var headerEndIndex = -1;
+
+        for (var i = 0; i < buffer.Length; i++)
+        {
+            if (buffer[i] == ',')
+            {
+                commaCount++;
+                if (commaCount == 4) // 4th comma is the one after height
+                {
+                    headerEndIndex = i;
+                    break;
+                }
+            }
+        }
+
+        if (headerEndIndex < 0)
+            return null; // Haven't received all header parameters yet
 
         // Parse the header to get total data bytes
-        var headerStr = System.Text.Encoding.ASCII.GetString(buffer[..commaIndex]);
+        var headerStr = System.Text.Encoding.ASCII.GetString(buffer[..headerEndIndex]);
         var parts = headerStr[2..].Split(','); // Skip "GW"
 
         if (parts.Length < 4)
@@ -41,7 +59,7 @@ public sealed class PrintGraphicDescriptor : ICommandDescriptor
             return null;
 
         var totalDataBytes = bytesPerRow * height;
-        var totalLength = commaIndex + 1 + totalDataBytes + 1; // +1 for comma, +1 for newline
+        var totalLength = headerEndIndex + 1 + totalDataBytes + 1; // +1 for comma, +1 for newline
 
         // Only return exact length if we have enough data
         return buffer.Length >= totalLength ? totalLength : null;
@@ -49,13 +67,29 @@ public sealed class PrintGraphicDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
-        // Find the comma at end of header
-        var commaIndex = buffer.IndexOf((byte)',');
-        if (commaIndex < 3)
+        // GW command format: GW{x},{y},{bytesPerRow},{height},
+        // Find the comma AFTER all 4 parameters (the 4th comma overall)
+        var commaCount = 0;
+        var headerEndIndex = -1;
+
+        for (var i = 0; i < buffer.Length; i++)
+        {
+            if (buffer[i] == ',')
+            {
+                commaCount++;
+                if (commaCount == 4) // 4th comma is the one after height
+                {
+                    headerEndIndex = i;
+                    break;
+                }
+            }
+        }
+
+        if (headerEndIndex < 0)
             return MatchResult.NeedMore();
 
         // Parse header: GW{x},{y},{bytesPerRow},{height},
-        var headerStr = System.Text.Encoding.ASCII.GetString(buffer[..commaIndex]);
+        var headerStr = System.Text.Encoding.ASCII.GetString(buffer[..headerEndIndex]);
         var parts = headerStr[2..].Split(','); // Skip "GW"
 
         if (parts.Length < 4)
@@ -71,7 +105,7 @@ public sealed class PrintGraphicDescriptor : ICommandDescriptor
 
         var width = bytesPerRow * 8; // Convert bytes to dots (monochrome)
         var totalDataBytes = bytesPerRow * height;
-        var headerEnd = commaIndex + 1; // Include comma
+        var headerEnd = headerEndIndex + 1; // Include comma
         var totalLength = headerEnd + totalDataBytes + 1; // +1 for newline
 
         // Check if we have all the data
@@ -88,7 +122,14 @@ public sealed class PrintGraphicDescriptor : ICommandDescriptor
         // Extract graphics data
         var graphicsData = buffer[headerEnd..(headerEnd + totalDataBytes)].ToArray();
 
-        var element = new PrintGraphic(x, y, width, height, graphicsData)
+        // Convert raster data to bitmap (same as EscPos GS v 0)
+        var bitmap = new MonochromeBitmap(width, height, graphicsData);
+
+        // Convert to MediaUpload using IMediaService
+        var media = mediaService.ConvertToMediaUpload(bitmap, "image/png");
+
+        // Create EplRasterImageUpload element instead of PrintGraphic
+        var element = new EplRasterImageUpload(x, y, width, height, media)
         {
             RawBytes = buffer[..totalLength].ToArray(),
             LengthInBytes = totalLength

@@ -44,6 +44,8 @@ public static class EplCommandHelper
             PrintBarcode eplBarcode => BuildEplBarcodeDescription(eplBarcode),
             PrintGraphic graphic => BuildPrintGraphicDescription(graphic),
             DrawBox drawLine => BuildDrawLineDescription(drawLine),
+            EplRasterImage rasterImage => BuildEplRasterImageDescription(rasterImage),
+            EplPrintBarcode barcode => BuildEplPrintBarcodeDescription(barcode),
             ClearBuffer => Lines("N - Clear buffer (acknowledge/clear image buffer)"),
             CarriageReturn => Lines("CR - Carriage return (0x0D)"),
             LineFeed => Lines("LF - Line feed (0x0A)"),
@@ -143,6 +145,39 @@ public static class EplCommandHelper
             $"x1={drawBox.X1}, y1={drawBox.Y1}",
             $"thickness={drawBox.Thickness}",
             $"x2={drawBox.X2}, y2={drawBox.Y2}");
+    }
+
+    private static IReadOnlyList<string> BuildEplRasterImageDescription(EplRasterImage rasterImage)
+    {
+        return Lines(
+            "GW x,y,width,height,[data] - Raster image (finalized)",
+            $"x={rasterImage.X}, y={rasterImage.Y}",
+            $"width={rasterImage.Width} (dots), height={rasterImage.Height} (dots)",
+            $"contentType={rasterImage.Media.ContentType}",
+            $"url={rasterImage.Media.Url}");
+    }
+
+    private static IReadOnlyList<string> BuildEplPrintBarcodeDescription(EplPrintBarcode barcode)
+    {
+        var rotationLabel = barcode.Rotation switch
+        {
+            0 => "normal",
+            1 => "90°",
+            2 => "180°",
+            3 => "270°",
+            _ => barcode.Rotation.ToString()
+        };
+
+        return Lines(
+            "B x,y,rotation,type,width,height,hri,\"data\" - Print barcode (finalized)",
+            $"x={barcode.X}, y={barcode.Y}",
+            $"rotation={rotationLabel}",
+            $"type={barcode.Type}",
+            $"width={barcode.Width}, height={barcode.Height}",
+            $"hri={barcode.Hri}",
+            $"data=\"{EscapeDescriptionText(barcode.Data)}\"",
+            $"contentType={barcode.Media.ContentType}",
+            $"url={barcode.Media.Url}");
     }
 
     private static IReadOnlyList<string> Lines(params string[] lines)
