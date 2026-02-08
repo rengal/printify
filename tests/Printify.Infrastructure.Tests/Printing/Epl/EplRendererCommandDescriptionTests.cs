@@ -17,12 +17,12 @@ public sealed class EplRendererCommandDescriptionTests
         // Arrange
         var commands = new List<Command>
         {
-            new ClearBuffer(),
-            new SetLabelWidth(500),
-            new SetLabelHeight(300, 0),
-            new SetPrintSpeed(3),
-            new SetPrintDarkness(10),
-            new SetPrintDirection(PrintDirection.TopToBottom),
+            new EplClearBuffer(),
+            new EplSetLabelWidth(500),
+            new EplSetLabelHeight(300, 0),
+            new EplSetPrintSpeed(3),
+            new EplSetPrintDarkness(10),
+            new SetPrintDirection(EplPrintDirection.TopToBottom),
         };
 
         var document = new Document(
@@ -65,9 +65,9 @@ public sealed class EplRendererCommandDescriptionTests
         // Arrange
         var commands = new List<Command>
         {
-            new ClearBuffer(),
-            new SetLabelWidth(500),
-            new Print(1),
+            new EplClearBuffer(),
+            new EplSetLabelWidth(500),
+            new EplPrint(1),
         };
 
         var document = new Document(
@@ -109,7 +109,7 @@ public sealed class EplRendererCommandDescriptionTests
         var textBytes = System.Text.Encoding.GetEncoding(437).GetBytes("Test");
         var commands = new List<Command>
         {
-            new ScalableText(10, 20, 0, 2, 1, 1, 'N', textBytes),
+            new EplScalableText(10, 20, 0, 2, 1, 1, 'N', textBytes),
             new PrintBarcode(50, 60, 0, "128", 2, 100, 'N', "ABC123"),
         };
 

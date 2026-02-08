@@ -22,7 +22,7 @@ public sealed class CarriageReturnDescriptor : ICommandDescriptor
         if (buffer.Length < length)
             return MatchResult.NeedMore();
 
-        var element = new CarriageReturn();
+        var element = new EplCarriageReturn();
         return EplParsingHelpers.Success(element, buffer, length);
     }
 }
@@ -46,7 +46,7 @@ public sealed class LineFeedDescriptor : ICommandDescriptor
         if (buffer.Length < length)
             return MatchResult.NeedMore();
 
-        var element = new LineFeed();
+        var element = new EplLineFeed();
         return EplParsingHelpers.Success(element, buffer, length);
     }
 }

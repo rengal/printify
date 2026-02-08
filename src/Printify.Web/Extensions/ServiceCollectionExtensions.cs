@@ -18,6 +18,7 @@ using Printify.Infrastructure.Printing.Epl;
 using Printify.Infrastructure.Printing.Epl.Renderers;
 using Printify.Infrastructure.Printing.EscPos;
 using Printify.Infrastructure.Printing.EscPos.Renderers;
+using Printify.Infrastructure.Printing.Finalization;
 using Printify.Infrastructure.Printing.Factories;
 using Printify.Infrastructure.Repositories;
 using Printify.Infrastructure.Security;
@@ -94,6 +95,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IPrinterRepository, PrinterRepository>();
         services.AddScoped<IPrintJobRepository, PrintJobRepository>();
         services.AddScoped<IDocumentRepository, DocumentRepository>();
+        services.AddScoped<IProtocolDocumentFinalizer, EscPosDocumentFinalizer>();
+        services.AddScoped<IProtocolDocumentFinalizer, EplDocumentFinalizer>();
+        services.AddScoped<IDocumentFinalizationCoordinator, DocumentFinalizationCoordinator>();
 
         // Printer listeners
         services.AddSingleton<IPrintJobSessionFactory, PrintJobSessionFactory>();

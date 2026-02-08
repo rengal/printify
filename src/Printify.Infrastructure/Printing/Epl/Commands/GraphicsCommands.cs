@@ -10,7 +10,7 @@ namespace Printify.Infrastructure.Printing.Epl.Commands;
 /// <param name="Y">Vertical position (in dots).</param>
 /// <param name="Width">Width in dots (number of columns).</param>
 /// <param name="Height">Height in dots (number of rows).</param>
-public abstract record BaseEplRasterImage(int X, int Y, int Width, int Height) : EplCommand;
+public abstract record EplBaseRasterImage(int X, int Y, int Width, int Height) : EplCommand;
 
 /// <summary>
 /// Raster image upload command for EPL protocol.
@@ -27,7 +27,7 @@ public sealed record EplRasterImageUpload(
     int Y,
     int Width,
     int Height,
-    MediaUpload MediaUpload) : BaseEplRasterImage(X, Y, Width, Height);
+    MediaUpload MediaUpload) : EplBaseRasterImage(X, Y, Width, Height);
 
 /// <summary>
 /// Raster image with persisted media.
@@ -43,4 +43,4 @@ public sealed record EplRasterImage(
     int Y,
     int Width,
     int Height,
-    DomainMedia Media) : BaseEplRasterImage(X, Y, Width, Height);
+    DomainMedia Media) : EplBaseRasterImage(X, Y, Width, Height);

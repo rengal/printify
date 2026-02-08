@@ -9,7 +9,7 @@ namespace Printify.Infrastructure.Printing.Epl.Commands;
 /// <param name="Thickness">Line thickness in dots.</param>
 /// <param name="X2">Ending horizontal position (in dots).</param>
 /// <param name="Y2">Ending vertical position (in dots).</param>
-public sealed record DrawBox(
+public sealed record EplDrawBox(
     int X1,
     int Y1,
     int Thickness,

@@ -39,19 +39,19 @@ public sealed class EplParser : Parser<EplDeviceContext, EplCommandTrieProvider>
         // EPL commands that modify device context state
         switch (element)
         {
-            case SetLabelWidth setLabelWidth:
+            case EplSetLabelWidth setLabelWidth:
                 State.DeviceContext.LabelWidth = setLabelWidth.Width;
                 break;
-            case SetLabelHeight setLabelHeight:
+            case EplSetLabelHeight setLabelHeight:
                 State.DeviceContext.LabelHeight = setLabelHeight.Height;
                 break;
-            case SetPrintSpeed setPrintSpeed:
+            case EplSetPrintSpeed setPrintSpeed:
                 State.DeviceContext.PrintSpeed = setPrintSpeed.Speed;
                 break;
-            case SetPrintDarkness setPrintDarkness:
+            case EplSetPrintDarkness setPrintDarkness:
                 State.DeviceContext.PrintDarkness = setPrintDarkness.Darkness;
                 break;
-            case SetInternationalCharacter setInternationalCharacter:
+            case EplSetInternationalCharacter setInternationalCharacter:
                 // Update encoding based on international character set
                 // P1 is the primary character set code
                 if (setInternationalCharacter.P1 is 8 or 38) // DOS 866 Cyrillic

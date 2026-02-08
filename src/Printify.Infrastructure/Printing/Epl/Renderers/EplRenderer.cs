@@ -55,17 +55,17 @@ public sealed class EplRenderer : IRenderer
                     AddBarcodeVisualElement(barcode, viewElements);
                     break;
 
-                case ScalableText scalableText:
+                case EplScalableText scalableText:
                     AddScalableTextDebugElement(scalableText, state, debugElements);
                     AddScalableTextVisualElement(scalableText, state, viewElements);
                     break;
 
-                case DrawHorizontalLine horizontalLine:
+                case EplDrawHorizontalLine horizontalLine:
                     AddDrawHorizontalLineDebugElement(horizontalLine, debugElements);
                     AddDrawHorizontalLineVisualElement(horizontalLine, viewElements);
                     break;
 
-                case Print print:
+                case EplPrint print:
                     debugElements.Add(new DebugInfo(
                         "print",
                         new Dictionary<string, string>
@@ -88,12 +88,12 @@ public sealed class EplRenderer : IRenderer
                     AddLegacyBarcodeVisualElement(legacyBarcode, viewElements);
                     break;
 
-                case DrawBox drawLine:
+                case EplDrawBox drawLine:
                     AddDrawLineDebugElement(drawLine, debugElements);
                     AddDrawLineVisualElement(drawLine, viewElements);
                     break;
 
-                case ClearBuffer:
+                case EplClearBuffer:
                     debugElements.Add(new DebugInfo(
                         "clearBuffer",
                         new Dictionary<string, string>(),
@@ -102,7 +102,7 @@ public sealed class EplRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case CarriageReturn:
+                case EplCarriageReturn:
                     debugElements.Add(new DebugInfo(
                         "carriageReturn",
                         new Dictionary<string, string>(),
@@ -111,7 +111,7 @@ public sealed class EplRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case LineFeed:
+                case EplLineFeed:
                     debugElements.Add(new DebugInfo(
                         "lineFeed",
                         new Dictionary<string, string>(),
@@ -120,7 +120,7 @@ public sealed class EplRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case SetLabelWidth labelWidth:
+                case EplSetLabelWidth labelWidth:
                     debugElements.Add(new DebugInfo(
                         "setLabelWidth",
                         new Dictionary<string, string>
@@ -132,7 +132,7 @@ public sealed class EplRenderer : IRenderer
                         GetDescription(labelWidth)));
                     break;
 
-                case SetLabelHeight labelHeight:
+                case EplSetLabelHeight labelHeight:
                     debugElements.Add(new DebugInfo(
                         "setLabelHeight",
                         new Dictionary<string, string>
@@ -145,7 +145,7 @@ public sealed class EplRenderer : IRenderer
                         GetDescription(labelHeight)));
                     break;
 
-                case SetPrintSpeed speed:
+                case EplSetPrintSpeed speed:
                     debugElements.Add(new DebugInfo(
                         "setPrintSpeed",
                         new Dictionary<string, string>
@@ -157,7 +157,7 @@ public sealed class EplRenderer : IRenderer
                         GetDescription(speed)));
                     break;
 
-                case SetPrintDarkness darkness:
+                case EplSetPrintDarkness darkness:
                     debugElements.Add(new DebugInfo(
                         "setPrintDarkness",
                         new Dictionary<string, string>
@@ -181,7 +181,7 @@ public sealed class EplRenderer : IRenderer
                         GetDescription(direction)));
                     break;
 
-                case SetInternationalCharacter intlChar:
+                case EplSetInternationalCharacter intlChar:
                     state.CurrentEncoding = GetEncodingFromCodePage(intlChar.P1, intlChar.P2, intlChar.P3);
                     debugElements.Add(new DebugInfo(
                         "setInternationalCharacter",
@@ -351,64 +351,64 @@ public sealed class EplRenderer : IRenderer
         };
     }
 
-    private static void AddScalableTextDebugElement(ScalableText scalableText, RenderState state, List<BaseElement> debugElements)
+    private static void AddScalableTextDebugElement(EplScalableText eplScalableText, RenderState state, List<BaseElement> debugElements)
     {
         // Decode raw bytes using current codepage
-        var decodedText = state.CurrentEncoding.GetString(scalableText.TextBytes);
+        var decodedText = state.CurrentEncoding.GetString(eplScalableText.TextBytes);
 
         // Add debug element for the command
         debugElements.Add(new DebugInfo(
             "scalableText",
             new Dictionary<string, string>
             {
-                ["X"] = scalableText.X.ToString(),
-                ["Y"] = scalableText.Y.ToString(),
-                ["Rotation"] = scalableText.Rotation.ToString(),
-                ["Font"] = scalableText.Font.ToString(),
-                ["HorizontalMultiplication"] = scalableText.HorizontalMultiplication.ToString(),
-                ["VerticalMultiplication"] = scalableText.VerticalMultiplication.ToString(),
-                ["Reverse"] = scalableText.Reverse.ToString(),
+                ["X"] = eplScalableText.X.ToString(),
+                ["Y"] = eplScalableText.Y.ToString(),
+                ["Rotation"] = eplScalableText.Rotation.ToString(),
+                ["Font"] = eplScalableText.Font.ToString(),
+                ["HorizontalMultiplication"] = eplScalableText.HorizontalMultiplication.ToString(),
+                ["VerticalMultiplication"] = eplScalableText.VerticalMultiplication.ToString(),
+                ["Reverse"] = eplScalableText.Reverse.ToString(),
                 ["Text"] = decodedText
             },
-            scalableText.RawBytes,
-            scalableText.LengthInBytes,
-            GetDescription(scalableText)));
+            eplScalableText.RawBytes,
+            eplScalableText.LengthInBytes,
+            GetDescription(eplScalableText)));
     }
 
-    private static void AddScalableTextVisualElement(ScalableText scalableText, RenderState state, List<BaseElement> viewElements)
+    private static void AddScalableTextVisualElement(EplScalableText eplScalableText, RenderState state, List<BaseElement> viewElements)
     {
         // Decode raw bytes using current codepage
-        var decodedText = state.CurrentEncoding.GetString(scalableText.TextBytes);
+        var decodedText = state.CurrentEncoding.GetString(eplScalableText.TextBytes);
 
         // Get font base dimensions
-        var (baseWidth, baseHeight) = GetFontDimensions(scalableText.Font);
-        var width = baseWidth * scalableText.HorizontalMultiplication * decodedText.Length;
-        var height = baseHeight * scalableText.VerticalMultiplication;
+        var (baseWidth, baseHeight) = GetFontDimensions(eplScalableText.Font);
+        var width = baseWidth * eplScalableText.HorizontalMultiplication * decodedText.Length;
+        var height = baseHeight * eplScalableText.VerticalMultiplication;
 
         // Calculate actual rendered dimensions based on rotation
         var (renderedWidth, renderedHeight) = CalculateRotatedDimensions(
             width,
             height,
-            scalableText.Rotation);
+            eplScalableText.Rotation);
 
         // Add the text element
         viewElements.Add(new TextElement(
             decodedText,
-            scalableText.X,
-            scalableText.Y,
+            eplScalableText.X,
+            eplScalableText.Y,
             renderedWidth,
             renderedHeight,
-            GetFontName(scalableText.Font),
+            GetFontName(eplScalableText.Font),
             0, // CharSpacing not applicable for EPL scalable text
             false, // IsBold - EPL doesn't have bold
             false, // IsUnderline
-            scalableText.Reverse == 'R', // IsReverse
-            scalableText.HorizontalMultiplication,
-            scalableText.VerticalMultiplication,
-            EplRotationMapper.ToDomainRotation(scalableText.Rotation)));
+            eplScalableText.Reverse == 'R', // IsReverse
+            eplScalableText.HorizontalMultiplication,
+            eplScalableText.VerticalMultiplication,
+            EplRotationMapper.ToDomainRotation(eplScalableText.Rotation)));
     }
 
-    private static void AddDrawHorizontalLineDebugElement(DrawHorizontalLine horizontalLine, List<BaseElement> debugElements)
+    private static void AddDrawHorizontalLineDebugElement(EplDrawHorizontalLine horizontalLine, List<BaseElement> debugElements)
     {
         debugElements.Add(new DebugInfo(
             "drawHorizontalLine",
@@ -424,7 +424,7 @@ public sealed class EplRenderer : IRenderer
             GetDescription(horizontalLine)));
     }
 
-    private static void AddDrawHorizontalLineVisualElement(DrawHorizontalLine horizontalLine, List<BaseElement> viewElements)
+    private static void AddDrawHorizontalLineVisualElement(EplDrawHorizontalLine horizontalLine, List<BaseElement> viewElements)
     {
         // Horizontal lines are represented as text elements for rendering
         viewElements.Add(new TextElement(
@@ -485,64 +485,64 @@ public sealed class EplRenderer : IRenderer
             EplRotationMapper.ToDomainRotation(barcode.Rotation)));
     }
 
-    private static void AddDrawLineDebugElement(DrawBox drawBox, List<BaseElement> debugElements)
+    private static void AddDrawLineDebugElement(EplDrawBox eplDrawBox, List<BaseElement> debugElements)
     {
         debugElements.Add(new DebugInfo(
             "drawLine",
             new Dictionary<string, string>
             {
-                ["X1"] = drawBox.X1.ToString(),
-                ["Y1"] = drawBox.Y1.ToString(),
-                ["Thickness"] = drawBox.Thickness.ToString(),
-                ["X2"] = drawBox.X2.ToString(),
-                ["Y2"] = drawBox.Y2.ToString()
+                ["X1"] = eplDrawBox.X1.ToString(),
+                ["Y1"] = eplDrawBox.Y1.ToString(),
+                ["Thickness"] = eplDrawBox.Thickness.ToString(),
+                ["X2"] = eplDrawBox.X2.ToString(),
+                ["Y2"] = eplDrawBox.Y2.ToString()
             },
-            drawBox.RawBytes,
-            drawBox.LengthInBytes,
-            GetDescription(drawBox)));
+            eplDrawBox.RawBytes,
+            eplDrawBox.LengthInBytes,
+            GetDescription(eplDrawBox)));
     }
 
-    private static void AddDrawLineVisualElement(DrawBox drawBox, List<BaseElement> viewElements)
+    private static void AddDrawLineVisualElement(EplDrawBox eplDrawBox, List<BaseElement> viewElements)
     {
         viewElements.Add(new LineElement(
-            drawBox.X1,
-            drawBox.Y1,
-            drawBox.X2,
-            drawBox.Y2,
-            drawBox.Thickness));
+            eplDrawBox.X1,
+            eplDrawBox.Y1,
+            eplDrawBox.X2,
+            eplDrawBox.Y2,
+            eplDrawBox.Thickness));
     }
 
-    private static void AddRasterImageDebugElement(EplRasterImage rasterImage, List<BaseElement> debugElements)
+    private static void AddRasterImageDebugElement(EplRasterImage eplRasterImage, List<BaseElement> debugElements)
     {
         debugElements.Add(new DebugInfo(
             "rasterImage",
             new Dictionary<string, string>
             {
-                ["X"] = rasterImage.X.ToString(),
-                ["Y"] = rasterImage.Y.ToString(),
-                ["Width"] = rasterImage.Width.ToString(),
-                ["Height"] = rasterImage.Height.ToString(),
-                ["ContentType"] = rasterImage.Media.ContentType,
-                ["Url"] = rasterImage.Media.Url
+                ["X"] = eplRasterImage.X.ToString(),
+                ["Y"] = eplRasterImage.Y.ToString(),
+                ["Width"] = eplRasterImage.Width.ToString(),
+                ["Height"] = eplRasterImage.Height.ToString(),
+                ["ContentType"] = eplRasterImage.Media.ContentType,
+                ["Url"] = eplRasterImage.Media.Url
             },
-            rasterImage.RawBytes,
-            rasterImage.LengthInBytes,
-            GetDescription(rasterImage)));
+            eplRasterImage.RawBytes,
+            eplRasterImage.LengthInBytes,
+            GetDescription(eplRasterImage)));
     }
 
-    private static void AddRasterImageVisualElement(EplRasterImage rasterImage, List<BaseElement> viewElements)
+    private static void AddRasterImageVisualElement(EplRasterImage eplRasterImage, List<BaseElement> viewElements)
     {
         // Raster images are represented as image elements with actual media
         viewElements.Add(new ImageElement(
             new LayoutMedia(
-                rasterImage.Media.ContentType,
-                ToMediaSize(rasterImage.Media.Length),
-                rasterImage.Media.Url,
-                rasterImage.Media.Sha256Checksum),
-            rasterImage.X,
-            rasterImage.Y,
-            rasterImage.Width,
-            rasterImage.Height,
+                eplRasterImage.Media.ContentType,
+                ToMediaSize(eplRasterImage.Media.Length),
+                eplRasterImage.Media.Url,
+                eplRasterImage.Media.Sha256Checksum),
+            eplRasterImage.X,
+            eplRasterImage.Y,
+            eplRasterImage.Width,
+            eplRasterImage.Height,
             Rotation.None));
     }
 

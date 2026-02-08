@@ -24,7 +24,7 @@ public static class EplScenarioData
         new(
             id: 1001,
             input: "N\n"u8.ToArray(),
-            expectedRequestCommands: [new ClearBuffer { LengthInBytes = 2 }],
+            expectedRequestCommands: [new EplClearBuffer { LengthInBytes = 2 }],
             expectedCanvasElements:
             [
                 [
@@ -38,7 +38,7 @@ public static class EplScenarioData
         new(
             id: 2001,
             input: "q500\n"u8.ToArray(),
-            expectedRequestCommands: [new SetLabelWidth(500) { LengthInBytes = 5 }],
+            expectedRequestCommands: [new EplSetLabelWidth(500) { LengthInBytes = 5 }],
             expectedCanvasElements:
             [
                 [
@@ -48,7 +48,7 @@ public static class EplScenarioData
         new(
             id: 2002,
             input: "Q300,26\n"u8.ToArray(),
-            expectedRequestCommands: [new SetLabelHeight(300, 26) { LengthInBytes = 8 }],
+            expectedRequestCommands: [new EplSetLabelHeight(300, 26) { LengthInBytes = 8 }],
             expectedCanvasElements:
             [
                 [
@@ -58,7 +58,7 @@ public static class EplScenarioData
         new(
             id: 2003,
             input: "R3\n"u8.ToArray(),
-            expectedRequestCommands: [new SetPrintSpeed(3) { LengthInBytes = 3 }],
+            expectedRequestCommands: [new EplSetPrintSpeed(3) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
                 [
@@ -68,7 +68,7 @@ public static class EplScenarioData
         new(
             id: 2004,
             input: "S10\n"u8.ToArray(),
-            expectedRequestCommands: [new SetPrintDarkness(10) { LengthInBytes = 4 }],
+            expectedRequestCommands: [new EplSetPrintDarkness(10) { LengthInBytes = 4 }],
             expectedCanvasElements:
             [
                 [
@@ -78,7 +78,7 @@ public static class EplScenarioData
         new(
             id: 2005,
             input: "ZT\n"u8.ToArray(),
-            expectedRequestCommands: [new SetPrintDirection(PrintDirection.TopToBottom) { LengthInBytes = 3 }],
+            expectedRequestCommands: [new SetPrintDirection(EplPrintDirection.TopToBottom) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
                 [
@@ -88,7 +88,7 @@ public static class EplScenarioData
         new(
             id: 2006,
             input: "ZB\n"u8.ToArray(),
-            expectedRequestCommands: [new SetPrintDirection(PrintDirection.BottomToTop) { LengthInBytes = 3 }],
+            expectedRequestCommands: [new SetPrintDirection(EplPrintDirection.BottomToTop) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
                 [
@@ -98,7 +98,7 @@ public static class EplScenarioData
         new(
             id: 2007,
             input: "I8\n"u8.ToArray(),
-            expectedRequestCommands: [new SetInternationalCharacter(8, 0, 0) { LengthInBytes = 3 }],
+            expectedRequestCommands: [new EplSetInternationalCharacter(8, 0, 0) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
                 [
@@ -108,7 +108,7 @@ public static class EplScenarioData
         new(
             id: 2008,
             input: "I8,10\n"u8.ToArray(),
-            expectedRequestCommands: [new SetInternationalCharacter(8, 10, 0) { LengthInBytes = 6 }],
+            expectedRequestCommands: [new EplSetInternationalCharacter(8, 10, 0) { LengthInBytes = 6 }],
             expectedCanvasElements:
             [
                 [
@@ -228,7 +228,7 @@ public static class EplScenarioData
         new(
             id: 23004,
             input: "\r"u8.ToArray(),
-            expectedRequestCommands: [new CarriageReturn { LengthInBytes = 1 }],
+            expectedRequestCommands: [new EplCarriageReturn { LengthInBytes = 1 }],
             expectedCanvasElements:
             [
                 [
@@ -239,7 +239,7 @@ public static class EplScenarioData
         new(
             id: 23005,
             input: "\n"u8.ToArray(),
-            expectedRequestCommands: [new LineFeed { LengthInBytes = 1 }],
+            expectedRequestCommands: [new EplLineFeed { LengthInBytes = 1 }],
             expectedCanvasElements:
             [
                 [
@@ -250,7 +250,7 @@ public static class EplScenarioData
         new(
             id: 23006,
             input: "N\r"u8.ToArray(),
-            expectedRequestCommands: [new ClearBuffer { LengthInBytes = 2 }],
+            expectedRequestCommands: [new EplClearBuffer { LengthInBytes = 2 }],
             expectedCanvasElements:
             [
                 [
@@ -261,7 +261,7 @@ public static class EplScenarioData
         new(
             id: 23007,
             input: "N\n"u8.ToArray(),
-            expectedRequestCommands: [new ClearBuffer { LengthInBytes = 2 }],
+            expectedRequestCommands: [new EplClearBuffer { LengthInBytes = 2 }],
             expectedCanvasElements:
             [
                 [
@@ -310,8 +310,8 @@ public static class EplScenarioData
             input: "N\r\n"u8.ToArray(),
             expectedRequestCommands:
             [
-                new ClearBuffer { LengthInBytes = 2 },
-                new LineFeed { LengthInBytes = 1 }
+                new EplClearBuffer { LengthInBytes = 2 },
+                new EplLineFeed { LengthInBytes = 1 }
             ],
             expectedCanvasElements:
             [
@@ -326,8 +326,8 @@ public static class EplScenarioData
             input: "\n\r"u8.ToArray(),
             expectedRequestCommands:
             [
-                new LineFeed { LengthInBytes = 1 },
-                new CarriageReturn { LengthInBytes = 1 }
+                new EplLineFeed { LengthInBytes = 1 },
+                new EplCarriageReturn { LengthInBytes = 1 }
             ],
             expectedCanvasElements:
             [
@@ -344,7 +344,7 @@ public static class EplScenarioData
             expectedRequestCommands:
             [
                 CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "DEF"),
-                new Print(1) { LengthInBytes = 3 }
+                new EplPrint(1) { LengthInBytes = 3 }
             ],
             expectedCanvasElements:
             [
@@ -375,7 +375,7 @@ public static class EplScenarioData
             expectedRequestCommands:
             [
                 CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "XYZ"),
-                new Print(2) { LengthInBytes = 3 }
+                new EplPrint(2) { LengthInBytes = 3 }
             ],
             expectedCanvasElements:
             [
@@ -585,7 +585,7 @@ public static class EplScenarioData
         new(
             id: 6001,
             input: "LO10,20,2,100\n"u8.ToArray(),
-            expectedRequestCommands: [new DrawHorizontalLine(10, 20, 2, 100) { LengthInBytes = 14 }],
+            expectedRequestCommands: [new EplDrawHorizontalLine(10, 20, 2, 100) { LengthInBytes = 14 }],
             expectedCanvasElements:
             [
                 [
@@ -603,7 +603,7 @@ public static class EplScenarioData
         new(
             id: 6002,
             input: "X5,10,1,200,50\n"u8.ToArray(),
-            expectedRequestCommands: [new DrawBox(5, 10, 1, 200, 50) { LengthInBytes = 15 }],
+            expectedRequestCommands: [new EplDrawBox(5, 10, 1, 200, 50) { LengthInBytes = 15 }],
             expectedCanvasElements:
             [
                 [
@@ -628,7 +628,7 @@ public static class EplScenarioData
         new(
             id: 7001,
             input: "P1\n"u8.ToArray(),
-            expectedRequestCommands: [new Print(1) { LengthInBytes = 3 }],
+            expectedRequestCommands: [new EplPrint(1) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
                 [
@@ -638,7 +638,7 @@ public static class EplScenarioData
         new(
             id: 7002,
             input: "P5\n"u8.ToArray(),
-            expectedRequestCommands: [new Print(5) { LengthInBytes = 3 }],
+            expectedRequestCommands: [new EplPrint(5) { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
                 [
@@ -783,7 +783,7 @@ public static class EplScenarioData
             RotationMapper.ToDto(rotation));
     }
 
-    private static ScalableText CreateScalableTextCommand(
+    private static EplScalableText CreateScalableTextCommand(
         int x,
         int y,
         int rotation,
@@ -797,7 +797,7 @@ public static class EplScenarioData
     {
         encoding ??= Encoding.GetEncoding(437);
         var bytes = encoding.GetBytes(text);
-        return new ScalableText(x, y, rotation, font, hMul, vMul, reverse, bytes)
+        return new EplScalableText(x, y, rotation, font, hMul, vMul, reverse, bytes)
         {
             //A10,20,0,2,1,1,N,"ABC"\n
             LengthInBytes = lengthInBytes ??

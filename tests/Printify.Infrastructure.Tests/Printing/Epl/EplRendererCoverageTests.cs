@@ -23,22 +23,22 @@ public sealed class EplRendererCoverageTests
         var commands = new List<Command>
         {
             // Config commands
-            new ClearBuffer(),
-            new CarriageReturn(),
-            new LineFeed(),
-            new SetLabelWidth(500),
-            new SetLabelHeight(300, 26),
-            new SetPrintSpeed(3),
-            new SetPrintDarkness(10),
-            new SetPrintDirection(PrintDirection.TopToBottom),
-            new SetPrintDirection(PrintDirection.BottomToTop),
-            new SetInternationalCharacter(0),
-            new SetInternationalCharacter(8),
+            new EplClearBuffer(),
+            new EplCarriageReturn(),
+            new EplLineFeed(),
+            new EplSetLabelWidth(500),
+            new EplSetLabelHeight(300, 26),
+            new EplSetPrintSpeed(3),
+            new EplSetPrintDarkness(10),
+            new SetPrintDirection(EplPrintDirection.TopToBottom),
+            new SetPrintDirection(EplPrintDirection.BottomToTop),
+            new EplSetInternationalCharacter(0),
+            new EplSetInternationalCharacter(8),
 
             // Text commands
-            new ScalableText(10, 20, 0, 1, 1, 1, 'N', "test"u8.ToArray()),
-            new ScalableText(10, 20, 1, 2, 2, 2, 'R', "test"u8.ToArray()),
-            new DrawHorizontalLine(10, 20, 2, 100),
+            new EplScalableText(10, 20, 0, 1, 1, 1, 'N', "test"u8.ToArray()),
+            new EplScalableText(10, 20, 1, 2, 2, 2, 'R', "test"u8.ToArray()),
+            new EplDrawHorizontalLine(10, 20, 2, 100),
 
             // Barcode commands
             new PrintBarcode(10, 20, 0, "CODE128", 2, 100, 'N', "12345"),
@@ -51,19 +51,19 @@ public sealed class EplRendererCoverageTests
             // Note: EplRasterImageUpload is excluded because it's an upload command not meant to be rendered
 
             // Shape commands
-            new DrawBox(10, 20, 2, 100, 80),
+            new EplDrawBox(10, 20, 2, 100, 80),
 
             // Error commands (placed before Print to be included in canvases)
             new EplParseError("ERR_CODE", "Test error message"),
             new EplPrinterError("Test printer error"),
 
             // Print command to finalize the canvas
-            new Print(1),
+            new EplPrint(1),
 
             // Additional commands after print to test multiple canvases
-            new ScalableText(10, 20, 0, 1, 1, 1, 'N', "test2"u8.ToArray()),
-            new DrawBox(20, 40, 2, 150, 100),
-            new Print(1),
+            new EplScalableText(10, 20, 0, 1, 1, 1, 'N', "test2"u8.ToArray()),
+            new EplDrawBox(20, 40, 2, 150, 100),
+            new EplPrint(1),
         };
 
         // Verify the list is complete via reflection (excluding upload commands)
@@ -98,22 +98,22 @@ public sealed class EplRendererCoverageTests
         var commands = new List<Command>
         {
             // Config commands
-            new ClearBuffer(),
-            new CarriageReturn(),
-            new LineFeed(),
-            new SetLabelWidth(500),
-            new SetLabelHeight(300, 26),
-            new SetPrintSpeed(3),
-            new SetPrintDarkness(10),
-            new SetPrintDirection(PrintDirection.TopToBottom),
-            new SetPrintDirection(PrintDirection.BottomToTop),
-            new SetInternationalCharacter(0),
-            new SetInternationalCharacter(8),
+            new EplClearBuffer(),
+            new EplCarriageReturn(),
+            new EplLineFeed(),
+            new EplSetLabelWidth(500),
+            new EplSetLabelHeight(300, 26),
+            new EplSetPrintSpeed(3),
+            new EplSetPrintDarkness(10),
+            new SetPrintDirection(EplPrintDirection.TopToBottom),
+            new SetPrintDirection(EplPrintDirection.BottomToTop),
+            new EplSetInternationalCharacter(0),
+            new EplSetInternationalCharacter(8),
 
             // Text commands
-            new ScalableText(10, 20, 0, 1, 1, 1, 'N', "test"u8.ToArray()),
-            new ScalableText(10, 20, 1, 2, 2, 2, 'R', "test"u8.ToArray()),
-            new DrawHorizontalLine(10, 20, 2, 100),
+            new EplScalableText(10, 20, 0, 1, 1, 1, 'N', "test"u8.ToArray()),
+            new EplScalableText(10, 20, 1, 2, 2, 2, 'R', "test"u8.ToArray()),
+            new EplDrawHorizontalLine(10, 20, 2, 100),
 
             // Barcode commands
             new PrintBarcode(10, 20, 0, "CODE128", 2, 100, 'N', "12345"),
@@ -124,19 +124,19 @@ public sealed class EplRendererCoverageTests
             new EplRasterImage(10, 20, 100, 50, CreateTestMedia()),
 
             // Shape commands
-            new DrawBox(10, 20, 2, 100, 80),
+            new EplDrawBox(10, 20, 2, 100, 80),
 
             // Error commands (placed before Print to be included in canvases)
             new EplParseError("ERR_CODE", "Test error message"),
             new EplPrinterError("Test printer error"),
 
             // Print command to finalize the canvas
-            new Print(1),
+            new EplPrint(1),
 
             // Additional commands after print to test multiple canvases
-            new ScalableText(10, 20, 0, 1, 1, 1, 'N', "test2"u8.ToArray()),
-            new DrawBox(20, 40, 2, 150, 100),
-            new Print(1),
+            new EplScalableText(10, 20, 0, 1, 1, 1, 'N', "test2"u8.ToArray()),
+            new EplDrawBox(20, 40, 2, 150, 100),
+            new EplPrint(1),
         };
 
         // Verify the list is complete via reflection (excluding upload commands)

@@ -27,7 +27,7 @@ public sealed class ClearBufferDescriptor : ICommandDescriptor
         if (terminatorByte != 0x0A && terminatorByte != 0x0D) // LF or CR
             return MatchResult.Matched(new PrinterError("N command must be followed by CR or LF"));
 
-        var element = new ClearBuffer();
+        var element = new EplClearBuffer();
         return EplParsingHelpers.Success(element, buffer, length);
     }
 }

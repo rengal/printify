@@ -12,7 +12,7 @@ namespace Printify.Infrastructure.Mapping.Protocols.Epl;
 /// </summary>
 public static class CommandMapper
 {
-    private const PrintDirection DefaultPrintDirection = PrintDirection.TopToBottom;
+    private const EplPrintDirection DefaultPrintDirection = EplPrintDirection.TopToBottom;
     private const char DefaultCharReverse = 'N';
 
     public static EplDocumentElementPayload ToCommandPayload(Command command)
@@ -21,20 +21,20 @@ public static class CommandMapper
 
         return command switch
         {
-            ClearBuffer => new ClearBufferElementPayload(),
-            CarriageReturn => new CarriageReturnElementPayload(),
-            LineFeed => new LineFeedElementPayload(),
-            SetLabelWidth labelWidth => new SetLabelWidthElementPayload(labelWidth.Width),
-            SetLabelHeight labelHeight => new SetLabelHeightElementPayload(
+            EplClearBuffer => new ClearBufferElementPayload(),
+            EplCarriageReturn => new CarriageReturnElementPayload(),
+            EplLineFeed => new LineFeedElementPayload(),
+            EplSetLabelWidth labelWidth => new SetLabelWidthElementPayload(labelWidth.Width),
+            EplSetLabelHeight labelHeight => new SetLabelHeightElementPayload(
                 labelHeight.Height,
                 labelHeight.SecondParameter),
-            SetPrintSpeed speed => new SetPrintSpeedElementPayload(speed.Speed),
-            SetPrintDarkness darkness => new SetPrintDarknessElementPayload(darkness.Darkness),
+            EplSetPrintSpeed speed => new SetPrintSpeedElementPayload(speed.Speed),
+            EplSetPrintDarkness darkness => new SetPrintDarknessElementPayload(darkness.Darkness),
             SetPrintDirection direction => new SetPrintDirectionElementPayload(
                 EnumMapper.ToString(direction.Direction)),
-            SetInternationalCharacter intlChar => new SetInternationalCharacterElementPayload(intlChar.P1, intlChar.P2, intlChar.P3),
+            EplSetInternationalCharacter intlChar => new SetInternationalCharacterElementPayload(intlChar.P1, intlChar.P2, intlChar.P3),
             PrinterError printerError => new PrinterErrorElementPayload(printerError.Message),
-            ScalableText text => new ScalableTextElementPayload(
+            EplScalableText text => new ScalableTextElementPayload(
                 text.X,
                 text.Y,
                 text.Rotation,
@@ -43,18 +43,18 @@ public static class CommandMapper
                 text.VerticalMultiplication,
                 text.Reverse.ToString(),
                 Convert.ToHexString(text.TextBytes)),
-            DrawHorizontalLine line => new DrawHorizontalLineElementPayload(
+            EplDrawHorizontalLine line => new DrawHorizontalLineElementPayload(
                 line.X,
                 line.Y,
                 line.Thickness,
                 line.Length),
-            DrawBox line => new DrawBoxElementPayload(
+            EplDrawBox line => new DrawBoxElementPayload(
                 line.X1,
                 line.Y1,
                 line.Thickness,
                 line.X2,
                 line.Y2),
-            Print print => new PrintElementPayload(print.Copies),
+            EplPrint print => new PrintElementPayload(print.Copies),
             PrintBarcode barcode => new PrintBarcodeElementPayload(
                 barcode.X,
                 barcode.Y,
@@ -94,20 +94,20 @@ public static class CommandMapper
 
         return dto switch
         {
-            ClearBufferElementPayload => new ClearBuffer(),
-            CarriageReturnElementPayload => new CarriageReturn(),
-            LineFeedElementPayload => new LineFeed(),
-            SetLabelWidthElementPayload labelWidth => new SetLabelWidth(labelWidth.Width),
-            SetLabelHeightElementPayload labelHeight => new SetLabelHeight(
+            ClearBufferElementPayload => new EplClearBuffer(),
+            CarriageReturnElementPayload => new EplCarriageReturn(),
+            LineFeedElementPayload => new EplLineFeed(),
+            SetLabelWidthElementPayload labelWidth => new EplSetLabelWidth(labelWidth.Width),
+            SetLabelHeightElementPayload labelHeight => new EplSetLabelHeight(
                 labelHeight.Height,
                 labelHeight.SecondParameter),
-            SetPrintSpeedElementPayload speed => new SetPrintSpeed(speed.Speed),
-            SetPrintDarknessElementPayload darkness => new SetPrintDarkness(darkness.Darkness),
+            SetPrintSpeedElementPayload speed => new EplSetPrintSpeed(speed.Speed),
+            SetPrintDarknessElementPayload darkness => new EplSetPrintDarkness(darkness.Darkness),
             SetPrintDirectionElementPayload direction => new SetPrintDirection(
                 EnumMapper.ParsePrintDirection(direction.Direction ?? "TopToBottom")),
-            SetInternationalCharacterElementPayload intlChar => new SetInternationalCharacter(intlChar.P1, intlChar.P2, intlChar.P3),
+            SetInternationalCharacterElementPayload intlChar => new EplSetInternationalCharacter(intlChar.P1, intlChar.P2, intlChar.P3),
             PrinterErrorElementPayload printerError => new PrinterError(printerError.Message ?? string.Empty),
-            ScalableTextElementPayload text => new ScalableText(
+            ScalableTextElementPayload text => new EplScalableText(
                 text.X,
                 text.Y,
                 text.Rotation,
@@ -116,18 +116,18 @@ public static class CommandMapper
                 text.VerticalMultiplication,
                 string.IsNullOrEmpty(text.Reverse) ? DefaultCharReverse : text.Reverse[0],
                 string.IsNullOrEmpty(text.TextBytesHex) ? Array.Empty<byte>() : Convert.FromHexString(text.TextBytesHex)),
-            DrawHorizontalLineElementPayload line => new DrawHorizontalLine(
+            DrawHorizontalLineElementPayload line => new EplDrawHorizontalLine(
                 line.X,
                 line.Y,
                 line.Thickness,
                 line.Length),
-            DrawBoxElementPayload line => new DrawBox(
+            DrawBoxElementPayload line => new EplDrawBox(
                 line.X1,
                 line.Y1,
                 line.Thickness,
                 line.X2,
                 line.Y2),
-            PrintElementPayload print => new Print(print.Copies),
+            PrintElementPayload print => new EplPrint(print.Copies),
             PrintBarcodeElementPayload barcode => media is not null
                 ? new EplPrintBarcode(
                     barcode.X,

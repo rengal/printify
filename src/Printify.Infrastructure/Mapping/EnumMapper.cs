@@ -146,13 +146,13 @@ public static class EnumMapper
         return scope.ToString();
     }
 
-    public static PrintDirection ParsePrintDirection(string direction)
+    public static EplPrintDirection ParsePrintDirection(string direction)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(direction);
-        return Enum.Parse<PrintDirection>(direction, false);
+        return Enum.Parse<EplPrintDirection>(direction, false);
     }
 
-    public static string ToString(PrintDirection direction)
+    public static string ToString(EplPrintDirection direction)
     {
         return direction.ToString();
     }

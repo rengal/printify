@@ -38,32 +38,32 @@ public static class EplCommandHelper
             EplPrinterError printerError => Lines(
                 "Printer error",
                 $"Message=\"{EscapeDescriptionText(printerError.Message)}\""),
-            ScalableText scalableText => BuildScalableTextDescription(scalableText),
-            DrawHorizontalLine horizontalLine => BuildDrawHorizontalLineDescription(horizontalLine),
-            Print print => BuildPrintDescription(print),
+            EplScalableText scalableText => BuildScalableTextDescription(scalableText),
+            EplDrawHorizontalLine horizontalLine => BuildDrawHorizontalLineDescription(horizontalLine),
+            EplPrint print => BuildPrintDescription(print),
             PrintBarcode eplBarcode => BuildEplBarcodeDescription(eplBarcode),
-            DrawBox drawLine => BuildDrawLineDescription(drawLine),
+            EplDrawBox drawLine => BuildDrawLineDescription(drawLine),
             EplRasterImage rasterImage => BuildEplRasterImageDescription(rasterImage),
             EplPrintBarcode barcode => BuildEplPrintBarcodeDescription(barcode),
-            ClearBuffer => Lines("N - Clear buffer (acknowledge/clear image buffer)"),
-            CarriageReturn => Lines("CR - Carriage return (0x0D)"),
-            LineFeed => Lines("LF - Line feed (0x0A)"),
-            SetLabelWidth labelWidth => Lines(
+            EplClearBuffer => Lines("N - Clear buffer (acknowledge/clear image buffer)"),
+            EplCarriageReturn => Lines("CR - Carriage return (0x0D)"),
+            EplLineFeed => Lines("LF - Line feed (0x0A)"),
+            EplSetLabelWidth labelWidth => Lines(
                 "q width - Set label width",
                 $"width={labelWidth.Width} (dots)"),
-            SetLabelHeight labelHeight => Lines(
+            EplSetLabelHeight labelHeight => Lines(
                 "Q height, param2 - Set label height",
                 $"height={labelHeight.Height} (dots)"),
-            SetPrintSpeed speed => Lines(
+            EplSetPrintSpeed speed => Lines(
                 "R speed - Set print speed",
                 $"speed={speed.Speed} (ips)"),
-            SetPrintDarkness darkness => Lines(
+            EplSetPrintDarkness darkness => Lines(
                 "S darkness - Set print darkness",
                 $"darkness={darkness.Darkness}"),
             SetPrintDirection direction => Lines(
                 "Z direction - Set print direction",
                 $"direction={direction.Direction.ToString()}"),
-            SetInternationalCharacter intlChar => Lines(
+            EplSetInternationalCharacter intlChar => Lines(
                 "I p1,p2,p3 - Set international character set/codepage",
                 $"p1={intlChar.P1}, p2={intlChar.P2}, p3={intlChar.P3}"),
             _ => Lines(
@@ -72,27 +72,27 @@ public static class EplCommandHelper
         };
     }
 
-    private static IReadOnlyList<string> BuildScalableTextDescription(ScalableText scalableText)
+    private static IReadOnlyList<string> BuildScalableTextDescription(EplScalableText eplScalableText)
     {
-        var rotationLabel = scalableText.Rotation switch
+        var rotationLabel = eplScalableText.Rotation switch
         {
             0 => "normal",
             1 => "90°",
             2 => "180°",
             3 => "270°",
-            _ => scalableText.Rotation.ToString()
+            _ => eplScalableText.Rotation.ToString()
         };
 
         return Lines(
             "A x,y,rotation,font,h,v,reverse,\"text\" - Scalable/rotatable text",
-            $"x={scalableText.X}, y={scalableText.Y}",
+            $"x={eplScalableText.X}, y={eplScalableText.Y}",
             $"rotation={rotationLabel}",
-            $"font={scalableText.Font}, h-mul={scalableText.HorizontalMultiplication}, v-mul={scalableText.VerticalMultiplication}",
-            $"reverse={scalableText.Reverse}",
-            $"text=\"{EscapeDescriptionText(Encoding.GetEncoding(437).GetString(scalableText.TextBytes))}\"");
+            $"font={eplScalableText.Font}, h-mul={eplScalableText.HorizontalMultiplication}, v-mul={eplScalableText.VerticalMultiplication}",
+            $"reverse={eplScalableText.Reverse}",
+            $"text=\"{EscapeDescriptionText(Encoding.GetEncoding(437).GetString(eplScalableText.TextBytes))}\"");
     }
 
-    private static IReadOnlyList<string> BuildDrawHorizontalLineDescription(DrawHorizontalLine horizontalLine)
+    private static IReadOnlyList<string> BuildDrawHorizontalLineDescription(EplDrawHorizontalLine horizontalLine)
     {
         return Lines(
             "LO x,y,thickness,length - Draw horizontal line",
@@ -100,11 +100,11 @@ public static class EplCommandHelper
             $"thickness={horizontalLine.Thickness}, length={horizontalLine.Length}");
     }
 
-    private static IReadOnlyList<string> BuildPrintDescription(Print print)
+    private static IReadOnlyList<string> BuildPrintDescription(EplPrint eplPrint)
     {
         return Lines(
             "P n - Print format and feed label",
-            $"n={print.Copies} (copies)");
+            $"n={eplPrint.Copies} (copies)");
     }
 
     private static IReadOnlyList<string> BuildEplBarcodeDescription(PrintBarcode barcode)
@@ -128,23 +128,23 @@ public static class EplCommandHelper
             $"data=\"{EscapeDescriptionText(barcode.Data)}\"");
     }
 
-    private static IReadOnlyList<string> BuildDrawLineDescription(DrawBox drawBox)
+    private static IReadOnlyList<string> BuildDrawLineDescription(EplDrawBox eplDrawBox)
     {
         return Lines(
             "X x1,y1,thickness,x2,y2 - Draw line or box",
-            $"x1={drawBox.X1}, y1={drawBox.Y1}",
-            $"thickness={drawBox.Thickness}",
-            $"x2={drawBox.X2}, y2={drawBox.Y2}");
+            $"x1={eplDrawBox.X1}, y1={eplDrawBox.Y1}",
+            $"thickness={eplDrawBox.Thickness}",
+            $"x2={eplDrawBox.X2}, y2={eplDrawBox.Y2}");
     }
 
-    private static IReadOnlyList<string> BuildEplRasterImageDescription(EplRasterImage rasterImage)
+    private static IReadOnlyList<string> BuildEplRasterImageDescription(EplRasterImage eplRasterImage)
     {
         return Lines(
             "GW x,y,width,height,[data] - Raster image (finalized)",
-            $"x={rasterImage.X}, y={rasterImage.Y}",
-            $"width={rasterImage.Width} (dots), height={rasterImage.Height} (dots)",
-            $"contentType={rasterImage.Media.ContentType}",
-            $"url={rasterImage.Media.Url}");
+            $"x={eplRasterImage.X}, y={eplRasterImage.Y}",
+            $"width={eplRasterImage.Width} (dots), height={eplRasterImage.Height} (dots)",
+            $"contentType={eplRasterImage.Media.ContentType}",
+            $"url={eplRasterImage.Media.Url}");
     }
 
     private static IReadOnlyList<string> BuildEplPrintBarcodeDescription(EplPrintBarcode barcode)

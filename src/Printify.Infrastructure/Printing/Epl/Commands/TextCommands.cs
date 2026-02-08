@@ -13,7 +13,7 @@ namespace Printify.Infrastructure.Printing.Epl.Commands;
 /// <param name="VerticalMultiplication">Vertical font multiplication (1-9).</param>
 /// <param name="Reverse">Reverse printing: N=normal, R=reverse.</param>
 /// <param name="TextBytes">Raw text bytes that will be decoded using the current codepage.</param>
-public sealed record ScalableText(
+public sealed record EplScalableText(
     int X,
     int Y,
     int Rotation,
@@ -31,7 +31,7 @@ public sealed record ScalableText(
 /// <param name="Y">Vertical position (in dots).</param>
 /// <param name="Thickness">Line thickness in dots.</param>
 /// <param name="Length">Line length in dots.</param>
-public sealed record DrawHorizontalLine(
+public sealed record EplDrawHorizontalLine(
     int X,
     int Y,
     int Thickness,
@@ -42,4 +42,4 @@ public sealed record DrawHorizontalLine(
 /// Command: P n (where n is number of copies)
 /// </summary>
 /// <param name="Copies">Number of copies to print.</param>
-public sealed record Print(int Copies) : EplCommand;
+public sealed record EplPrint(int Copies) : EplCommand;

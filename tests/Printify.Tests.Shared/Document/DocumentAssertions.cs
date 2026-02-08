@@ -49,8 +49,8 @@ public static class DocumentAssertions
                     var actualText = Assert.IsType<EscPosCommands.AppendText>(actualElement);
                     Assert.Equal(expectedText.TextBytes, actualText.TextBytes);
                     break;
-                case EplCommands.ScalableText expectedText:
-                    var actualScalableText = Assert.IsType<EplCommands.ScalableText>(actualElement);
+                case EplCommands.EplScalableText expectedText:
+                    var actualScalableText = Assert.IsType<EplCommands.EplScalableText>(actualElement);
                     Assert.Equal(expectedText.X, actualScalableText.X);
                     Assert.Equal(expectedText.Y, actualScalableText.Y);
                     Assert.Equal(expectedText.Rotation, actualScalableText.Rotation);

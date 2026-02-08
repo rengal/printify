@@ -43,7 +43,7 @@ public sealed class DatabasePayloadTests
         var textBytes = Encoding.GetEncoding(437).GetBytes("Hello");
 
         // Create domain command
-        var command = new ScalableText(10, 20, 0, 2, 1, 1, 'N', textBytes)
+        var command = new EplScalableText(10, 20, 0, 2, 1, 1, 'N', textBytes)
         {
             LengthInBytes = 25
         };
@@ -118,7 +118,7 @@ public sealed class DatabasePayloadTests
 
         // Convert back to domain
         var roundtripCommand = CommandMapper.ToDomain(deserializedPayload);
-        var roundtripTextCommand = Assert.IsType<ScalableText>(roundtripCommand);
+        var roundtripTextCommand = Assert.IsType<EplScalableText>(roundtripCommand);
 
         Console.WriteLine($"[Step 7] Roundtrip TextBytes (hex): '{Convert.ToHexString(roundtripTextCommand.TextBytes)}'");
         Assert.Equal(textBytes, roundtripTextCommand.TextBytes);

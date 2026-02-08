@@ -33,7 +33,7 @@ public sealed class SetLabelWidthDescriptor : ICommandDescriptor
         if (parseResult.HasValue)
             return parseResult.Value;
 
-        var element = new SetLabelWidth(width);
+        var element = new EplSetLabelWidth(width);
         return EplParsingHelpers.Success(element, buffer, length);
     }
 }
@@ -68,7 +68,7 @@ public sealed class SetLabelHeightDescriptor : ICommandDescriptor
                 var height = p.GetInt(0, "height");
                 var param2 = p.GetIntOrDefault(1, 0);
 
-                return new SetLabelHeight(height, param2);
+                return new EplSetLabelHeight(height, param2);
             }).WithMetadata(buffer, length);
     }
 }
@@ -102,7 +102,7 @@ public sealed class SetPrintSpeedDescriptor : ICommandDescriptor
         if (parseResult.HasValue)
             return parseResult.Value;
 
-        var element = new SetPrintSpeed(speed);
+        var element = new EplSetPrintSpeed(speed);
         return EplParsingHelpers.Success(element, buffer, length);
     }
 }
@@ -136,7 +136,7 @@ public sealed class SetPrintDarknessDescriptor : ICommandDescriptor
         if (parseResult.HasValue)
             return parseResult.Value;
 
-        var element = new SetPrintDarkness(darkness);
+        var element = new EplSetPrintDarkness(darkness);
         return EplParsingHelpers.Success(element, buffer, length);
     }
 }
@@ -165,22 +165,22 @@ public sealed class SetPrintDirectionDescriptor : ICommandDescriptor
             return MatchResult.NeedMore();
 
         var direction = (char)buffer[1];
-        PrintDirection printDirection;
+        EplPrintDirection eplPrintDirection;
         switch (direction)
         {
             case 'T':
             case 't':
-                printDirection = PrintDirection.TopToBottom;
+                eplPrintDirection = EplPrintDirection.TopToBottom;
                 break;
             case 'B':
             case 'b':
-                printDirection = PrintDirection.BottomToTop;
+                eplPrintDirection = EplPrintDirection.BottomToTop;
                 break;
             default:
                 return MatchResult.Matched(new PrinterError($"Invalid Z direction: '{direction}' (expected 'T' or 'B')"));
         }
 
-        var element = new SetPrintDirection(printDirection);
+        var element = new SetPrintDirection(eplPrintDirection);
         return EplParsingHelpers.Success(element, buffer, length);
     }
 }
@@ -216,7 +216,7 @@ public sealed class SetInternationalCharacterDescriptor : ICommandDescriptor
                 var p2 = p.GetIntOrDefault(1, 0);
                 var p3 = p.GetIntOrDefault(2, 0);
 
-                return new SetInternationalCharacter(p1, p2, p3);
+                return new EplSetInternationalCharacter(p1, p2, p3);
             }).WithMetadata(buffer, length);
     }
 }

@@ -78,7 +78,7 @@ public class SerializationTests
     {
         // Arrange
         var textBytes = Encoding.GetEncoding(437).GetBytes("Hello");
-        var command = new ScalableText(10, 20, 0, 2, 1, 1, 'N', textBytes);
+        var command = new EplScalableText(10, 20, 0, 2, 1, 1, 'N', textBytes);
 
         // Act - convert to payload
         var payload = CommandMapper.ToCommandPayload(command);
@@ -104,7 +104,7 @@ public class SerializationTests
         Assert.Equal("48656C6C6F", deserialized.TextBytesHex);
 
         // Act - convert back to domain
-        var roundtripCommand = CommandMapper.ToDomain(deserialized) as ScalableText;
+        var roundtripCommand = CommandMapper.ToDomain(deserialized) as EplScalableText;
         Assert.NotNull(roundtripCommand);
         var roundtripText = Encoding.GetEncoding(437).GetString(roundtripCommand.TextBytes);
         Assert.Equal("Hello", roundtripText);
@@ -138,7 +138,7 @@ public class SerializationTests
         Assert.Equal("", deserialized.TextBytesHex);
 
         // Act - convert back to domain
-        var roundtripCommand = CommandMapper.ToDomain(deserialized) as ScalableText;
+        var roundtripCommand = CommandMapper.ToDomain(deserialized) as EplScalableText;
         Assert.NotNull(roundtripCommand);
         Assert.Empty(roundtripCommand.TextBytes);
     }

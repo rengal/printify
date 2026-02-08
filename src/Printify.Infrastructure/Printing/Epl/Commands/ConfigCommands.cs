@@ -3,7 +3,7 @@ namespace Printify.Infrastructure.Printing.Epl.Commands;
 /// <summary>
 /// Print direction for EPL printers.
 /// </summary>
-public enum PrintDirection
+public enum EplPrintDirection
 {
     /// <summary>Top to bottom (normal printing direction).</summary>
     TopToBottom,
@@ -15,14 +15,14 @@ public enum PrintDirection
 /// Clear buffer (acknowledge/clear image buffer).
 /// Command: N
 /// </summary>
-public sealed record ClearBuffer : EplCommand;
+public sealed record EplClearBuffer : EplCommand;
 
 /// <summary>
 /// Set label width in dots.
 /// Command: q width
 /// </summary>
 /// <param name="Width">Label width in dots.</param>
-public sealed record SetLabelWidth(int Width) : EplCommand;
+public sealed record EplSetLabelWidth(int Width) : EplCommand;
 
 /// <summary>
 /// Set label height in dots.
@@ -30,28 +30,28 @@ public sealed record SetLabelWidth(int Width) : EplCommand;
 /// </summary>
 /// <param name="Height">Label height in dots.</param>
 /// <param name="SecondParameter">Second parameter (typically 26, often ignored).</param>
-public sealed record SetLabelHeight(int Height, int SecondParameter = 0) : EplCommand;
+public sealed record EplSetLabelHeight(int Height, int SecondParameter = 0) : EplCommand;
 
 /// <summary>
 /// Set print speed.
 /// Command: R speed (where speed is typically 2-5)
 /// </summary>
 /// <param name="Speed">Print speed (inches per second).</param>
-public sealed record SetPrintSpeed(int Speed) : EplCommand;
+public sealed record EplSetPrintSpeed(int Speed) : EplCommand;
 
 /// <summary>
 /// Set print darkness.
 /// Command: S darkness (typically 0-15)
 /// </summary>
 /// <param name="Darkness">Print darkness value.</param>
-public sealed record SetPrintDarkness(int Darkness) : EplCommand;
+public sealed record EplSetPrintDarkness(int Darkness) : EplCommand;
 
 /// <summary>
 /// Set print direction.
 /// Command: Z T (top to bottom) or Z B (bottom to top)
 /// </summary>
 /// <param name="Direction">Direction: TopToBottom or BottomToTop.</param>
-public sealed record SetPrintDirection(PrintDirection Direction) : EplCommand;
+public sealed record SetPrintDirection(EplPrintDirection Direction) : EplCommand;
 
 /// <summary>
 /// Set international character set/codepage.
@@ -60,16 +60,16 @@ public sealed record SetPrintDirection(PrintDirection Direction) : EplCommand;
 /// <param name="P1">Primary parameter (character set number).</param>
 /// <param name="P2">Secondary parameter (optional).</param>
 /// <param name="P3">Tertiary parameter (optional).</param>
-public sealed record SetInternationalCharacter(int P1, int P2 = 0, int P3 = 0) : EplCommand;
+public sealed record EplSetInternationalCharacter(int P1, int P2 = 0, int P3 = 0) : EplCommand;
 
 /// <summary>
 /// Carriage return (no-op command for debug/logging).
 /// Command: CR (0x0D)
 /// </summary>
-public sealed record CarriageReturn : EplCommand;
+public sealed record EplCarriageReturn : EplCommand;
 
 /// <summary>
 /// Line feed (no-op command for debug/logging).
 /// Command: LF (0x0A)
 /// </summary>
-public sealed record LineFeed : EplCommand;
+public sealed record EplLineFeed : EplCommand;

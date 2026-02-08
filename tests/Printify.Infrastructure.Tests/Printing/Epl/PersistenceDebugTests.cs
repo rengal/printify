@@ -26,7 +26,7 @@ public sealed class PersistenceDebugTests
     {
         // Arrange - Create command with text
         var textBytes = Encoding.GetEncoding(437).GetBytes("Hello");
-        var originalCommand = new ScalableText(10, 20, 0, 2, 1, 1, 'N', textBytes)
+        var originalCommand = new EplScalableText(10, 20, 0, 2, 1, 1, 'N', textBytes)
         {
             LengthInBytes = 25
         };
@@ -62,7 +62,7 @@ public sealed class PersistenceDebugTests
         // Step 5: Convert back to domain
         Console.WriteLine($"\n=== STEP 5: ToDomain ===");
         var roundtripCommand = CommandMapper.ToDomain(deserializedPayload);
-        var roundtripTextCommand = Assert.IsType<ScalableText>(roundtripCommand);
+        var roundtripTextCommand = Assert.IsType<EplScalableText>(roundtripCommand);
 
         Console.WriteLine($"  TextBytes (hex): '{Convert.ToHexString(roundtripTextCommand.TextBytes)}'");
         Console.WriteLine($"  TextBytes (len): {roundtripTextCommand.TextBytes.Length}");

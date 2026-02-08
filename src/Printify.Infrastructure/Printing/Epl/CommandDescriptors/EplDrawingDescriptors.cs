@@ -67,7 +67,7 @@ public sealed class ScalableTextDescriptor : ICommandDescriptor
             // Extract raw bytes between quotes (excluding the quotes themselves)
             var textBytes = buffer[(quoteStartByteIndex + 1)..quoteEndByteIndex].ToArray();
 
-            var element = new ScalableText(x, y, rotation, font, hMul, vMul, reverse, textBytes);
+            var element = new EplScalableText(x, y, rotation, font, hMul, vMul, reverse, textBytes);
             return EplParsingHelpers.Success(element, buffer, length);
         }
         catch (ParseException ex)
@@ -119,7 +119,7 @@ public sealed class DrawHorizontalLineDescriptor : ICommandDescriptor
                 var y = p.GetInt(1, "y");
                 var thickness = p.GetInt(2, "thickness");
                 var lineLength = p.GetInt(3, "length");
-                return new DrawHorizontalLine(x, y, thickness, lineLength);
+                return new EplDrawHorizontalLine(x, y, thickness, lineLength);
             }).WithMetadata(buffer, length);
     }
 }
@@ -244,7 +244,7 @@ public sealed class DrawBoxDescriptor : ICommandDescriptor
                 var thickness = p.GetInt(2, "thickness");
                 var x2 = p.GetInt(3, "x2");
                 var y2 = p.GetInt(4, "y2");
-                return new DrawBox(x1, y1, thickness, x2, y2);
+                return new EplDrawBox(x1, y1, thickness, x2, y2);
             }).WithMetadata(buffer, length);
     }
 }
@@ -278,7 +278,7 @@ public sealed class PrintDescriptor : ICommandDescriptor
         if (parseResult.HasValue)
             return parseResult.Value;
 
-        var element = new Print(copies);
+        var element = new EplPrint(copies);
         return EplParsingHelpers.Success(element, buffer, length);
     }
 }
