@@ -7,6 +7,7 @@
  * - Handles document debug toggle and copy actions
  * - Renders canvas document elements
  */
+import { normalizeEscPosFont, toEscPosFontCssClass } from '../../assets/js/api/escpos-specs.js';
 
 // ============================================================================
 // STATE
@@ -407,13 +408,15 @@ function renderViewTextElement(element, id) {
     const height = Number(element.height) || 0;
     const zIndex = Number(element.zIndex) || 0;
     const text = element.text || '';
-    const font = element.font || 'ESCPOS_A';
+    const font = element.font ?? 'ESCPOS_A';
     const charSpacing = Number(element.charSpacing) || 0;
     const charScaleX = Number(element.charScaleX) || 1;
     const charScaleY = Number(element.charScaleY) || 1;
 
-    // Map font to CSS class
-    const fontClass = font === 'ESCPOS_B' ? 'escpos-font-b' : 'escpos-font-a';
+    const fontClass = toEscPosFontCssClass(font);
+    const transformCss = (charScaleX !== 1 || charScaleY !== 1)
+        ? `scale(${charScaleX}, ${charScaleY})`
+        : 'none';
 
     // Build inline styles
     const styles = [];
@@ -429,7 +432,7 @@ function renderViewTextElement(element, id) {
 
     // Apply character scaling (for double-width, double-height text)
     if (charScaleX !== 1 || charScaleY !== 1) {
-        styles.push(`transform: scale(${charScaleX}, ${charScaleY})`);
+        styles.push(`transform: ${transformCss}`);
         styles.push('transform-origin: left top');
     }
 
@@ -653,7 +656,7 @@ export function mapViewDocumentDto(dto, printer) {
     const canvasPreviews = canvases.map((canvas, index) => {
         const width = Number(canvas.widthInDots) || printer?.width || 384;
         const height = canvas.heightInDots ?? null;
-        const elements = canvas.items || [];
+        const elements = normalizeCanvasElements(canvas.items || [], protocol);
         const canvasId = `${docId}-canvas-${index}`;
 
         const previewHtml = renderViewDocument(elements, width, height, canvasId, errorMessages, debugMode);
@@ -688,6 +691,24 @@ export function mapViewDocumentDto(dto, printer) {
         debugEnabled: false,
         canvases: canvasPreviews // Multiple canvases
     };
+}
+
+function normalizeCanvasElements(elements, protocol) {
+    return elements.map(element => {
+        if (!element || (element.type || '').toLowerCase() !== 'text') {
+            return element;
+        }
+
+        const apiFont = element.font ?? element.fontName ?? null;
+        const normalizedFont = protocol === 'escpos'
+            ? normalizeEscPosFont(apiFont)
+            : apiFont;
+
+        return {
+            ...element,
+            font: normalizedFont
+        };
+    });
 }
 
 // ============================================================================

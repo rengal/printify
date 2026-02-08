@@ -881,6 +881,66 @@ public static class EscPosScenarioData
                     DebugElement("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(false)),
                     DebugElement("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true))
                 ]
+            ]),
+        new(
+            id: 220004,
+            input:
+            [
+                Esc, 0x21, 0x00,
+                (byte)'A', (byte)'A', Lf,
+                Esc, 0x21, 0x31,
+                Esc, (byte)'E', 0x01,
+                Esc, 0x2D, 0x01,
+                Gs, 0x42, 0x01,
+                (byte)'B', (byte)'B', Lf
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                CommandAppendText("AA"),
+                CommandPrintAndLineFeed(),
+                new EscPosCommands.EscPosSelectFont(1, true, true) { LengthInBytes = 3 },
+                new EscPosCommands.EscPosSetBoldMode(true) { LengthInBytes = 3 },
+                new EscPosCommands.EscPosSetUnderlineMode(true) { LengthInBytes = 3 },
+                new EscPosCommands.EscPosSetReverseMode(true) { LengthInBytes = 3 },
+                CommandAppendText("BB"),
+                CommandPrintAndLineFeed()
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, false, false)),
+                    DebugAppendText("AA", lengthInBytes: 2),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement(
+                        "AA",
+                        x: 0,
+                        y: 0,
+                        lengthInBytes: 2,
+                        charScaleX: 1,
+                        charScaleY: 1,
+                        fontName: EscPosSpecs.Fonts.FontA.FontName,
+                        isBold: false,
+                        isUnderline: false,
+                        isReverse: false),
+                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, true, true)),
+                    DebugElement("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                    DebugElement("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                    DebugElement("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                    DebugAppendText("BB", lengthInBytes: 2),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement(
+                        "BB",
+                        x: 0,
+                        y: DefaultLineHeight,
+                        lengthInBytes: 2,
+                        charScaleX: 2,
+                        charScaleY: 2,
+                        fontName: EscPosSpecs.Fonts.FontB.FontName,
+                        isBold: true,
+                        isUnderline: true,
+                        isReverse: true)
+                ]
             ])
     ];
 
@@ -1085,7 +1145,11 @@ public static class EscPosScenarioData
         int y,
         int lengthInBytes,
         int charScaleX = 1,
-        int charScaleY = 1)
+        int charScaleY = 1,
+        string fontName = EscPosSpecs.Fonts.FontA.FontName,
+        bool isBold = false,
+        bool isUnderline = false,
+        bool isReverse = false)
     {
         var element = new CanvasTextElementDto(
             text,
@@ -1093,11 +1157,11 @@ public static class EscPosScenarioData
             y,
             text.Length * DefaultFontWidth * charScaleX,
             DefaultFontHeight * charScaleY,
-            EscPosSpecs.Fonts.FontA.FontName,
+            fontName,
             0,
-            false,
-            false,
-            false,
+            isBold,
+            isUnderline,
+            isReverse,
             CharScaleX: charScaleX,
             CharScaleY: charScaleY);
 
