@@ -25,13 +25,13 @@ public static class EscPosGoldenCases
                 ["case01"] = (
                     expectedRequestElement:
                     [
-                        new EscPosCommands.Initialize { LengthInBytes = 2 },
-                        new EscPosCommands.SelectFont(0, false, false) { LengthInBytes = 3 },
-                        new EscPosCommands.SetCodePage("866") { LengthInBytes = 3 },
-                        new EscPosCommands.SelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
+                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetCodePage("866") { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
                         CreateAppendText(Pad("font 0", 42)),
-                        new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
-                        new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0) { LengthInBytes = 4 }
+                        new EscPosCommands.EscPosPrintAndLineFeed { LengthInBytes = 1 },
+                        new EscPosCommands.EscPosCutPaper(EscPosCommands.EscPosPagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
                     expectedFinalizedElements: null, // the same as elements
                     expectedCanvasElements:
@@ -54,24 +54,24 @@ public static class EscPosGoldenCases
                             false,
                             false,
                             false) { LengthInBytes = 42 },
-                        new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.PagecutMode.Partial, 0)) { LengthInBytes = 4 }
+                        new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.EscPosPagecutMode.Partial, 0)) { LengthInBytes = 4 }
                     ]),
                 ["case02"] = (
                     expectedRequestElement:
                     [
-                        new EscPosCommands.Initialize { LengthInBytes = 2 },
-                        new EscPosCommands.SelectFont(0, false, false) { LengthInBytes = 3 },
-                        new EscPosCommands.SetCodePage("866") { LengthInBytes = 3 },
-                        new EscPosCommands.SelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
+                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetCodePage("866") { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
                         CreateAppendText(Pad("font 0", 42)),
-                        new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
-                        new EscPosCommands.SelectFont(1, true, true) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosPrintAndLineFeed { LengthInBytes = 1 },
+                        new EscPosCommands.EscPosSelectFont(1, true, true) { LengthInBytes = 3 },
                         CreateAppendText(Pad("font 1", 28)),
-                        new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
-                        new EscPosCommands.SelectFont(0, true, true) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosPrintAndLineFeed { LengthInBytes = 1 },
+                        new EscPosCommands.EscPosSelectFont(0, true, true) { LengthInBytes = 3 },
                         CreateAppendText(Pad("font 2", 21)),
-                        new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
-                        new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0) { LengthInBytes = 4 }
+                        new EscPosCommands.EscPosPrintAndLineFeed { LengthInBytes = 1 },
+                        new EscPosCommands.EscPosCutPaper(EscPosCommands.EscPosPagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
                     expectedFinalizedElements: null, // the same as elements
                     expectedCanvasElements:
@@ -130,38 +130,38 @@ public static class EscPosGoldenCases
                             CharScaleX: 2,
                             CharScaleY: 2)
                         { LengthInBytes = 21 },
-                        new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.PagecutMode.Partial, 0)) { LengthInBytes = 4 }
+                        new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.EscPosPagecutMode.Partial, 0)) { LengthInBytes = 4 }
                     ]),
                 ["case03"] = (
                     expectedRequestElement:
                     [
-                        new EscPosCommands.Initialize { LengthInBytes = 2 },
-                        new EscPosCommands.SelectFont(0, false, false) { LengthInBytes = 3 },
-                        new EscPosCommands.SetCodePage("866") { LengthInBytes = 3 },
-                        new EscPosCommands.SelectFont(0, false, false) { LengthInBytes = 3 },
-                        new EscPosCommands.SetJustification(EscPosCommands.TextJustification.Right) { LengthInBytes = 3 },
-                        new EscPosCommands.SetBarcodeHeight(101) { LengthInBytes = 3 },
-                        new EscPosCommands.SetBarcodeModuleWidth(3) { LengthInBytes = 3 },
-                        new EscPosCommands.SetBarcodeLabelPosition(EscPosCommands.BarcodeLabelPosition.Below) { LengthInBytes = 3 },
-                        new EscPosCommands.PrintBarcodeUpload(EscPosCommands.BarcodeSymbology.Ean13, "1234567890128") { LengthInBytes = 17 },
-                        new EscPosCommands.SetJustification(EscPosCommands.TextJustification.Left) { LengthInBytes = 3 },
-                        new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
-                        new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0) { LengthInBytes = 4 }
+                        new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
+                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetCodePage("866") { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetJustification(EscPosCommands.EscPosTextJustification.Right) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetBarcodeHeight(101) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetBarcodeModuleWidth(3) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetBarcodeLabelPosition(EscPosCommands.EscPosBarcodeLabelPosition.Below) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosPrintBarcodeUpload(EscPosCommands.EscPosBarcodeSymbology.Ean13, "1234567890128") { LengthInBytes = 17 },
+                        new EscPosCommands.EscPosSetJustification(EscPosCommands.EscPosTextJustification.Left) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosPrintAndLineFeed { LengthInBytes = 1 },
+                        new EscPosCommands.EscPosCutPaper(EscPosCommands.EscPosPagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
                     expectedFinalizedElements:
                     [
-                        new EscPosCommands.Initialize { LengthInBytes = 2 },
-                        new EscPosCommands.SelectFont(0, false, false) { LengthInBytes = 3 },
-                        new EscPosCommands.SetCodePage("866") { LengthInBytes = 3 },
-                        new EscPosCommands.SelectFont(0, false, false) { LengthInBytes = 3 },
-                        new EscPosCommands.SetJustification(EscPosCommands.TextJustification.Right) { LengthInBytes = 3 },
-                        new EscPosCommands.SetBarcodeHeight(101) { LengthInBytes = 3 },
-                        new EscPosCommands.SetBarcodeModuleWidth(3) { LengthInBytes = 3 },
-                        new EscPosCommands.SetBarcodeLabelPosition(EscPosCommands.BarcodeLabelPosition.Below) { LengthInBytes = 3 },
-                        new EscPosCommands.PrintBarcode(EscPosCommands.BarcodeSymbology.Ean13, "1234567890128", 0, 0, Media.CreateDefaultPng(1)) { LengthInBytes = 17 },
-                        new EscPosCommands.SetJustification(EscPosCommands.TextJustification.Left) { LengthInBytes = 3 },
-                        new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
-                        new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0) { LengthInBytes = 4 }
+                        new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
+                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetCodePage("866") { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetJustification(EscPosCommands.EscPosTextJustification.Right) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetBarcodeHeight(101) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetBarcodeModuleWidth(3) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetBarcodeLabelPosition(EscPosCommands.EscPosBarcodeLabelPosition.Below) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosPrintBarcode(EscPosCommands.EscPosBarcodeSymbology.Ean13, "1234567890128", 0, 0, Media.CreateDefaultPng(1)) { LengthInBytes = 17 },
+                        new EscPosCommands.EscPosSetJustification(EscPosCommands.EscPosTextJustification.Left) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosPrintAndLineFeed { LengthInBytes = 1 },
+                        new EscPosCommands.EscPosCutPaper(EscPosCommands.EscPosPagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
                     expectedCanvasElements:
                     [
@@ -171,12 +171,12 @@ public static class EscPosGoldenCases
                         new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto(
                             "setJustification",
-                            JustificationParameters(EscPosCommands.TextJustification.Right)) { LengthInBytes = 3 },
+                            JustificationParameters(EscPosCommands.EscPosTextJustification.Right)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto("setBarcodeHeight", BarcodeHeightParameters(101)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto("setBarcodeModuleWidth", BarcodeModuleWidthParameters(3)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto(
                             "setBarcodeLabelPosition",
-                            BarcodeLabelParameters(EscPosCommands.BarcodeLabelPosition.Below)) { LengthInBytes = 3 },
+                            BarcodeLabelParameters(EscPosCommands.EscPosBarcodeLabelPosition.Below)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto("printBarcode") { LengthInBytes = 17 },
                         new CanvasImageElementDto(
                             ToViewMediaDto(Media.CreateDefaultPng(1)),
@@ -186,38 +186,38 @@ public static class EscPosGoldenCases
                             101) { LengthInBytes = 17 },
                         new CanvasDebugElementDto(
                             "setJustification",
-                            JustificationParameters(EscPosCommands.TextJustification.Left)) { LengthInBytes = 3 },
+                            JustificationParameters(EscPosCommands.EscPosTextJustification.Left)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
-                        new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.PagecutMode.Partial, 0)) { LengthInBytes = 4 }
+                        new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.EscPosPagecutMode.Partial, 0)) { LengthInBytes = 4 }
                     ]),
                 ["case04"] = (
                     expectedRequestElement:
                     [
-                        new EscPosCommands.Initialize { LengthInBytes = 2 },
-                        new EscPosCommands.SelectFont(0, false, false) { LengthInBytes = 3 },
-                        new EscPosCommands.SetCodePage("866") { LengthInBytes = 3 },
-                        new EscPosCommands.SetJustification(EscPosCommands.TextJustification.Left) { LengthInBytes = 3 },
-                        new EscPosCommands.SetQrModel(EscPosCommands.QrModel.Model2) { LengthInBytes = 9 },
-                        new EscPosCommands.SetQrModuleSize(7) { LengthInBytes = 8 },
-                        new EscPosCommands.SetQrErrorCorrection(EscPosCommands.QrErrorCorrectionLevel.Low) { LengthInBytes = 8 },
-                        new EscPosCommands.StoreQrData("https://google.com") { LengthInBytes = 26 },
-                        new EscPosCommands.PrintQrCodeUpload { LengthInBytes = 8 },
-                        new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
-                        new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0) { LengthInBytes = 4 }
+                        new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
+                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetCodePage("866") { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetJustification(EscPosCommands.EscPosTextJustification.Left) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetQrModel(EscPosCommands.EscPosQrModel.Model2) { LengthInBytes = 9 },
+                        new EscPosCommands.EscPosSetQrModuleSize(7) { LengthInBytes = 8 },
+                        new EscPosCommands.EscPosSetQrErrorCorrection(EscPosCommands.EscPosQrErrorCorrectionLevel.Low) { LengthInBytes = 8 },
+                        new EscPosCommands.EscPosStoreQrData("https://google.com") { LengthInBytes = 26 },
+                        new EscPosCommands.EscPosPrintQrCodeUpload { LengthInBytes = 8 },
+                        new EscPosCommands.EscPosPrintAndLineFeed { LengthInBytes = 1 },
+                        new EscPosCommands.EscPosCutPaper(EscPosCommands.EscPosPagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
                     expectedFinalizedElements:
                     [
-                        new EscPosCommands.Initialize { LengthInBytes = 2 },
-                        new EscPosCommands.SelectFont(0, false, false) { LengthInBytes = 3 },
-                        new EscPosCommands.SetCodePage("866") { LengthInBytes = 3 },
-                        new EscPosCommands.SetJustification(EscPosCommands.TextJustification.Left) { LengthInBytes = 3 },
-                        new EscPosCommands.SetQrModel(EscPosCommands.QrModel.Model2) { LengthInBytes = 9 },
-                        new EscPosCommands.SetQrModuleSize(7) { LengthInBytes = 8 },
-                        new EscPosCommands.SetQrErrorCorrection(EscPosCommands.QrErrorCorrectionLevel.Low) { LengthInBytes = 8 },
-                        new EscPosCommands.StoreQrData("https://google.com") { LengthInBytes = 26 },
-                        new EscPosCommands.PrintQrCode("https://google.com", 0, 0, Media.CreateDefaultPng(2)) { LengthInBytes = 8 },
-                        new EscPosCommands.PrintAndLineFeed { LengthInBytes = 1 },
-                        new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0) { LengthInBytes = 4 }
+                        new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
+                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetCodePage("866") { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetJustification(EscPosCommands.EscPosTextJustification.Left) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetQrModel(EscPosCommands.EscPosQrModel.Model2) { LengthInBytes = 9 },
+                        new EscPosCommands.EscPosSetQrModuleSize(7) { LengthInBytes = 8 },
+                        new EscPosCommands.EscPosSetQrErrorCorrection(EscPosCommands.EscPosQrErrorCorrectionLevel.Low) { LengthInBytes = 8 },
+                        new EscPosCommands.EscPosStoreQrData("https://google.com") { LengthInBytes = 26 },
+                        new EscPosCommands.EscPosPrintQrCode("https://google.com", 0, 0, Media.CreateDefaultPng(2)) { LengthInBytes = 8 },
+                        new EscPosCommands.EscPosPrintAndLineFeed { LengthInBytes = 1 },
+                        new EscPosCommands.EscPosCutPaper(EscPosCommands.EscPosPagecutMode.Partial, 0) { LengthInBytes = 4 }
                     ],
                     expectedCanvasElements:
                     [
@@ -226,12 +226,12 @@ public static class EscPosGoldenCases
                         new CanvasDebugElementDto("setCodePage", CodePageParameters("866")) { LengthInBytes = 3 },
                         new CanvasDebugElementDto(
                             "setJustification",
-                            JustificationParameters(EscPosCommands.TextJustification.Left)) { LengthInBytes = 3 },
-                        new CanvasDebugElementDto("setQrModel", QrModelParameters(EscPosCommands.QrModel.Model2)) { LengthInBytes = 9 },
+                            JustificationParameters(EscPosCommands.EscPosTextJustification.Left)) { LengthInBytes = 3 },
+                        new CanvasDebugElementDto("setQrModel", QrModelParameters(EscPosCommands.EscPosQrModel.Model2)) { LengthInBytes = 9 },
                         new CanvasDebugElementDto("setQrModuleSize", QrModuleSizeParameters(7)) { LengthInBytes = 8 },
                         new CanvasDebugElementDto(
                             "setQrErrorCorrection",
-                            QrErrorCorrectionParameters(EscPosCommands.QrErrorCorrectionLevel.Low)) { LengthInBytes = 8 },
+                            QrErrorCorrectionParameters(EscPosCommands.EscPosQrErrorCorrectionLevel.Low)) { LengthInBytes = 8 },
                         new CanvasDebugElementDto(
                             "storeQrData",
                             StoreQrDataParameters("https://google.com")) { LengthInBytes = 26 },
@@ -243,15 +243,15 @@ public static class EscPosGoldenCases
                             512,
                             225) { LengthInBytes = 8 },
                         new CanvasDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
-                        new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.PagecutMode.Partial, 0)) { LengthInBytes = 4 }
+                        new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.EscPosPagecutMode.Partial, 0)) { LengthInBytes = 4 }
                     ]),
                 ["case05"] = (
                     expectedRequestElement:
                         [
-                            new EscPosCommands.Initialize { LengthInBytes = 2 },
-                            new EscPosCommands.SelectFont(0, false, false) { LengthInBytes = 3 },
-                            new EscPosCommands.StoredLogo(0) { LengthInBytes = 4 },
-                            new EscPosCommands.CutPaper(EscPosCommands.PagecutMode.Partial, 0) { LengthInBytes = 4 }
+                            new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
+                            new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                            new EscPosCommands.EscPosPrintLogo(0) { LengthInBytes = 4 },
+                            new EscPosCommands.EscPosCutPaper(EscPosCommands.EscPosPagecutMode.Partial, 0) { LengthInBytes = 4 }
                         ],
                         expectedFinalizedElements: null, // the same as elements
                         expectedCanvasElements:
@@ -259,7 +259,7 @@ public static class EscPosGoldenCases
                             new CanvasDebugElementDto("resetPrinter") { LengthInBytes = 2 },
                             new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                             new CanvasDebugElementDto("storedLogo", StoredLogoParameters(0)) { LengthInBytes = 4 },
-                            new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.PagecutMode.Partial, 0)) { LengthInBytes = 4 }
+                            new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.EscPosPagecutMode.Partial, 0)) { LengthInBytes = 4 }
                         ]),
             };
 
@@ -357,7 +357,7 @@ public static class EscPosGoldenCases
         };
     }
 
-    private static IReadOnlyDictionary<string, string> JustificationParameters(EscPosCommands.TextJustification justification)
+    private static IReadOnlyDictionary<string, string> JustificationParameters(EscPosCommands.EscPosTextJustification justification)
     {
         return new Dictionary<string, string>
         {
@@ -381,7 +381,7 @@ public static class EscPosGoldenCases
         };
     }
 
-    private static IReadOnlyDictionary<string, string> BarcodeLabelParameters(EscPosCommands.BarcodeLabelPosition position)
+    private static IReadOnlyDictionary<string, string> BarcodeLabelParameters(EscPosCommands.EscPosBarcodeLabelPosition position)
     {
         return new Dictionary<string, string>
         {
@@ -389,7 +389,7 @@ public static class EscPosGoldenCases
         };
     }
 
-    private static IReadOnlyDictionary<string, string> QrModelParameters(EscPosCommands.QrModel model)
+    private static IReadOnlyDictionary<string, string> QrModelParameters(EscPosCommands.EscPosQrModel model)
     {
         return new Dictionary<string, string>
         {
@@ -405,7 +405,7 @@ public static class EscPosGoldenCases
         };
     }
 
-    private static IReadOnlyDictionary<string, string> QrErrorCorrectionParameters(EscPosCommands.QrErrorCorrectionLevel level)
+    private static IReadOnlyDictionary<string, string> QrErrorCorrectionParameters(EscPosCommands.EscPosQrErrorCorrectionLevel level)
     {
         return new Dictionary<string, string>
         {
@@ -429,7 +429,7 @@ public static class EscPosGoldenCases
         };
     }
 
-    private static IReadOnlyDictionary<string, string> PagecutParameters(EscPosCommands.PagecutMode mode, int? feedUnits)
+    private static IReadOnlyDictionary<string, string> PagecutParameters(EscPosCommands.EscPosPagecutMode mode, int? feedUnits)
     {
         return new Dictionary<string, string>
         {
@@ -446,11 +446,11 @@ public static class EscPosGoldenCases
         };
     }
 
-    private static EscPosCommands.AppendText CreateAppendText(string text, Encoding? encoding = null)
+    private static EscPosCommands.EscPosAppendText CreateAppendText(string text, Encoding? encoding = null)
     {
         encoding ??= Encoding.GetEncoding(437);
         var bytes = encoding.GetBytes(text);
-        return new EscPosCommands.AppendText(bytes) { LengthInBytes = bytes.Length };
+        return new EscPosCommands.EscPosAppendText(bytes) { LengthInBytes = bytes.Length };
     }
 
     private static bool RegisterEncodingProvider()

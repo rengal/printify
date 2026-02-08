@@ -1,11 +1,9 @@
-using Printify.Application.Features.Printers.Documents.Canvas;
 using Printify.Domain.Documents;
 using Printify.Domain.Layout.Primitives;
 using Printify.Domain.Printers;
 using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Infrastructure.Printing.Epl.Renderers;
-using Printify.Tests.Shared.Document;
 
 namespace Printify.Infrastructure.Tests.Printing.Epl;
 
@@ -110,7 +108,6 @@ public sealed class EplRendererCommandDescriptionTests
         var commands = new List<Command>
         {
             new EplScalableText(10, 20, 0, 2, 1, 1, 'N', textBytes),
-            new PrintBarcode(50, 60, 0, "128", 2, 100, 'N', "ABC123"),
         };
 
         var document = new Document(

@@ -9,7 +9,7 @@ public abstract record Command
     /// <summary>
     /// Raw command bytes as received from the printer.
     /// </summary>
-    public byte[] RawBytes { get; init; } = Array.Empty<byte>();
+    public byte[] RawBytes { get; init; } = [];
 
     /// <summary>
     /// Length of the command in bytes.

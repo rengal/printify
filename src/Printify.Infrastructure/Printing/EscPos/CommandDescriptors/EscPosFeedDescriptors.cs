@@ -17,7 +17,7 @@ public sealed class FlushLineBufferAndFeedDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
-        return MatchResult.Matched(new PrintAndLineFeed());
+        return MatchResult.Matched(new EscPosPrintAndLineFeed());
     }
 }
 
@@ -36,7 +36,7 @@ public sealed class LegacyCarriageReturnDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         // Compatibility workaround: emit a non-visual element so debug traces include CR.
-        return MatchResult.Matched(new LegacyCarriageReturn());
+        return MatchResult.Matched(new EscPosLegacyCarriageReturn());
     }
 }
 
@@ -104,13 +104,13 @@ public sealed class PageCutDescriptor : ICommandDescriptor
         // Map ESC/POS mode byte to PagecutMode enum
         var cutMode = modeValue switch
         {
-            0 or 48 or 65 or 97 or 103 => PagecutMode.Full,
-            1 or 49 or 66 or 98 or 104 => PagecutMode.Partial,
-            _ => PagecutMode.Full // Default to full cut for unknown modes
+            0 or 48 or 65 or 97 or 103 => EscPosPagecutMode.Full,
+            1 or 49 or 66 or 98 or 104 => EscPosPagecutMode.Partial,
+            _ => EscPosPagecutMode.Full // Default to full cut for unknown modes
         };
 
         // Create CutPaper element with the determined mode and feed parameter
-        var element = new CutPaper(cutMode, feedMotionUnits);
+        var element = new EscPosCutPaper(cutMode, feedMotionUnits);
 
         return MatchResult.Matched(element);
     }
@@ -133,7 +133,7 @@ public sealed class PartialCutOnePointDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
-        var element = new CutPaper(PagecutMode.PartialOnePoint);
+        var element = new EscPosCutPaper(EscPosPagecutMode.PartialOnePoint);
         return MatchResult.Matched(element);
     }
 }
@@ -155,7 +155,7 @@ public sealed class PartialCutThreePointDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
-        var element = new CutPaper(PagecutMode.PartialThreePoint);
+        var element = new EscPosCutPaper(EscPosPagecutMode.PartialThreePoint);
         return MatchResult.Matched(element);
     }
 }

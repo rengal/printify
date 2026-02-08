@@ -12,7 +12,6 @@ namespace Printify.Infrastructure.Mapping.Protocols.Epl;
 /// </summary>
 public static class CommandMapper
 {
-    private const EplPrintDirection DefaultPrintDirection = EplPrintDirection.TopToBottom;
     private const char DefaultCharReverse = 'N';
 
     public static EplDocumentElementPayload ToCommandPayload(Command command)
@@ -32,8 +31,12 @@ public static class CommandMapper
             EplSetPrintDarkness darkness => new SetPrintDarknessElementPayload(darkness.Darkness),
             SetPrintDirection direction => new SetPrintDirectionElementPayload(
                 EnumMapper.ToString(direction.Direction)),
-            EplSetInternationalCharacter intlChar => new SetInternationalCharacterElementPayload(intlChar.P1, intlChar.P2, intlChar.P3),
-            PrinterError printerError => new PrinterErrorElementPayload(printerError.Message),
+            EplSetInternationalCharacter characterSet => new SetInternationalCharacterElementPayload(characterSet.P1, characterSet.P2, characterSet.P3),
+            EplParseError parseError => new PrinterErrorElementPayload(
+                string.IsNullOrWhiteSpace(parseError.Message)
+                    ? parseError.Code
+                    : $"{parseError.Code}: {parseError.Message}"),
+            EplPrinterError printerError => new PrinterErrorElementPayload(printerError.Message),
             EplScalableText text => new ScalableTextElementPayload(
                 text.X,
                 text.Y,
@@ -55,15 +58,6 @@ public static class CommandMapper
                 line.X2,
                 line.Y2),
             EplPrint print => new PrintElementPayload(print.Copies),
-            PrintBarcode barcode => new PrintBarcodeElementPayload(
-                barcode.X,
-                barcode.Y,
-                barcode.Rotation,
-                barcode.Type,
-                barcode.Width,
-                barcode.Height,
-                barcode.Hri.ToString(),
-                barcode.Data),
             EplPrintBarcode barcode => new PrintBarcodeElementPayload(
                 barcode.X,
                 barcode.Y,
@@ -104,9 +98,9 @@ public static class CommandMapper
             SetPrintSpeedElementPayload speed => new EplSetPrintSpeed(speed.Speed),
             SetPrintDarknessElementPayload darkness => new EplSetPrintDarkness(darkness.Darkness),
             SetPrintDirectionElementPayload direction => new SetPrintDirection(
-                EnumMapper.ParsePrintDirection(direction.Direction ?? "TopToBottom")),
-            SetInternationalCharacterElementPayload intlChar => new EplSetInternationalCharacter(intlChar.P1, intlChar.P2, intlChar.P3),
-            PrinterErrorElementPayload printerError => new PrinterError(printerError.Message ?? string.Empty),
+                EnumMapper.ParsePrintDirection(direction.Direction)),
+            SetInternationalCharacterElementPayload characterSet => new EplSetInternationalCharacter(characterSet.P1, characterSet.P2, characterSet.P3),
+            PrinterErrorElementPayload printerError => new EplPrinterError(printerError.Message ?? string.Empty),
             ScalableTextElementPayload text => new EplScalableText(
                 text.X,
                 text.Y,
@@ -115,7 +109,7 @@ public static class CommandMapper
                 text.HorizontalMultiplication,
                 text.VerticalMultiplication,
                 string.IsNullOrEmpty(text.Reverse) ? DefaultCharReverse : text.Reverse[0],
-                string.IsNullOrEmpty(text.TextBytesHex) ? Array.Empty<byte>() : Convert.FromHexString(text.TextBytesHex)),
+                string.IsNullOrEmpty(text.TextBytesHex) ? [] : Convert.FromHexString(text.TextBytesHex)),
             DrawHorizontalLineElementPayload line => new EplDrawHorizontalLine(
                 line.X,
                 line.Y,
@@ -128,8 +122,7 @@ public static class CommandMapper
                 line.X2,
                 line.Y2),
             PrintElementPayload print => new EplPrint(print.Copies),
-            PrintBarcodeElementPayload barcode => media is not null
-                ? new EplPrintBarcode(
+            PrintBarcodeElementPayload barcode => new EplPrintBarcode(
                     barcode.X,
                     barcode.Y,
                     barcode.Rotation,
@@ -138,22 +131,13 @@ public static class CommandMapper
                     barcode.Height,
                     string.IsNullOrEmpty(barcode.Hri) ? DefaultCharReverse : barcode.Hri[0],
                     barcode.Data,
-                    media)
-                : new PrintBarcode(
-                    barcode.X,
-                    barcode.Y,
-                    barcode.Rotation,
-                    barcode.Type,
-                    barcode.Width,
-                    barcode.Height,
-                    string.IsNullOrEmpty(barcode.Hri) ? DefaultCharReverse : barcode.Hri[0],
-                    barcode.Data),
+                    media ?? throw new ArgumentNullException(nameof(media))),
             EplRasterImageElementPayload raster => new EplRasterImage(
                 raster.X,
                 raster.Y,
                 raster.Width,
                 raster.Height,
-                media),
+                media ?? throw new ArgumentNullException(nameof(media))),
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }

@@ -144,7 +144,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
 
         if (textBytes.Length > 0)
         {
-            var element = new AppendText(textBytes)
+            var element = new EscPosAppendText(textBytes)
             {
                 RawBytes = textBytes,
                 LengthInBytes = textBytes.Length
@@ -162,7 +162,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
     protected override void ModifyDeviceContext(Command element)
     {
         // Handle encoding change when SetCodePage is received
-        if (element is SetCodePage setCodePage)
+        if (element is EscPosSetCodePage setCodePage)
         {
             State.DeviceContext.Encoding = GetEncodingFromCodePage(setCodePage.CodePage);
         }
@@ -191,7 +191,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         EmitElement(element, rawBytes.Length);
 
         // Handle status requests by immediately generating and sending response
-        if (element is StatusRequest statusRequest)
+        if (element is EscPosStatusRequest statusRequest)
         {
             BuildAndSendStatusResponse(statusRequest.RequestType, CurrentCancellationToken);
         }
@@ -219,7 +219,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
     /// <summary>
     /// Builds and sends an ESC/POS status response for a given request type.
     /// </summary>
-    private void BuildAndSendStatusResponse(StatusRequestType requestType, CancellationToken ct)
+    private void BuildAndSendStatusResponse(EscPosStatusRequestType requestType, CancellationToken ct)
     {
         try
         {
@@ -250,15 +250,15 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
 
             var statusByte = requestType switch
             {
-                StatusRequestType.PrinterStatus => BuildPrinterStatusByte(isPrinterOffline, hasError, isPaperOut),
-                StatusRequestType.OfflineCause => BuildOfflineCauseByte(isCoverOpen, isPaperOut, hasError, isOfflineFlag),
-                StatusRequestType.ErrorCause => BuildErrorCauseByte(hasError),
-                StatusRequestType.PaperRollSensor => BuildPaperRollSensorByte(isPaperNearEnd, isPaperOut),
+                EscPosStatusRequestType.PrinterStatus => BuildPrinterStatusByte(isPrinterOffline, hasError, isPaperOut),
+                EscPosStatusRequestType.OfflineCause => BuildOfflineCauseByte(isCoverOpen, isPaperOut, hasError, isOfflineFlag),
+                EscPosStatusRequestType.ErrorCause => BuildErrorCauseByte(hasError),
+                EscPosStatusRequestType.PaperRollSensor => BuildPaperRollSensorByte(isPaperNearEnd, isPaperOut),
                 _ => BuildPrinterStatusByte(isPrinterOffline, hasError, isPaperOut)
             };
 
             // Emit the response element for document/debugging
-            var response = new StatusResponse(statusByte,
+            var response = new EscPosStatusResponse(statusByte,
                 IsPaperOut: isPaperOut,
                 IsCoverOpen: isCoverOpen,
                 IsOffline: isPrinterOffline)
@@ -283,7 +283,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         catch (Exception ex)
         {
             // Emit error - need to access onElement through base class
-            base.EmitElement(new PrinterError($"Status response failed: {ex.Message}"), 0);
+            base.EmitElement(CreatePrinterError($"Status response failed: {ex.Message}"), 0);
         }
     }
 
@@ -331,6 +331,28 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         if (isPaperOut)
             status |= 0x20;
         return status;
+    }
+
+    protected override bool IsPrintableCommand(Command element)
+    {
+        return element is EscPosAppendText
+            or EscPosRasterImageUpload
+            or EscPosRasterImage
+            or EscPosPrintBarcodeUpload
+            or EscPosPrintBarcode
+            or EscPosPrintQrCodeUpload
+            or EscPosPrintQrCode
+            or EscPosPrintLogo;
+    }
+
+    protected override Command CreatePrinterError(string? message)
+    {
+        return new EscPosPrinterError(message);
+    }
+
+    protected override bool IsErrorCommand(Command element)
+    {
+        return element is EscPosParseError or EscPosPrinterError;
     }
 
     /// <summary>

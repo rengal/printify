@@ -1,4 +1,3 @@
-using System.Reflection;
 using DomainCommand = Printify.Domain.Printing.Command;
 using Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Infrastructure.Printing.EscPos.Commands;
@@ -63,8 +62,13 @@ public static class CommandTestExtensions
         var allCommandTypes = GetAllEscPosCommandTypes();
         var testedTypes = testedCommands.Select(c => c.GetType()).ToHashSet();
 
-        // Upload commands that should not be rendered
-        var uploadCommandTypes = new[] { "PrintBarcodeUpload", "PrintQrCodeUpload", "RasterImageUpload" };
+        // Upload commands that should not be rendered.
+        var uploadCommandTypes = new HashSet<string>
+        {
+            nameof(EscPosPrintBarcodeUpload),
+            nameof(EscPosPrintQrCodeUpload),
+            nameof(EscPosRasterImageUpload)
+        };
 
         var missingTypes = allCommandTypes
             .Where(t => !testedTypes.Contains(t) && !uploadCommandTypes.Contains(t.Name))
@@ -113,8 +117,12 @@ public static class CommandTestExtensions
         var allCommandTypes = GetAllEplCommandTypes();
         var testedTypes = testedCommands.Select(c => c.GetType()).ToHashSet();
 
-        // Upload commands that should not be rendered
-        var uploadCommandTypes = new[] { "EplPrintBarcodeUpload", "EplRasterImageUpload" };
+        // Upload commands that should not be rendered.
+        var uploadCommandTypes = new HashSet<string>
+        {
+            typeof(EplPrintBarcodeUpload).Name,
+            typeof(EplRasterImageUpload).Name
+        };
 
         var missingTypes = allCommandTypes
             .Where(t => !testedTypes.Contains(t) && !uploadCommandTypes.Contains(t.Name))

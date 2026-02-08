@@ -1,4 +1,3 @@
-using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Common;
 using Printify.Infrastructure.Printing.Epl.Commands;
 using System.Text;
@@ -31,18 +30,18 @@ public sealed class ScalableTextDescriptor : ICommandDescriptor
         // Find quote positions in the ASCII string for structure parsing
         var quoteStart = commandStr.IndexOf('"');
         if (quoteStart < 0)
-            return MatchResult.Matched(new PrinterError("Missing opening quote in A text command"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR","Missing opening quote in A text command"));
 
         var quoteEnd = EplStringHelpers.FindClosingQuote(commandStr, quoteStart + 1);
         if (quoteEnd < 0)
-            return MatchResult.Matched(new PrinterError("Missing closing quote in A text command"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", "Missing closing quote in A text command"));
 
         // Parse comma-separated args before the quote (ASCII safe - just numbers and single chars)
         var argsContent = commandStr[1..quoteStart]; // Skip 'A' and get content before quote
         var parts = argsContent.Split(',');
 
         if (parts.Length < 7)
-            return MatchResult.Matched(new PrinterError($"Invalid A text parameters: expected at least 7 parts, got {parts.Length}"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", $"Invalid A text parameters: expected at least 7 parts, got {parts.Length}"));
 
         try
         {
@@ -62,7 +61,7 @@ public sealed class ScalableTextDescriptor : ICommandDescriptor
             var quoteEndByteIndex = FindByteIndexOfChar(buffer, '"', quoteStartByteIndex + 1);
 
             if (quoteStartByteIndex < 0 || quoteEndByteIndex < 0)
-                return MatchResult.Matched(new PrinterError("Could not find quote positions in buffer"));
+                return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", "Could not find quote positions in buffer"));
 
             // Extract raw bytes between quotes (excluding the quotes themselves)
             var textBytes = buffer[(quoteStartByteIndex + 1)..quoteEndByteIndex].ToArray();
@@ -72,7 +71,7 @@ public sealed class ScalableTextDescriptor : ICommandDescriptor
         }
         catch (ParseException ex)
         {
-            return MatchResult.Matched(new PrinterError($"Invalid A text: {ex.Message}"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", $"Invalid A text: {ex.Message}"));
         }
     }
 
@@ -151,11 +150,11 @@ public sealed class PrintBarcodeDescriptor(IEplBarcodeService barcodeService) : 
         // Extract and unescape data between quotes first
         var quoteStart = commandStr.IndexOf('"');
         if (quoteStart < 0)
-            return MatchResult.Matched(new PrinterError("Missing opening quote in B barcode command"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", "Missing opening quote in B barcode command"));
 
         var quoteEnd = EplStringHelpers.FindClosingQuote(commandStr, quoteStart + 1);
         if (quoteEnd < 0)
-            return MatchResult.Matched(new PrinterError("Missing closing quote in B barcode command"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", "Missing closing quote in B barcode command"));
 
         var escapedData = commandStr[(quoteStart + 1)..quoteEnd];
         var data = EplStringHelpers.Unescape(escapedData);
@@ -165,7 +164,7 @@ public sealed class PrintBarcodeDescriptor(IEplBarcodeService barcodeService) : 
         var parts = argsContent.Split(',');
 
         if (parts.Length < 7)
-            return MatchResult.Matched(new PrinterError($"Invalid B barcode parameters: expected at least 7 parts, got {parts.Length}"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", $"Invalid B barcode parameters: expected at least 7 parts, got {parts.Length}"));
 
         try
         {
@@ -195,7 +194,7 @@ public sealed class PrintBarcodeDescriptor(IEplBarcodeService barcodeService) : 
         }
         catch (ParseException ex)
         {
-            return MatchResult.Matched(new PrinterError($"Invalid B barcode: {ex.Message}"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", $"Invalid B barcode: {ex.Message}"));
         }
     }
 
@@ -272,7 +271,7 @@ public sealed class PrintDescriptor : ICommandDescriptor
 
         var length = newline + 1;
         if (length < 2)
-            return MatchResult.Matched(new PrinterError("Invalid P print: too short"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", "Invalid P print: too short"));
 
         var parseResult = EplParsingHelpers.ParseSingleIntArg(buffer, 1, "P print", out var copies);
         if (parseResult.HasValue)

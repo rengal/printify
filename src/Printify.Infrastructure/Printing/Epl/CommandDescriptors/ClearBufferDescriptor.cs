@@ -1,4 +1,3 @@
-using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Common;
 using Printify.Infrastructure.Printing.Epl.Commands;
 
@@ -25,7 +24,7 @@ public sealed class ClearBufferDescriptor : ICommandDescriptor
 
         var terminatorByte = buffer[1];
         if (terminatorByte != 0x0A && terminatorByte != 0x0D) // LF or CR
-            return MatchResult.Matched(new PrinterError("N command must be followed by CR or LF"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", "N command must be followed by CR or LF"));
 
         var element = new EplClearBuffer();
         return EplParsingHelpers.Success(element, buffer, length);

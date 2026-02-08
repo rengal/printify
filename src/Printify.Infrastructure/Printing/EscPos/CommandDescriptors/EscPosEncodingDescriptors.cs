@@ -1,4 +1,3 @@
-using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Common;
 using Printify.Infrastructure.Printing.EscPos.Commands;
 
@@ -56,10 +55,10 @@ public sealed class SetCodePageDescriptor : ICommandDescriptor
         var codePageId = buffer[2];
         if (EscCodePageMap.TryGetValue(codePageId, out var codePage))
         {
-            return MatchResult.Matched(new SetCodePage(codePage));
+            return MatchResult.Matched(new EscPosSetCodePage(codePage));
         }
 
-        var error = new PrinterError($"Unrecognized code page ID: 0x{codePageId:X2}");
+        var error = new EscPosParseError("ESCPOS_PARSE_ERROR", $"Unrecognized code page ID: 0x{codePageId:X2}");
         return MatchResult.Matched(error);
     }
 }
@@ -81,6 +80,6 @@ public sealed class SetChineseCodePageDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
-        return MatchResult.Matched(new SetCodePage(Gb2312CodePage));
+        return MatchResult.Matched(new EscPosSetCodePage(Gb2312CodePage));
     }
 }

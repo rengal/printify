@@ -6,6 +6,8 @@ using Printify.Domain.Documents;
 using Printify.Domain.Printing;
 using Printify.Domain.Printers;
 using Printify.Domain.PrintJobs;
+using Printify.Domain.Services;
+using Printify.Infrastructure.Printing.EscPos.Commands;
 
 namespace Printify.Infrastructure.Printing;
 
@@ -82,13 +84,18 @@ public sealed class PrintJobSessionsOrchestrator(
         if (document is not null)
         {
             await using var scope = scopeFactory.CreateAsyncScope();
-            var finalizationCoordinator =
+            var documentFinalizationCoordinator =
                 scope.ServiceProvider.GetRequiredService<IDocumentFinalizationCoordinator>();
-            var finalizedDocument = await finalizationCoordinator.FinalizeAsync(document, ct).ConfigureAwait(false);
+            var finalizedDocument = await documentFinalizationCoordinator
+                .FinalizeAsync(document, ct)
+                .ConfigureAwait(false);
             var documentRepository = scope.ServiceProvider.GetRequiredService<IDocumentRepository>();
             var printerRepository = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
             await documentRepository.AddAsync(finalizedDocument, ct).ConfigureAwait(false);
-            await printerRepository.SetLastDocumentReceivedAtAsync(finalizedDocument.PrinterId, finalizedDocument.Timestamp, ct)
+            await printerRepository.SetLastDocumentReceivedAtAsync(
+                    finalizedDocument.PrinterId,
+                    finalizedDocument.Timestamp,
+                    ct)
                 .ConfigureAwait(false);
             // Update cash drawers status, if needed
             var drawerUpdate = await TryUpdateDrawerStateFromElementsAsync(
@@ -145,7 +152,7 @@ public sealed class PrintJobSessionsOrchestrator(
 
         foreach (var element in elements)
         {
-            if (element is not EscPos.Commands.Pulse pulse)
+            if (element is not EscPosPulse pulse)
             {
                 continue;
             }

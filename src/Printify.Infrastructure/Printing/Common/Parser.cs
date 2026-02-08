@@ -1,9 +1,9 @@
 using System.Runtime.InteropServices;
-using Printify.Domain.Printing;
-using Printify.Domain.Printers;
+using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
-using Microsoft.Extensions.DependencyInjection;
+using Printify.Domain.Printing;
+using Printify.Domain.Printers;
 
 namespace Printify.Infrastructure.Printing.Common;
 
@@ -35,6 +35,7 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
     private readonly Action<Command> onElement;
     private readonly Action<ReadOnlyMemory<byte>>? onResponse;
     private bool bufferOverflowEmitted;
+    private bool printerNotReadyWarningEmitted;
     private CancellationToken currentCancellationToken;
 
     /// <summary>
@@ -352,7 +353,7 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
 
         var rawBytes = CollectionsMarshal.AsSpan(unrecognizedBuffer);
 
-        var element = new PrinterError($"Unrecognized {rawBytes.Length} bytes")
+        var element = CreatePrinterError($"Unrecognized {rawBytes.Length} bytes") with
         {
             RawBytes = rawBytes.ToArray(),
             LengthInBytes = rawBytes.Length
@@ -366,6 +367,21 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
     /// </summary>
     protected void EmitElement(Command element, int lengthInBytes)
     {
+        // Emit "printer not ready" once per parser/session, right before first printable command.
+        if (!printerNotReadyWarningEmitted &&
+            scopeFactory is not null &&
+            printer is not null &&
+            IsPrintableCommand(element) &&
+            TryBuildPrinterNotReadyMessage(out var notReadyMessage))
+        {
+            printerNotReadyWarningEmitted = true;
+            onElement.Invoke(CreatePrinterError(notReadyMessage) with
+            {
+                RawBytes = [],
+                LengthInBytes = 0
+            });
+        }
+
         // Check buffer overflow and emit PrinterError, if needed.
         if (!bufferOverflowEmitted &&
             scopeFactory is not null &&
@@ -380,7 +396,7 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
             {
                 // Emit overflow once, just before the element that exceeds capacity.
                 bufferOverflowEmitted = true;
-                onElement.Invoke(new PrinterError("Buffer overflow")
+                onElement.Invoke(CreatePrinterError("Buffer overflow") with
                 {
                     RawBytes = Array.Empty<byte>(),
                     LengthInBytes = 0
@@ -391,13 +407,75 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
         onElement.Invoke(element);
     }
 
+    private bool TryBuildPrinterNotReadyMessage(out string message)
+    {
+        message = string.Empty;
+
+        if (scopeFactory is null || printer is null)
+        {
+            return false;
+        }
+
+        using var scope = scopeFactory.CreateScope();
+        var printerRepository = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
+        var flags = printerRepository.GetOperationalFlagsAsync(printer.Id, currentCancellationToken).GetAwaiter().GetResult();
+        if (flags is null)
+        {
+            return false;
+        }
+
+        var reasons = new List<string>(capacity: 4);
+        if (flags.IsCoverOpen)
+        {
+            reasons.Add("cover open");
+        }
+
+        if (flags.IsPaperOut)
+        {
+            reasons.Add("paper out");
+        }
+
+        if (flags.IsOffline)
+        {
+            reasons.Add("offline");
+        }
+
+        if (flags.HasError)
+        {
+            reasons.Add("device error");
+        }
+
+        if (reasons.Count == 0)
+        {
+            return false;
+        }
+
+        message = $"Printer not ready: {string.Join(", ", reasons)}";
+        return true;
+    }
+
     /// <summary>
     /// Derived classes can override to skip buffer overflow check for certain elements.
     /// </summary>
     protected virtual bool ShouldSkipBufferOverflowCheck(Command element)
     {
-        return element is ParseError or PrinterError;
+        return IsErrorCommand(element);
     }
+
+    /// <summary>
+    /// Derived classes decide which parsed commands are considered printable output.
+    /// </summary>
+    protected abstract bool IsPrintableCommand(Command element);
+
+    /// <summary>
+    /// Derived classes can provide protocol-specific printer error commands.
+    /// </summary>
+    protected abstract Command CreatePrinterError(string? message);
+
+    /// <summary>
+    /// Derived classes can define protocol-specific error command types.
+    /// </summary>
+    protected abstract bool IsErrorCommand(Command element);
 
     /// <summary>
     /// Completes parsing and flushes any pending data.
@@ -419,5 +497,6 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
         // Reset to initial state
         state.Reset(GetDefaultMode());
         bufferOverflowEmitted = false;
+        printerNotReadyWarningEmitted = false;
     }
 }

@@ -16,12 +16,12 @@ public sealed class EscPosRendererCommandDescriptionTests
         // Arrange
         var commands = new List<Command>
         {
-            new Initialize(),
-            new SetBoldMode(true),
-            new SetUnderlineMode(false),
-            new SetJustification(TextJustification.Center),
-            new SetCodePage("437"),
-            new SelectFont(FontNumber: 0, IsDoubleWidth: false, IsDoubleHeight: false),
+            new EscPosInitialize(),
+            new EscPosSetBoldMode(true),
+            new EscPosSetUnderlineMode(false),
+            new EscPosSetJustification(EscPosTextJustification.Center),
+            new EscPosSetCodePage("437"),
+            new EscPosSelectFont(FontNumber: 0, IsDoubleWidth: false, IsDoubleHeight: false),
         };
 
         var document = new Document(
@@ -64,9 +64,9 @@ public sealed class EscPosRendererCommandDescriptionTests
         // Arrange
         var commands = new List<Command>
         {
-            new Initialize(),
-            new SetBoldMode(true),
-            new SetBoldMode(false),
+            new EscPosInitialize(),
+            new EscPosSetBoldMode(true),
+            new EscPosSetBoldMode(false),
         };
 
         var document = new Document(

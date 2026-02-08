@@ -1,4 +1,3 @@
-using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Common;
 using Printify.Infrastructure.Printing.EscPos.Commands;
 
@@ -18,7 +17,7 @@ public sealed class ResetPrinterDescriptor : ICommandDescriptor
 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
-        return MatchResult.Matched(new Initialize());
+        return MatchResult.Matched(new EscPosInitialize());
     }
 }
 
@@ -55,8 +54,8 @@ public sealed class GetPrinterStatusDescriptor : ICommandDescriptor
         // DLE EOT n for status bytes 0x01-0x04
         if (statusByte is >= 0x01 and <= 0x04)
         {
-            var requestType = (StatusRequestType)statusByte;
-            var element = new StatusRequest(requestType);
+            var requestType = (EscPosStatusRequestType)statusByte;
+            var element = new EscPosStatusRequest(requestType);
             return MatchResult.Matched(element);
         }
 
@@ -64,11 +63,11 @@ public sealed class GetPrinterStatusDescriptor : ICommandDescriptor
         if (statusByte is 0x07 or 0x08 or 0x12)
         {
             var additionalStatusByte = buffer[3];
-            var element = new GetPrinterStatus(statusByte, additionalStatusByte);
+            var element = new EscPosGetPrinterStatus(statusByte, additionalStatusByte);
             return MatchResult.Matched(element);
         }
 
-        var error = new PrinterError($"Invalid printer status byte: 0x{statusByte:X2}. Expected 0x01-0x04, 0x07, 0x08, or 0x12");
+        var error = new EscPosParseError("ESCPOS_PARSER_ERROR", $"Invalid printer status byte: 0x{statusByte:X2}. Expected 0x01-0x04, 0x07, 0x08, or 0x12");
         return MatchResult.Matched(error);
     }
 }
@@ -95,7 +94,7 @@ public sealed class PulseDescriptor : ICommandDescriptor
         int onTimeMs = buffer[3];
         int offTimeMs = buffer[4];
 
-        var element = new Pulse(pin, onTimeMs, offTimeMs);
+        var element = new EscPosPulse(pin, onTimeMs, offTimeMs);
         return MatchResult.Matched(element);
     }
 }
@@ -111,5 +110,5 @@ public sealed class BelDescriptor : ICommandDescriptor
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x07 };
     public int MinLength => FixedLength;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
-    public MatchResult TryParse(ReadOnlySpan<byte> buffer) => MatchResult.Matched(new Bell());
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer) => MatchResult.Matched(new EscPosBell());
 }

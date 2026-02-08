@@ -668,7 +668,7 @@ public static class EplScenarioData
         new(
             id: 8001,
             input: "\x00\x01\x02"u8.ToArray(),
-            expectedRequestCommands: [new PrinterError("") { LengthInBytes = 3 }],
+            expectedRequestCommands: [new EplPrinterError("") { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
                 [

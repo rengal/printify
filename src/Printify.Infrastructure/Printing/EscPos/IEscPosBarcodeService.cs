@@ -12,12 +12,12 @@ public interface IEscPosBarcodeService
     /// <summary>
     /// Generates a barcode image using the supplied payload and rendering options.
     /// </summary>
-    RasterImageUpload GenerateBarcodeMedia(PrintBarcodeUpload upload, BarcodeRenderOptions options);
+    EscPosRasterImageUpload GenerateBarcodeMedia(EscPosPrintBarcodeUpload upload, BarcodeRenderOptions options);
 
     /// <summary>
     /// Generates a QR code image using the supplied payload and rendering options.
     /// </summary>
-    RasterImageUpload GenerateQrMedia(QrRenderOptions options);
+    EscPosRasterImageUpload GenerateQrMedia(QrRenderOptions options);
 }
 
 /// <summary>
@@ -26,8 +26,8 @@ public interface IEscPosBarcodeService
 public sealed record BarcodeRenderOptions(
     int? HeightInDots,
     int? ModuleWidthInDots,
-    BarcodeLabelPosition? LabelPosition,
-    TextJustification? Justification,
+    EscPosBarcodeLabelPosition? LabelPosition,
+    EscPosTextJustification? Justification,
     int? PrinterWidthInDots);
 
 /// <summary>
@@ -35,8 +35,8 @@ public sealed record BarcodeRenderOptions(
 /// </summary>
 public sealed record QrRenderOptions(
     string Data,
-    QrModel Model,
+    EscPosQrModel Model,
     int? ModuleSizeInDots,
-    QrErrorCorrectionLevel? ErrorCorrectionLevel,
-    TextJustification? Justification,
+    EscPosQrErrorCorrectionLevel? ErrorCorrectionLevel,
+    EscPosTextJustification? Justification,
     int? PrinterWidthInDots);

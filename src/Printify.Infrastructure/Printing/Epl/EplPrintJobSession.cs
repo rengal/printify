@@ -50,7 +50,7 @@ public class EplPrintJobSession : PrintJobSession
         ArgumentNullException.ThrowIfNull(scopeFactory);
         this.bufferCoordinator = bufferCoordinator;
         idleClock = clockFactory.Create();
-        parser = new EplParser(OnElement);
+        parser = new EplParser(scopeFactory, Printer, Job.PrinterSettings, OnElement);
     }
 
     public override Task Feed(ReadOnlyMemory<byte> input, CancellationToken ct)

@@ -1,9 +1,10 @@
 using Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Infrastructure.Printing.Common;
 using System.Globalization;
-using Printify.Domain.Printing;
 using Printify.Application.Interfaces;
 using Printify.Domain.Media;
+
+namespace Printify.Infrastructure.Printing.Epl.CommandDescriptors;
 
 /// <summary>
 /// Command: GW x, y, bytesPerRow, height, - Graphic write.
@@ -15,12 +16,12 @@ using Printify.Domain.Media;
 /// This descriptor is special - it has a useful TryGetExactLength implementation
 /// because the command length can be calculated from the header parameters.
 /// Creates an EplRasterImageUpload command with MediaUpload for finalization.
-/// </summary>
+/// </remarks>
 public sealed class PrintGraphicDescriptor(IMediaService mediaService) : ICommandDescriptor
 {
     private const int MinLen = 10; // 'GW' + minimum params
 
-    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x47, 0x57 }; // 'GW'
+    public ReadOnlyMemory<byte> Prefix { get; } = "GW"u8.ToArray(); // 'GW'
     public int MinLength => MinLen;
 
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
@@ -117,7 +118,7 @@ public sealed class PrintGraphicDescriptor(IMediaService mediaService) : IComman
         // Verify newline at end (accept CR or LF)
         var terminatorByte = buffer[headerEnd + totalDataBytes];
         if (terminatorByte != 0x0A && terminatorByte != 0x0D) // LF or CR
-            return MatchResult.Matched(new ParseError(null, "Invalid terminator"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", "Invalid terminator"));
 
         // Extract graphics data.
         var graphicsData = buffer[headerEnd..(headerEnd + totalDataBytes)].ToArray();
@@ -130,7 +131,7 @@ public sealed class PrintGraphicDescriptor(IMediaService mediaService) : IComman
         var bitmap = new MonochromeBitmap(width, height, normalizedGraphicsData);
 
         // Convert to MediaUpload using IMediaService
-        var media = mediaService.ConvertToMediaUpload(bitmap, "image/png");
+        var media = mediaService.ConvertToMediaUpload(bitmap);
 
         // Create EplRasterImageUpload element instead of PrintGraphic
         var element = new EplRasterImageUpload(x, y, width, height, media)

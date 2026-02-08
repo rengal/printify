@@ -3,7 +3,7 @@ namespace Printify.Infrastructure.Printing.EscPos.Commands;
 /// <summary>
 /// Supported text alignment values for ESC a (justification) commands.
 /// </summary>
-public enum TextJustification
+public enum EscPosTextJustification
 {
     /// <summary>
     /// Align text to the left margin.
@@ -24,7 +24,7 @@ public enum TextJustification
 /// <summary>
 /// Paper cut operation modes supported by ESC/POS cut commands.
 /// </summary>
-public enum PagecutMode
+public enum EscPosPagecutMode
 {
     /// <summary>
     /// Full paper cut (completely severs the paper).
@@ -50,7 +50,7 @@ public enum PagecutMode
 /// <summary>
 /// Type of real-time status request (DLE EOT n parameter).
 /// </summary>
-public enum StatusRequestType : byte
+public enum EscPosStatusRequestType : byte
 {
     /// <summary>DLE EOT 1 - Printer status</summary>
     PrinterStatus = 0x01,
@@ -68,14 +68,14 @@ public enum StatusRequestType : byte
 /// <summary>
 /// An audible/attention bell signal.
 /// </summary>
-public sealed record Bell : EscPosCommand;
+public sealed record EscPosBell : EscPosCommand;
 
 /// <summary>
 /// A paper cut operation (full or partial depending on command parsed).
 /// </summary>
 /// <param name="Mode">The type of cut to perform (full or partial).</param>
 /// <param name="FeedMotionUnits">Feed distance in motion units before cutting (GS V m n).</param>
-public sealed record CutPaper(PagecutMode Mode, int? FeedMotionUnits = null) : EscPosCommand;
+public sealed record EscPosCutPaper(EscPosPagecutMode Mode, int? FeedMotionUnits = null) : EscPosCommand;
 
 /// <summary>
 /// A cash drawer pulse signal sent to a specific pin.
@@ -83,13 +83,13 @@ public sealed record CutPaper(PagecutMode Mode, int? FeedMotionUnits = null) : E
 /// <param name="Pin">Target drawer pin.</param>
 /// <param name="OnTimeMs">Pulse ON interval in milliseconds.</param>
 /// <param name="OffTimeMs">Pulse OFF interval in milliseconds.</param>
-public sealed record Pulse(int Pin, int OnTimeMs, int OffTimeMs)
+public sealed record EscPosPulse(int Pin, int OnTimeMs, int OffTimeMs)
     : EscPosCommand;
 
 /// <summary>
 /// Resets the printer to its power-on state (ESC @).
 /// </summary>
-public sealed record Initialize : EscPosCommand;
+public sealed record EscPosInitialize : EscPosCommand;
 
 /// <summary>
 /// A decoded printer status byte with optional human-readable description.
@@ -98,7 +98,7 @@ public sealed record Initialize : EscPosCommand;
 /// <param name="AdditionalStatusByte">
 /// Optional additional status byte value, if present in the protocol.
 /// </param>
-public sealed record GetPrinterStatus(
+public sealed record EscPosGetPrinterStatus(
     byte StatusByte,
     byte? AdditionalStatusByte = null)
     : EscPosCommand;
@@ -108,7 +108,7 @@ public sealed record GetPrinterStatus(
 /// Client requests printer status; printer responds immediately with 1 byte.
 /// </summary>
 /// <param name="RequestType">Type of status being requested (1-4).</param>
-public sealed record StatusRequest(StatusRequestType RequestType) : EscPosCommand;
+public sealed record EscPosStatusRequest(EscPosStatusRequestType RequestType) : EscPosCommand;
 
 /// <summary>
 /// Status response sent from printer to client (1 byte).
@@ -118,7 +118,7 @@ public sealed record StatusRequest(StatusRequestType RequestType) : EscPosComman
 /// <param name="IsPaperOut">Paper end detected (bit 5).</param>
 /// <param name="IsCoverOpen">Cover is open (bit 2).</param>
 /// <param name="IsOffline">Printer is offline/error (bit 6).</param>
-public sealed record StatusResponse(
+public sealed record EscPosStatusResponse(
     byte StatusByte,
     bool IsPaperOut,
     bool IsCoverOpen,

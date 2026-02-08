@@ -1,4 +1,9 @@
 todo
+-EplRenderer.GetEncodingCodePage - fix
+-remove protocols other than escpos/epl when adding printer
+-debug commands - fix codepage
+
+todo
 - It might be worth moving BuildCommandDescription from src/Printify.Web/Mapping/DocumentMapper.cs into the ESC/POS command descriptors (see src/Printify.Infrastructure/Printing/EscPos/CommandDescriptors/ICommandDescriptor.cs) so command metadata lives with parsing.
 - add hint when hovering over icons (stopped warning, toggle operatinops)
 - workspace name must not be the same format as token (disallow names

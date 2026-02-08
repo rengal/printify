@@ -38,7 +38,6 @@ public sealed class QrCodeDescriptor : ICommandDescriptor
         var pL = buffer[3];
         var pH = buffer[4];
         var parameterLength = pL | (pH << 8);
-        var totalLength = 5 + parameterLength;
         var cn = buffer[5];
         var fn = buffer[6];
         var payloadLength = parameterLength - 2;
@@ -46,7 +45,7 @@ public sealed class QrCodeDescriptor : ICommandDescriptor
 
         if (cn != 0x31)
         {
-            var error = new PrinterError($"Invalid QR Code command code: 0x{cn:X2}. Expected 0x31");
+            var error = new EscPosParseError("ESCPOS_PARSER_ERROR", $"Invalid QR Code command code: 0x{cn:X2}. Expected 0x31");
             return MatchResult.Matched(error);
         }
 
@@ -54,21 +53,21 @@ public sealed class QrCodeDescriptor : ICommandDescriptor
         {
             0x41 when payload.Length > 0 && TryGetQrModel(payload[0], out var model)
                 // GS ( k <Function 0x41> - QR Code: Select the model
-                => new SetQrModel(model),
+                => new EscPosSetQrModel(model),
             0x43 when payload.Length > 0
                 // GS ( k <Function 0x43> - QR Code: Set the size of module
-                => new SetQrModuleSize(payload[0]),
+                => new EscPosSetQrModuleSize(payload[0]),
             0x45 when payload.Length > 0 && TryGetQrErrorCorrection(payload[0], out var level)
                 // GS ( k <Function 0x45> - QR Code: Select the error correction level
-                => new SetQrErrorCorrection(level),
+                => new EscPosSetQrErrorCorrection(level),
             0x50
                 // GS ( k <Function 0x50> - QR Code: Store the data in the symbol storage area
-                => new StoreQrData(payload.Length > 1
+                => new EscPosStoreQrData(payload.Length > 1
                     ? Encoding.ASCII.GetString(payload.Slice(1).ToArray())
                     : string.Empty),
             0x51
                 // GS ( k <Function 0x51> - QR Code: Print the symbol data in the symbol storage area
-                => new PrintQrCodeUpload(),
+                => new EscPosPrintQrCodeUpload(),
             _ => null
         };
 
@@ -86,24 +85,24 @@ public sealed class QrCodeDescriptor : ICommandDescriptor
             0x45 => $"Invalid QR error correction level: 0x{payload[0]:X2}",
             _ => $"Unknown QR Code function: 0x{fn:X2}. Expected 0x41, 0x43, 0x45, 0x50, or 0x51"
         };
-        return MatchResult.Matched(new PrinterError(errorMsg));
+        return MatchResult.Matched(new EscPosParseError("ESCPOS_PARSER_ERROR", errorMsg));
     }
 
-    private static bool TryGetQrModel(byte value, out QrModel model)
+    private static bool TryGetQrModel(byte value, out EscPosQrModel model)
     {
         switch (value)
         {
             case 0x31:
             case 0x01:
-                model = QrModel.Model1;
+                model = EscPosQrModel.Model1;
                 return true;
             case 0x32:
             case 0x02:
-                model = QrModel.Model2;
+                model = EscPosQrModel.Model2;
                 return true;
             case 0x33:
             case 0x03:
-                model = QrModel.Micro;
+                model = EscPosQrModel.Micro;
                 return true;
             default:
                 model = default;
@@ -111,29 +110,29 @@ public sealed class QrCodeDescriptor : ICommandDescriptor
         }
     }
 
-    private static bool TryGetQrErrorCorrection(byte value, out QrErrorCorrectionLevel level)
+    private static bool TryGetQrErrorCorrection(byte value, out EscPosQrErrorCorrectionLevel level)
     {
         switch (value)
         {
             case (byte)'L':
             case 0x30:
             case 0x00:
-                level = QrErrorCorrectionLevel.Low;
+                level = EscPosQrErrorCorrectionLevel.Low;
                 return true;
             case (byte)'M':
             case 0x31:
             case 0x01:
-                level = QrErrorCorrectionLevel.Medium;
+                level = EscPosQrErrorCorrectionLevel.Medium;
                 return true;
             case (byte)'Q':
             case 0x32:
             case 0x02:
-                level = QrErrorCorrectionLevel.Quartile;
+                level = EscPosQrErrorCorrectionLevel.Quartile;
                 return true;
             case (byte)'H':
             case 0x33:
             case 0x03:
-                level = QrErrorCorrectionLevel.High;
+                level = EscPosQrErrorCorrectionLevel.High;
                 return true;
             default:
                 level = default;
@@ -172,7 +171,6 @@ public sealed class RasterBitImagePrintDescriptor(IMediaService mediaService) : 
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         // Extract parameters
-        var mode = buffer[3];
         var widthBytes = buffer[4] | (buffer[5] << 8);
         var heightInDots = buffer[6] | (buffer[7] << 8);
         var payloadLength = widthBytes * heightInDots;
@@ -189,13 +187,10 @@ public sealed class RasterBitImagePrintDescriptor(IMediaService mediaService) : 
         var bitmap = new MonochromeBitmap(widthInDots, heightInDots, payload);
 
         // Convert to MediaUpload using IMediaService
-        var media = mediaService.ConvertToMediaUpload(bitmap, "image/png");
+        var media = mediaService.ConvertToMediaUpload(bitmap);
 
         // Create RasterImageContent element
-        var element = new RasterImageUpload(widthInDots, heightInDots, media);
-
-        // Total bytes consumed: header (8) + payload
-        var bytesConsumed = 8 + payloadLength;
+        var element = new EscPosRasterImageUpload(widthInDots, heightInDots, media);
 
         // Return matched result with the raster image element
         return MatchResult.Matched(element);
@@ -220,7 +215,7 @@ public sealed class PrintStoredLogoDescriptor : ICommandDescriptor
     {
         // logoId is the fourth byte (index 3)
         var logoId = buffer[3];
-        var element = new StoredLogo(logoId);
+        var element = new EscPosPrintLogo(logoId);
         return MatchResult.Matched(element);
     }
 }

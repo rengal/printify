@@ -1,10 +1,10 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Printify.Domain.Printing;
 using Printify.Infrastructure.Mapping;
 using Printify.Infrastructure.Persistence.Entities.Documents;
 using Printify.Infrastructure.Persistence.Entities.Documents.EscPos;
 using Printify.Infrastructure.Printing.EscPos.Commands;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Printify.Infrastructure.Mapping.Protocols.EscPos;
 
@@ -13,8 +13,8 @@ namespace Printify.Infrastructure.Mapping.Protocols.EscPos;
 /// </summary>
 public static class CommandMapper
 {
-    private const QrErrorCorrectionLevel DefaultQrCorrection = QrErrorCorrectionLevel.Medium;
-    private const QrModel DefaultQrModel = QrModel.Model2;
+    private const EscPosQrErrorCorrectionLevel DefaultQrCorrection = EscPosQrErrorCorrectionLevel.Medium;
+    private const EscPosQrModel DefaultQrModel = EscPosQrModel.Model2;
     private const bool DefaultBoolean = false;
 
     public static EscPosDocumentElementPayload ToCommandPayload(Command command)
@@ -23,56 +23,56 @@ public static class CommandMapper
 
         return command switch
         {
-            Bell => new BellElementPayload(),
-            ParseError error => new ErrorElementPayload(error.Code, error.Message),
-            CutPaper pagecut => new PagecutElementPayload(
+            EscPosBell => new BellElementPayload(),
+            EscPosParseError error => new ErrorElementPayload(error.Code, error.Message),
+            EscPosCutPaper pagecut => new PagecutElementPayload(
                 EnumMapper.ToString(pagecut.Mode),
                 pagecut.FeedMotionUnits),
-            PrinterError printerError => new PrinterErrorElementPayload(printerError.Message),
-            GetPrinterStatus status => new PrinterStatusElementPayload(status.StatusByte, status.AdditionalStatusByte),
-            PrintBarcode barcode => new PrintBarcodeElementPayload(
+            EscPosPrinterError printerError => new PrinterErrorElementPayload(printerError.Message),
+            EscPosGetPrinterStatus status => new PrinterStatusElementPayload(status.StatusByte, status.AdditionalStatusByte),
+            EscPosPrintBarcode barcode => new PrintBarcodeElementPayload(
                 EnumMapper.ToString(barcode.Symbology),
                 barcode.Data,
                 barcode.Width,
                 barcode.Height,
                 barcode.Media.Id),
-            PrintQrCode qrCode => new PrintQrCodeElementPayload(
+            EscPosPrintQrCode qrCode => new PrintQrCodeElementPayload(
                 qrCode.Data,
                 qrCode.Width,
                 qrCode.Height,
                 qrCode.Media.Id),
-            RasterImage image => new RasterImageElementPayload(image.Width, image.Height, image.Media.Id),
-            Pulse pulse => new PulseElementPayload(pulse.Pin, pulse.OnTimeMs, pulse.OffTimeMs),
-            Initialize => new ResetPrinterElementPayload(),
-            SetBarcodeHeight height => new SetBarcodeHeightElementPayload(height.HeightInDots),
-            SetBarcodeLabelPosition position => new SetBarcodeLabelPositionElementPayload(
+            EscPosRasterImage image => new RasterImageElementPayload(image.Width, image.Height, image.Media.Id),
+            EscPosPulse pulse => new PulseElementPayload(pulse.Pin, pulse.OnTimeMs, pulse.OffTimeMs),
+            EscPosInitialize => new ResetPrinterElementPayload(),
+            EscPosSetBarcodeHeight height => new SetBarcodeHeightElementPayload(height.HeightInDots),
+            EscPosSetBarcodeLabelPosition position => new SetBarcodeLabelPositionElementPayload(
                 EnumMapper.ToString(position.Position)),
-            SetBarcodeModuleWidth moduleWidth => new SetBarcodeModuleWidthElementPayload(moduleWidth.ModuleWidth),
-            SetBoldMode bold => new SetBoldModeElementPayload(SerializeBool(bold.IsEnabled)),
-            SetCodePage codePage => new SetCodePageElementPayload(codePage.CodePage),
-            SelectFont font => new SetFontElementPayload(font.FontNumber, SerializeBool(font.IsDoubleWidth), SerializeBool(font.IsDoubleHeight)),
-            SetJustification justification => new SetJustificationElementPayload(
+            EscPosSetBarcodeModuleWidth moduleWidth => new SetBarcodeModuleWidthElementPayload(moduleWidth.ModuleWidth),
+            EscPosSetBoldMode bold => new SetBoldModeElementPayload(SerializeBool(bold.IsEnabled)),
+            EscPosSetCodePage codePage => new SetCodePageElementPayload(codePage.CodePage),
+            EscPosSelectFont font => new SetFontElementPayload(font.FontNumber, SerializeBool(font.IsDoubleWidth), SerializeBool(font.IsDoubleHeight)),
+            EscPosSetJustification justification => new SetJustificationElementPayload(
                 EnumMapper.ToString(justification.Justification)),
-            SetLineSpacing spacing => new SetLineSpacingElementPayload(spacing.Spacing),
-            ResetLineSpacing => new ResetLineSpacingElementPayload(),
-            SetQrErrorCorrection correction => new SetQrErrorCorrectionElementPayload(
+            EscPosSetLineSpacing spacing => new SetLineSpacingElementPayload(spacing.Spacing),
+            EscPosResetLineSpacing => new ResetLineSpacingElementPayload(),
+            EscPosSetQrErrorCorrection correction => new SetQrErrorCorrectionElementPayload(
                 EnumMapper.ToString(correction.Level)),
-            SetQrModel model => new SetQrModelElementPayload(EnumMapper.ToString(model.Model)),
-            SetQrModuleSize moduleSize => new SetQrModuleSizeElementPayload(moduleSize.ModuleSize),
-            SetReverseMode reverse => new SetReverseModeElementPayload(SerializeBool(reverse.IsEnabled)),
-            SetUnderlineMode underline => new SetUnderlineModeElementPayload(SerializeBool(underline.IsEnabled)),
-            StoreQrData store => new StoreQrDataElementPayload(store.Content),
-            StoredLogo logo => new StoredLogoElementPayload(logo.LogoId),
-            AppendText append => new AppendToLineBufferElementPayload { RawBytesHex = Convert.ToHexString(append.TextBytes) },
-            PrintAndLineFeed => new FlushLineBufferAndFeedElementPayload(),
-            LegacyCarriageReturn => new LegacyCarriageReturnElementPayload(),
-            StatusRequest request => new StatusRequestElementPayload((byte)request.RequestType),
-            StatusResponse response => new StatusResponseElementPayload(
+            EscPosSetQrModel model => new SetQrModelElementPayload(EnumMapper.ToString(model.Model)),
+            EscPosSetQrModuleSize moduleSize => new SetQrModuleSizeElementPayload(moduleSize.ModuleSize),
+            EscPosSetReverseMode reverse => new SetReverseModeElementPayload(SerializeBool(reverse.IsEnabled)),
+            EscPosSetUnderlineMode underline => new SetUnderlineModeElementPayload(SerializeBool(underline.IsEnabled)),
+            EscPosStoreQrData store => new StoreQrDataElementPayload(store.Content),
+            EscPosPrintLogo logo => new StoredLogoElementPayload(logo.LogoId),
+            EscPosAppendText append => new AppendToLineBufferElementPayload { RawBytesHex = Convert.ToHexString(append.TextBytes) },
+            EscPosPrintAndLineFeed => new FlushLineBufferAndFeedElementPayload(),
+            EscPosLegacyCarriageReturn => new LegacyCarriageReturnElementPayload(),
+            EscPosStatusRequest request => new StatusRequestElementPayload((byte)request.RequestType),
+            EscPosStatusResponse response => new StatusResponseElementPayload(
                 response.StatusByte,
                 response.IsPaperOut,
                 response.IsCoverOpen,
                 response.IsOffline),
-            RasterImageUpload => throw new NotSupportedException("Raster image persistence is handled separately."),
+            EscPosRasterImageUpload => throw new NotSupportedException("Raster image persistence is handled separately."),
             _ => throw new NotSupportedException($"Element type '{command.GetType().Name}' is not supported.")
         };
     }
@@ -83,59 +83,59 @@ public static class CommandMapper
 
         return dto switch
         {
-            BellElementPayload => new Bell(),
-            ErrorElementPayload error => new ParseError(error.Code ?? string.Empty, error.Message ?? string.Empty),
-            PagecutElementPayload pagecut => new CutPaper(
+            BellElementPayload => new EscPosBell(),
+            ErrorElementPayload error => new EscPosParseError(error.Code ?? string.Empty, error.Message ?? string.Empty),
+            PagecutElementPayload pagecut => new EscPosCutPaper(
                 EnumMapper.ParsePagecutMode(pagecut.Mode ?? "Full"),
                 pagecut.FeedMotionUnits),
-            PrinterErrorElementPayload printerError => new PrinterError(printerError.Message ?? string.Empty),
-            PrinterStatusElementPayload status => new GetPrinterStatus(status.StatusByte, status.AdditionalStatusByte),
-            PrintBarcodeElementPayload barcode => new PrintBarcode(
+            PrinterErrorElementPayload printerError => new EscPosPrinterError(printerError.Message ?? string.Empty),
+            PrinterStatusElementPayload status => new EscPosGetPrinterStatus(status.StatusByte, status.AdditionalStatusByte),
+            PrintBarcodeElementPayload barcode => new EscPosPrintBarcode(
                 EnumMapper.ParseBarcodeSymbology(barcode.Symbology ?? "Code128"),
                 barcode.Data,
                 barcode.Width,
                 barcode.Height,
                 media),
-            PrintQrCodeElementPayload qrCode => new PrintQrCode(
+            PrintQrCodeElementPayload qrCode => new EscPosPrintQrCode(
                 qrCode.Data,
                 qrCode.Width,
                 qrCode.Height,
                 media),
-            PulseElementPayload pulse => new Pulse(pulse.Pin, pulse.OnTimeMs, pulse.OffTimeMs),
-            ResetPrinterElementPayload => new Initialize(),
-            SetBarcodeHeightElementPayload height => new SetBarcodeHeight(height.HeightInDots),
-            SetBarcodeLabelPositionElementPayload position => new SetBarcodeLabelPosition(
+            PulseElementPayload pulse => new EscPosPulse(pulse.Pin, pulse.OnTimeMs, pulse.OffTimeMs),
+            ResetPrinterElementPayload => new EscPosInitialize(),
+            SetBarcodeHeightElementPayload height => new EscPosSetBarcodeHeight(height.HeightInDots),
+            SetBarcodeLabelPositionElementPayload position => new EscPosSetBarcodeLabelPosition(
                 EnumMapper.ParseBarcodeLabelPosition(position.Position ?? "Below")),
-            SetBarcodeModuleWidthElementPayload moduleWidth => new SetBarcodeModuleWidth(moduleWidth.ModuleWidth),
-            SetBoldModeElementPayload bold => new SetBoldMode(bold.IsEnabled ?? DefaultBoolean),
-            SetCodePageElementPayload codePage => new SetCodePage(codePage.CodePage ?? "437"),
-            SetFontElementPayload font => new SelectFont(
+            SetBarcodeModuleWidthElementPayload moduleWidth => new EscPosSetBarcodeModuleWidth(moduleWidth.ModuleWidth),
+            SetBoldModeElementPayload bold => new EscPosSetBoldMode(bold.IsEnabled ?? DefaultBoolean),
+            SetCodePageElementPayload codePage => new EscPosSetCodePage(codePage.CodePage ?? "437"),
+            SetFontElementPayload font => new EscPosSelectFont(
                 font.FontNumber,
                 font.IsDoubleWidth ?? DefaultBoolean,
                 font.IsDoubleHeight ?? DefaultBoolean),
-            SetJustificationElementPayload justification => new SetJustification(
+            SetJustificationElementPayload justification => new EscPosSetJustification(
                 EnumMapper.ParseTextJustification(justification.Justification ?? "Left")),
-            SetLineSpacingElementPayload spacing => new SetLineSpacing(spacing.Spacing),
-            ResetLineSpacingElementPayload => new ResetLineSpacing(),
-            SetQrErrorCorrectionElementPayload correction => new SetQrErrorCorrection(
+            SetLineSpacingElementPayload spacing => new EscPosSetLineSpacing(spacing.Spacing),
+            ResetLineSpacingElementPayload => new EscPosResetLineSpacing(),
+            SetQrErrorCorrectionElementPayload correction => new EscPosSetQrErrorCorrection(
                 EnumMapper.ParseQrErrorCorrectionLevel(correction.Level ?? "Medium")),
-            SetQrModelElementPayload model => new SetQrModel(EnumMapper.ParseQrModel(model.Model ?? "Model2")),
-            SetQrModuleSizeElementPayload moduleSize => new SetQrModuleSize(moduleSize.ModuleSize),
-            SetReverseModeElementPayload reverse => new SetReverseMode(reverse.IsEnabled ?? DefaultBoolean),
-            SetUnderlineModeElementPayload underline => new SetUnderlineMode(underline.IsEnabled ?? DefaultBoolean),
-            StoreQrDataElementPayload store => new StoreQrData(store.Content ?? string.Empty),
-            StoredLogoElementPayload logo => new StoredLogo(logo.LogoId),
-            AppendToLineBufferElementPayload textLine => new AppendText(
+            SetQrModelElementPayload model => new EscPosSetQrModel(EnumMapper.ParseQrModel(model.Model ?? "Model2")),
+            SetQrModuleSizeElementPayload moduleSize => new EscPosSetQrModuleSize(moduleSize.ModuleSize),
+            SetReverseModeElementPayload reverse => new EscPosSetReverseMode(reverse.IsEnabled ?? DefaultBoolean),
+            SetUnderlineModeElementPayload underline => new EscPosSetUnderlineMode(underline.IsEnabled ?? DefaultBoolean),
+            StoreQrDataElementPayload store => new EscPosStoreQrData(store.Content ?? string.Empty),
+            StoredLogoElementPayload logo => new EscPosPrintLogo(logo.LogoId),
+            AppendToLineBufferElementPayload textLine => new EscPosAppendText(
                 string.IsNullOrEmpty(textLine.RawBytesHex) ? Array.Empty<byte>() : Convert.FromHexString(textLine.RawBytesHex)),
-            FlushLineBufferAndFeedElementPayload => new PrintAndLineFeed(),
-            LegacyCarriageReturnElementPayload => new LegacyCarriageReturn(),
-            StatusRequestElementPayload request => new StatusRequest((StatusRequestType)request.RequestType),
-            StatusResponseElementPayload response => new StatusResponse(
+            FlushLineBufferAndFeedElementPayload => new EscPosPrintAndLineFeed(),
+            LegacyCarriageReturnElementPayload => new EscPosLegacyCarriageReturn(),
+            StatusRequestElementPayload request => new EscPosStatusRequest((EscPosStatusRequestType)request.RequestType),
+            StatusResponseElementPayload response => new EscPosStatusResponse(
                 response.StatusByte,
                 response.IsPaperOut,
                 response.IsCoverOpen,
                 response.IsOffline),
-            RasterImageElementPayload raster => new RasterImage(
+            RasterImageElementPayload raster => new EscPosRasterImage(
                 raster.Width,
                 raster.Height,
                 media),

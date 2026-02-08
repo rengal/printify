@@ -46,7 +46,7 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         return new MediaUpload("image/png", content);
     }
 
-    public RasterImageUpload GenerateBarcodeMedia(PrintBarcodeUpload upload, BarcodeRenderOptions options)
+    public EscPosRasterImageUpload GenerateBarcodeMedia(EscPosPrintBarcodeUpload upload, BarcodeRenderOptions options)
     {
         ArgumentNullException.ThrowIfNull(upload);
         ArgumentNullException.ThrowIfNull(options);
@@ -64,7 +64,7 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
                 Height = targetHeight,
                 Width = rawWidth,
                 Margin = 0,
-                PureBarcode = options.LabelPosition == BarcodeLabelPosition.NotPrinted
+                PureBarcode = options.LabelPosition == EscPosBarcodeLabelPosition.NotPrinted
             }
         };
 
@@ -73,10 +73,10 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         using var aligned = AlignToPrinter(image, printerWidth, options.Justification);
         var uploadMedia = EncodeMediaUpload(aligned);
 
-        return new RasterImageUpload(aligned.Width, aligned.Height, uploadMedia);
+        return new EscPosRasterImageUpload(aligned.Width, aligned.Height, uploadMedia);
     }
 
-    public RasterImageUpload GenerateQrMedia(QrRenderOptions options)
+    public EscPosRasterImageUpload GenerateQrMedia(QrRenderOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -110,7 +110,7 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         using var aligned = AlignToPrinter(image, printerWidth, options.Justification);
         var uploadMedia = EncodeMediaUpload(aligned);
 
-        return new RasterImageUpload(aligned.Width, aligned.Height, uploadMedia);
+        return new EscPosRasterImageUpload(aligned.Width, aligned.Height, uploadMedia);
     }
 
     /// <inheritdoc />
@@ -156,7 +156,7 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         return data.ToArray();
     }
 
-    private static SKBitmap AlignToPrinter(SKBitmap source, int printerWidth, TextJustification? justification)
+    private static SKBitmap AlignToPrinter(SKBitmap source, int printerWidth, EscPosTextJustification? justification)
     {
         if (printerWidth <= source.Width || justification is null)
         {
@@ -165,8 +165,8 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
 
         var offset = justification switch
         {
-            TextJustification.Center => (printerWidth - source.Width) / 2,
-            TextJustification.Right => printerWidth - source.Width,
+            EscPosTextJustification.Center => (printerWidth - source.Width) / 2,
+            EscPosTextJustification.Right => printerWidth - source.Width,
             _ => 0
         };
 
@@ -198,19 +198,19 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         }
     }
 
-    private static BarcodeFormat MapSymbology(BarcodeSymbology symbology)
+    private static BarcodeFormat MapSymbology(EscPosBarcodeSymbology symbology)
     {
         return symbology switch
         {
-            BarcodeSymbology.UpcA => BarcodeFormat.UPC_A,
-            BarcodeSymbology.UpcE => BarcodeFormat.UPC_E,
-            BarcodeSymbology.Ean13 => BarcodeFormat.EAN_13,
-            BarcodeSymbology.Ean8 => BarcodeFormat.EAN_8,
-            BarcodeSymbology.Code39 => BarcodeFormat.CODE_39,
-            BarcodeSymbology.Itf => BarcodeFormat.ITF,
-            BarcodeSymbology.Codabar => BarcodeFormat.CODABAR,
-            BarcodeSymbology.Code93 => BarcodeFormat.CODE_93,
-            BarcodeSymbology.Code128 => BarcodeFormat.CODE_128,
+            EscPosBarcodeSymbology.UpcA => BarcodeFormat.UPC_A,
+            EscPosBarcodeSymbology.UpcE => BarcodeFormat.UPC_E,
+            EscPosBarcodeSymbology.Ean13 => BarcodeFormat.EAN_13,
+            EscPosBarcodeSymbology.Ean8 => BarcodeFormat.EAN_8,
+            EscPosBarcodeSymbology.Code39 => BarcodeFormat.CODE_39,
+            EscPosBarcodeSymbology.Itf => BarcodeFormat.ITF,
+            EscPosBarcodeSymbology.Codabar => BarcodeFormat.CODABAR,
+            EscPosBarcodeSymbology.Code93 => BarcodeFormat.CODE_93,
+            EscPosBarcodeSymbology.Code128 => BarcodeFormat.CODE_128,
             _ => BarcodeFormat.CODE_128
         };
     }
@@ -238,14 +238,14 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         };
     }
 
-    private static ErrorCorrectionLevel MapErrorCorrection(QrErrorCorrectionLevel? level)
+    private static ErrorCorrectionLevel MapErrorCorrection(EscPosQrErrorCorrectionLevel? level)
     {
         return level switch
         {
-            QrErrorCorrectionLevel.Low => ErrorCorrectionLevel.L,
-            QrErrorCorrectionLevel.Medium => ErrorCorrectionLevel.M,
-            QrErrorCorrectionLevel.Quartile => ErrorCorrectionLevel.Q,
-            QrErrorCorrectionLevel.High => ErrorCorrectionLevel.H,
+            EscPosQrErrorCorrectionLevel.Low => ErrorCorrectionLevel.L,
+            EscPosQrErrorCorrectionLevel.Medium => ErrorCorrectionLevel.M,
+            EscPosQrErrorCorrectionLevel.Quartile => ErrorCorrectionLevel.Q,
+            EscPosQrErrorCorrectionLevel.High => ErrorCorrectionLevel.H,
             _ => ErrorCorrectionLevel.M
         };
     }

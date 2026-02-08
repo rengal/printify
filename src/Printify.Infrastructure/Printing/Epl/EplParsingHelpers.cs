@@ -1,6 +1,7 @@
 using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Common;
 using System.Globalization;
+using Printify.Infrastructure.Printing.Epl.Commands;
 
 namespace Printify.Infrastructure.Printing.Epl;
 
@@ -54,7 +55,7 @@ public static class EplParsingHelpers
         }
         catch (ParseException ex)
         {
-            return MatchResult.Matched(new PrinterError($"Invalid {commandName}: {ex.Message}"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", $"Invalid {commandName}: {ex.Message}"));
         }
     }
 
@@ -78,7 +79,7 @@ public static class EplParsingHelpers
         }
         catch (ParseException ex)
         {
-            return MatchResult.Matched(new PrinterError($"Invalid {commandName}: {ex.Message}"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", $"Invalid {commandName}: {ex.Message}"));
         }
     }
 
@@ -102,7 +103,7 @@ public static class EplParsingHelpers
             return null; // Success
         }
 
-        return MatchResult.Matched(new PrinterError($"Invalid {commandName}: '{trimmed}' is not a valid integer"));
+        return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", $"Invalid {commandName}: '{trimmed}' is not a valid integer"));
     }
 
     /// <summary>
@@ -143,25 +144,25 @@ public sealed class ParseException : Exception
 /// </summary>
 public sealed class ArgsParser
 {
-    private readonly string[] _parts;
+    private readonly string[] parts;
 
     public ArgsParser(string[] parts, string commandName)
     {
-        _parts = parts;
+        this.parts = parts;
     }
 
     /// <summary>
     /// Gets the number of parts available.
     /// </summary>
-    public int Count => _parts.Length;
+    public int Count => parts.Length;
 
     /// <summary>
     /// Ensures there are at least the specified number of parts.
     /// </summary>
     public void RequireAtLeast(int count)
     {
-        if (_parts.Length < count)
-            throw new ParseException($"expected at least {count} parameters, got {_parts.Length}");
+        if (parts.Length < count)
+            throw new ParseException($"expected at least {count} parameters, got {parts.Length}");
     }
 
     /// <summary>
@@ -169,13 +170,13 @@ public sealed class ArgsParser
     /// </summary>
     public int GetInt(int index, string? paramName = null)
     {
-        if (index >= _parts.Length)
+        if (index >= parts.Length)
             throw new ParseException($"missing parameter at index {index}");
 
-        if (int.TryParse(_parts[index].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var result))
+        if (int.TryParse(parts[index].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var result))
             return result;
 
-        throw new ParseException($"parameter '{paramName ?? index.ToString()}' ('{_parts[index]}') is not a valid integer");
+        throw new ParseException($"parameter '{paramName ?? index.ToString()}' ('{parts[index]}') is not a valid integer");
     }
 
     /// <summary>
@@ -183,10 +184,10 @@ public sealed class ArgsParser
     /// </summary>
     public int GetIntOrDefault(int index, int defaultValue)
     {
-        if (index >= _parts.Length)
+        if (index >= parts.Length)
             return defaultValue;
 
-        if (int.TryParse(_parts[index].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var result))
+        if (int.TryParse(parts[index].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var result))
             return result;
 
         return defaultValue;
@@ -197,10 +198,10 @@ public sealed class ArgsParser
     /// </summary>
     public string GetString(int index)
     {
-        if (index >= _parts.Length)
+        if (index >= parts.Length)
             throw new ParseException($"missing parameter at index {index}");
 
-        return _parts[index].Trim();
+        return parts[index].Trim();
     }
 
     /// <summary>
@@ -208,10 +209,10 @@ public sealed class ArgsParser
     /// </summary>
     public string? GetStringOrDefault(int index, string? defaultValue = null)
     {
-        if (index >= _parts.Length)
+        if (index >= parts.Length)
             return defaultValue;
 
-        return _parts[index].Trim();
+        return parts[index].Trim();
     }
 
     /// <summary>

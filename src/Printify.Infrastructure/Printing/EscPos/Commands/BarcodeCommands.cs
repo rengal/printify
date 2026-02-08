@@ -1,4 +1,3 @@
-using Printify.Domain.Media;
 using DomainMedia = Printify.Domain.Media.Media;
 
 namespace Printify.Infrastructure.Printing.EscPos.Commands;
@@ -6,7 +5,7 @@ namespace Printify.Infrastructure.Printing.EscPos.Commands;
 /// <summary>
 /// ESC/POS barcode symbologies supported by GS k.
 /// </summary>
-public enum BarcodeSymbology
+public enum EscPosBarcodeSymbology
 {
     /// <summary>
     /// US UPC-A.
@@ -57,7 +56,7 @@ public enum BarcodeSymbology
 /// <summary>
 /// Label (HRI) positioning options for barcodes driven by GS H (0x1D 0x48).
 /// </summary>
-public enum BarcodeLabelPosition
+public enum EscPosBarcodeLabelPosition
 {
     /// <summary>
     /// Suppress human-readable interpretation text output.
@@ -83,7 +82,7 @@ public enum BarcodeLabelPosition
 /// <summary>
 /// Error correction levels supported by QR codes in ESC/POS.
 /// </summary>
-public enum QrErrorCorrectionLevel
+public enum EscPosQrErrorCorrectionLevel
 {
     /// <summary>
     /// Level L (7% recovery).
@@ -109,7 +108,7 @@ public enum QrErrorCorrectionLevel
 /// <summary>
 /// Supported QR code models for ESC/POS GS ( k configuration.
 /// </summary>
-public enum QrModel
+public enum EscPosQrModel
 {
     /// <summary>
     /// Model 1 QR symbol.
@@ -132,8 +131,8 @@ public enum QrModel
 /// </summary>
 /// <param name="Symbology">Selected barcode symbology.</param>
 /// <param name="Data">Raw data payload to encode.</param>
-public sealed record PrintBarcodeUpload(
-    BarcodeSymbology Symbology,
+public sealed record EscPosPrintBarcodeUpload(
+    EscPosBarcodeSymbology Symbology,
     string Data)
     : EscPosCommand;
 
@@ -142,8 +141,8 @@ public sealed record PrintBarcodeUpload(
 /// </summary>
 /// <param name="Symbology">Selected barcode symbology.</param>
 /// <param name="Data">Raw data payload to encode.</param>
-public sealed record PrintBarcode(
-    BarcodeSymbology Symbology,
+public sealed record EscPosPrintBarcode(
+    EscPosBarcodeSymbology Symbology,
     string Data,
     int Width,
     int Height,
@@ -154,30 +153,30 @@ public sealed record PrintBarcode(
 /// Configures the height of subsequent barcodes using GS h (0x1D 0x68).
 /// </summary>
 /// <param name="HeightInDots">Barcode height in dots.</param>
-public sealed record SetBarcodeHeight(int HeightInDots) : EscPosCommand;
+public sealed record EscPosSetBarcodeHeight(int HeightInDots) : EscPosCommand;
 
 /// <summary>
 /// Selects the placement of human-readable barcode labels via GS H (0x1D 0x48).
 /// </summary>
 /// <param name="Position">Desired label positioning.</param>
-public sealed record SetBarcodeLabelPosition(BarcodeLabelPosition Position)
+public sealed record EscPosSetBarcodeLabelPosition(EscPosBarcodeLabelPosition Position)
     : EscPosCommand;
 
 /// <summary>
 /// Configures the module width (basic bar width) for subsequent barcodes using GS w (0x1D 0x77).
 /// </summary>
 /// <param name="ModuleWidth">Module width in device units (typically dots).</param>
-public sealed record SetBarcodeModuleWidth(int ModuleWidth) : EscPosCommand;
+public sealed record EscPosSetBarcodeModuleWidth(int ModuleWidth) : EscPosCommand;
 
 /// <summary>
 /// Emits a QR code print request using the last stored payload.
 /// </summary>
-public sealed record PrintQrCodeUpload : EscPosCommand;
+public sealed record EscPosPrintQrCodeUpload : EscPosCommand;
 
 /// <summary>
 /// Emits a QR code print request using the last stored payload.
 /// </summary>
-public sealed record PrintQrCode(
+public sealed record EscPosPrintQrCode(
     string Data,
     int Width,
     int Height,
@@ -187,23 +186,23 @@ public sealed record PrintQrCode(
 /// Stores QR code data into the printer memory using GS ( k.
 /// </summary>
 /// <param name="Content">Payload to be encoded into the QR symbol.</param>
-public sealed record StoreQrData(string Content) : EscPosCommand;
+public sealed record EscPosStoreQrData(string Content) : EscPosCommand;
 
 /// <summary>
 /// Selects the QR error correction level for subsequent symbols via GS ( k.
 /// </summary>
 /// <param name="Level">Chosen QR error correction level.</param>
-public sealed record SetQrErrorCorrection(QrErrorCorrectionLevel Level)
+public sealed record EscPosSetQrErrorCorrection(EscPosQrErrorCorrectionLevel Level)
     : EscPosCommand;
 
 /// <summary>
 /// Configures the QR code model for subsequent GS ( k.
 /// </summary>
 /// <param name="Model">Selected QR code model.</param>
-public sealed record SetQrModel(QrModel Model) : EscPosCommand;
+public sealed record EscPosSetQrModel(EscPosQrModel Model) : EscPosCommand;
 
 /// <summary>
 /// Sets the module size (dot width) for QR codes via GS ( k.
 /// </summary>
 /// <param name="ModuleSize">Width of a single QR module in dots.</param>
-public sealed record SetQrModuleSize(int ModuleSize) : EscPosCommand;
+public sealed record EscPosSetQrModuleSize(int ModuleSize) : EscPosCommand;

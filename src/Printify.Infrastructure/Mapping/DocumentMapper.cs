@@ -56,15 +56,15 @@ internal static class DocumentMapper
 
             // Only set MediaId to reference existing media, don't attach media entity
             // This prevents EF from trying to insert duplicate media records
-            if (element is EscPosCommands.RasterImage raster)
+            if (element is EscPosCommands.EscPosRasterImage raster)
             {
                 elementEntity.MediaId = raster.Media.Id;
             }
-            else if (element is EscPosCommands.PrintBarcode barcode)
+            else if (element is EscPosCommands.EscPosPrintBarcode barcode)
             {
                 elementEntity.MediaId = barcode.Media.Id;
             }
-            else if (element is EscPosCommands.PrintQrCode qr)
+            else if (element is EscPosCommands.EscPosPrintQrCode qr)
             {
                 elementEntity.MediaId = qr.Media.Id;
             }

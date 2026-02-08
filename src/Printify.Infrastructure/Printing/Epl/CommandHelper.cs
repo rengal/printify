@@ -19,16 +19,21 @@ public static class EplCommandHelper
 
         return Lines(
             $"Unknown command ({command.GetType().Name})",
-            $"Raw bytes length={command.RawBytes?.Length ?? 0}");
+            $"Raw bytes length={command.RawBytes.Length}");
     }
 
     public static IReadOnlyList<string> GetDescription(EplCommand command, CultureInfo? culture = null)
     {
+        return GetDescription(command, textEncoding: null, culture);
+    }
+
+    public static IReadOnlyList<string> GetDescription(
+        EplCommand command,
+        Encoding? textEncoding,
+        CultureInfo? culture = null)
+    {
         ArgumentNullException.ThrowIfNull(command);
 
-        // TODO: Use culture parameter for future localization
-
-        // Keep command descriptions short and stable for UI/debug consumers.
         return command switch
         {
             EplParseError error => Lines(
@@ -38,10 +43,11 @@ public static class EplCommandHelper
             EplPrinterError printerError => Lines(
                 "Printer error",
                 $"Message=\"{EscapeDescriptionText(printerError.Message)}\""),
-            EplScalableText scalableText => BuildScalableTextDescription(scalableText),
+            EplScalableText scalableText => BuildScalableTextDescription(
+                scalableText,
+                textEncoding ?? Encoding.GetEncoding(437)),
             EplDrawHorizontalLine horizontalLine => BuildDrawHorizontalLineDescription(horizontalLine),
             EplPrint print => BuildPrintDescription(print),
-            PrintBarcode eplBarcode => BuildEplBarcodeDescription(eplBarcode),
             EplDrawBox drawLine => BuildDrawLineDescription(drawLine),
             EplRasterImage rasterImage => BuildEplRasterImageDescription(rasterImage),
             EplPrintBarcode barcode => BuildEplPrintBarcodeDescription(barcode),
@@ -63,16 +69,18 @@ public static class EplCommandHelper
             SetPrintDirection direction => Lines(
                 "Z direction - Set print direction",
                 $"direction={direction.Direction.ToString()}"),
-            EplSetInternationalCharacter intlChar => Lines(
+            EplSetInternationalCharacter characterSet => Lines(
                 "I p1,p2,p3 - Set international character set/codepage",
-                $"p1={intlChar.P1}, p2={intlChar.P2}, p3={intlChar.P3}"),
+                $"p1={characterSet.P1}, p2={characterSet.P2}, p3={characterSet.P3}"),
             _ => Lines(
                 $"Unknown command ({command.GetType().Name})",
-                $"Raw bytes length={command.RawBytes?.Length ?? 0}")
+                $"Raw bytes length={command.RawBytes.Length}")
         };
     }
 
-    private static IReadOnlyList<string> BuildScalableTextDescription(EplScalableText eplScalableText)
+    private static IReadOnlyList<string> BuildScalableTextDescription(
+        EplScalableText eplScalableText,
+        Encoding textEncoding)
     {
         var rotationLabel = eplScalableText.Rotation switch
         {
@@ -89,7 +97,7 @@ public static class EplCommandHelper
             $"rotation={rotationLabel}",
             $"font={eplScalableText.Font}, h-mul={eplScalableText.HorizontalMultiplication}, v-mul={eplScalableText.VerticalMultiplication}",
             $"reverse={eplScalableText.Reverse}",
-            $"text=\"{EscapeDescriptionText(Encoding.GetEncoding(437).GetString(eplScalableText.TextBytes))}\"");
+            $"text=\"{EscapeDescriptionText(textEncoding.GetString(eplScalableText.TextBytes))}\"");
     }
 
     private static IReadOnlyList<string> BuildDrawHorizontalLineDescription(EplDrawHorizontalLine horizontalLine)
@@ -105,27 +113,6 @@ public static class EplCommandHelper
         return Lines(
             "P n - Print format and feed label",
             $"n={eplPrint.Copies} (copies)");
-    }
-
-    private static IReadOnlyList<string> BuildEplBarcodeDescription(PrintBarcode barcode)
-    {
-        var rotationLabel = barcode.Rotation switch
-        {
-            0 => "normal",
-            1 => "90°",
-            2 => "180°",
-            3 => "270°",
-            _ => barcode.Rotation.ToString()
-        };
-
-        return Lines(
-            "B x,y,rotation,type,width,height,hri,\"data\" - Print barcode",
-            $"x={barcode.X}, y={barcode.Y}",
-            $"rotation={rotationLabel}",
-            $"type={barcode.Type}",
-            $"width={barcode.Width}, height={barcode.Height}",
-            $"hri={barcode.Hri}",
-            $"data=\"{EscapeDescriptionText(barcode.Data)}\"");
     }
 
     private static IReadOnlyList<string> BuildDrawLineDescription(EplDrawBox eplDrawBox)
@@ -175,8 +162,11 @@ public static class EplCommandHelper
         return lines;
     }
 
-    private static string EscapeDescriptionText(string text)
+    private static string EscapeDescriptionText(string? text)
     {
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
+
         return text.Replace("\\", "\\\\", StringComparison.Ordinal)
             .Replace("\"", "\\\"", StringComparison.Ordinal);
     }

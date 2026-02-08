@@ -25,9 +25,9 @@ public sealed class EscPosDocumentFinalizer(
 
         var sourceCommands = document.Commands;
         var hasUploadCommands = sourceCommands.Any(c =>
-            c is EscPos.Commands.RasterImageUpload
-            or EscPos.Commands.PrintBarcodeUpload
-            or EscPos.Commands.PrintQrCodeUpload);
+            c is EscPos.Commands.EscPosRasterImageUpload
+            or EscPos.Commands.EscPosPrintBarcodeUpload
+            or EscPos.Commands.EscPosPrintQrCodeUpload);
 
         if (!hasUploadCommands)
         {
@@ -41,13 +41,13 @@ public sealed class EscPosDocumentFinalizer(
             : await printerRepository.GetSettingsAsync(document.PrinterId, ct).ConfigureAwait(false);
         var barcodeState = new BarcodeState();
         var qrState = new QrState();
-        EscPos.Commands.TextJustification? justification = null;
+        EscPos.Commands.EscPosTextJustification? justification = null;
 
         foreach (var sourceCommand in sourceCommands)
         {
-            if (sourceCommand is EscPos.Commands.RasterImageUpload
-                or EscPos.Commands.PrintQrCodeUpload
-                or EscPos.Commands.PrintBarcodeUpload)
+            if (sourceCommand is EscPos.Commands.EscPosRasterImageUpload
+                or EscPos.Commands.EscPosPrintQrCodeUpload
+                or EscPos.Commands.EscPosPrintBarcodeUpload)
             {
                 // Media rendering depends on printer settings; skip conversion if settings are missing.
                 if (printer == null || settings == null)
@@ -55,16 +55,16 @@ public sealed class EscPosDocumentFinalizer(
                     continue;
                 }
 
-                EscPos.Commands.RasterImageUpload? imageUpload = null;
+                EscPos.Commands.EscPosRasterImageUpload? imageUpload = null;
 
                 switch (sourceCommand)
                 {
-                    case EscPos.Commands.RasterImageUpload rasterImageUpload:
+                    case EscPos.Commands.EscPosRasterImageUpload rasterImageUpload:
                         imageUpload = rasterImageUpload;
                         break;
-                    case EscPos.Commands.PrintQrCodeUpload when string.IsNullOrEmpty(qrState.Payload):
+                    case EscPos.Commands.EscPosPrintQrCodeUpload when string.IsNullOrEmpty(qrState.Payload):
                         continue;
-                    case EscPos.Commands.PrintQrCodeUpload:
+                    case EscPos.Commands.EscPosPrintQrCodeUpload:
                         imageUpload = barcodeService.GenerateQrMedia(new QrRenderOptions(
                             qrState.Payload,
                             qrState.Model,
@@ -73,9 +73,9 @@ public sealed class EscPosDocumentFinalizer(
                             justification,
                             settings.WidthInDots));
                         break;
-                    case EscPos.Commands.PrintBarcodeUpload barcodeUpload when string.IsNullOrEmpty(barcodeUpload.Data):
+                    case EscPos.Commands.EscPosPrintBarcodeUpload barcodeUpload when string.IsNullOrEmpty(barcodeUpload.Data):
                         continue;
-                    case EscPos.Commands.PrintBarcodeUpload barcodeUpload:
+                    case EscPos.Commands.EscPosPrintBarcodeUpload barcodeUpload:
                         imageUpload = barcodeService.GenerateBarcodeMedia(
                             barcodeUpload,
                             new BarcodeRenderOptions(
@@ -107,17 +107,17 @@ public sealed class EscPosDocumentFinalizer(
 
                 switch (sourceCommand)
                 {
-                    case EscPos.Commands.RasterImageUpload:
-                        resultCommands.Add(new EscPos.Commands.RasterImage(imageUpload.Width, imageUpload.Height, savedMedia)
+                    case EscPos.Commands.EscPosRasterImageUpload:
+                        resultCommands.Add(new EscPos.Commands.EscPosRasterImage(imageUpload.Width, imageUpload.Height, savedMedia)
                         {
                             RawBytes = sourceCommand.RawBytes,
                             LengthInBytes = sourceCommand.LengthInBytes
                         });
                         break;
-                    case EscPos.Commands.PrintQrCodeUpload:
+                    case EscPos.Commands.EscPosPrintQrCodeUpload:
                         if (!string.IsNullOrEmpty(qrState.Payload))
                         {
-                            resultCommands.Add(new EscPos.Commands.PrintQrCode(
+                            resultCommands.Add(new EscPos.Commands.EscPosPrintQrCode(
                                 qrState.Payload,
                                 imageUpload.Width,
                                 imageUpload.Height,
@@ -128,8 +128,8 @@ public sealed class EscPosDocumentFinalizer(
                             });
                         }
                         break;
-                    case EscPos.Commands.PrintBarcodeUpload barcodeUpload:
-                        resultCommands.Add(new EscPos.Commands.PrintBarcode(
+                    case EscPos.Commands.EscPosPrintBarcodeUpload barcodeUpload:
+                        resultCommands.Add(new EscPos.Commands.EscPosPrintBarcode(
                             barcodeUpload.Symbology,
                             barcodeUpload.Data,
                             imageUpload.Width,
@@ -145,35 +145,35 @@ public sealed class EscPosDocumentFinalizer(
                 continue;
             }
 
-            if (sourceCommand is EscPos.Commands.SetBarcodeHeight barcodeHeight)
+            if (sourceCommand is EscPos.Commands.EscPosSetBarcodeHeight barcodeHeight)
             {
                 barcodeState = barcodeState with { HeightInDots = barcodeHeight.HeightInDots };
             }
-            else if (sourceCommand is EscPos.Commands.SetBarcodeModuleWidth moduleWidth)
+            else if (sourceCommand is EscPos.Commands.EscPosSetBarcodeModuleWidth moduleWidth)
             {
                 barcodeState = barcodeState with { ModuleWidthInDots = moduleWidth.ModuleWidth };
             }
-            else if (sourceCommand is EscPos.Commands.SetBarcodeLabelPosition labelPosition)
+            else if (sourceCommand is EscPos.Commands.EscPosSetBarcodeLabelPosition labelPosition)
             {
                 barcodeState = barcodeState with { LabelPosition = labelPosition.Position };
             }
-            else if (sourceCommand is EscPos.Commands.SetQrModel qrModel)
+            else if (sourceCommand is EscPos.Commands.EscPosSetQrModel qrModel)
             {
                 qrState = qrState with { Model = qrModel.Model };
             }
-            else if (sourceCommand is EscPos.Commands.SetQrModuleSize qrModuleSize)
+            else if (sourceCommand is EscPos.Commands.EscPosSetQrModuleSize qrModuleSize)
             {
                 qrState = qrState with { ModuleSizeInDots = qrModuleSize.ModuleSize };
             }
-            else if (sourceCommand is EscPos.Commands.SetQrErrorCorrection qrErrorCorrection)
+            else if (sourceCommand is EscPos.Commands.EscPosSetQrErrorCorrection qrErrorCorrection)
             {
                 qrState = qrState with { ErrorCorrectionLevel = qrErrorCorrection.Level };
             }
-            else if (sourceCommand is EscPos.Commands.StoreQrData qrData)
+            else if (sourceCommand is EscPos.Commands.EscPosStoreQrData qrData)
             {
                 qrState = qrState with { Payload = qrData.Content };
             }
-            else if (sourceCommand is EscPos.Commands.SetJustification justificationElement)
+            else if (sourceCommand is EscPos.Commands.EscPosSetJustification justificationElement)
             {
                 justification = justificationElement.Justification;
             }
@@ -187,11 +187,11 @@ public sealed class EscPosDocumentFinalizer(
     private sealed record BarcodeState(
         int? HeightInDots = null,
         int? ModuleWidthInDots = null,
-        EscPos.Commands.BarcodeLabelPosition? LabelPosition = null);
+        EscPos.Commands.EscPosBarcodeLabelPosition? LabelPosition = null);
 
     private sealed record QrState(
         string? Payload = null,
-        EscPos.Commands.QrModel Model = EscPos.Commands.QrModel.Model2,
+        EscPos.Commands.EscPosQrModel Model = EscPos.Commands.EscPosQrModel.Model2,
         int? ModuleSizeInDots = null,
-        EscPos.Commands.QrErrorCorrectionLevel? ErrorCorrectionLevel = null);
+        EscPos.Commands.EscPosQrErrorCorrectionLevel? ErrorCorrectionLevel = null);
 }

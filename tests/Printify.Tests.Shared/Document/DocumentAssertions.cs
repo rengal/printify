@@ -1,14 +1,14 @@
-using Xunit;
-using EscPosCommands = Printify.Infrastructure.Printing.EscPos.Commands;
-using EplCommands = Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Domain.Documents;
-using Printify.Domain.Printing;
 using Printify.Domain.Printers;
+using Printify.Domain.Printing;
 using Printify.Infrastructure.Mapping;
+using Printify.Infrastructure.Printing.EscPos.Commands;
+using Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Web.Contracts.Documents.Responses.Canvas;
 using Printify.Web.Contracts.Documents.Responses.Canvas.Elements;
 using Printify.Web.Mapping;
 using SkiaSharp;
+using Xunit;
 
 namespace Printify.Tests.Shared.Document;
 
@@ -45,12 +45,12 @@ public static class DocumentAssertions
 
             switch (expected)
             {
-                case EscPosCommands.AppendText expectedText:
-                    var actualText = Assert.IsType<EscPosCommands.AppendText>(actualElement);
+                case EscPosAppendText expectedText:
+                    var actualText = Assert.IsType<EscPosAppendText>(actualElement);
                     Assert.Equal(expectedText.TextBytes, actualText.TextBytes);
                     break;
-                case EplCommands.EplScalableText expectedText:
-                    var actualScalableText = Assert.IsType<EplCommands.EplScalableText>(actualElement);
+                case EplScalableText expectedText:
+                    var actualScalableText = Assert.IsType<EplScalableText>(actualElement);
                     Assert.Equal(expectedText.X, actualScalableText.X);
                     Assert.Equal(expectedText.Y, actualScalableText.Y);
                     Assert.Equal(expectedText.Rotation, actualScalableText.Rotation);
@@ -60,11 +60,17 @@ public static class DocumentAssertions
                     Assert.Equal(expectedText.Reverse, actualScalableText.Reverse);
                     Assert.Equal(expectedText.TextBytes, actualScalableText.TextBytes);
                     break;
-                case PrinterError:
-                    _ = Assert.IsType<PrinterError>(actualElement);
+                case EscPosPrinterError:
+                    _ = Assert.IsType<EscPosPrinterError>(actualElement);
                     break;
-                case EscPosCommands.PrintBarcode expectedBarcode:
-                    var actualBarcode = Assert.IsType<EscPosCommands.PrintBarcode>(actualElement);
+                case EscPosParseError:
+                    _ = Assert.IsType<EscPosParseError>(actualElement);
+                    break;
+                case EplPrinterError:
+                    _ = Assert.IsType<EplPrinterError>(actualElement);
+                    break;
+                case EscPosPrintBarcode expectedBarcode:
+                    var actualBarcode = Assert.IsType<EscPosPrintBarcode>(actualElement);
                     Assert.Equal(expectedBarcode.Symbology, actualBarcode.Symbology);
                     Assert.True(actualBarcode.Width > 0);
                     Assert.True(actualBarcode.Height > 0);
@@ -74,8 +80,8 @@ public static class DocumentAssertions
                     Assert.False(string.IsNullOrWhiteSpace(actualBarcode.Media.Sha256Checksum));
                     Assert.False(string.IsNullOrWhiteSpace(actualBarcode.Media.Url));
                     break;
-                case EscPosCommands.PrintQrCode expectedQr:
-                    var actualQr = Assert.IsType<EscPosCommands.PrintQrCode>(actualElement);
+                case EscPosPrintQrCode expectedQr:
+                    var actualQr = Assert.IsType<EscPosPrintQrCode>(actualElement);
                     Assert.Equal(expectedQr.Data, actualQr.Data);
                     Assert.True(actualQr.Width > 0);
                     Assert.True(actualQr.Height > 0);
@@ -85,8 +91,8 @@ public static class DocumentAssertions
                     Assert.False(string.IsNullOrWhiteSpace(actualQr.Media.Sha256Checksum));
                     Assert.False(string.IsNullOrWhiteSpace(actualQr.Media.Url));
                     break;
-                case EplCommands.EplRasterImageUpload expectedRasterImageUpload:
-                    var actualEplRasterImageUpload = Assert.IsType<EplCommands.EplRasterImageUpload>(actualElement);
+                case EplRasterImageUpload expectedRasterImageUpload:
+                    var actualEplRasterImageUpload = Assert.IsType<EplRasterImageUpload>(actualElement);
                     Assert.Equal(expectedRasterImageUpload.X, actualEplRasterImageUpload.X);
                     Assert.Equal(expectedRasterImageUpload.Y, actualEplRasterImageUpload.Y);
                     Assert.Equal(expectedRasterImageUpload.Width, actualEplRasterImageUpload.Width);
@@ -104,8 +110,8 @@ public static class DocumentAssertions
                             expectedRasterImageUpload.Height);
                     }
                     break;
-                case EplCommands.EplRasterImage expectedRasterImage:
-                    var actualEplRasterImage = Assert.IsType<EplCommands.EplRasterImage>(actualElement);
+                case EplRasterImage expectedRasterImage:
+                    var actualEplRasterImage = Assert.IsType<EplRasterImage>(actualElement);
                     Assert.Equal(expectedRasterImage.X, actualEplRasterImage.X);
                     Assert.Equal(expectedRasterImage.Y, actualEplRasterImage.Y);
                     Assert.Equal(expectedRasterImage.Width, actualEplRasterImage.Width);
@@ -115,8 +121,8 @@ public static class DocumentAssertions
                     Assert.NotEmpty(actualEplRasterImage.Media.Url);
                     Assert.Equal(expectedRasterImage.Media.Length, actualEplRasterImage.Media.Length);
                     break;
-                case EplCommands.EplPrintBarcodeUpload expectedBarcodeUpload:
-                    var actualEplBarcodeUpload = Assert.IsType<EplCommands.EplPrintBarcodeUpload>(actualElement);
+                case EplPrintBarcodeUpload expectedBarcodeUpload:
+                    var actualEplBarcodeUpload = Assert.IsType<EplPrintBarcodeUpload>(actualElement);
                     Assert.Equal(expectedBarcodeUpload.X, actualEplBarcodeUpload.X);
                     Assert.Equal(expectedBarcodeUpload.Y, actualEplBarcodeUpload.Y);
                     Assert.Equal(expectedBarcodeUpload.Rotation, actualEplBarcodeUpload.Rotation);
@@ -128,8 +134,8 @@ public static class DocumentAssertions
                     Assert.Equal(expectedBarcodeUpload.MediaUpload.ContentType, actualEplBarcodeUpload.MediaUpload.ContentType);
                     Assert.True(actualEplBarcodeUpload.MediaUpload.Content.Length > 0);
                     break;
-                case EplCommands.EplPrintBarcode expectedBarcode:
-                    var actualEplBarcode = Assert.IsType<EplCommands.EplPrintBarcode>(actualElement);
+                case EplPrintBarcode expectedBarcode:
+                    var actualEplBarcode = Assert.IsType<EplPrintBarcode>(actualElement);
                     Assert.Equal(expectedBarcode.X, actualEplBarcode.X);
                     Assert.Equal(expectedBarcode.Y, actualEplBarcode.Y);
                     Assert.Equal(expectedBarcode.Rotation, actualEplBarcode.Rotation);
@@ -144,19 +150,8 @@ public static class DocumentAssertions
                     Assert.False(string.IsNullOrWhiteSpace(actualEplBarcode.Media.Sha256Checksum));
                     Assert.False(string.IsNullOrWhiteSpace(actualEplBarcode.Media.Url));
                     break;
-                case EplCommands.PrintBarcode expectedLegacyBarcode:
-                    var actualLegacyBarcode = Assert.IsType<EplCommands.PrintBarcode>(actualElement);
-                    Assert.Equal(expectedLegacyBarcode.X, actualLegacyBarcode.X);
-                    Assert.Equal(expectedLegacyBarcode.Y, actualLegacyBarcode.Y);
-                    Assert.Equal(expectedLegacyBarcode.Rotation, actualLegacyBarcode.Rotation);
-                    Assert.Equal(expectedLegacyBarcode.Type, actualLegacyBarcode.Type);
-                    Assert.Equal(expectedLegacyBarcode.Width, actualLegacyBarcode.Width);
-                    Assert.Equal(expectedLegacyBarcode.Height, actualLegacyBarcode.Height);
-                    Assert.Equal(expectedLegacyBarcode.Hri, actualLegacyBarcode.Hri);
-                    Assert.Equal(expectedLegacyBarcode.Data, actualLegacyBarcode.Data);
-                    break;
-                case EscPosCommands.RasterImageUpload expectedRasterImageUpload:
-                    var actualRasterImageUpload = Assert.IsType<EscPosCommands.RasterImageUpload>(actualElement);
+                case EscPosRasterImageUpload expectedRasterImageUpload:
+                    var actualRasterImageUpload = Assert.IsType<EscPosRasterImageUpload>(actualElement);
                     Assert.Equal(expectedRasterImageUpload.Width, actualRasterImageUpload.Width);
                     Assert.Equal(expectedRasterImageUpload.Height, actualRasterImageUpload.Height);
                     Assert.Equal(expectedRasterImageUpload.Media.ContentType, actualRasterImageUpload.Media.ContentType);
@@ -172,8 +167,8 @@ public static class DocumentAssertions
                             expectedRasterImageUpload.Height);
                     }
                     break;
-                case EscPosCommands.RasterImage expectedRasterImage:
-                    var actualRasterImage = Assert.IsType<EscPosCommands.RasterImage>(actualElement);
+                case EscPosRasterImage expectedRasterImage:
+                    var actualRasterImage = Assert.IsType<EscPosRasterImage>(actualElement);
                     Assert.Equal(expectedRasterImage.Width, actualRasterImage.Width);
                     Assert.Equal(expectedRasterImage.Height, actualRasterImage.Height);
                     Assert.Equal(expectedRasterImage.Media.ContentType, actualRasterImage.Media.ContentType);
@@ -233,18 +228,6 @@ public static class DocumentAssertions
                 Assert.NotEmpty(actual.ErrorMessages);
             }
         }
-    }
-
-    public static void EqualView(
-        IReadOnlyList<CanvasElementDto> expectedElements,
-        Protocol expectedProtocol,
-        RenderedDocument? actual,
-        int expectedWidthInDots,
-        int? expectedHeightInDots)
-    {
-        Assert.NotNull(actual);
-        var dto = RenderedDocumentMapper.ToCanvasResponseDto(actual);
-        EqualCanvas([expectedElements], expectedProtocol, dto, expectedWidthInDots, expectedHeightInDots);
     }
 
     public static void EqualView(
@@ -405,7 +388,7 @@ public static class DocumentAssertions
 
         Assert.NotNull(expectedImage);
         Assert.NotNull(actualImage);
-        Assert.Equal(expectedWidth, expectedImage!.Width);
+        Assert.Equal(expectedWidth, expectedImage.Width);
         Assert.Equal(expectedHeight, expectedImage.Height);
         Assert.Equal(expectedWidth, actualImage!.Width);
         Assert.Equal(expectedHeight, actualImage.Height);

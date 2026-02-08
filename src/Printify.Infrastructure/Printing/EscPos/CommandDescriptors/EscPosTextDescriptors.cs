@@ -1,4 +1,3 @@
-using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Common;
 using Printify.Infrastructure.Printing.EscPos.Commands;
 
@@ -25,7 +24,7 @@ public sealed class SetFontDescriptor : ICommandDescriptor
         var isDoubleHeight = (parameter & 0x10) != 0;
         var isDoubleWidth = (parameter & 0x20) != 0;
 
-        var fontElement = new SelectFont(fontNumber, isDoubleWidth, isDoubleHeight);
+        var fontElement = new EscPosSelectFont(fontNumber, isDoubleWidth, isDoubleHeight);
         return MatchResult.Matched(fontElement);
     }
 }
@@ -44,7 +43,7 @@ public sealed class SetBoldModeDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var mode = buffer[2] == 0x01;
-        var element = new SetBoldMode(mode);
+        var element = new EscPosSetBoldMode(mode);
         return MatchResult.Matched(element);
     }
 }
@@ -64,7 +63,7 @@ public sealed class SetUnderlineModeDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var enabled = buffer[2] != 0;
-        var element = new SetUnderlineMode(enabled);
+        var element = new EscPosSetUnderlineMode(enabled);
         return MatchResult.Matched(element);
     }
 }
@@ -84,7 +83,7 @@ public sealed class SetReverseModeDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var mode = buffer[2] == 0x01;
-        var element = new SetReverseMode(mode);
+        var element = new EscPosSetReverseMode(mode);
         return MatchResult.Matched(element);
     }
 }
@@ -105,25 +104,26 @@ public sealed class SetJustificationDescriptor : ICommandDescriptor
     {
         if (TryParseJustification(buffer[2], out var justification))
         {
-            return MatchResult.Matched(new SetJustification(justification));
+            return MatchResult.Matched(new EscPosSetJustification(justification));
         }
 
-        var error = new PrinterError($"Invalid justification value: 0x{buffer[2]:X2}. Expected 0x00 (left), 0x01 (center), or 0x02 (right)");
+        var error = new EscPosParseError("ESCPOS_PARSER_ERROR",
+            $"Invalid justification value: 0x{buffer[2]:X2}. Expected 0x00 (left), 0x01 (center), or 0x02 (right)");
         return MatchResult.Matched(error);
     }
 
-    private static bool TryParseJustification(byte value, out TextJustification result)
+    private static bool TryParseJustification(byte value, out EscPosTextJustification result)
     {
         switch (value)
         {
             case 0x00:
-                result = TextJustification.Left;
+                result = EscPosTextJustification.Left;
                 return true;
             case 0x01:
-                result = TextJustification.Center;
+                result = EscPosTextJustification.Center;
                 return true;
             case 0x02:
-                result = TextJustification.Right;
+                result = EscPosTextJustification.Right;
                 return true;
             default:
                 result = default;
@@ -148,7 +148,7 @@ public sealed class SetLineSpacingDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var spacing = buffer[2];
-        return MatchResult.Matched(new SetLineSpacing(spacing));
+        return MatchResult.Matched(new EscPosSetLineSpacing(spacing));
     }
 }
 
@@ -165,6 +165,6 @@ public sealed class ResetLineSpacingDescriptor : ICommandDescriptor
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
-        return MatchResult.Matched(new ResetLineSpacing());
+        return MatchResult.Matched(new EscPosResetLineSpacing());
     }
 }

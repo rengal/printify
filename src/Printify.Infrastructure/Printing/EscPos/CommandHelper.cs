@@ -69,6 +69,14 @@ public static class EscPosCommandHelper
 
     public static IReadOnlyList<string> GetDescription(EscPosCommand command, CultureInfo? culture = null)
     {
+        return GetDescription(command, textEncoding: null, culture);
+    }
+
+    public static IReadOnlyList<string> GetDescription(
+        EscPosCommand command,
+        Encoding? textEncoding,
+        CultureInfo? culture = null)
+    {
         ArgumentNullException.ThrowIfNull(command);
 
         // TODO: Use culture parameter for future localization
@@ -76,7 +84,7 @@ public static class EscPosCommandHelper
         // Keep command descriptions short and stable for UI/debug consumers.
         return command switch
         {
-            Bell => Lines(
+            EscPosBell => Lines(
                 "BEL - Buzzer (beeper)"),
             EscPosParseError error => Lines(
                 "Parser error",
@@ -85,89 +93,88 @@ public static class EscPosCommandHelper
             EscPosPrinterError printerError => Lines(
                 "Printer error",
                 $"Message=\"{EscapeDescriptionText(printerError.Message)}\""),
-            GetPrinterStatus status => BuildPrinterStatusDescription(status),
-            StatusRequest request => BuildStatusRequestDescription(request),
-            StatusResponse response => BuildStatusResponseDescription(response),
-            Pulse pulse => Lines(
+            EscPosGetPrinterStatus status => BuildPrinterStatusDescription(status),
+            EscPosStatusRequest request => BuildStatusRequestDescription(request),
+            EscPosStatusResponse response => BuildStatusResponseDescription(response),
+            EscPosPulse pulse => Lines(
                 "ESC p m t1 t2 - Cash drawer pulse",
                 $"m={pulse.Pin}",
                 $"t1={pulse.OnTimeMs}, t2={pulse.OffTimeMs}"),
-            Initialize => Lines(
+            EscPosInitialize => Lines(
                 "ESC @ - Initialize printer"),
-            SetBarcodeHeight height => Lines(
+            EscPosSetBarcodeHeight height => Lines(
                 "GS h n - Set barcode height",
                 $"n={height.HeightInDots} (dots)"),
-            SetBarcodeLabelPosition position => BuildBarcodeLabelPositionDescription(position),
-            SetBarcodeModuleWidth moduleWidth => Lines(
+            EscPosSetBarcodeLabelPosition position => BuildBarcodeLabelPositionDescription(position),
+            EscPosSetBarcodeModuleWidth moduleWidth => Lines(
                 "GS w n - Set barcode module width",
                 $"n={moduleWidth.ModuleWidth} (module width)"),
-            SetBoldMode bold => Lines(
+            EscPosSetBoldMode bold => Lines(
                 "ESC E n - Turn emphasized (bold) mode on/off",
                 $"n={(bold.IsEnabled ? 1 : 0)} ({(bold.IsEnabled ? "on" : "off")})"),
-            SetCodePage codePage => BuildCodePageDescription(codePage.CodePage),
-            SelectFont font => BuildFontDescription(font),
-            SetJustification justification => BuildJustificationDescription(justification.Justification),
-            SetLineSpacing spacing => Lines(
+            EscPosSetCodePage codePage => BuildCodePageDescription(codePage.CodePage),
+            EscPosSelectFont font => BuildFontDescription(font),
+            EscPosSetJustification justification => BuildJustificationDescription(justification.Justification),
+            EscPosSetLineSpacing spacing => Lines(
                 "ESC 3 n - Set line spacing",
                 $"n={spacing.Spacing} (dots)"),
-            ResetLineSpacing => Lines(
+            EscPosResetLineSpacing => Lines(
                 "ESC 2 - Select default line spacing"),
-            SetQrErrorCorrection correction => Lines(
+            EscPosSetQrErrorCorrection correction => Lines(
                 "GS ( k - QR Code: Select error correction level",
                 $"fn=0x45, level={EnumMapper.ToString(correction.Level)}"),
-            SetQrModel model => Lines(
+            EscPosSetQrModel model => Lines(
                 "GS ( k - QR Code: Select model",
                 $"fn=0x41, model={EnumMapper.ToString(model.Model)}"),
-            SetQrModuleSize moduleSize => Lines(
+            EscPosSetQrModuleSize moduleSize => Lines(
                 "GS ( k - QR Code: Set module size",
                 $"fn=0x43, size={moduleSize.ModuleSize} (dots)"),
-            SetReverseMode reverse => Lines(
+            EscPosSetReverseMode reverse => Lines(
                 "GS B n - Turn white/black reverse print mode on/off",
                 $"n={(reverse.IsEnabled ? 1 : 0)} ({(reverse.IsEnabled ? "on" : "off")})"),
-            SetUnderlineMode underline => Lines(
+            EscPosSetUnderlineMode underline => Lines(
                 "ESC - n - Turn underline mode on/off",
                 $"n={(underline.IsEnabled ? 1 : 0)} ({(underline.IsEnabled ? "on" : "off")})"),
-            StoreQrData store => Lines(
+            EscPosStoreQrData store => Lines(
                 "GS ( k - QR Code: Store data in the symbol storage area",
                 "fn=0x50",
                 $"DataLength={store.Content.Length}",
                 $"Data=\"{EscapeDescriptionText(store.Content)}\""),
-            PrintQrCodeUpload => Lines(
+            EscPosPrintQrCodeUpload => Lines(
                 "GS ( k - QR Code: Print the symbol data in the symbol storage area",
                 "fn=0x51"),
-            PrintQrCode qr => Lines(
+            EscPosPrintQrCode qr => Lines(
                 "GS ( k - QR Code: Print the symbol data in the symbol storage area",
                 "fn=0x51",
                 $"DataLength={qr.Data.Length}",
                 $"Data=\"{EscapeDescriptionText(qr.Data)}\""),
-            PrintBarcodeUpload barcodeUpload => BuildBarcodeDescription(
+            EscPosPrintBarcodeUpload barcodeUpload => BuildBarcodeDescription(
                 barcodeUpload.Symbology,
                 barcodeUpload.Data),
-            PrintBarcode barcode => BuildBarcodeDescription(
+            EscPosPrintBarcode barcode => BuildBarcodeDescription(
                 barcode.Symbology,
                 barcode.Data),
-            StoredLogo storedLogo => Lines(
+            EscPosPrintLogo storedLogo => Lines(
                 "FS p m n - Print stored logo",
                 $"n={storedLogo.LogoId}"),
-            AppendText textLine => Lines(
-                "0x20-0xFF (excl. 0x7F) - Append to line buffer",
-                $"len={textLine.TextBytes.Length}",
-                $"preview=\"{EscapeDescriptionText(Encoding.GetEncoding(437).GetString(textLine.TextBytes))}\""),
-            PrintAndLineFeed => Lines(
+            EscPosAppendText textLine => BuildAppendTextDescription(
+                textLine,
+                textEncoding ?? Encoding.GetEncoding(437)),
+            EscPosPrintAndLineFeed => Lines(
                 "LF - Flush line buffer and feed one line"),
-            LegacyCarriageReturn => Lines(
+            EscPosLegacyCarriageReturn => Lines(
                 "CR - Carriage return (legacy compatibility)",
                 "Ignored by the printer"),
-            RasterImage raster => BuildRasterImageDescription(raster.Width, raster.Height),
-            RasterImageUpload upload => BuildRasterImageDescription(upload.Width, upload.Height),
-            CutPaper pagecut => BuildPagecutDescription(pagecut),
+            EscPosRasterImage raster => BuildRasterImageDescription(raster.Width, raster.Height),
+            EscPosRasterImageUpload upload => BuildRasterImageDescription(upload.Width, upload.Height),
+            EscPosCutPaper pagecut => BuildPagecutDescription(pagecut),
             _ => Lines(
                 $"Unknown command ({command.GetType().Name})",
                 $"Raw bytes length={command.RawBytes?.Length ?? 0}")
         };
     }
 
-    private static IReadOnlyList<string> BuildPrinterStatusDescription(GetPrinterStatus status)
+    private static IReadOnlyList<string> BuildPrinterStatusDescription(EscPosGetPrinterStatus status)
     {
         if (status.AdditionalStatusByte.HasValue)
         {
@@ -182,14 +189,14 @@ public static class EscPosCommandHelper
             $"n={FormatHexByte(status.StatusByte)} ({status.StatusByte})");
     }
 
-    private static IReadOnlyList<string> BuildStatusRequestDescription(StatusRequest request)
+    private static IReadOnlyList<string> BuildStatusRequestDescription(EscPosStatusRequest request)
     {
         var requestTypeDescription = request.RequestType switch
         {
-            StatusRequestType.PrinterStatus => "printer status",
-            StatusRequestType.OfflineCause => "offline cause",
-            StatusRequestType.ErrorCause => "error cause",
-            StatusRequestType.PaperRollSensor => "paper roll sensor",
+            EscPosStatusRequestType.PrinterStatus => "printer status",
+            EscPosStatusRequestType.OfflineCause => "offline cause",
+            EscPosStatusRequestType.ErrorCause => "error cause",
+            EscPosStatusRequestType.PaperRollSensor => "paper roll sensor",
             _ => "unknown"
         };
 
@@ -199,7 +206,7 @@ public static class EscPosCommandHelper
             $"Request type: {requestTypeDescription}");
     }
 
-    private static IReadOnlyList<string> BuildStatusResponseDescription(StatusResponse response)
+    private static IReadOnlyList<string> BuildStatusResponseDescription(EscPosStatusResponse response)
     {
         var flags = new List<string>();
         if (response.IsPaperOut)
@@ -235,13 +242,13 @@ public static class EscPosCommandHelper
             $"code page {codePage}{nameSuffix}");
     }
 
-    private static IReadOnlyList<string> BuildJustificationDescription(TextJustification justification)
+    private static IReadOnlyList<string> BuildJustificationDescription(EscPosTextJustification justification)
     {
         var value = justification switch
         {
-            TextJustification.Left => 0,
-            TextJustification.Center => 1,
-            TextJustification.Right => 2,
+            EscPosTextJustification.Left => 0,
+            EscPosTextJustification.Center => 1,
+            EscPosTextJustification.Right => 2,
             _ => 0
         };
 
@@ -250,7 +257,7 @@ public static class EscPosCommandHelper
             $"n={FormatHexByte((byte)value)} ({value}) - {EnumMapper.ToString(justification)}");
     }
 
-    private static IReadOnlyList<string> BuildFontDescription(SelectFont font)
+    private static IReadOnlyList<string> BuildFontDescription(EscPosSelectFont font)
     {
         // ESC ! n: low 3 bits = font, bit 4 = double height, bit 5 = double width.
         var parameter = (byte)(font.FontNumber & 0x07);
@@ -273,14 +280,14 @@ public static class EscPosCommandHelper
     }
 
     private static IReadOnlyList<string> BuildBarcodeLabelPositionDescription(
-        SetBarcodeLabelPosition position)
+        EscPosSetBarcodeLabelPosition position)
     {
         var value = position.Position switch
         {
-            BarcodeLabelPosition.NotPrinted => 0,
-            BarcodeLabelPosition.Above => 1,
-            BarcodeLabelPosition.Below => 2,
-            BarcodeLabelPosition.AboveAndBelow => 3,
+            EscPosBarcodeLabelPosition.NotPrinted => 0,
+            EscPosBarcodeLabelPosition.Above => 1,
+            EscPosBarcodeLabelPosition.Below => 2,
+            EscPosBarcodeLabelPosition.AboveAndBelow => 3,
             _ => 0
         };
 
@@ -290,7 +297,7 @@ public static class EscPosCommandHelper
     }
 
     private static IReadOnlyList<string> BuildBarcodeDescription(
-        BarcodeSymbology symbology,
+        EscPosBarcodeSymbology symbology,
         string data)
     {
         return Lines(
@@ -308,25 +315,33 @@ public static class EscPosCommandHelper
             $"Height={heightInDots} (dots)");
     }
 
-    private static IReadOnlyList<string> BuildPagecutDescription(CutPaper pagecut)
+    private static IReadOnlyList<string> BuildAppendTextDescription(EscPosAppendText textLine, Encoding textEncoding)
+    {
+        return Lines(
+            "0x20-0xFF (excl. 0x7F) - Append to line buffer",
+            $"len={textLine.TextBytes.Length}",
+            $"preview=\"{EscapeDescriptionText(textEncoding.GetString(textLine.TextBytes))}\"");
+    }
+
+    private static IReadOnlyList<string> BuildPagecutDescription(EscPosCutPaper pagecut)
     {
         // ESC i / ESC m are legacy partial cuts; GS V handles full/partial and optional feed.
         return pagecut.Mode switch
         {
-            PagecutMode.PartialOnePoint => Lines(
+            EscPosPagecutMode.PartialOnePoint => Lines(
                 "ESC i - Partial cut (one point left uncut)"),
-            PagecutMode.PartialThreePoint => Lines(
+            EscPosPagecutMode.PartialThreePoint => Lines(
                 "ESC m - Partial cut (three points left uncut)"),
             _ => BuildGsPagecutDescription(pagecut)
         };
     }
 
-    private static IReadOnlyList<string> BuildGsPagecutDescription(CutPaper pagecut)
+    private static IReadOnlyList<string> BuildGsPagecutDescription(EscPosCutPaper pagecut)
     {
         var modeLabel = pagecut.Mode switch
         {
-            PagecutMode.Full => "full",
-            PagecutMode.Partial => "partial",
+            EscPosPagecutMode.Full => "full",
+            EscPosPagecutMode.Partial => "partial",
             _ => "full"
         };
 

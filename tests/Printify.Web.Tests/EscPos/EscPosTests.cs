@@ -61,7 +61,7 @@ public class EscPosTests(WebApplicationFactory<Program> factory)
         clockFactory.AdvanceAll(TimeSpan.FromMilliseconds(stepMs));
         await nextEventTask.WaitAsync(TimeSpan.FromMilliseconds(500));
 
-        var expectedElements = new List<Command> { new EscPosCommands.Bell { LengthInBytes = 1 } };
+        var expectedElements = new List<Command> { new EscPosCommands.EscPosBell { LengthInBytes = 1 } };
 
         Assert.True(nextEventTask.Result);
         var documentEvent = streamEnumerator.Current;

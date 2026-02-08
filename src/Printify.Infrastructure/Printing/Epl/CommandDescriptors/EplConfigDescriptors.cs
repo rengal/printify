@@ -27,7 +27,7 @@ public sealed class SetLabelWidthDescriptor : ICommandDescriptor
 
         var length = newline + 1;
         if (length < 2)
-            return MatchResult.Matched(new PrinterError("Invalid q width: too short"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", "Invalid q width: too short"));
 
         var parseResult = EplParsingHelpers.ParseSingleIntArg(buffer, 1, "q width", out var width);
         if (parseResult.HasValue)
@@ -96,7 +96,7 @@ public sealed class SetPrintSpeedDescriptor : ICommandDescriptor
 
         var length = newline + 1;
         if (length < 2)
-            return MatchResult.Matched(new PrinterError("Invalid R speed: too short"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", "Invalid R speed: too short"));
 
         var parseResult = EplParsingHelpers.ParseSingleIntArg(buffer, 1, "R speed", out var speed);
         if (parseResult.HasValue)
@@ -130,7 +130,7 @@ public sealed class SetPrintDarknessDescriptor : ICommandDescriptor
 
         var length = newline + 1;
         if (length < 2)
-            return MatchResult.Matched(new PrinterError("Invalid S darkness: too short"));
+            return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", "Invalid S darkness: too short"));
 
         var parseResult = EplParsingHelpers.ParseSingleIntArg(buffer, 1, "S darkness", out var darkness);
         if (parseResult.HasValue)
@@ -177,7 +177,7 @@ public sealed class SetPrintDirectionDescriptor : ICommandDescriptor
                 eplPrintDirection = EplPrintDirection.BottomToTop;
                 break;
             default:
-                return MatchResult.Matched(new PrinterError($"Invalid Z direction: '{direction}' (expected 'T' or 'B')"));
+                return MatchResult.Matched(new EplParseError("EPL_PARSER_ERROR", $"Invalid Z direction: '{direction}' (expected 'T' or 'B')"));
         }
 
         var element = new SetPrintDirection(eplPrintDirection);

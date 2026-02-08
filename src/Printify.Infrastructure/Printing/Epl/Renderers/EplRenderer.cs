@@ -5,7 +5,6 @@ using Printify.Domain.Documents;
 using Printify.Domain.Layout;
 using Printify.Domain.Layout.Primitives;
 using Printify.Domain.Printers;
-using Printify.Domain.Printing;
 using Printify.Domain.Specifications;
 using Printify.Infrastructure.Printing.Epl.Commands;
 using LayoutMedia = Printify.Domain.Layout.Primitives.Media;
@@ -80,12 +79,6 @@ public sealed class EplRenderer : IRenderer
                     // Clear elements for next canvas
                     debugElements.Clear();
                     viewElements.Clear();
-                    break;
-
-                // Legacy PrintBarcode without media (for backward compatibility)
-                case PrintBarcode legacyBarcode:
-                    AddLegacyBarcodeDebugElement(legacyBarcode, debugElements);
-                    AddLegacyBarcodeVisualElement(legacyBarcode, viewElements);
                     break;
 
                 case EplDrawBox drawLine:
@@ -181,22 +174,22 @@ public sealed class EplRenderer : IRenderer
                         GetDescription(direction)));
                     break;
 
-                case EplSetInternationalCharacter intlChar:
-                    state.CurrentEncoding = GetEncodingFromCodePage(intlChar.P1, intlChar.P2, intlChar.P3);
+                case EplSetInternationalCharacter characterSet:
+                    state.CurrentEncoding = GetEncodingFromCodePage(characterSet.P1, characterSet.P2, characterSet.P3);
                     debugElements.Add(new DebugInfo(
                         "setInternationalCharacter",
                         new Dictionary<string, string>
                         {
-                            ["P1"] = intlChar.P1.ToString(),
-                            ["P2"] = intlChar.P2.ToString(),
-                            ["P3"] = intlChar.P3.ToString()
+                            ["P1"] = characterSet.P1.ToString(),
+                            ["P2"] = characterSet.P2.ToString(),
+                            ["P3"] = characterSet.P3.ToString()
                         },
-                        intlChar.RawBytes,
-                        intlChar.LengthInBytes,
-                        GetDescription(intlChar)));
+                        characterSet.RawBytes,
+                        characterSet.LengthInBytes,
+                        GetDescription(characterSet)));
                     break;
 
-                case ParseError error:
+                case EplParseError error:
                     debugElements.Add(new DebugInfo(
                         "error",
                         new Dictionary<string, string>
@@ -209,7 +202,7 @@ public sealed class EplRenderer : IRenderer
                         GetDescription(error)));
                     break;
 
-                case PrinterError printerError:
+                case EplPrinterError printerError:
                     debugElements.Add(new DebugInfo(
                         "printerError",
                         new Dictionary<string, string>
@@ -372,7 +365,7 @@ public sealed class EplRenderer : IRenderer
             },
             eplScalableText.RawBytes,
             eplScalableText.LengthInBytes,
-            GetDescription(eplScalableText)));
+            GetDescription(eplScalableText, state.CurrentEncoding)));
     }
 
     private static void AddScalableTextVisualElement(EplScalableText eplScalableText, RenderState state, List<BaseElement> viewElements)
@@ -441,48 +434,6 @@ public sealed class EplRenderer : IRenderer
             1,
             1,
             0));
-    }
-
-    private static void AddBarcodeDebugElement(PrintBarcode barcode, List<BaseElement> debugElements)
-    {
-        debugElements.Add(new DebugInfo(
-            "printBarcode",
-            new Dictionary<string, string>
-            {
-                ["X"] = barcode.X.ToString(),
-                ["Y"] = barcode.Y.ToString(),
-                ["Rotation"] = barcode.Rotation.ToString(),
-                ["Type"] = barcode.Type,
-                ["Width"] = barcode.Width.ToString(),
-                ["Height"] = barcode.Height.ToString(),
-                ["Hri"] = barcode.Hri.ToString(),
-                ["Data"] = barcode.Data
-            },
-            barcode.RawBytes,
-            barcode.LengthInBytes,
-            GetDescription(barcode)));
-    }
-
-    private static void AddBarcodeVisualElement(PrintBarcode barcode, List<BaseElement> viewElements)
-    {
-        // Calculate actual rendered dimensions based on rotation
-        var (renderedWidth, renderedHeight) = CalculateRotatedDimensions(
-            barcode.Width,
-            barcode.Height,
-            barcode.Rotation);
-
-        // Barcodes are represented as image elements with placeholder media
-        viewElements.Add(new ImageElement(
-            new LayoutMedia(
-                "image/barcode",
-                0,
-                string.Empty,
-                string.Empty),
-            barcode.X,
-            barcode.Y,
-            renderedWidth,
-            renderedHeight,
-            EplRotationMapper.ToDomainRotation(barcode.Rotation)));
     }
 
     private static void AddDrawLineDebugElement(EplDrawBox eplDrawBox, List<BaseElement> debugElements)
@@ -590,48 +541,6 @@ public sealed class EplRenderer : IRenderer
             EplRotationMapper.ToDomainRotation(barcode.Rotation)));
     }
 
-    private static void AddLegacyBarcodeDebugElement(PrintBarcode barcode, List<BaseElement> debugElements)
-    {
-        debugElements.Add(new DebugInfo(
-            "printBarcode",
-            new Dictionary<string, string>
-            {
-                ["X"] = barcode.X.ToString(),
-                ["Y"] = barcode.Y.ToString(),
-                ["Rotation"] = barcode.Rotation.ToString(),
-                ["Type"] = barcode.Type,
-                ["Width"] = barcode.Width.ToString(),
-                ["Height"] = barcode.Height.ToString(),
-                ["Hri"] = barcode.Hri.ToString(),
-                ["Data"] = barcode.Data
-            },
-            barcode.RawBytes,
-            barcode.LengthInBytes,
-            GetDescription(barcode)));
-    }
-
-    private static void AddLegacyBarcodeVisualElement(PrintBarcode barcode, List<BaseElement> viewElements)
-    {
-        // Calculate actual rendered dimensions based on rotation
-        var (renderedWidth, renderedHeight) = CalculateRotatedDimensions(
-            barcode.Width,
-            barcode.Height,
-            barcode.Rotation);
-
-        // Barcodes are represented as image elements with placeholder media
-        viewElements.Add(new ImageElement(
-            new LayoutMedia(
-                "image/barcode",
-                0,
-                string.Empty,
-                string.Empty),
-            barcode.X,
-            barcode.Y,
-            renderedWidth,
-            renderedHeight,
-            EplRotationMapper.ToDomainRotation(barcode.Rotation)));
-    }
-
     private static int ToMediaSize(long length)
     {
         // Clamp to int to satisfy layout metadata without overflowing.
@@ -675,8 +584,6 @@ public sealed class EplRenderer : IRenderer
             return Encoding.GetEncoding(437);
         }
     }
-
-    private sealed record PrintCommandInfo(int Index, int Copies, int UnprintedVisualCount);
 
     private sealed class RenderState
     {

@@ -10,13 +10,13 @@ namespace Printify.Infrastructure.Mapping;
 /// </summary>
 public static class EnumMapper
 {
-    public static PagecutMode ParsePagecutMode(string mode)
+    public static EscPosPagecutMode ParsePagecutMode(string mode)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(mode);
-        return Enum.Parse<PagecutMode>(mode, false);
+        return Enum.Parse<EscPosPagecutMode>(mode, false);
     }
 
-    public static string ToString(PagecutMode mode)
+    public static string ToString(EscPosPagecutMode mode)
     {
         return mode.ToString();
     }
@@ -48,57 +48,57 @@ public static class EnumMapper
         };
     }
 
-    public static BarcodeSymbology ParseBarcodeSymbology(string symbology)
+    public static EscPosBarcodeSymbology ParseBarcodeSymbology(string symbology)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbology);
-        return Enum.Parse<BarcodeSymbology>(symbology, false);
+        return Enum.Parse<EscPosBarcodeSymbology>(symbology, false);
     }
 
-    public static string ToString(BarcodeSymbology symbology)
+    public static string ToString(EscPosBarcodeSymbology symbology)
     {
         return symbology.ToString();
     }
 
-    public static BarcodeLabelPosition ParseBarcodeLabelPosition(string position)
+    public static EscPosBarcodeLabelPosition ParseBarcodeLabelPosition(string position)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(position);
-        return Enum.Parse<BarcodeLabelPosition>(position, false);
+        return Enum.Parse<EscPosBarcodeLabelPosition>(position, false);
     }
 
-    public static string ToString(BarcodeLabelPosition position)
+    public static string ToString(EscPosBarcodeLabelPosition position)
     {
         return position.ToString();
     }
 
-    public static QrErrorCorrectionLevel ParseQrErrorCorrectionLevel(string level)
+    public static EscPosQrErrorCorrectionLevel ParseQrErrorCorrectionLevel(string level)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(level);
-        return Enum.Parse<QrErrorCorrectionLevel>(level, false);
+        return Enum.Parse<EscPosQrErrorCorrectionLevel>(level, false);
     }
 
-    public static string ToString(QrErrorCorrectionLevel level)
+    public static string ToString(EscPosQrErrorCorrectionLevel level)
     {
         return level.ToString();
     }
 
-    public static QrModel ParseQrModel(string model)
+    public static EscPosQrModel ParseQrModel(string model)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
-        return Enum.Parse<QrModel>(model, false);
+        return Enum.Parse<EscPosQrModel>(model, false);
     }
 
-    public static string ToString(QrModel model)
+    public static string ToString(EscPosQrModel model)
     {
         return model.ToString();
     }
 
-    public static TextJustification ParseTextJustification(string justification)
+    public static EscPosTextJustification ParseTextJustification(string justification)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(justification);
-        return Enum.Parse<TextJustification>(justification, false);
+        return Enum.Parse<EscPosTextJustification>(justification, false);
     }
 
-    public static string ToString(TextJustification justification)
+    public static string ToString(EscPosTextJustification justification)
     {
         return justification.ToString();
     }

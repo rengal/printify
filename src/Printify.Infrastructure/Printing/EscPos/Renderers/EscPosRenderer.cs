@@ -40,7 +40,7 @@ public sealed class EscPosRenderer : IRenderer
         {
             switch (command)
             {
-                case AppendText textLine:
+                case EscPosAppendText textLine:
                     var decodedText = state.CurrentEncoding.GetString(textLine.TextBytes);
                     currentItems.Add(new DebugInfo(
                         "appendToLineBuffer",
@@ -51,11 +51,11 @@ public sealed class EscPosRenderer : IRenderer
                         },
                         textLine.RawBytes,
                         textLine.LengthInBytes,
-                        GetDescription(textLine)));
+                        GetDescription(textLine, state.CurrentEncoding)));
                     AppendTextSegment(state, lineBuffer, decodedText);
                     break;
 
-                case PrintAndLineFeed:
+                case EscPosPrintAndLineFeed:
                     currentItems.Add(new DebugInfo(
                         "flushLineBufferAndFeed",
                         new Dictionary<string, string>(),
@@ -65,7 +65,7 @@ public sealed class EscPosRenderer : IRenderer
                     FlushLine(state, lineBuffer, currentItems, canvasWidthInDots);
                     break;
 
-                case LegacyCarriageReturn:
+                case EscPosLegacyCarriageReturn:
                     currentItems.Add(new DebugInfo(
                         "legacyCarriageReturn",
                         new Dictionary<string, string>(),
@@ -74,7 +74,7 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case RasterImage raster:
+                case EscPosRasterImage raster:
                     ClearLineBufferWithError(lineBuffer, currentItems, "raster image command");
                     currentItems.Add(new DebugInfo(
                         "rasterImage",
@@ -85,12 +85,12 @@ public sealed class EscPosRenderer : IRenderer
                     AddImageElement(raster, state, currentItems);
                     break;
 
-                case RasterImageUpload:
-                case PrintBarcodeUpload:
-                case PrintQrCodeUpload:
+                case EscPosRasterImageUpload:
+                case EscPosPrintBarcodeUpload:
+                case EscPosPrintQrCodeUpload:
                     throw new InvalidOperationException("Upload requests must not be emitted");
 
-                case PrintBarcode barcode:
+                case EscPosPrintBarcode barcode:
                     ClearLineBufferWithError(lineBuffer, currentItems, "barcode command");
                     currentItems.Add(new DebugInfo(
                         "printBarcode",
@@ -101,7 +101,7 @@ public sealed class EscPosRenderer : IRenderer
                     AddImageElement(barcode, state, currentItems);
                     break;
 
-                case PrintQrCode qrCode:
+                case EscPosPrintQrCode qrCode:
                     ClearLineBufferWithError(lineBuffer, currentItems, "QR code command");
                     currentItems.Add(new DebugInfo(
                         "printQrCode",
@@ -112,7 +112,7 @@ public sealed class EscPosRenderer : IRenderer
                     AddImageElement(qrCode, state, currentItems);
                     break;
 
-                case SetJustification justification:
+                case EscPosSetJustification justification:
                     state.Justification = justification.Justification;
                     currentItems.Add(new DebugInfo(
                         "setJustification",
@@ -125,7 +125,7 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case SetBoldMode bold:
+                case EscPosSetBoldMode bold:
                     state.IsBold = bold.IsEnabled;
                     currentItems.Add(new DebugInfo(
                         "setBoldMode",
@@ -138,7 +138,7 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case SetUnderlineMode underline:
+                case EscPosSetUnderlineMode underline:
                     state.IsUnderline = underline.IsEnabled;
                     currentItems.Add(new DebugInfo(
                         "setUnderlineMode",
@@ -151,7 +151,7 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case SetReverseMode reverse:
+                case EscPosSetReverseMode reverse:
                     state.IsReverse = reverse.IsEnabled;
                     currentItems.Add(new DebugInfo(
                         "setReverseMode",
@@ -164,7 +164,7 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case SetLineSpacing spacing:
+                case EscPosSetLineSpacing spacing:
                     state.LineSpacing = spacing.Spacing;
                     currentItems.Add(new DebugInfo(
                         "setLineSpacing",
@@ -177,7 +177,7 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case ResetLineSpacing:
+                case EscPosResetLineSpacing:
                     state.LineSpacing = EscPosSpecs.Rendering.DefaultLineSpacing;
                     currentItems.Add(new DebugInfo(
                         "resetLineSpacing",
@@ -187,7 +187,7 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case SetCodePage codePage:
+                case EscPosSetCodePage codePage:
                     state.CurrentEncoding = GetEncodingFromCodePage(codePage.CodePage);
                     currentItems.Add(new DebugInfo(
                         "setCodePage",
@@ -200,7 +200,7 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case SelectFont font:
+                case EscPosSelectFont font:
                     state.FontNumber = font.FontNumber;
                     state.ScaleX = font.IsDoubleWidth ? 2 : 1;
                     state.ScaleY = font.IsDoubleHeight ? 2 : 1;
@@ -217,7 +217,7 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case Initialize:
+                case EscPosInitialize:
                     state = RenderState.CreateDefault();
                     currentItems.Add(new DebugInfo(
                         "resetPrinter",
@@ -227,7 +227,7 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case CutPaper:
+                case EscPosCutPaper:
                     // Flush any unprinted text buffer to surface a printer error for truncated content.
                     ClearLineBufferWithError(lineBuffer, currentItems, "end of page");
 
@@ -244,7 +244,7 @@ public sealed class EscPosRenderer : IRenderer
                     state.CurrentY = 0;
                     break;
 
-                case StoredLogo logo:
+                case EscPosPrintLogo logo:
                     ClearLineBufferWithError(lineBuffer, currentItems, "stored logo command");
                     currentItems.Add(new DebugInfo(
                         "storedLogo",
@@ -348,24 +348,24 @@ public sealed class EscPosRenderer : IRenderer
         lineBuffer.Reset();
     }
 
-    private static void AddImageElement(RasterImage raster, RenderState state, List<BaseElement> items)
+    private static void AddImageElement(EscPosRasterImage escPosRaster, RenderState state, List<BaseElement> items)
     {
         items.Add(new ImageElement(
             new LayoutMedia(
-                raster.Media.ContentType,
-                ToMediaSize(raster.Media.Length),
-                raster.Media.Url,
-                raster.Media.Sha256Checksum),
+                escPosRaster.Media.ContentType,
+                ToMediaSize(escPosRaster.Media.Length),
+                escPosRaster.Media.Url,
+                escPosRaster.Media.Sha256Checksum),
             0,
             state.CurrentY,
-            raster.Width,
-            raster.Height,
+            escPosRaster.Width,
+            escPosRaster.Height,
             Rotation.None));
 
-        state.CurrentY += raster.Height + state.LineSpacing;
+        state.CurrentY += escPosRaster.Height + state.LineSpacing;
     }
 
-    private static void AddImageElement(PrintBarcode barcode, RenderState state, List<BaseElement> items)
+    private static void AddImageElement(EscPosPrintBarcode barcode, RenderState state, List<BaseElement> items)
     {
         items.Add(new ImageElement(
             new LayoutMedia(
@@ -382,7 +382,7 @@ public sealed class EscPosRenderer : IRenderer
         state.CurrentY += barcode.Height + state.LineSpacing;
     }
 
-    private static void AddImageElement(PrintQrCode qrCode, RenderState state, List<BaseElement> items)
+    private static void AddImageElement(EscPosPrintQrCode qrCode, RenderState state, List<BaseElement> items)
     {
         items.Add(new ImageElement(
             new LayoutMedia(
@@ -403,32 +403,32 @@ public sealed class EscPosRenderer : IRenderer
     {
         return command switch
         {
-            Bell => "bell",
-            ParseError => "error",
-            CutPaper => "pagecut",
-            PrinterError => "printerError",
-            GetPrinterStatus => "printerStatus",
-            Pulse => "pulse",
-            Initialize => "resetPrinter",
-            SetBarcodeHeight => "setBarcodeHeight",
-            SetBarcodeLabelPosition => "setBarcodeLabelPosition",
-            SetBarcodeModuleWidth => "setBarcodeModuleWidth",
-            SetBoldMode => "setBoldMode",
-            SetCodePage => "setCodePage",
-            SelectFont => "setFont",
-            SetJustification => "setJustification",
-            SetLineSpacing => "setLineSpacing",
-            ResetLineSpacing => "resetLineSpacing",
-            SetQrErrorCorrection => "setQrErrorCorrection",
-            SetQrModel => "setQrModel",
-            SetQrModuleSize => "setQrModuleSize",
-            SetReverseMode => "setReverseMode",
-            SetUnderlineMode => "setUnderlineMode",
-            StoreQrData => "storeQrData",
-            StatusRequest => "statusRequest",
-            StatusResponse => "statusResponse",
-            LegacyCarriageReturn => "legacyCarriageReturn",
-            StoredLogo => "storedLogo",
+            EscPosBell => "bell",
+            EscPosParseError => "error",
+            EscPosCutPaper => "pagecut",
+            EscPosPrinterError => "printerError",
+            EscPosGetPrinterStatus => "printerStatus",
+            EscPosPulse => "pulse",
+            EscPosInitialize => "resetPrinter",
+            EscPosSetBarcodeHeight => "setBarcodeHeight",
+            EscPosSetBarcodeLabelPosition => "setBarcodeLabelPosition",
+            EscPosSetBarcodeModuleWidth => "setBarcodeModuleWidth",
+            EscPosSetBoldMode => "setBoldMode",
+            EscPosSetCodePage => "setCodePage",
+            EscPosSelectFont => "setFont",
+            EscPosSetJustification => "setJustification",
+            EscPosSetLineSpacing => "setLineSpacing",
+            EscPosResetLineSpacing => "resetLineSpacing",
+            EscPosSetQrErrorCorrection => "setQrErrorCorrection",
+            EscPosSetQrModel => "setQrModel",
+            EscPosSetQrModuleSize => "setQrModuleSize",
+            EscPosSetReverseMode => "setReverseMode",
+            EscPosSetUnderlineMode => "setUnderlineMode",
+            EscPosStoreQrData => "storeQrData",
+            EscPosStatusRequest => "statusRequest",
+            EscPosStatusResponse => "statusResponse",
+            EscPosLegacyCarriageReturn => "legacyCarriageReturn",
+            EscPosPrintLogo => "storedLogo",
             _ => command.GetType().Name
         };
     }
@@ -437,26 +437,26 @@ public sealed class EscPosRenderer : IRenderer
     {
         return command switch
         {
-            ParseError error => new Dictionary<string, string>
+            EscPosParseError error => new Dictionary<string, string>
             {
                 ["Code"] = error.Code ?? string.Empty,
                 ["Message"] = error.Message ?? "Unknown error"
             },
-            PrinterError printerError => new Dictionary<string, string>
+            EscPosPrinterError printerError => new Dictionary<string, string>
             {
                 ["Message"] = printerError.Message ?? "Printer error"
             },
-            Pulse pulse => new Dictionary<string, string>
+            EscPosPulse pulse => new Dictionary<string, string>
             {
                 ["Pin"] = pulse.Pin.ToString(),
                 ["OnTimeMs"] = pulse.OnTimeMs.ToString(),
                 ["OffTimeMs"] = pulse.OffTimeMs.ToString()
             },
-            SetBarcodeHeight height => new Dictionary<string, string>
+            EscPosSetBarcodeHeight height => new Dictionary<string, string>
             {
                 ["HeightInDots"] = height.HeightInDots.ToString()
             },
-            CutPaper pagecut => new Dictionary<string, string>
+            EscPosCutPaper pagecut => new Dictionary<string, string>
             {
                 ["Mode"] = pagecut.Mode.ToString(),
                 ["FeedMotionUnits"] = pagecut.FeedMotionUnits?.ToString() ?? string.Empty
@@ -485,7 +485,7 @@ public sealed class EscPosRenderer : IRenderer
         return (text.Length * charWidth) + (spacing * Math.Max(0, text.Length - 1));
     }
 
-    private static int CalculateJustifiedX(int totalWidth, int lineWidth, TextJustification justification)
+    private static int CalculateJustifiedX(int totalWidth, int lineWidth, EscPosTextJustification justification)
     {
         if (lineWidth <= 0)
         {
@@ -494,8 +494,8 @@ public sealed class EscPosRenderer : IRenderer
 
         return justification switch
         {
-            TextJustification.Center => Math.Max(0, (totalWidth - lineWidth) / 2),
-            TextJustification.Right => Math.Max(0, totalWidth - lineWidth),
+            EscPosTextJustification.Center => Math.Max(0, (totalWidth - lineWidth) / 2),
+            EscPosTextJustification.Right => Math.Max(0, totalWidth - lineWidth),
             _ => 0
         };
     }
@@ -516,7 +516,7 @@ public sealed class EscPosRenderer : IRenderer
 
     private sealed class RenderState
     {
-        public TextJustification Justification { get; set; } = TextJustification.Left;
+        public EscPosTextJustification Justification { get; set; } = EscPosTextJustification.Left;
         public int LineSpacing { get; set; } = EscPosSpecs.Rendering.DefaultLineSpacing;
         public int FontNumber { get; set; }
         public int ScaleX { get; set; } = 1;

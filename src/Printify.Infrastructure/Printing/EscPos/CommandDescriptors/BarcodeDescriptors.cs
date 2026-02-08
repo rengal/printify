@@ -1,5 +1,4 @@
 using System.Text;
-using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.Common;
 using Printify.Infrastructure.Printing.EscPos.Commands;
 
@@ -18,7 +17,7 @@ public sealed class BarcodeSetHeightDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var height = buffer[2];
-        return MatchResult.Matched(new SetBarcodeHeight(height));
+        return MatchResult.Matched(new EscPosSetBarcodeHeight(height));
     }
 }
 
@@ -35,7 +34,7 @@ public sealed class BarcodeSetModuleWidthDescriptor : ICommandDescriptor
     public MatchResult TryParse(ReadOnlySpan<byte> buffer)
     {
         var width = buffer[2];
-        return MatchResult.Matched(new SetBarcodeModuleWidth(width));
+        return MatchResult.Matched(new EscPosSetBarcodeModuleWidth(width));
     }
 }
 
@@ -54,18 +53,18 @@ public sealed class BarcodeSetLabelPositionDescriptor : ICommandDescriptor
         var value = buffer[2];
         if (!TryGetLabelPosition(value, out var position))
         {
-            var error = new PrinterError($"Invalid barcode label position: 0x{value:X2}. Expected 0x00-0x03");
+            var error = new EscPosParseError("ESCPOS_PARSER_ERROR", $"Invalid barcode label position: 0x{value:X2}. Expected 0x00-0x03");
             return MatchResult.Matched(error);
         }
 
-        return MatchResult.Matched(new SetBarcodeLabelPosition(position));
+        return MatchResult.Matched(new EscPosSetBarcodeLabelPosition(position));
     }
 
-    private static bool TryGetLabelPosition(byte value, out BarcodeLabelPosition position)
+    private static bool TryGetLabelPosition(byte value, out EscPosBarcodeLabelPosition position)
     {
         if (value <= 3)
         {
-            position = (BarcodeLabelPosition)value;
+            position = (EscPosBarcodeLabelPosition)value;
             return true;
         }
 
@@ -93,12 +92,11 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
         var symbologyByte = buffer[2];
         if (!TryResolveBarcodeSymbology(symbologyByte, out var symbology))
         {
-            var error = new PrinterError($"Invalid barcode symbology: 0x{symbologyByte:X2}");
+            var error = new EscPosParseError("ESCPOS_PARSER_ERROR", $"Invalid barcode symbology: 0x{symbologyByte:X2}");
             return MatchResult.Matched(error);
         }
 
         string content;
-        int bytesConsumed;
 
         // Function A: symbologyByte <= 0x06 uses null terminator
         // Function B: symbologyByte >= 0x41 uses length indicator
@@ -119,7 +117,6 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
 
             var payload = buffer.Slice(4, length).ToArray();
             content = Encoding.ASCII.GetString(payload);
-            bytesConsumed = 4 + length;
         }
         else
         {
@@ -133,49 +130,48 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
             var payloadLength = terminator - payloadStart;
             var payload = payloadLength > 0 ? buffer.Slice(payloadStart, payloadLength).ToArray() : [];
             content = Encoding.ASCII.GetString(payload);
-            bytesConsumed = terminator + 1; // Include null terminator
         }
 
-        return MatchResult.Matched(new PrintBarcodeUpload(symbology, content));
+        return MatchResult.Matched(new EscPosPrintBarcodeUpload(symbology, content));
     }
 
-    private static bool TryResolveBarcodeSymbology(byte value, out BarcodeSymbology symbology)
+    private static bool TryResolveBarcodeSymbology(byte value, out EscPosBarcodeSymbology symbology)
     {
         switch (value)
         {
             case 0x00:
             case 0x41:
-                symbology = BarcodeSymbology.UpcA;
+                symbology = EscPosBarcodeSymbology.UpcA;
                 return true;
             case 0x01:
             case 0x42:
-                symbology = BarcodeSymbology.UpcE;
+                symbology = EscPosBarcodeSymbology.UpcE;
                 return true;
             case 0x02:
             case 0x43:
-                symbology = BarcodeSymbology.Ean13;
+                symbology = EscPosBarcodeSymbology.Ean13;
                 return true;
             case 0x03:
             case 0x44:
-                symbology = BarcodeSymbology.Ean8;
+                symbology = EscPosBarcodeSymbology.Ean8;
                 return true;
             case 0x04:
             case 0x45:
-                symbology = BarcodeSymbology.Code39;
+                symbology = EscPosBarcodeSymbology.Code39;
                 return true;
             case 0x05:
             case 0x46:
-                symbology = BarcodeSymbology.Itf;
+                symbology = EscPosBarcodeSymbology.Itf;
                 return true;
             case 0x06:
             case 0x47:
-                symbology = BarcodeSymbology.Codabar;
+                symbology = EscPosBarcodeSymbology.Codabar;
                 return true;
             case 0x48:
-                symbology = BarcodeSymbology.Code93;
+                symbology = EscPosBarcodeSymbology.Code93;
                 return true;
             case 0x49:
-                symbology = BarcodeSymbology.Code128;
+                symbology = EscPosBarcodeSymbology.Code128;
                 return true;
             default:
                 symbology = default;
