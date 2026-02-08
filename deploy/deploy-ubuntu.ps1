@@ -9,10 +9,13 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 # Deployment constants (no runtime input required).
-$ServerHost = "virtual-printer.resto.lan"
+$LocalServerHost = "virtual-printer.resto.lan"
+$GlobalServerHost = "virtual-printer.online"
 $User = "resto"
 $SshPort = 22
 $ProjectPath = "src/Printify.Web/Printify.Web.csproj"
+$LocalSettingsPath = "src/Printify.Web/appsettings.local.Production.json"
+$GlobalSettingsPath = "src/Printify.Web/appsettings.global.Production.json"
 $Configuration = "Release"
 $RuntimeIdentifier = "linux-x64"
 $SelfContained = "false"
@@ -24,6 +27,35 @@ $ServiceRunUser = "resto"
 $RemoteDbDir = "/var/lib/printify/db"
 $RemoteMediaDir = "/var/lib/printify/media"
 $RequiredUiEntryRelativePath = "html/index.html"
+
+function Get-DeploymentTarget {
+    Write-Host "Select deployment target:"
+    Write-Host "1. $LocalServerHost"
+    Write-Host "2. $GlobalServerHost"
+
+    while ($true) {
+        $selection = Read-Host "Enter 1 or 2"
+        switch ($selection) {
+            "1" {
+                return @{
+                    ServerHost = $LocalServerHost
+                    SettingsPath = $LocalSettingsPath
+                    RequiresPrivilegedPort = $true
+                }
+            }
+            "2" {
+                return @{
+                    ServerHost = $GlobalServerHost
+                    SettingsPath = $GlobalSettingsPath
+                    RequiresPrivilegedPort = $false
+                }
+            }
+            default {
+                Write-Host "Invalid selection. Enter 1 or 2."
+            }
+        }
+    }
+}
 
 function Invoke-Native {
     param(
@@ -79,11 +111,21 @@ function Test-SshConnectivity {
     }
 }
 
+$deploymentTarget = Get-DeploymentTarget
+$ServerHost = $deploymentTarget.ServerHost
+$SelectedSettingsPath = $deploymentTarget.SettingsPath
+$RequiresPrivilegedPort = [bool]$deploymentTarget.RequiresPrivilegedPort
+
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $projectFullPath = Join-Path $root $ProjectPath
+$selectedSettingsFullPath = Join-Path $root $SelectedSettingsPath
 
 if (-not (Test-Path $projectFullPath)) {
     throw "Project not found: $projectFullPath"
+}
+
+if (-not (Test-Path $selectedSettingsFullPath)) {
+    throw "Selected settings file not found: $selectedSettingsFullPath"
 }
 
 $publishRoot = Join-Path $root ".tmp/deploy-publish"
@@ -134,6 +176,17 @@ Invoke-Logged -Message "Publishing app ($Configuration)" -Action {
     }
     else {
         Invoke-Native -FilePath "dotnet" -Arguments $publishArgs
+    }
+}
+
+Invoke-Logged -Message "Applying deployment settings ($SelectedSettingsPath)" -Action {
+    $targetSettingsPath = Join-Path $publishRoot "appsettings.Production.json"
+
+    if ($WhatIf) {
+        Write-Host "Copy-Item $selectedSettingsFullPath $targetSettingsPath -Force"
+    }
+    else {
+        Copy-Item -Path $selectedSettingsFullPath -Destination $targetSettingsPath -Force
     }
 }
 
@@ -197,7 +250,7 @@ fi
         ""
     }
 
-    $restoreSettingsScript = if ($PreserveProductionSettings) {
+$restoreSettingsScript = if ($PreserveProductionSettings) {
 @"
 if [ -f "$RemoteTempDir/appsettings.Production.json.bak" ]; then
   mv "$RemoteTempDir/appsettings.Production.json.bak" "$RemoteAppDir/appsettings.Production.json"
@@ -206,6 +259,13 @@ fi
     }
     else {
         ""
+    }
+
+    $setcapScript = if ($RequiresPrivilegedPort) {
+        "sudo setcap 'cap_net_bind_service=+ep' `"`$DOTNET_PATH`""
+    }
+    else {
+        "echo `"Skipping setcap: application uses non-privileged port.`""
     }
 
     $remoteScript = @"
@@ -261,7 +321,7 @@ fi
 sudo systemctl daemon-reload
 sudo systemctl enable "$ServiceName"
 sudo systemctl stop "$ServiceName" || true
-sudo setcap 'cap_net_bind_service=+ep' "`$DOTNET_PATH"
+$setcapScript
 sudo systemctl start "$ServiceName"
 sudo systemctl --no-pager --full status "$ServiceName" | head -n 25
 "@
