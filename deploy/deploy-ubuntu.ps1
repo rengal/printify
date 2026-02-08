@@ -14,6 +14,8 @@ $User = "resto"
 $SshPort = 22
 $ProjectPath = "src/Printify.Web/Printify.Web.csproj"
 $Configuration = "Release"
+$RuntimeIdentifier = "linux-x64"
+$SelfContained = "false"
 $RemoteAppDir = "/opt/printify/app"
 $ServiceName = "printify"
 $RemoteTempDir = "/tmp"
@@ -122,6 +124,8 @@ Invoke-Logged -Message "Publishing app ($Configuration)" -Action {
         "publish",
         $projectFullPath,
         "-c", $Configuration,
+        "-r", $RuntimeIdentifier,
+        "--self-contained", $SelfContained,
         "-o", $publishRoot
     )
 
