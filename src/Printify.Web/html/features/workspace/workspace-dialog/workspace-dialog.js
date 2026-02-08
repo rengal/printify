@@ -1,3 +1,5 @@
+import { createUuid } from '../../../assets/js/utils/uuid.js';
+
 /**
  * Workspace Dialog Module
  *
@@ -219,7 +221,7 @@ async function handleCreate() {
 
     try {
         const request = {
-            id: crypto.randomUUID(),
+            id: createUuid(),
             workspaceName: name
         };
 

@@ -9,6 +9,7 @@
  */
 
 import { normalizeProtocol } from '../../../assets/js/api/protocol.js';
+import { createUuid } from '../../../assets/js/utils/uuid.js';
 
 // ============================================================================
 // STATE
@@ -400,7 +401,7 @@ async function handleCreate(elements) {
     try {
         const request = {
             printer: {
-                id: crypto.randomUUID(),
+                id: createUuid(),
                 displayName: name
             },
             settings: {
