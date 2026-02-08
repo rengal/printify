@@ -86,7 +86,6 @@ export async function apiRequest(path, options = {}) {
 
             // Only auto-logout if we have a workspace token AND we're not trying to login with a new token
             if (workspaceToken && !isTokenLogin) {
-                console.log('[apiRequest] Session expired - logging out');
                 // Import dynamically to avoid circular dependency
                 const { logOut } = await import('../main.js');
                 logOut();

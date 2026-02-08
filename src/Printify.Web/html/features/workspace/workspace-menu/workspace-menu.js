@@ -39,7 +39,6 @@ export function init(actionCallbacks) {
  * Update the workspace display (avatar, name, status)
  */
 export function updateDisplay(workspaceToken, workspaceName) {
-    console.log('[WorkspaceMenu] updateDisplay - workspaceToken:', workspaceToken, 'workspaceName:', workspaceName);
     const avatar = document.getElementById('workspaceAvatar');
     const nameEl = document.getElementById('workspaceName');
     const statusEl = document.getElementById('workspaceStatus');
@@ -60,7 +59,6 @@ export function updateDisplay(workspaceToken, workspaceName) {
         nameEl.textContent = 'No workspace';
         statusEl.textContent = '';
     }
-    console.log('[WorkspaceMenu] updateDisplay - nameEl.textContent:', nameEl.textContent);
 }
 
 /**

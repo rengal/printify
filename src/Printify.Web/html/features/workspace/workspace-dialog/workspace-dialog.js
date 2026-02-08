@@ -237,9 +237,6 @@ async function handleCreate() {
         const workspaceToken = workspace.token;
         const workspaceName = workspace.name;
 
-        console.log('[WorkspaceDialog] handleCreate - workspace:', workspace);
-        console.log('[WorkspaceDialog] handleCreate - workspaceToken:', workspaceToken);
-        console.log('[WorkspaceDialog] handleCreate - workspaceName:', workspaceName);
 
         // Store in localStorage
         localStorage.setItem('workspaceToken', workspaceToken);
@@ -252,7 +249,6 @@ async function handleCreate() {
         close();
 
         // Show token dialog
-        console.log('[WorkspaceDialog] handleCreate - window.TokenDialog:', window.TokenDialog);
         if (window.TokenDialog) {
             await window.TokenDialog.show(workspaceToken);
         } else {

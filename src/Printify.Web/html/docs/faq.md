@@ -22,9 +22,9 @@ Workspace tokens cannot be recovered. You'll need to create a new workspace. Alw
 
 Yes! Virtual Printer provides an online receipt and label printer emulator that lets you test ESC/POS commands, thermal printer output, and label printing without any physical hardware. Perfect for POS development and testing printing APIs.
 
-### How many printers can I create?
+### Can I create multiple printers?
 
-Each workspace can have up to **10 virtual printers**.
+Yes. You can create multiple virtual printers in one workspace and emulate a real environment for a large site.
 
 ### Can I change the printer port?
 
@@ -45,14 +45,6 @@ Click the gear icon next to the printer name, then select "Delete". This will al
 
 ## Documents
 
-### How many documents can I store?
-
-Each workspace can store up to **10,000 documents** total across all printers.
-
-### How long are documents kept?
-
-Documents are automatically deleted after **30 days**.
-
 ### Can I download documents?
 
 Document download functionality is coming in a future update.
@@ -61,7 +53,7 @@ Document download functionality is coming in a future update.
 
 1. Verify the printer is in "Listening" state
 2. Check that your application is sending data to the correct address
-3. Try clicking "Clear" then "Start" to reset the printer
+3. Try stopping the printer, then starting it again to reset the state
 4. Check the browser console for errors
 
 ## Workspace & Data
@@ -72,7 +64,7 @@ Workspaces expire **30 days** after the last document is received. Activity rese
 
 ### Can I delete my workspace?
 
-Use the "Exit Workspace" option to log out. To permanently delete workspace data, email [support@virtual-printer.online](mailto:support@virtual-printer.online).
+Yes. Open Workspace Settings, go to **Danger Zone**, and click **Delete Workspace**.
 
 ### Is my data secure?
 

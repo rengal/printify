@@ -1,8 +1,6 @@
 // Documentation page JavaScript
 // Handles sidebar toggle, theme switching, and navigation highlighting
 
-console.info('docs.js loaded', new Date().toISOString());
-
 // Theme Functions (shared with main app)
 function toggleTheme() {
     const html = document.documentElement;

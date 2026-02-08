@@ -1,5 +1,4 @@
 
-        console.info('main.js loaded - revision 2', '2025-02-20T12:00:00Z');
 
         // API + Workspace State
         const apiBase = '';
@@ -105,7 +104,6 @@
 
                     // Only auto-logout if we have a workspace token AND we're not trying to login with a new token
                     if (workspaceToken && !isTokenLogin) {
-                        console.log('[apiRequest] Session expired - logging out');
                         logOut();
                     }
                 }
@@ -169,7 +167,6 @@
         async function loadPrinters(selectId = null) {
             try {
                 const list = await apiRequest('/api/printers');
-                console.debug('loadPrinters fetched', list);
                 printers = list.map((p, idx) => mapPrinterDto(p, idx));
                 if (selectId && printers.some(p => p.id === selectId)) {
                     selectedPrinterId = selectId;
@@ -303,7 +300,6 @@
             const pinnedPrinters = printers.filter(p => p.pinned).sort((a, b) => a.pinOrder - b.pinOrder);
             const otherPrinters = printers.filter(p => !p.pinned).sort((a, b) => a.name.localeCompare(b.name));
 
-            console.debug('renderSidebar', { total: printers.length, pinned: pinnedPrinters.length, other: otherPrinters.length });
 
             pinnedList.innerHTML = pinnedPrinters.map(p => renderPrinterItem(p, true)).join('');
             otherList.innerHTML = otherPrinters.map(p => renderPrinterItem(p, false)).join('');
@@ -374,7 +370,6 @@
                 return;
             }
 
-            console.debug('Loading documents for printer', printerId);
             const response = await apiRequest(`/api/printers/${printerId}/documents/canvas?limit=50`);
             const items = response?.result?.items || [];
             const printer = getPrinterById(printerId);
@@ -458,7 +453,6 @@
         function handleDocumentEvent(printerId, rawData) {
             try {
                 const payload = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-                console.debug('Document event received', payload);
                 const printer = getPrinterById(printerId);
                 const mapped = DocumentsPanel.mapViewDocumentDto(payload, printer);
                 const list = documents[printerId] || [];
@@ -563,8 +557,6 @@
         function handleRuntimeEvent(printerId, rawData) {
             try {
                 const payload = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-                console.debug('Runtime status event received', payload);
-
                 const printer = getPrinterById(printerId);
                 if (!printer) return;
 
@@ -1073,8 +1065,6 @@
 
         // Workspace Management
         async function loginWithToken(token) {
-            console.log('[main.js] loginWithToken - called with token:', token);
-
             try {
                 const loginResponse = await apiRequest('/api/auth/login', {
                     method: 'POST',
@@ -1082,16 +1072,11 @@
                     isTokenLogin: true  // Prevent auto-logout on 401
                 });
 
-                console.log('[main.js] loginWithToken - loginResponse:', loginResponse);
-
                 accessToken = loginResponse.accessToken;
                 updateWorkspaceToken(token); // This will invalidate cache if token changed
                 const workspace = loginResponse.workspace;
                 workspaceName = workspace?.name || null;
                 workspaceCreatedAt = workspace?.createdAt ? new Date(workspace.createdAt) : new Date();
-
-                console.log('[main.js] loginWithToken - workspace from login response:', workspace);
-                console.log('[main.js] loginWithToken - workspaceName set to:', workspaceName);
 
                 localStorage.setItem('accessToken', accessToken);
                 if (workspaceName) {
@@ -1107,11 +1092,9 @@
                 // Fetch current workspace to confirm auth and get user info
                 try {
                     const workspace = await apiRequest('/api/workspaces');
-                    console.log('[main.js] loginWithToken - workspace from /api/workspaces:', workspace);
                     if (workspace && workspace.name) {
                         workspaceName = workspace.name;
                         localStorage.setItem('workspaceName', workspaceName);
-                        console.log('[main.js] loginWithToken - updating WorkspaceMenu with workspaceName:', workspaceName);
                         window.WorkspaceMenu?.updateDisplay(workspaceToken, workspaceName);
                     }
                 } catch (innerError) {
@@ -1302,18 +1285,9 @@
 
         function toggleSidebar() {
             const container = document.querySelector('.container');
-            console.log('toggleSidebar called');
-            console.log('Container before toggle:'+ container.className);
-
             container.classList.toggle('sidebar-minimized');
 
             const isHidden = container.classList.contains('sidebar-minimized');
-            console.log('Container after toggle:', container.className);
-            console.log('Sidebar is hidden:', isHidden);
-
-            const toggleButton = document.getElementById('floatingSidebarToggle');
-            console.log('Toggle button:', toggleButton);
-            console.log('Toggle button display:', toggleButton ? window.getComputedStyle(toggleButton).display : 'button not found');
 
             localStorage.setItem('sidebarMinimized', isHidden);
         }
@@ -1565,10 +1539,8 @@
                 closeModal: () => closeModal(),
                 showToast: (msg, isError) => showToast(msg, isError),
                 onWorkspaceCreated: (token, name) => {
-                    console.log('[main.js] onWorkspaceCreated - token:', token, 'name:', name);
                     updateWorkspaceToken(token);
                     workspaceName = name;
-                    console.log('[main.js] onWorkspaceCreated - workspaceName set to:', workspaceName);
                     WorkspaceMenu.updateDisplay(token, workspaceName);
                     renderSidebar();
                     renderDocuments();
@@ -1634,18 +1606,11 @@
         const savedAccessToken = localStorage.getItem('accessToken');
         const savedCreatedAt = localStorage.getItem('workspaceCreatedAt');
 
-        console.log('Restoring workspace from localStorage:', {
-            hasWorkspaceToken: !!savedToken,
-            hasAccessToken: !!savedAccessToken,
-            workspaceName: savedName
-        });
-
         if (savedToken && savedAccessToken) {
             workspaceToken = savedToken;
             workspaceName = savedName;
             workspaceCreatedAt = savedCreatedAt ? new Date(savedCreatedAt) : null;
             accessToken = savedAccessToken;
-            console.log('Workspace restored, verifying auth and loading data');
 
             // Verify auth and get workspace info
             (async () => {
@@ -1664,7 +1629,6 @@
                 }
             })();
         } else {
-            console.warn('Cannot restore workspace - missing tokens');
         }
 
         WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);

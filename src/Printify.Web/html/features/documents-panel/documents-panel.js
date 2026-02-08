@@ -743,7 +743,6 @@ function adjustDebugYPositions(contentId, includeDebug) {
                 debugTable.style.top = `${currentY}px`;
                 const debugHeight = debugTable.offsetHeight || 20;
                 const debugDesc = debugTable.querySelector('.debug-desc')?.textContent?.trim() || '';
-                console.log(`[${index}] debug | Y=${currentY}px H=${debugHeight}px | ${debugDesc.substring(0, 50)}`);
                 currentY += debugHeight;
             }
         } else if (elementType === 'text' || elementType === 'image') {
@@ -752,7 +751,6 @@ function adjustDebugYPositions(contentId, includeDebug) {
                 const elementHeight = parseInt(visualElement.style.height) || 0;
                 const elementText = visualElement.textContent?.trim() || visualElement.alt || '';
                 visualElement.style.top = `${currentY}px`;
-                console.log(`[${index}] ${elementType} | Y=${currentY}px H=${elementHeight}px | ${elementText.substring(0, 50)}`);
                 currentY += elementHeight;
             }
         } else if (elementType === 'line') {
@@ -769,7 +767,6 @@ function adjustDebugYPositions(contentId, includeDebug) {
                     const yOffset = currentY - originalY;
 
                     rect.setAttribute('y', parseInt(rect.getAttribute('y')) + yOffset);
-                    console.log(`[${index}] ${elementType} | Y adjusted by ${yOffset}px | box at ${rect.getAttribute('x')},${rect.getAttribute('y')}`);
 
                     // Move currentY down by the box height (using box height, not line thickness)
                     currentY += originalHeight;
