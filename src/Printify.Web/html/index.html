@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Virtual receipt and label printer emulator with ESC/POS and EPL support, real-time preview, and documentation for setup and troubleshooting.">
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+    <link rel="canonical" href="https://virtual-printer.online/">
     <title>Printer Management</title>
 
     <!-- UI Core Styles + Theme Tokens -->
@@ -82,9 +85,43 @@
                 <img id="themeIconLight" class="themed-icon" src="assets/icons/sun.svg" width="18" height="18" style="display: block;">
             </button>
             <div id="documentsPanel">
-                <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
-                    <h3>No Documents</h3>
-                    <p>Documents will appear here</p>
+                <div class="docs-landing">
+                    <h1>Printer Management System</h1>
+                    <p class="docs-landing-subtitle">Manage receipt and label printers with real-time document streaming</p>
+
+                    <div class="docs-landing-card">
+                        <h3>Features</h3>
+                        <ul>
+                            <li>Real-time document preview with accurate rendering</li>
+                            <li>ESC/POS and EPL emulation with text formatting, images, and barcode support</li>
+                            <li>Multi-printer management</li>
+                            <li>Workspace sharing across devices</li>
+                            <li>Buffer and error emulation for realistic printer behavior</li>
+                        </ul>
+                    </div>
+
+                    <div class="docs-landing-card">
+                        <h3>Learn More</h3>
+                        <p>
+                            <a href="/docs/about" class="docs-link">About Virtual Printer</a> &bull;
+                            <a href="/docs/guide" class="docs-link">Getting Started Guide</a>
+                        </p>
+                    </div>
+
+                    <div class="docs-landing-cta">
+                        <h3>Get Started</h3>
+                        <p>Create a new workspace or access an existing one</p>
+                        <div class="docs-landing-actions">
+                            <button class="btn btn-secondary" data-action="create-workspace">
+                                <img class="themed-icon" src="assets/icons/plus-circle.svg" width="18" height="18" alt="">
+                                Create New Workspace
+                            </button>
+                            <button class="btn btn-secondary" data-action="access-workspace">
+                                <img class="themed-icon" src="assets/icons/log-in.svg" width="18" height="18" alt="">
+                                Access Existing
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
@@ -116,3 +153,4 @@
 
 </body>
 </html>
+

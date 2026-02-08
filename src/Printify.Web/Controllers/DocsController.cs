@@ -17,6 +17,15 @@ public class DocsController : ControllerBase
             .Build();
     }
 
+    [HttpGet("/doc")]
+    [HttpGet("/doc/")]
+    [HttpGet("/docs")]
+    [HttpGet("/docs/")]
+    public IActionResult RedirectDocsRoot()
+    {
+        return Redirect("/docs/about");
+    }
+
     [HttpGet("/docs/{page}")]
     public IActionResult GetDocPage(string page)
     {
