@@ -2,6 +2,8 @@
 param(
     [switch]$PreserveProductionSettings,
 
+    [switch]$SkipArtifactDeploy,
+
     [switch]$WhatIf
 )
 
@@ -11,7 +13,10 @@ $ErrorActionPreference = "Stop"
 # Deployment constants (no runtime input required).
 $LocalServerHost = "virtual-printer.resto.lan"
 $GlobalServerHost = "virtual-printer.online"
-$User = "resto"
+$LocalSshUser = "resto"
+$GlobalSshUser = "root"
+$LocalServiceUser = "resto"
+$GlobalServiceUser = "root"
 $SshPort = 22
 $ProjectPath = "src/Printify.Web/Printify.Web.csproj"
 $LocalSettingsPath = "src/Printify.Web/appsettings.local.Production.json"
@@ -23,7 +28,6 @@ $RemoteAppDir = "/opt/printify/app"
 $ServiceName = "printify"
 $RemoteTempDir = "/tmp"
 $SshKeyPath = ""
-$ServiceRunUser = "resto"
 $RemoteDbDir = "/var/lib/printify/db"
 $RemoteMediaDir = "/var/lib/printify/media"
 $RequiredUiEntryRelativePath = "html/index.html"
@@ -39,6 +43,8 @@ function Get-DeploymentTarget {
             "1" {
                 return @{
                     ServerHost = $LocalServerHost
+                    SshUser = $LocalSshUser
+                    ServiceUser = $LocalServiceUser
                     SettingsPath = $LocalSettingsPath
                     RequiresPrivilegedPort = $true
                 }
@@ -46,6 +52,8 @@ function Get-DeploymentTarget {
             "2" {
                 return @{
                     ServerHost = $GlobalServerHost
+                    SshUser = $GlobalSshUser
+                    ServiceUser = $GlobalServiceUser
                     SettingsPath = $GlobalSettingsPath
                     RequiresPrivilegedPort = $false
                 }
@@ -113,6 +121,8 @@ function Test-SshConnectivity {
 
 $deploymentTarget = Get-DeploymentTarget
 $ServerHost = $deploymentTarget.ServerHost
+$User = $deploymentTarget.SshUser
+$ServiceRunUser = $deploymentTarget.ServiceUser
 $SelectedSettingsPath = $deploymentTarget.SettingsPath
 $RequiresPrivilegedPort = [bool]$deploymentTarget.RequiresPrivilegedPort
 
@@ -151,6 +161,11 @@ if ($WhatIf) {
 }
 
 Invoke-Logged -Message "Cleaning local publish directory" -Action {
+    if ($SkipArtifactDeploy) {
+        Write-Host "Skipping local publish cleanup because -SkipArtifactDeploy is enabled."
+        return
+    }
+
     if (Test-Path $publishRoot) {
         if (-not $WhatIf) {
             Remove-Item $publishRoot -Recurse -Force
@@ -162,6 +177,11 @@ Invoke-Logged -Message "Cleaning local publish directory" -Action {
 }
 
 Invoke-Logged -Message "Publishing app ($Configuration)" -Action {
+    if ($SkipArtifactDeploy) {
+        Write-Host "Skipping publish because -SkipArtifactDeploy is enabled."
+        return
+    }
+
     $publishArgs = @(
         "publish",
         $projectFullPath,
@@ -180,6 +200,11 @@ Invoke-Logged -Message "Publishing app ($Configuration)" -Action {
 }
 
 Invoke-Logged -Message "Applying deployment settings ($SelectedSettingsPath)" -Action {
+    if ($SkipArtifactDeploy) {
+        Write-Host "Skipping appsettings copy because -SkipArtifactDeploy is enabled."
+        return
+    }
+
     $targetSettingsPath = Join-Path $publishRoot "appsettings.Production.json"
 
     if ($WhatIf) {
@@ -191,6 +216,11 @@ Invoke-Logged -Message "Applying deployment settings ($SelectedSettingsPath)" -A
 }
 
 Invoke-Logged -Message "Packing publish output" -Action {
+    if ($SkipArtifactDeploy) {
+        Write-Host "Skipping archive packing because -SkipArtifactDeploy is enabled."
+        return
+    }
+
     if (-not $WhatIf) {
         $requiredUiEntryPath = Join-Path $publishRoot $RequiredUiEntryRelativePath
         if (-not (Test-Path $requiredUiEntryPath)) {
@@ -219,6 +249,11 @@ Invoke-Logged -Message "Packing publish output" -Action {
 }
 
 Invoke-Logged -Message "Uploading archive to server ($sshTarget)" -Action {
+    if ($SkipArtifactDeploy) {
+        Write-Host "Skipping archive upload because -SkipArtifactDeploy is enabled."
+        return
+    }
+
     $scpArgs = @()
     if (-not [string]::IsNullOrWhiteSpace($SshKeyPath)) {
         $scpArgs += @("-i", $SshKeyPath)
@@ -239,7 +274,7 @@ Invoke-Logged -Message "Uploading archive to server ($sshTarget)" -Action {
 }
 
 Invoke-Logged -Message "Deploying on remote server and restarting service" -Action {
-    $preserveSettingsScript = if ($PreserveProductionSettings) {
+    $preserveSettingsScript = if ($PreserveProductionSettings -and -not $SkipArtifactDeploy) {
 @"
 if [ -f "$RemoteAppDir/appsettings.Production.json" ]; then
   cp "$RemoteAppDir/appsettings.Production.json" "$RemoteTempDir/appsettings.Production.json.bak"
@@ -250,7 +285,7 @@ fi
         ""
     }
 
-$restoreSettingsScript = if ($PreserveProductionSettings) {
+$restoreSettingsScript = if ($PreserveProductionSettings -and -not $SkipArtifactDeploy) {
 @"
 if [ -f "$RemoteTempDir/appsettings.Production.json.bak" ]; then
   mv "$RemoteTempDir/appsettings.Production.json.bak" "$RemoteAppDir/appsettings.Production.json"
@@ -268,8 +303,42 @@ fi
         "echo `"Skipping setcap: application uses non-privileged port.`""
     }
 
-    $remoteScript = @"
+    $artifactDeployScript = if ($SkipArtifactDeploy) {
+@"
+echo "Skipping artifact deployment steps."
+"@
+    }
+    else {
+@"
+if [ ! -f "$remoteArchivePath" ]; then
+  echo "ERROR: Archive not found on remote host: $remoteArchivePath"
+  echo "Run deploy without -SkipArtifactDeploy at least once, or upload archive manually."
+  exit 1
+fi
+
+$preserveSettingsScript
+sudo rm -rf "$RemoteAppDir"/*
+sudo tar -xzf "$remoteArchivePath" -C "$RemoteAppDir"
+if id "$ServiceRunUser" >/dev/null 2>&1; then
+  sudo chown -R "${ServiceRunUser}:`$SERVICE_GROUP" "$RemoteAppDir"
+fi
+$restoreSettingsScript
+rm -f "$remoteArchivePath"
+"@
+    }
+
+$remoteScript = @"
 set -euo pipefail
+
+DOTNET_BIN=`$(command -v dotnet || true)
+if [ -z "`$DOTNET_BIN" ]; then
+  echo "ERROR: dotnet runtime is not installed or not available in PATH."
+  exit 1
+fi
+DOTNET_PATH=`$(readlink -f "`$DOTNET_BIN" 2>/dev/null || true)
+if [ -z "`$DOTNET_PATH" ]; then
+  DOTNET_PATH="`$DOTNET_BIN"
+fi
 
 sudo mkdir -p "$RemoteAppDir"
 sudo mkdir -p "$RemoteDbDir"
@@ -281,14 +350,7 @@ else
   echo "WARN: Service user '$ServiceRunUser' not found. Skipping ownership updates."
 fi
 
-$preserveSettingsScript
-sudo rm -rf "$RemoteAppDir"/*
-sudo tar -xzf "$remoteArchivePath" -C "$RemoteAppDir"
-if id "$ServiceRunUser" >/dev/null 2>&1; then
-  sudo chown -R "${ServiceRunUser}:`$SERVICE_GROUP" "$RemoteAppDir"
-fi
-$restoreSettingsScript
-rm -f "$remoteArchivePath"
+$artifactDeployScript
 
 # Install or update systemd unit.
 sudo tee "/etc/systemd/system/$ServiceName.service" > /dev/null <<EOF
@@ -298,7 +360,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=$RemoteAppDir
-ExecStart=/usr/bin/dotnet $RemoteAppDir/Printify.Web.dll
+ExecStart=`$DOTNET_PATH $RemoteAppDir/Printify.Web.dll
 User=$ServiceRunUser
 Group=$ServiceRunUser
 Environment=ASPNETCORE_ENVIRONMENT=Production
@@ -311,12 +373,6 @@ SyslogIdentifier=$ServiceName
 [Install]
 WantedBy=multi-user.target
 EOF
-
-DOTNET_PATH=`$(readlink -f "`$(command -v dotnet)")
-if [ -z "`$DOTNET_PATH" ] || [ ! -x "`$DOTNET_PATH" ]; then
-  echo "ERROR: dotnet runtime binary not found on server."
-  exit 1
-fi
 
 sudo systemctl daemon-reload
 sudo systemctl enable "$ServiceName"
