@@ -120,7 +120,7 @@ public static class EplScenarioData
     public static TheoryData<EplScenario> TextScenarios { get; } =
     [
         new(
-            id: 3001,
+            id: 23001,
             input: "A10,20,0,2,1,1,N,\"Hello\"\n"u8.ToArray(),
             expectedRequestCommands:
             [
@@ -132,8 +132,7 @@ public static class EplScenarioData
                     1,
                     1,
                     'N',
-                    "Hello",
-                    lengthInBytes: "A10,20,0,2,1,1,N,\"Hello\"\n"u8.Length)
+                    "Hello")
             ],
             expectedCanvasElements:
             [
@@ -156,7 +155,7 @@ public static class EplScenarioData
                 ]
             ]),
         new(
-            id: 3002,
+            id: 23002,
             input: "A50,100,1,3,2,2,R,\"World\"\n"u8.ToArray(),
             expectedRequestCommands:
             [
@@ -168,8 +167,7 @@ public static class EplScenarioData
                     2,
                     2,
                     'R',
-                    "World",
-                    lengthInBytes: "A50,100,1,3,2,2,R,\"World\"\n"u8.Length)
+                    "World")
             ],
             expectedCanvasElements:
             [
@@ -192,7 +190,7 @@ public static class EplScenarioData
                 ]
             ]),
         new(
-            id: 3003,
+            id: 23003,
             input: "A0,0,0,4,3,3,N,\"Test123\"\n"u8.ToArray(),
             expectedRequestCommands:
             [
@@ -204,8 +202,7 @@ public static class EplScenarioData
                     3,
                     3,
                     'N',
-                    "Test123",
-                    lengthInBytes: "A0,0,0,4,3,3,N,\"Test123\"\n"u8.Length)
+                    "Test123")
             ],
             expectedCanvasElements:
             [
@@ -229,7 +226,7 @@ public static class EplScenarioData
             ]),
         // CR (carriage return) as no-op command
         new(
-            id: 3004,
+            id: 23004,
             input: "\r"u8.ToArray(),
             expectedRequestCommands: [new CarriageReturn { LengthInBytes = 1 }],
             expectedCanvasElements:
@@ -240,7 +237,7 @@ public static class EplScenarioData
             ]),
         // LF (line feed) as no-op command
         new(
-            id: 3005,
+            id: 23005,
             input: "\n"u8.ToArray(),
             expectedRequestCommands: [new LineFeed { LengthInBytes = 1 }],
             expectedCanvasElements:
@@ -251,7 +248,7 @@ public static class EplScenarioData
             ]),
         // Clear buffer with CR terminator (not LF)
         new(
-            id: 3006,
+            id: 23006,
             input: "N\r"u8.ToArray(),
             expectedRequestCommands: [new ClearBuffer { LengthInBytes = 2 }],
             expectedCanvasElements:
@@ -262,7 +259,7 @@ public static class EplScenarioData
             ]),
         // Clear buffer with LF terminator (standard)
         new(
-            id: 3007,
+            id: 23007,
             input: "N\n"u8.ToArray(),
             expectedRequestCommands: [new ClearBuffer { LengthInBytes = 2 }],
             expectedCanvasElements:
@@ -273,7 +270,7 @@ public static class EplScenarioData
             ]),
         // Text command with CR terminator
         new(
-            id: 3008,
+            id: 23008,
             input: "A10,20,0,2,1,1,N,\"Test\"\r"u8.ToArray(),
             expectedRequestCommands:
             [
@@ -285,8 +282,7 @@ public static class EplScenarioData
                     1,
                     1,
                     'N',
-                    "Test",
-                    lengthInBytes: "A10,20,0,2,1,1,N,\"Test\"\r"u8.Length)
+                    "Test")
             ],
             expectedCanvasElements:
             [
@@ -310,7 +306,7 @@ public static class EplScenarioData
             ]),
         // CRLF sequence - CR terminates N command, remaining LF becomes LineFeed no-op
         new(
-            id: 3009,
+            id: 23009,
             input: "N\r\n"u8.ToArray(),
             expectedRequestCommands:
             [
@@ -326,7 +322,7 @@ public static class EplScenarioData
             ]),
         // Text command with LF then CR sequence (two separate no-ops)
         new(
-            id: 3010,
+            id: 23010,
             input: "\n\r"u8.ToArray(),
             expectedRequestCommands:
             [
@@ -338,6 +334,74 @@ public static class EplScenarioData
                 [
                     DebugElement("lineFeed", lengthInBytes: 1),
                     DebugElement("carriageReturn", lengthInBytes: 1)
+                ]
+            ]),
+        // Scenario: Text command followed by PRINT 1 (single copy)
+        // Expected: Single canvas with debug elements first, then visual elements
+        new(
+            id: 23011,
+            input: "A10,20,0,2,1,1,N,\"DEF\"\nP1\n"u8.ToArray(),
+            expectedRequestCommands:
+            [
+                CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "DEF"),
+                new Print(1) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    // Canvas 0: Debug elements first, then visual elements
+                    DebugElement("scalableText", lengthInBytes: 23, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10",
+                        ["Y"] = "20",
+                        ["Rotation"] = "0",
+                        ["Font"] = "2",
+                        ["HorizontalMultiplication"] = "1",
+                        ["VerticalMultiplication"] = "1",
+                        ["Reverse"] = "N",
+                        ["Text"] = "DEF"
+                    }),
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
+                    TextElement("DEF", x: 10, y: 20,
+                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "DEF".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                ]
+            ]),
+        // Scenario: Text command followed by PRINT 2 (two copies)
+        // Expected: First canvas with debug+visual, second canvas with only visual
+        new(
+            id: 23012,
+            input: "A10,20,0,2,1,1,N,\"XYZ\"\nP2\n"u8.ToArray(),
+            expectedRequestCommands:
+            [
+                CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "XYZ"),
+                new Print(2) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    // Canvas 0: Debug elements first, then visual elements
+                    DebugElement("scalableText", lengthInBytes: 23, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10",
+                        ["Y"] = "20",
+                        ["Rotation"] = "0",
+                        ["Font"] = "2",
+                        ["HorizontalMultiplication"] = "1",
+                        ["VerticalMultiplication"] = "1",
+                        ["Reverse"] = "N",
+                        ["Text"] = "XYZ"
+                    }),
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "2" }),
+                    TextElement("XYZ", x: 10, y: 20,
+                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "XYZ".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                ],
+                [
+                    // Canvas 1: Only visual elements (no debug)
+                    TextElement("XYZ", x: 10, y: 20,
+                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "XYZ".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
                 ]
             ])
     ];
@@ -516,83 +580,6 @@ public static class EplScenarioData
             ])
     ];
 
-    /// <summary>
-    /// Combined scenarios with multiple commands (text + print) to test page mode behavior.
-    /// In page mode (EPL), the first canvas contains all debug elements first, then all visual elements.
-    /// Subsequent canvases (copies) contain only visual elements.
-    /// </summary>
-    public static TheoryData<EplScenario> CombinedScenarios { get; } =
-    [
-        // Scenario: Text command followed by PRINT 1 (single copy)
-        // Expected: Single canvas with debug elements first, then visual elements
-        new(
-            id: 5001,
-            input: "A10,20,0,2,1,1,N,\"ABC\"\nP1\n"u8.ToArray(),
-            expectedRequestCommands:
-            [
-                CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "ABC"),
-                new Print(1) { LengthInBytes = 3 }
-            ],
-            expectedCanvasElements:
-            [
-                [
-                    // Canvas 0: Debug elements first, then visual elements
-                    DebugElement("scalableText", lengthInBytes: 24, parameters: new Dictionary<string, string>
-                    {
-                        ["X"] = "10",
-                        ["Y"] = "20",
-                        ["Rotation"] = "0",
-                        ["Font"] = "2",
-                        ["HorizontalMultiplication"] = "1",
-                        ["VerticalMultiplication"] = "1",
-                        ["Reverse"] = "N",
-                        ["Text"] = "ABC"
-                    }),
-                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
-                    TextElement("ABC", x: 10, y: 20,
-                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "ABC".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
-                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
-                ]
-            ]),
-        // Scenario: Text command followed by PRINT 2 (two copies)
-        // Expected: First canvas with debug+visual, second canvas with only visual
-        new(
-            id: 5002,
-            input: "A10,20,0,2,1,1,N,\"ABC\"\nP2\n"u8.ToArray(),
-            expectedRequestCommands:
-            [
-                CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "ABC"),
-                new Print(2) { LengthInBytes = 3 }
-            ],
-            expectedCanvasElements:
-            [
-                [
-                    // Canvas 0: Debug elements first, then visual elements
-                    DebugElement("scalableText", lengthInBytes: 24, parameters: new Dictionary<string, string>
-                    {
-                        ["X"] = "10",
-                        ["Y"] = "20",
-                        ["Rotation"] = "0",
-                        ["Font"] = "2",
-                        ["HorizontalMultiplication"] = "1",
-                        ["VerticalMultiplication"] = "1",
-                        ["Reverse"] = "N",
-                        ["Text"] = "ABC"
-                    }),
-                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "2" }),
-                    TextElement("ABC", x: 10, y: 20,
-                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "ABC".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
-                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
-                ],
-                [
-                    // Canvas 1: Only visual elements (no debug)
-                    TextElement("ABC", x: 10, y: 20,
-                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "ABC".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
-                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
-                ]
-            ])
-    ];
-
     public static TheoryData<EplScenario> ShapeScenarios { get; } =
     [
         new(
@@ -725,7 +712,6 @@ public static class EplScenarioData
         AddRange(data, ShapeScenarios);
         AddRange(data, PrintScenarios);
         AddRange(data, ErrorScenarios);
-        AddRange(data, CombinedScenarios);
         AddRange(data, WarningScenarios);
         return data;
     }
@@ -813,7 +799,15 @@ public static class EplScenarioData
         var bytes = encoding.GetBytes(text);
         return new ScalableText(x, y, rotation, font, hMul, vMul, reverse, bytes)
         {
-            LengthInBytes = lengthInBytes ?? text.Length + 15
+            //A10,20,0,2,1,1,N,"ABC"\n
+            LengthInBytes = lengthInBytes ??
+                            text.Length +
+                            x.ToString().Length +
+                            y.ToString().Length +
+                            rotation.ToString().Length +
+                            font.ToString().Length +
+                            hMul.ToString().Length +
+                            vMul.ToString().Length + 12
         };
     }
 

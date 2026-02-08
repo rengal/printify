@@ -92,6 +92,10 @@ public class EplPrintJobSession : PrintJobSession
         {
             // expected if new data arrives or job is canceled
         }
+        catch (ObjectDisposedException)
+        {
+            // expected if data job finises
+        }
         catch (Exception e)
         {
             Console.WriteLine(e); // todo debugnow

@@ -46,15 +46,16 @@ public class SerializationTests
     }
 
     [Fact]
-    public void PrintGraphicElementPayload_Serialization_Roundtrip()
+    public void EplRasterImageElementPayload_Serialization_Roundtrip()
     {
         // Arrange - use primary constructor syntax
-        var payload = new PrintGraphicElementPayload(
+        var mediaId = Guid.Parse("12345678-1234-1234-1234-123456789abc");
+        var payload = new EplRasterImageElementPayload(
             10,
             20,
             100,
             200,
-            "01020304"
+            mediaId
         );
 
         // Act - serialize to JSON
@@ -62,12 +63,12 @@ public class SerializationTests
         Console.WriteLine($"Serialized JSON: {json}");
 
         // Act - deserialize from JSON
-        var deserialized = JsonSerializer.Deserialize<PrintGraphicElementPayload>(json, SerializerOptions);
+        var deserialized = JsonSerializer.Deserialize<EplRasterImageElementPayload>(json, SerializerOptions);
 
         // Assert
         Assert.NotNull(deserialized);
-        Console.WriteLine($"Deserialized DataHex: '{deserialized.DataHex}'");
-        Assert.Equal("01020304", deserialized.DataHex);
+        Console.WriteLine($"Deserialized MediaId: '{deserialized.MediaId}'");
+        Assert.Equal(mediaId, deserialized.MediaId);
         Assert.Equal(10, deserialized.X);
         Assert.Equal(20, deserialized.Y);
     }

@@ -42,7 +42,6 @@ public sealed class EplCommandHelperTests
             // Note: EplPrintBarcodeUpload is excluded because it's an upload command not meant to be rendered
 
             // Graphics commands
-            new PrintGraphic(10, 20, 100, 50, new byte[20]),
             new EplRasterImage(10, 20, 100, 50, TestMedia),
             // Note: EplRasterImageUpload is excluded because it's an upload command not meant to be rendered
 

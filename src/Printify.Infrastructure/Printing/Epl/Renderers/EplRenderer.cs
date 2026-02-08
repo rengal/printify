@@ -88,12 +88,6 @@ public sealed class EplRenderer : IRenderer
                     AddLegacyBarcodeVisualElement(legacyBarcode, viewElements);
                     break;
 
-                // Legacy PrintGraphic without media (for backward compatibility)
-                case PrintGraphic graphic:
-                    AddGraphicDebugElement(graphic, debugElements);
-                    AddGraphicVisualElement(graphic, viewElements);
-                    break;
-
                 case DrawBox drawLine:
                     AddDrawLineDebugElement(drawLine, debugElements);
                     AddDrawLineVisualElement(drawLine, viewElements);
@@ -489,39 +483,6 @@ public sealed class EplRenderer : IRenderer
             renderedWidth,
             renderedHeight,
             EplRotationMapper.ToDomainRotation(barcode.Rotation)));
-    }
-
-    private static void AddGraphicDebugElement(PrintGraphic graphic, List<BaseElement> debugElements)
-    {
-        debugElements.Add(new DebugInfo(
-            "printGraphic",
-            new Dictionary<string, string>
-            {
-                ["X"] = graphic.X.ToString(),
-                ["Y"] = graphic.Y.ToString(),
-                ["Width"] = graphic.Width.ToString(),
-                ["Height"] = graphic.Height.ToString(),
-                ["DataLength"] = graphic.Data.Length.ToString()
-            },
-            graphic.RawBytes,
-            graphic.LengthInBytes,
-            GetDescription(graphic)));
-    }
-
-    private static void AddGraphicVisualElement(PrintGraphic graphic, List<BaseElement> viewElements)
-    {
-        // Graphics are represented as image elements
-        viewElements.Add(new ImageElement(
-            new LayoutMedia(
-                "image/epl-graphic",
-                graphic.Data.Length,
-                string.Empty,
-                string.Empty),
-            graphic.X,
-            graphic.Y,
-            graphic.Width,
-            graphic.Height,
-            0));
     }
 
     private static void AddDrawLineDebugElement(DrawBox drawBox, List<BaseElement> debugElements)

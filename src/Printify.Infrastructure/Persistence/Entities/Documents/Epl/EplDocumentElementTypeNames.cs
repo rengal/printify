@@ -20,5 +20,5 @@ internal static class EplDocumentElementTypeNames
     public const string DrawLine = "eplDrawLine";
     public const string Print = "eplPrint";
     public const string PrintBarcode = "eplPrintBarcode";
-    public const string PrintGraphic = "eplPrintGraphic";
+    public const string EplRasterImage = "eplRasterImage";
 }

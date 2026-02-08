@@ -64,12 +64,21 @@ public static class CommandMapper
                 barcode.Height,
                 barcode.Hri.ToString(),
                 barcode.Data),
-            PrintGraphic graphic => new PrintGraphicElementPayload(
-                graphic.X,
-                graphic.Y,
-                graphic.Width,
-                graphic.Height,
-                Convert.ToHexString(graphic.Data)),
+            EplPrintBarcode barcode => new PrintBarcodeElementPayload(
+                barcode.X,
+                barcode.Y,
+                barcode.Rotation,
+                barcode.Type,
+                barcode.Width,
+                barcode.Height,
+                barcode.Hri.ToString(),
+                barcode.Data),
+            EplRasterImage rasterImage => new EplRasterImageElementPayload(
+                rasterImage.X,
+                rasterImage.Y,
+                rasterImage.Width,
+                rasterImage.Height,
+                rasterImage.Media.Id),
             _ => throw new NotSupportedException($"Element type '{command.GetType().Name}' is not supported.")
         };
     }
@@ -119,21 +128,32 @@ public static class CommandMapper
                 line.X2,
                 line.Y2),
             PrintElementPayload print => new Print(print.Copies),
-            PrintBarcodeElementPayload barcode => new PrintBarcode(
-                barcode.X,
-                barcode.Y,
-                barcode.Rotation,
-                barcode.Type,
-                barcode.Width,
-                barcode.Height,
-                string.IsNullOrEmpty(barcode.Hri) ? DefaultCharReverse : barcode.Hri[0],
-                barcode.Data),
-            PrintGraphicElementPayload graphic => new PrintGraphic(
-                graphic.X,
-                graphic.Y,
-                graphic.Width,
-                graphic.Height,
-                string.IsNullOrEmpty(graphic.DataHex) ? Array.Empty<byte>() : Convert.FromHexString(graphic.DataHex)),
+            PrintBarcodeElementPayload barcode => media is not null
+                ? new EplPrintBarcode(
+                    barcode.X,
+                    barcode.Y,
+                    barcode.Rotation,
+                    barcode.Type,
+                    barcode.Width,
+                    barcode.Height,
+                    string.IsNullOrEmpty(barcode.Hri) ? DefaultCharReverse : barcode.Hri[0],
+                    barcode.Data,
+                    media)
+                : new PrintBarcode(
+                    barcode.X,
+                    barcode.Y,
+                    barcode.Rotation,
+                    barcode.Type,
+                    barcode.Width,
+                    barcode.Height,
+                    string.IsNullOrEmpty(barcode.Hri) ? DefaultCharReverse : barcode.Hri[0],
+                    barcode.Data),
+            EplRasterImageElementPayload raster => new EplRasterImage(
+                raster.X,
+                raster.Y,
+                raster.Width,
+                raster.Height,
+                media),
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }
@@ -194,7 +214,7 @@ public static class CommandMapper
             EplDocumentElementTypeNames.DrawLine => JsonSerializer.Deserialize<DrawBoxElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.Print => JsonSerializer.Deserialize<PrintElementPayload>(entity.Payload, SerializerOptions),
             EplDocumentElementTypeNames.PrintBarcode => JsonSerializer.Deserialize<PrintBarcodeElementPayload>(entity.Payload, SerializerOptions),
-            EplDocumentElementTypeNames.PrintGraphic => JsonSerializer.Deserialize<PrintGraphicElementPayload>(entity.Payload, SerializerOptions),
+            EplDocumentElementTypeNames.EplRasterImage => JsonSerializer.Deserialize<EplRasterImageElementPayload>(entity.Payload, SerializerOptions),
             _ => throw new NotSupportedException($"Element type '{entity.ElementType}' is not supported.")
         };
     }
@@ -224,7 +244,7 @@ public static class CommandMapper
             DrawBoxElementPayload => EplDocumentElementTypeNames.DrawLine,
             PrintElementPayload => EplDocumentElementTypeNames.Print,
             PrintBarcodeElementPayload => EplDocumentElementTypeNames.PrintBarcode,
-            PrintGraphicElementPayload => EplDocumentElementTypeNames.PrintGraphic,
+            EplRasterImageElementPayload => EplDocumentElementTypeNames.EplRasterImage,
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }

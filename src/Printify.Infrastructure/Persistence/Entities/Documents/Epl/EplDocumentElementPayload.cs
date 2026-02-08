@@ -68,9 +68,9 @@ public sealed record PrintBarcodeElementPayload(
     string Hri,
     string Data) : EplDocumentElementPayload;
 
-public sealed record PrintGraphicElementPayload(
+public sealed record EplRasterImageElementPayload(
     int X,
     int Y,
     int Width,
     int Height,
-    string DataHex) : EplDocumentElementPayload;
+    Guid MediaId) : EplDocumentElementPayload;

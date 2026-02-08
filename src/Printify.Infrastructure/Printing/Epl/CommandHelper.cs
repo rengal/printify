@@ -42,7 +42,6 @@ public static class EplCommandHelper
             DrawHorizontalLine horizontalLine => BuildDrawHorizontalLineDescription(horizontalLine),
             Print print => BuildPrintDescription(print),
             PrintBarcode eplBarcode => BuildEplBarcodeDescription(eplBarcode),
-            PrintGraphic graphic => BuildPrintGraphicDescription(graphic),
             DrawBox drawLine => BuildDrawLineDescription(drawLine),
             EplRasterImage rasterImage => BuildEplRasterImageDescription(rasterImage),
             EplPrintBarcode barcode => BuildEplPrintBarcodeDescription(barcode),
@@ -127,15 +126,6 @@ public static class EplCommandHelper
             $"width={barcode.Width}, height={barcode.Height}",
             $"hri={barcode.Hri}",
             $"data=\"{EscapeDescriptionText(barcode.Data)}\"");
-    }
-
-    private static IReadOnlyList<string> BuildPrintGraphicDescription(PrintGraphic graphic)
-    {
-        return Lines(
-            "GW x,y,width,height,[data] - Print graphic",
-            $"x={graphic.X}, y={graphic.Y}",
-            $"width={graphic.Width} (dots), height={graphic.Height} (dots)",
-            $"dataLength={graphic.Data.Length} (bytes)");
     }
 
     private static IReadOnlyList<string> BuildDrawLineDescription(DrawBox drawBox)

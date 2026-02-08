@@ -2,6 +2,7 @@ using Printify.Infrastructure.Mapping.Protocols.Epl;
 using Printify.Infrastructure.Persistence.Entities.Documents;
 using Printify.Infrastructure.Persistence.Entities.Documents.Epl;
 using Printify.Infrastructure.Printing.Epl.Commands;
+using DomainMedia = Printify.Domain.Media.Media;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -77,48 +78,62 @@ public sealed class PersistenceDebugTests
     }
 
     [Fact]
-    public void Trace_PrintGraphic_ThroughFullPersistenceCycle()
+    public void Trace_EplRasterImage_ThroughFullPersistenceCycle()
     {
-        // Arrange - Create command with data
-        var data = new byte[] { 0x01, 0x02, 0x03, 0x04 };
-        var originalCommand = new PrintGraphic(10, 20, 100, 200, data)
+        // Arrange - Create command with media
+        var mediaId = Guid.Parse("12345678-1234-1234-1234-123456789abc");
+        var media = new DomainMedia(
+            Id: mediaId,
+            OwnerWorkspaceId: null,
+            CreatedAt: DateTimeOffset.UtcNow,
+            IsDeleted: false,
+            ContentType: "image/png",
+            Length: 1234,
+            Sha256Checksum: "abc123",
+            FileName: "test.png",
+            Url: "https://example.com/test.png"
+        );
+        var originalCommand = new EplRasterImage(10, 20, 100, 200, media)
         {
             LengthInBytes = 10
         };
 
         Console.WriteLine($"=== STEP 1: Original Command ===");
-        Console.WriteLine($"  Data (hex): '{Convert.ToHexString(originalCommand.Data)}'");
+        Console.WriteLine($"  MediaId: '{originalCommand.Media.Id}'");
+        Console.WriteLine($"  Url: '{originalCommand.Media.Url}'");
 
         // Step 2: Convert to payload
         Console.WriteLine($"\n=== STEP 2: ToPayload ===");
         var payload = CommandMapper.ToCommandPayload(originalCommand);
-        var graphicPayload = Assert.IsType<PrintGraphicElementPayload>(payload);
+        var rasterPayload = Assert.IsType<EplRasterImageElementPayload>(payload);
 
-        Console.WriteLine($"  DataHex: '{graphicPayload.DataHex}'");
-        Assert.Equal("01020304", graphicPayload.DataHex);
+        Console.WriteLine($"  MediaId: '{rasterPayload.MediaId}'");
+        Assert.Equal(mediaId, rasterPayload.MediaId);
 
         // Step 3: Serialize to JSON
         Console.WriteLine($"\n=== STEP 3: Serialize to JSON ===");
-        var json = JsonSerializer.Serialize(graphicPayload, SerializerOptions);
+        var json = JsonSerializer.Serialize(rasterPayload, SerializerOptions);
         Console.WriteLine($"  JSON: {json}");
 
         // Step 4: Deserialize from JSON
         Console.WriteLine($"\n=== STEP 4: Deserialize from JSON ===");
-        var deserializedPayload = JsonSerializer.Deserialize<PrintGraphicElementPayload>(json, SerializerOptions);
+        var deserializedPayload = JsonSerializer.Deserialize<EplRasterImageElementPayload>(json, SerializerOptions);
         Assert.NotNull(deserializedPayload);
 
-        Console.WriteLine($"  DataHex: '{deserializedPayload.DataHex}'");
+        Console.WriteLine($"  MediaId: '{deserializedPayload.MediaId}'");
 
-        // Step 5: Convert back to domain
+        // Step 5: Convert back to domain (with media)
         Console.WriteLine($"\n=== STEP 5: ToDomain ===");
-        var roundtripCommand = CommandMapper.ToDomain(deserializedPayload);
-        var roundtripGraphicCommand = Assert.IsType<PrintGraphic>(roundtripCommand);
+        var roundtripCommand = CommandMapper.ToDomain(deserializedPayload, media);
+        var roundtripRasterCommand = Assert.IsType<EplRasterImage>(roundtripCommand);
 
-        Console.WriteLine($"  Data (hex): '{Convert.ToHexString(roundtripGraphicCommand.Data)}'");
+        Console.WriteLine($"  MediaId: '{roundtripRasterCommand.Media.Id}'");
+        Console.WriteLine($"  Url: '{roundtripRasterCommand.Media.Url}'");
 
         // Assert
-        Assert.Equal("01020304", graphicPayload.DataHex);
-        Assert.Equal("01020304", deserializedPayload.DataHex);
-        Assert.Equal(data, roundtripGraphicCommand.Data);
+        Assert.Equal(mediaId, rasterPayload.MediaId);
+        Assert.Equal(mediaId, deserializedPayload.MediaId);
+        Assert.Equal(mediaId, roundtripRasterCommand.Media.Id);
+        Assert.Equal("https://example.com/test.png", roundtripRasterCommand.Media.Url);
     }
 }

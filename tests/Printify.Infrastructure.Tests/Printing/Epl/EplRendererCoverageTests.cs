@@ -47,7 +47,6 @@ public sealed class EplRendererCoverageTests
             // Note: EplPrintBarcodeUpload is excluded because it's an upload command not meant to be rendered
 
             // Graphics commands
-            new PrintGraphic(10, 20, 100, 50, new byte[20]),
             new EplRasterImage(10, 20, 100, 50, CreateTestMedia()),
             // Note: EplRasterImageUpload is excluded because it's an upload command not meant to be rendered
 
@@ -122,7 +121,6 @@ public sealed class EplRendererCoverageTests
             new EplPrintBarcode(10, 20, 0, "CODE128", 2, 100, 'N', "12345", CreateTestMedia()),
 
             // Graphics commands
-            new PrintGraphic(10, 20, 100, 50, new byte[20]),
             new EplRasterImage(10, 20, 100, 50, CreateTestMedia()),
 
             // Shape commands
