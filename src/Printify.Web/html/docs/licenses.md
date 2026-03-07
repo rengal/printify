@@ -6,7 +6,7 @@ Virtual Printer incorporates the following third-party software components. Each
 
 - [.NET Runtime Components](#net-runtime-components) - MIT License
 - [Application Libraries](#application-libraries) - MIT License, Apache-2.0
-- [UI Assets](#ui-assets) - MIT License
+- [UI Assets](#ui-assets) - MIT License, GPL-2.0
 
 ---
 
@@ -64,6 +64,12 @@ The following Microsoft .NET packages are used under the **MIT License**:
 | Asset | Description | Link | License Text |
 |-------|-------------|------|--------------|
 | **Feather Icons** | Open source icon set | [feathericons.com](https://feathericons.com/) | [feather-icons-mit-license.txt](/assets/licenses/feather-icons-mit-license.txt) |
+
+### GNU General Public License 2.0
+
+| Asset | Description | Link | License Text |
+|-------|-------------|------|--------------|
+| **Thermal Sans Mono** | Bitmap fonts for thermal receipt printers (12x24, 9x17) | [GitHub](https://github.com/mike42/thermal-sans-mono) | [thermal-sans-mono-gpl-2.0-license.txt](/assets/licenses/thermal-sans-mono-gpl-2.0-license.txt) |
 
 ---
 

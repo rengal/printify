@@ -296,11 +296,15 @@ fi
         ""
     }
 
-    $setcapScript = if ($RequiresPrivilegedPort) {
-        "sudo setcap 'cap_net_bind_service=+ep' `"`$DOTNET_PATH`""
+    $serviceCapabilityLines = if ($RequiresPrivilegedPort) {
+@"
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+"@
     }
     else {
-        "echo `"Skipping setcap: application uses non-privileged port.`""
+        ""
     }
 
     $artifactDeployScript = if ($SkipArtifactDeploy) {
@@ -363,6 +367,7 @@ WorkingDirectory=$RemoteAppDir
 ExecStart=`$DOTNET_PATH $RemoteAppDir/Printify.Web.dll
 User=$ServiceRunUser
 Group=$ServiceRunUser
+$serviceCapabilityLines
 Environment=ASPNETCORE_ENVIRONMENT=Production
 Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
 Restart=always
@@ -377,7 +382,6 @@ EOF
 sudo systemctl daemon-reload
 sudo systemctl enable "$ServiceName"
 sudo systemctl stop "$ServiceName" || true
-$setcapScript
 sudo systemctl start "$ServiceName"
 sudo systemctl --no-pager --full status "$ServiceName" | head -n 25
 "@

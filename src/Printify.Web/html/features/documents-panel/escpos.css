@@ -1,17 +1,34 @@
 /* ESC/POS Font Definitions */
 
+/* Thermal printer fonts – pixel-accurate ESC/POS emulation */
+@font-face {
+    font-family: 'Thermal Sans Mono 24';
+    src: url('../../assets/fonts/thermal-sans-mono-24.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Thermal Sans Mono 17';
+    src: url('../../assets/fonts/thermal-sans-mono-17.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 /* Font A: 12×24 dots (standard ESC/POS font) */
 .escpos-font-a {
-    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
-    font-size: 21px;
+    font-family: 'Thermal Sans Mono 24', 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 24px;
     line-height: 1;
     letter-spacing: 0;
 }
 
 /* Font B: 9×17 dots (smaller ESC/POS font) */
 .escpos-font-b {
-    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
-    font-size: 16px;
+    font-family: 'Thermal Sans Mono 17', 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 17px;
     line-height: 1;
     letter-spacing: 0;
 }
