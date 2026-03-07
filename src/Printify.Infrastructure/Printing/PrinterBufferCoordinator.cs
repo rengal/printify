@@ -285,9 +285,7 @@ public sealed class PrinterBufferCoordinator : BackgroundService, IPrinterBuffer
     {
         state.IsEmpty = state.BufferedBytes == 0;
         state.IsFull = state.BufferMaxCapacity is > 0 && state.BufferedBytes >= state.BufferMaxCapacity.Value;
-        state.IsBusy = state.BufferDrainRate is > 0
-            && state.BusyThresholdBytes > 0
-            && state.BufferedBytes >= state.BusyThresholdBytes;
+        state.IsBusy = state.BufferDrainRate is > 0 && state.BufferedBytes > 0;
     }
 
     private PrinterStatusUpdate? TryBuildUpdate(

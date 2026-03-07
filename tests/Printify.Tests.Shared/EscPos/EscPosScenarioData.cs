@@ -305,7 +305,7 @@ public static class EscPosScenarioData
                     },
                     // The image that cleared the buffer
                     DebugElement("rasterImage", lengthInBytes: 10),
-                    ViewImage(8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10),
+                    ViewImage(0, 10, 8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10),
                     // "DEF" added to fresh buffer
                     DebugElement("appendToLineBuffer", parameters: new Dictionary<string, string> { ["Text"] = "DEF" }, lengthInBytes: 3),
                     // Flush - only "DEF" prints (positioned below the image)
@@ -651,7 +651,7 @@ public static class EscPosScenarioData
             [
                 [
                     DebugElement("rasterImage", lengthInBytes: 10),
-                    ViewImage(8, 2, Media.CreateDefaultPng(96), lengthInBytes: 10)
+                    ViewImage(0, 0, 8, 2, Media.CreateDefaultPng(96), lengthInBytes: 10)
                 ]
             ]),
 
@@ -682,7 +682,7 @@ public static class EscPosScenarioData
             [
                 [
                     DebugElement("rasterImage", lengthInBytes: 10),
-                    ViewImage(8, 2, Media.CreateDefaultPng(96), lengthInBytes: 10)
+                    ViewImage(0, 0, 8, 2, Media.CreateDefaultPng(96), lengthInBytes: 10)
                 ]
             ]),
 
@@ -713,7 +713,7 @@ public static class EscPosScenarioData
             [
                 [
                     DebugElement("rasterImage", lengthInBytes: 10),
-                    ViewImage(8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10)
+                    ViewImage(0, 0, 8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10)
                 ]
             ]),
 
@@ -744,9 +744,78 @@ public static class EscPosScenarioData
             [
                 [
                     DebugElement("rasterImage", lengthInBytes: 10),
-                    ViewImage(8, 2, Media.CreateDefaultPng(93), lengthInBytes: 10)
+                    ViewImage(0, 0, 8, 2, Media.CreateDefaultPng(93), lengthInBytes: 10)
                 ]
             ]),
+
+        // GS v 0: Three consecutive raster images (heights: 3, 2, 1 dots)
+        // Image 1: 8x3 - top row colored, middle row checkerboard, bottom row transparent
+        // Image 2: 8x2 - first row colored, second row transparent
+        // Image 3: 8x1 - single row checkerboard
+        new(
+            id: 190005,
+            input:
+            [
+                // Image 1: 8 wide, 3 tall (header: 4 bytes + 4 dim bytes + 3 data bytes = 11 bytes)
+                Gs, (byte)'v', 0x30, 0x00,
+                0x01, 0x00, // width: 1 byte = 8 pixels
+                0x03, 0x00, // height: 3 rows
+                0b11111111, // Row 0: XXXXXXXX (all colored)
+                0b10101010, // Row 1: X_X_X_X_ (checkerboard)
+                0b00000000, // Row 2: ________ (all transparent)
+
+                // Image 2: 8 wide, 2 tall (header: 4 bytes + 4 dim bytes + 2 data bytes = 10 bytes)
+                Gs, (byte)'v', 0x30, 0x00,
+                0x01, 0x00, // width: 1 byte = 8 pixels
+                0x02, 0x00, // height: 2 rows
+                0b11110000, // Row 0: XXXX____ (half colored)
+                0b00001111, // Row 1: ____XXXX (half colored)
+
+                // Image 3: 8 wide, 1 tall (header: 4 bytes + 4 dim bytes + 1 data byte = 9 bytes)
+                Gs, (byte)'v', 0x30, 0x00,
+                0x01, 0x00, // width: 1 byte = 8 pixels
+                0x01, 0x00, // height: 1 row
+                0b01010101  // Row 0: _X_X_X_X (checkerboard)
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosRasterImageUpload(
+                    Width: 8,
+                    Height: 3,
+                    Media: CreateExpectedRasterMedia(8, 3, [0b11111111, 0b10101010, 0b00000000]))
+                { LengthInBytes = 11 },
+                new EscPosCommands.EscPosRasterImageUpload(
+                    Width: 8,
+                    Height: 2,
+                    Media: CreateExpectedRasterMedia(8, 2, [0b11110000, 0b00001111]))
+                { LengthInBytes = 10 },
+                new EscPosCommands.EscPosRasterImageUpload(
+                    Width: 8,
+                    Height: 1,
+                    Media: CreateExpectedRasterMedia(8, 1, [0b01010101]))
+                { LengthInBytes = 9 }
+            ],
+            expectedPersistedCommands:
+            [
+                new EscPosCommands.EscPosRasterImage(8, 3, Media.CreateDefaultPng(CreateExpectedRasterMedia(8, 3, [0b11111111, 0b10101010, 0b00000000]).Content.Length)) { LengthInBytes = 11 },
+                new EscPosCommands.EscPosRasterImage(8, 2, Media.CreateDefaultPng(CreateExpectedRasterMedia(8, 2, [0b11110000, 0b00001111]).Content.Length)) { LengthInBytes = 10 },
+                new EscPosCommands.EscPosRasterImage(8, 1, Media.CreateDefaultPng(CreateExpectedRasterMedia(8, 1, [0b01010101]).Content.Length)) { LengthInBytes = 9 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    // Image 1: placed at y=0
+                    DebugElement("rasterImage", lengthInBytes: 11),
+                    ViewImage(0, 0, 8, 3, Media.CreateDefaultPng(CreateExpectedRasterMedia(8, 3, [0b11111111, 0b10101010, 0b00000000]).Content.Length), lengthInBytes: 11),
+                    // Image 2: placed at y=3 (below image 1 which has height=3)
+                    DebugElement("rasterImage", lengthInBytes: 10),
+                    ViewImage(0, 3, 8, 2, Media.CreateDefaultPng(CreateExpectedRasterMedia(8, 2, [0b11110000, 0b00001111]).Content.Length), lengthInBytes: 10),
+                    // Image 3: placed at y=5 (below image 1+2 which have heights 3+2=5)
+                    DebugElement("rasterImage", lengthInBytes: 9),
+                    ViewImage(0, 5, 8, 1, Media.CreateDefaultPng(CreateExpectedRasterMedia(8, 1, [0b01010101]).Content.Length), lengthInBytes: 9)
+                ]
+           ]),
+
         CreateOversizeRasterScenario()
     ];
 
@@ -791,7 +860,7 @@ public static class EscPosScenarioData
             [
                 [
                     DebugElement("rasterImage", lengthInBytes: lengthInBytes),
-                    ViewImage(widthInDots, heightInDots, media, lengthInBytes)
+                    ViewImage(0, 0, widthInDots, heightInDots, media, lengthInBytes)
                 ]
             ]);
     }
@@ -1171,7 +1240,7 @@ public static class EscPosScenarioData
         };
     }
 
-    private static CanvasImageElementDto ViewImage(int width, int height, Media media, int lengthInBytes)
+    private static CanvasImageElementDto ViewImage(int x, int y, int width, int height, Media media, int lengthInBytes)
     {
         var element = new CanvasImageElementDto(
             new CanvasMediaDto(
@@ -1179,10 +1248,7 @@ public static class EscPosScenarioData
                 ToMediaSize(media.Length),
                 media.Url,
                 media.FileName),
-            0,
-            0,
-            width,
-            height);
+            x, y, width, height);
 
         return element with
         {

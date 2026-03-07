@@ -218,7 +218,7 @@ public sealed class EscPosRenderer : IRenderer
                     break;
 
                 case EscPosInitialize:
-                    state = RenderState.CreateDefault();
+                    state.Initialize();
                     currentItems.Add(new DebugInfo(
                         "resetPrinter",
                         new Dictionary<string, string>(),
@@ -529,6 +529,20 @@ public sealed class EscPosRenderer : IRenderer
         public Encoding CurrentEncoding { get; set; } = Encoding.GetEncoding(437);
 
         public static RenderState CreateDefault() => new();
+
+        public void Initialize()
+        {
+            Justification = EscPosTextJustification.Left;
+            LineSpacing = EscPosSpecs.Rendering.DefaultLineSpacing;
+            FontNumber = 0;
+            ScaleX = 1;
+            ScaleY = 1;
+            IsBold = false;
+            IsUnderline = false;
+            IsReverse = false;
+            CurrentEncoding = Encoding.GetEncoding(437);
+            // ESC @ does not reset the print position (CurrentY), only printer settings
+        }
     }
 
     private sealed class LineBufferState
