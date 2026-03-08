@@ -1,18 +1,32 @@
 /* ESC/POS Font Definitions */
 
+@font-face {
+    font-family: 'VirtualPrinterMono-A';
+    src: url('/assets/fonts/VirtualPrinterMono-12x24.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'VirtualPrinterMono-B';
+    src: url('/assets/fonts/VirtualPrinterMono-9x17.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 /* Font A: 12×24 dots (standard ESC/POS font) */
 .escpos-font-a {
-    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
-    font-size: 21px;
-    line-height: 1;
+    font-family: 'VirtualPrinterMono-A', 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 24px;
+    line-height: 24px;
     letter-spacing: 0;
 }
 
 /* Font B: 9×17 dots (smaller ESC/POS font) */
 .escpos-font-b {
-    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
-    font-size: 16px;
-    line-height: 1;
+    font-family: 'VirtualPrinterMono-B', 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 17px;
+    line-height: 17px;
     letter-spacing: 0;
 }
 
