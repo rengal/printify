@@ -73,6 +73,49 @@ async function loadTemplateDocument() {
 // ============================================================================
 
 /**
+ * Render the loading state (initial documents fetch in progress)
+ */
+export function renderLoading(targetContainer) {
+    const container = targetContainer || document.getElementById('documentsPanel');
+    if (!container) return;
+    container.innerHTML = `
+        <div class="docs-loading">
+            <div class="docs-progress-bar"><div class="docs-progress-bar-fill"></div></div>
+            <span>Loading documents...</span>
+        </div>`;
+    currentContainer = container;
+}
+
+/**
+ * Append a "loading more" indicator at the bottom of the container
+ */
+export function renderLoadingMore(targetContainer) {
+    const container = targetContainer || document.getElementById('documentsPanel');
+    if (!container || container.querySelector('#docs-loading-more-indicator')) return;
+    const el = document.createElement('div');
+    el.className = 'docs-loading-more';
+    el.id = 'docs-loading-more-indicator';
+    el.innerHTML = `
+        <div class="docs-progress-bar"><div class="docs-progress-bar-fill"></div></div>
+        <span>Loading more documents...</span>`;
+    // Insert before the scroll sentinel so it appears inside the panel, not after it
+    const sentinel = container.querySelector('.docs-scroll-spacer');
+    if (sentinel) {
+        container.insertBefore(el, sentinel);
+    } else {
+        container.appendChild(el);
+    }
+}
+
+/**
+ * Remove the "loading more" indicator if present
+ */
+export function removeLoadingMore(targetContainer) {
+    const container = targetContainer || document.getElementById('documentsPanel');
+    (container || document).querySelector('#docs-loading-more-indicator')?.remove();
+}
+
+/**
  * Render the no-workspace state (landing page)
  */
 export async function renderNoWorkspace(targetContainer) {
@@ -160,25 +203,55 @@ export async function renderNoDocuments(printer, targetContainer) {
  * @param {Object} printer - Printer object
  * @param {Element} targetContainer - Optional target container
  */
-export async function renderDocumentsList(documents, printer, targetContainer) {
+export async function renderDocumentsList(documents, printer, targetContainer, { append = false } = {}) {
     const container = targetContainer || document.getElementById('documentsPanel');
     if (!container) return null;
 
     await loadTemplateDocument();
 
-    // Create a fragment off-DOM to avoid flicker
-    const fragment = document.createDocumentFragment();
+    // Build off-DOM wrapper so images can load before we touch the live DOM.
+    // Must be visible (opacity:0 not visibility:hidden) so browsers actually load images.
+    const offscreen = document.createElement('div');
+    offscreen.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;';
+    document.body.appendChild(offscreen);
 
     for (const doc of documents) {
         const docElement = renderDocumentItem(doc);
-        if (docElement) {
-            fragment.appendChild(docElement);
-        }
+        if (docElement) offscreen.appendChild(docElement);
     }
 
-    // Clear container and attach all at once
-    container.innerHTML = '';
-    container.appendChild(fragment);
+    // Wait for all document images to load or fail. Use a 5s timeout per image as safety net.
+    const imgs = Array.from(offscreen.querySelectorAll('img[src]')).filter(img => {
+        // Skip icon/UI images (svg icons, etc.) — only wait for document content images
+        const src = img.getAttribute('src') || '';
+        return src.startsWith('/api/') || src.includes('/media/');
+    });
+    if (imgs.length > 0) {
+        await Promise.all(imgs.map(img => {
+            if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+            return new Promise(resolve => {
+                const timeout = setTimeout(() => { resolve(); }, 5000);
+                img.onload = () => { clearTimeout(timeout); resolve(); };
+                img.onerror = () => { clearTimeout(timeout); resolve(); };
+                if (img.complete) { clearTimeout(timeout); resolve(); }
+            });
+        }));
+    }
+
+    // Move rendered nodes into a fragment
+    const fragment = document.createDocumentFragment();
+    while (offscreen.firstChild) fragment.appendChild(offscreen.firstChild);
+    document.body.removeChild(offscreen);
+
+    if (append) {
+        // Remove existing loading-more indicator before appending
+        container.querySelector('#docs-loading-more-indicator')?.remove();
+        container.appendChild(fragment);
+    } else {
+        // Clear container and attach all at once
+        container.innerHTML = '';
+        container.appendChild(fragment);
+    }
 
     // Adjust Y positions in debug mode after DOM insertion
     const debugDocs = documents.filter(doc => callbacks.isDocumentRawDataActive?.(doc));
@@ -808,6 +881,9 @@ function adjustDebugYPositions(contentId, includeDebug) {
 
 window.DocumentsPanel = {
     init,
+    renderLoading,
+    renderLoadingMore,
+    removeLoadingMore,
     renderNoWorkspace,
     renderNoPrinter,
     renderNoDocuments,

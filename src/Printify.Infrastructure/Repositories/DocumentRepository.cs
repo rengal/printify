@@ -52,6 +52,26 @@ public sealed class DocumentRepository : IDocumentRepository
             .ThenInclude(element => element.Media)
             .Where(document => document.PrinterId == printerId);
 
+        // Apply cursor: fetch documents older than the cursor document.
+        // The cursor points to the last item of the previous page (identified by its Id).
+        // We compare by (CreatedAtUnixMs, Id) descending — documents strictly before the cursor.
+        if (beforeId.HasValue)
+        {
+            var cursorTs = await dbContext.Documents
+                .AsNoTracking()
+                .Where(document => document.Id == beforeId.Value)
+                .Select(document => (long?)document.CreatedAtUnixMs)
+                .FirstOrDefaultAsync(ct)
+                .ConfigureAwait(false);
+
+            if (cursorTs.HasValue)
+            {
+                query = query.Where(document =>
+                    document.CreatedAtUnixMs < cursorTs.Value ||
+                    (document.CreatedAtUnixMs == cursorTs.Value && document.Id.CompareTo(beforeId.Value) < 0));
+            }
+        }
+
         var entities = await query
             .OrderByDescending(document => document.CreatedAtUnixMs)
             .ThenByDescending(document => document.Id)

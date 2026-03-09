@@ -11,6 +11,8 @@
         let printers = [];
         let documents = {};
         let selectedPrinterId = null;
+        // Pagination state per printer: { nextBeforeId, hasMore, loading }
+        let documentsPagination = {};
         let statusStreamController = null;
         let documentStreamController = null;
         let documentStreamPrinterId = null;
@@ -370,10 +372,135 @@
                 return;
             }
 
-            const response = await apiRequest(`/api/printers/${printerId}/documents/canvas?limit=50`);
-            const items = response?.result?.items || [];
+            // Show loading indicator while fetching
+            const documentsPanel = document.getElementById('documentsPanel');
+            if (window.DocumentsPanel?.renderLoading) {
+                DocumentsPanel.renderLoading(documentsPanel);
+            }
+
+            const response = await apiRequest(`/api/printers/${printerId}/documents/canvas?limit=20`);
+            const result = response?.result;
+            const items = result?.items || [];
             const printer = getPrinterById(printerId);
             documents[printerId] = items.map(dto => DocumentsPanel.mapViewDocumentDto(dto, printer));
+            documentsPagination[printerId] = {
+                hasMore: result?.hasMore ?? false,
+                nextBeforeId: result?.nextBeforeId ?? null,
+                loading: false
+            };
+            console.debug(`[pagination] initial load: ${items.length} docs, hasMore=${result?.hasMore}, nextBeforeId=${result?.nextBeforeId}`);
+        }
+
+        async function loadMoreDocuments(printerId) {
+            const pagination = documentsPagination[printerId];
+            console.debug(`[pagination] loadMoreDocuments called: hasMore=${pagination?.hasMore}, loading=${pagination?.loading}, nextBeforeId=${pagination?.nextBeforeId}, existingDocs=${(documents[printerId] || []).length}`);
+            if (!pagination || !pagination.hasMore || pagination.loading) {
+                console.debug(`[pagination] loadMoreDocuments skipped (guard): hasMore=${pagination?.hasMore}, loading=${pagination?.loading}`);
+                return;
+            }
+
+            pagination.loading = true;
+            const documentsPanel = document.getElementById('documentsPanel');
+            if (window.DocumentsPanel?.renderLoadingMore) {
+                DocumentsPanel.renderLoadingMore(documentsPanel);
+            }
+
+            try {
+                const url = `/api/printers/${printerId}/documents/canvas?limit=20&beforeId=${pagination.nextBeforeId}`;
+                console.debug(`[pagination] fetching: ${url}`);
+                const response = await apiRequest(url);
+                const result = response?.result;
+                const items = result?.items || [];
+                console.debug(`[pagination] got ${items.length} items, hasMore=${result?.hasMore}, nextBeforeId=${result?.nextBeforeId}`);
+                if (items.length > 0) {
+                    console.debug(`[pagination] first item id=${items[0]?.id}, last item id=${items[items.length-1]?.id}`);
+                    const existingIds = new Set((documents[printerId] || []).map(d => d.id));
+                    const dupes = items.filter(i => existingIds.has(i.id));
+                    if (dupes.length > 0) console.warn(`[pagination] DUPLICATE items detected: ${dupes.map(d => d.id).join(', ')}`);
+                }
+                const printer = getPrinterById(printerId);
+                const mapped = items.map(dto => DocumentsPanel.mapViewDocumentDto(dto, printer));
+
+                documents[printerId] = [...(documents[printerId] || []), ...mapped];
+                documentsPagination[printerId] = {
+                    hasMore: result?.hasMore ?? false,
+                    nextBeforeId: result?.nextBeforeId ?? null,
+                    loading: false
+                };
+                console.debug(`[pagination] updated state: hasMore=${documentsPagination[printerId].hasMore}, nextBeforeId=${documentsPagination[printerId].nextBeforeId}, totalDocs=${documents[printerId].length}`);
+
+                // Append new docs without clearing existing ones
+                if (window.DocumentsPanel?.renderDocumentsList) {
+                    await DocumentsPanel.renderDocumentsList(mapped, printer, documentsPanel, { append: true });
+                }
+                if (window.DocumentsPanel?.removeLoadingMore) {
+                    DocumentsPanel.removeLoadingMore(documentsPanel);
+                }
+
+                // Re-attach or detach scroll observer depending on whether more pages exist
+                if (documentsPagination[printerId].hasMore) {
+                    console.debug(`[pagination] re-attaching observer (more pages available)`);
+                    attachScrollObserver(printerId);
+                } else {
+                    console.debug(`[pagination] detaching observer (no more pages)`);
+                    detachScrollObserver();
+                }
+            } catch (err) {
+                pagination.loading = false;
+                if (window.DocumentsPanel?.removeLoadingMore) {
+                    DocumentsPanel.removeLoadingMore(document.getElementById('documentsPanel'));
+                }
+                console.error('Failed to load more documents', err);
+            }
+        }
+
+        let _scrollObserverPrinterId = null;
+        let _scrollObserver = null;
+        let _scrollSentinel = null;
+
+        function attachScrollObserver(printerId) {
+            // Clean up previous observer
+            if (_scrollObserver) {
+                _scrollObserver.disconnect();
+                _scrollObserver = null;
+            }
+            if (_scrollSentinel) {
+                _scrollSentinel.remove();
+                _scrollSentinel = null;
+            }
+
+            const documentsPanel = document.getElementById('documentsPanel');
+            if (!documentsPanel) return;
+
+            // Create a sentinel element at the bottom.
+            // Give it visible height so the user can scroll it into view before loading triggers.
+            const sentinel = document.createElement('div');
+            sentinel.className = 'docs-scroll-spacer';
+            documentsPanel.appendChild(sentinel);
+            _scrollSentinel = sentinel;
+            _scrollObserverPrinterId = printerId;
+
+            _scrollObserver = new IntersectionObserver((entries) => {
+                console.debug(`[pagination] sentinel intersecting=${entries[0].isIntersecting}, ratio=${entries[0].intersectionRatio}`);
+                if (entries[0].isIntersecting) {
+                    loadMoreDocuments(_scrollObserverPrinterId);
+                }
+            }, { root: documentsPanel.parentElement, rootMargin: '0px 0px 60px 0px', threshold: 0 });
+
+            _scrollObserver.observe(sentinel);
+            console.debug(`[pagination] scroll observer attached for printer=${printerId}`);
+        }
+
+        function detachScrollObserver() {
+            if (_scrollObserver) {
+                _scrollObserver.disconnect();
+                _scrollObserver = null;
+            }
+            if (_scrollSentinel) {
+                _scrollSentinel.remove();
+                _scrollSentinel = null;
+            }
+            _scrollObserverPrinterId = null;
         }
 
         async function startDocumentStream(printerId) {
@@ -782,6 +909,8 @@
             // Note: Operations panel is now rendered by OperationsPanel module
             // This function only handles the documents panel rendering
 
+            detachScrollObserver();
+
             // Render documents in documents panel using the module
             if (docs.length === 0) {
                 if (window.DocumentsPanel?.renderNoDocuments) {
@@ -790,8 +919,16 @@
                 return;
             }
 
+            const pagination = documentsPagination[selectedPrinterId];
+            console.debug(`[pagination] renderDocuments: ${docs.length} docs, pagination hasMore=${pagination?.hasMore}, nextBeforeId=${pagination?.nextBeforeId}`);
+
             if (window.DocumentsPanel?.renderDocumentsList) {
                 await DocumentsPanel.renderDocumentsList(docs, printer, documentsPanel);
+            }
+
+            // Attach infinite scroll if more pages available
+            if (pagination?.hasMore) {
+                attachScrollObserver(selectedPrinterId);
             }
           }
 
@@ -1015,6 +1152,7 @@
                         await apiRequest(`/api/printers/${printerId}/documents`, { method: 'DELETE' });
                         // Reset cached documents to match the server state.
                         documents[printerId] = [];
+                        delete documentsPagination[printerId];
 
                         if (selectedPrinterId === printerId) {
                             renderDocuments();
@@ -1126,7 +1264,9 @@
             accessToken = null;
             printers = [];
             documents = {};
+            documentsPagination = {};
             selectedPrinterId = null;
+            detachScrollObserver();
             stopStatusStream();
             stopDocumentStream();
             stopRuntimeStream();
