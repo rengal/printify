@@ -274,129 +274,46 @@ Invoke-Logged -Message "Uploading archive to server ($sshTarget)" -Action {
 }
 
 Invoke-Logged -Message "Deploying on remote server and restarting service" -Action {
-    $preserveSettingsScript = if ($PreserveProductionSettings -and -not $SkipArtifactDeploy) {
-@"
-if [ -f "$RemoteAppDir/appsettings.Production.json" ]; then
-  cp "$RemoteAppDir/appsettings.Production.json" "$RemoteTempDir/appsettings.Production.json.bak"
-fi
-"@
-    }
-    else {
-        ""
-    }
+    $localScriptPath = Join-Path $PSScriptRoot "deploy-remote.sh"
+    $remoteScriptPath = "$RemoteTempDir/deploy-remote.sh"
 
-$restoreSettingsScript = if ($PreserveProductionSettings -and -not $SkipArtifactDeploy) {
-@"
-if [ -f "$RemoteTempDir/appsettings.Production.json.bak" ]; then
-  mv "$RemoteTempDir/appsettings.Production.json.bak" "$RemoteAppDir/appsettings.Production.json"
-fi
-"@
-    }
-    else {
-        ""
-    }
+    $preserveSettings = if ($PreserveProductionSettings -and -not $SkipArtifactDeploy) { "1" } else { "0" }
+    $skipArtifact = if ($SkipArtifactDeploy) { "1" } else { "0" }
+    $requiresPrivilegedPort = if ($RequiresPrivilegedPort) { "1" } else { "0" }
 
-    $serviceCapabilityLines = if ($RequiresPrivilegedPort) {
-@"
-AmbientCapabilities=CAP_NET_BIND_SERVICE
-CapabilityBoundingSet=CAP_NET_BIND_SERVICE
-NoNewPrivileges=true
-"@
-    }
-    else {
-        ""
-    }
-
-    $artifactDeployScript = if ($SkipArtifactDeploy) {
-@"
-echo "Skipping artifact deployment steps."
-"@
-    }
-    else {
-@"
-if [ ! -f "$remoteArchivePath" ]; then
-  echo "ERROR: Archive not found on remote host: $remoteArchivePath"
-  echo "Run deploy without -SkipArtifactDeploy at least once, or upload archive manually."
-  exit 1
-fi
-
-$preserveSettingsScript
-sudo rm -rf "$RemoteAppDir"/*
-sudo tar -xzf "$remoteArchivePath" -C "$RemoteAppDir"
-if id "$ServiceRunUser" >/dev/null 2>&1; then
-  sudo chown -R "${ServiceRunUser}:`$SERVICE_GROUP" "$RemoteAppDir"
-fi
-$restoreSettingsScript
-rm -f "$remoteArchivePath"
-"@
-    }
-
-$remoteScript = @"
-set -euo pipefail
-
-DOTNET_BIN=`$(command -v dotnet || true)
-if [ -z "`$DOTNET_BIN" ]; then
-  echo "ERROR: dotnet runtime is not installed or not available in PATH."
-  exit 1
-fi
-DOTNET_PATH=`$(readlink -f "`$DOTNET_BIN" 2>/dev/null || true)
-if [ -z "`$DOTNET_PATH" ]; then
-  DOTNET_PATH="`$DOTNET_BIN"
-fi
-
-sudo mkdir -p "$RemoteAppDir"
-sudo mkdir -p "$RemoteDbDir"
-sudo mkdir -p "$RemoteMediaDir"
-if id "$ServiceRunUser" >/dev/null 2>&1; then
-  SERVICE_GROUP=`$(id -gn "$ServiceRunUser")
-  sudo chown -R "${ServiceRunUser}:`$SERVICE_GROUP" "$RemoteDbDir" "$RemoteMediaDir"
-else
-  echo "WARN: Service user '$ServiceRunUser' not found. Skipping ownership updates."
-fi
-
-$artifactDeployScript
-
-# Install or update systemd unit.
-sudo tee "/etc/systemd/system/$ServiceName.service" > /dev/null <<EOF
-[Unit]
-Description=Printify
-After=network.target
-
-[Service]
-WorkingDirectory=$RemoteAppDir
-ExecStart=`$DOTNET_PATH $RemoteAppDir/Printify.Web.dll
-User=$ServiceRunUser
-Group=$ServiceRunUser
-$serviceCapabilityLines
-Environment=ASPNETCORE_ENVIRONMENT=Production
-Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
-Restart=always
-RestartSec=5
-KillSignal=SIGINT
-SyslogIdentifier=$ServiceName
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable "$ServiceName"
-sudo systemctl stop "$ServiceName" || true
-sudo systemctl start "$ServiceName"
-sudo systemctl --no-pager --full status "$ServiceName" | head -n 25
-"@
+    # Env vars passed to the remote script as a prefix on the bash invocation.
+    $envPrefix = "REMOTE_APP_DIR='$RemoteAppDir' " +
+                 "REMOTE_DB_DIR='$RemoteDbDir' " +
+                 "REMOTE_MEDIA_DIR='$RemoteMediaDir' " +
+                 "REMOTE_ARCHIVE_PATH='$remoteArchivePath' " +
+                 "SERVICE_RUN_USER='$ServiceRunUser' " +
+                 "SERVICE_NAME='$ServiceName' " +
+                 "SKIP_ARTIFACT_DEPLOY='$skipArtifact' " +
+                 "PRESERVE_SETTINGS='$preserveSettings' " +
+                 "REQUIRES_PRIVILEGED_PORT='$requiresPrivilegedPort'"
 
     if ($WhatIf) {
-        Write-Host "ssh $($sshArgs -join ' ') $sshTarget `"bash -lc '$remoteScript'`""
+        Write-Host "scp deploy-remote.sh ${sshTarget}:$remoteScriptPath"
+        Write-Host "ssh $($sshArgs -join ' ') $sshTarget `"$envPrefix bash -l $remoteScriptPath`""
+        return
     }
-    else {
-        $sshCommandArgs = @()
-        $sshCommandArgs += @("-tt")
-        $sshCommandArgs += $sshArgs
-        $sshCommandArgs += $sshTarget
-        $sshCommandArgs += "bash -lc '$remoteScript'"
-        Invoke-Native -FilePath "ssh" -Arguments $sshCommandArgs
+
+    # Normalize line endings to LF before uploading (file is edited on Windows).
+    $lfScriptPath = Join-Path ([System.IO.Path]::GetTempPath()) "deploy-remote.sh"
+    [System.IO.File]::WriteAllText($lfScriptPath,
+        [System.IO.File]::ReadAllText($localScriptPath).Replace("`r`n", "`n").Replace("`r", "`n"))
+
+    # Upload the script.
+    $scpArgs = @()
+    if (-not [string]::IsNullOrWhiteSpace($SshKeyPath)) {
+        $scpArgs += @("-i", $SshKeyPath)
     }
+    $scpArgs += @("-P", "$SshPort", $lfScriptPath, "${sshTarget}:$remoteScriptPath")
+    Invoke-Native -FilePath "scp" -Arguments $scpArgs
+
+    # Execute the script on the remote.
+    $sshRunArgs = @("-T") + $sshArgs + $sshTarget + "$envPrefix bash -l $remoteScriptPath; rm -f $remoteScriptPath"
+    Invoke-Native -FilePath "ssh" -Arguments $sshRunArgs
 }
 
 Write-Host "Deployment completed."

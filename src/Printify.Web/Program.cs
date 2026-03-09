@@ -25,6 +25,14 @@ builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 var app = builder.Build();
 
+var jwtSecret = app.Configuration["Jwt:SecretKey"] ?? string.Empty;
+if (jwtSecret.StartsWith("your-secret-key", StringComparison.OrdinalIgnoreCase) ||
+    jwtSecret.Length < 32)
+{
+    Console.Error.WriteLine("FATAL: Jwt:SecretKey is not configured. Set a strong secret of at least 32 characters in appsettings.Production.json or via environment variable.");
+    Environment.Exit(1);
+}
+
 var htmlRoot = Path.Combine(builder.Environment.ContentRootPath, "html");
 if (!builder.Environment.IsEnvironment("Test") && Directory.Exists(htmlRoot))
 {
@@ -39,7 +47,16 @@ if (!builder.Environment.IsEnvironment("Test") && Directory.Exists(htmlRoot))
     app.UseStaticFiles(new StaticFileOptions
     {
         FileProvider = new PhysicalFileProvider(htmlRoot),
-        RequestPath = ""
+        RequestPath = "",
+        OnPrepareResponse = ctx =>
+        {
+            if (ctx.File.Name.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase) ||
+                ctx.File.Name.EndsWith(".woff", StringComparison.OrdinalIgnoreCase) ||
+                ctx.File.Name.EndsWith(".woff2", StringComparison.OrdinalIgnoreCase))
+            {
+                ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=300";
+            }
+        }
     });
 }
 
