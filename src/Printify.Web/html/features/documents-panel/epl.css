@@ -1,0 +1,71 @@
+/* EPL/Zebra Font Definitions */
+/* Font sizes match FixedSizeFontVariant(width, height) from EplPrinterCapabilities */
+
+.epl-font {
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    letter-spacing: 0;
+}
+
+/* EplFont0: 8×12 */
+.epl-font-0 {
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 12px;
+    letter-spacing: 0;
+}
+
+/* EplFont1: 10×16 */
+.epl-font-1 {
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 16px;
+    line-height: 16px;
+    letter-spacing: 0;
+}
+
+/* EplFont2: 12×20 */
+.epl-font-2 {
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 20px;
+    line-height: 20px;
+    letter-spacing: 0;
+}
+
+/* EplFont3: 14×24 */
+.epl-font-3 {
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 24px;
+    line-height: 24px;
+    letter-spacing: 0;
+}
+
+/* EplFont4: 32×48 */
+.epl-font-4 {
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 48px;
+    line-height: 48px;
+    letter-spacing: 0;
+}
+
+/* EplFont5: 14×19 */
+.epl-font-5 {
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 19px;
+    line-height: 19px;
+    letter-spacing: 0;
+}
+
+/* EplFont6: 21×27 */
+.epl-font-6 {
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 27px;
+    line-height: 27px;
+    letter-spacing: 0;
+}
+
+/* EplFont7: 24×24 */
+.epl-font-7 {
+    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+    font-size: 24px;
+    line-height: 24px;
+    letter-spacing: 0;
+}

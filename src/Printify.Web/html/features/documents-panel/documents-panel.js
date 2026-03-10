@@ -9,6 +9,15 @@
  */
 import { normalizeEscPosFont, toEscPosFontCssClass } from '../../assets/js/api/escpos-specs.js';
 
+/**
+ * Convert EPL font identifier (e.g. "EplFont0") to CSS class.
+ * Falls back to "epl-font" for unknown fonts.
+ */
+function toEplFontCssClass(font) {
+    const match = String(font ?? '').match(/(\d+)$/);
+    return match ? `epl-font-${match[1]}` : 'epl-font';
+}
+
 // ============================================================================
 // STATE
 // ============================================================================
@@ -380,7 +389,7 @@ function renderDocumentItem(doc) {
  * @param {boolean} includeDebug - Whether to include debug information
  * @returns {string} HTML string
  */
-export function renderViewDocument(elements, documentWidth, documentHeight, docId, errorMessages, includeDebug) {
+export function renderViewDocument(elements, documentWidth, documentHeight, docId, errorMessages, includeDebug, protocol = 'escpos') {
     const width = Math.max(documentWidth || 384, 200);
     const hasErrors = errorMessages && errorMessages.length > 0;
     const errorClass = hasErrors ? ' has-errors' : '';
@@ -430,7 +439,7 @@ export function renderViewDocument(elements, documentWidth, documentHeight, docI
         const coords = element.type === 'text' || element.type === 'image'
             ? ` @(${element.x},${element.y})`
             : '';
-        return renderViewElement(element, id, includeDebug);
+        return renderViewElement(element, id, includeDebug, protocol);
     }).join('');
 
     const contentId = `doc-content-${docId}`;
@@ -449,12 +458,12 @@ export function renderViewDocument(elements, documentWidth, documentHeight, docI
  * @param {boolean} includeDebug - Whether to include debug information
  * @returns {string} HTML string
  */
-function renderViewElement(element, id, includeDebug) {
+function renderViewElement(element, id, includeDebug, protocol = 'escpos') {
     const elementType = (element?.type || '').toLowerCase();
 
     switch (elementType) {
         case 'text':
-            return renderViewTextElement(element, id);
+            return renderViewTextElement(element, id, protocol);
         case 'image':
             return renderViewImageElement(element, id);
         case 'line':
@@ -474,7 +483,7 @@ function renderViewElement(element, id, includeDebug) {
  * @param {string} id - Element identifier
  * @returns {string} HTML string
  */
-function renderViewTextElement(element, id) {
+function renderViewTextElement(element, id, protocol = 'escpos') {
     const x = Number(element.x) || 0;
     const y = Number(element.y) || 0;
     const width = Number(element.width) || 0;
@@ -486,7 +495,7 @@ function renderViewTextElement(element, id) {
     const charScaleX = Number(element.charScaleX) || 1;
     const charScaleY = Number(element.charScaleY) || 1;
 
-    const fontClass = toEscPosFontCssClass(font);
+    const fontClass = protocol === 'escpos' ? toEscPosFontCssClass(font) : toEplFontCssClass(font);
     const transformCss = (charScaleX !== 1 || charScaleY !== 1)
         ? `scale(${charScaleX}, ${charScaleY})`
         : 'none';
@@ -732,7 +741,7 @@ export function mapViewDocumentDto(dto, printer) {
         const elements = normalizeCanvasElements(canvas.items || [], protocol);
         const canvasId = `${docId}-canvas-${index}`;
 
-        const previewHtml = renderViewDocument(elements, width, height, canvasId, errorMessages, debugMode);
+        const previewHtml = renderViewDocument(elements, width, height, canvasId, errorMessages, debugMode, protocol);
         const plainText = extractViewDocumentText(elements);
 
         return {

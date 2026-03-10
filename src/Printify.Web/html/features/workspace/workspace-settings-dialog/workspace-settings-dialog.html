@@ -24,8 +24,8 @@
                         IP Whitelist
                     </button>
                     <button class="workspace-settings-nav-item" data-tab="connections">
-                        <img class="themed-icon" src="assets/icons/activity.svg" width="18" height="18" alt="">
-                        Connections
+                        <img class="themed-icon" src="assets/icons/list.svg" width="18" height="18" alt="">
+                        Access Log
                     </button>
                     <button class="workspace-settings-nav-item" data-tab="usage">
                         <img class="themed-icon" src="assets/icons/bar-chart-2.svg" width="18" height="18" alt="">
@@ -138,11 +138,18 @@
                     <div class="workspace-settings-tab-content" data-content="connections">
                         <div class="settings-section connections-section">
                             <h3>Recent Connections</h3>
-                            <p class="whitelist-description">
-                                All TCP and web connections to this workspace in the last hour.
-                            </p>
                             <div class="whitelist-connections-header">
-                                <span></span>
+                                <select class="connections-time-select" data-connections-minutes>
+                                    <option value="1">Last 1 minute</option>
+                                    <option value="5">Last 5 minutes</option>
+                                    <option value="15">Last 15 minutes</option>
+                                    <option value="30">Last 30 minutes</option>
+                                    <option value="60" selected>Last 1 hour</option>
+                                    <option value="180">Last 3 hours</option>
+                                    <option value="360">Last 6 hours</option>
+                                    <option value="720">Last 12 hours</option>
+                                    <option value="1440">Last 24 hours</option>
+                                </select>
                                 <button class="btn btn-secondary btn-sm" data-whitelist-refresh>Refresh</button>
                             </div>
                             <div class="whitelist-connections-list" data-whitelist-connections>

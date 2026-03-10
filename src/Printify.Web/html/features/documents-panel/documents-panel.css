@@ -67,6 +67,7 @@
     white-space: pre;
     overflow: hidden;
     color: #111;
+    filter: url(#crisp-text);
 }
 
 /* Dark theme: use white text color */

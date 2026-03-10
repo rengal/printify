@@ -106,6 +106,7 @@ async function show() {
     currentOverlay.whitelistEntriesField = modalOverlay.querySelector('[data-whitelist-entries-field]');
     currentOverlay.whitelistConnections = modalOverlay.querySelector('[data-whitelist-connections]');
     currentOverlay.whitelistRefresh = modalOverlay.querySelector('[data-whitelist-refresh]');
+    currentOverlay.connectionsMinutes = modalOverlay.querySelector('[data-connections-minutes]');
 
     // Whitelist event listeners
     currentOverlay.whitelistEnabled.addEventListener('change', () => {
@@ -114,6 +115,7 @@ async function show() {
     });
     currentOverlay.whitelistEntries.addEventListener('input', markChanged);
     currentOverlay.whitelistRefresh.addEventListener('click', loadRecentConnections);
+    currentOverlay.connectionsMinutes?.addEventListener('change', loadRecentConnections);
 
     // Auto-load connections when connections tab is opened
     modalOverlay.querySelectorAll('.workspace-settings-nav-item').forEach(item => {
@@ -228,7 +230,8 @@ function updateWhitelistEntriesVisibility() {
 async function loadRecentConnections() {
     if (!currentOverlay.whitelistConnections) return;
     try {
-        const entries = await callbacks.apiRequest('/api/workspaces/connections');
+        const minutes = currentOverlay.connectionsMinutes?.value ?? '60';
+        const entries = await callbacks.apiRequest(`/api/workspaces/connections?minutes=${minutes}`);
         renderConnections(entries);
     } catch (err) {
         currentOverlay.whitelistConnections.innerHTML = '<div class="whitelist-connections-empty">Failed to load connections</div>';

@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="features/documents-panel/documents-panel.css">
     <link rel="stylesheet" href="features/documents-panel/escpos.css">
+    <link rel="stylesheet" href="features/documents-panel/epl.css">
 
     <!-- Operations Panel Styles -->
     <link rel="stylesheet" href="features/operations-panel/operations-panel.css">
@@ -127,6 +128,20 @@
             </div>
         </main>
     </div>
+
+    <!-- SVG filter: threshold to pure black/white (removes font anti-aliasing) -->
+    <svg style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+        <defs>
+            <filter id="crisp-text" color-interpolation-filters="sRGB">
+                <feComponentTransfer>
+                    <feFuncR type="discrete" tableValues="0 1"/>
+                    <feFuncG type="discrete" tableValues="0 1"/>
+                    <feFuncB type="discrete" tableValues="0 1"/>
+                    <feFuncA type="discrete" tableValues="0 1"/>
+                </feComponentTransfer>
+            </filter>
+        </defs>
+    </svg>
 
     <!-- TOAST HOST -->
     <div class="toast-host" id="toastHost"></div>

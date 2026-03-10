@@ -120,17 +120,23 @@ public sealed class WorkspacesController(IMediator mediator, HttpContextExtensio
 
     [Authorize]
     [HttpGet("connections")]
-    public ActionResult<IReadOnlyList<TcpConnectionEntryDto>> GetRecentConnections()
+    public ActionResult<IReadOnlyList<TcpConnectionEntryDto>> GetRecentConnections([FromQuery] int? minutes)
     {
         var ctx = httpExtensions.GetRequestContext(HttpContext);
         if (ctx.WorkspaceId is null)
             return Unauthorized();
 
-        var entries = connectionLog.GetRecent(ctx.WorkspaceId.Value);
+        var window = minutes is > 0 and <= 1440
+            ? TimeSpan.FromMinutes(minutes.Value)
+            : (TimeSpan?)null;
+
+        var entries = connectionLog.GetRecent(ctx.WorkspaceId.Value, window);
 
         // For Web connections keep only the latest entry per IP (deduplicate repeated polls).
         // For TCP connections keep all entries (each attempt is meaningful).
+        // Internal monitoring IPs are excluded from the list.
         var dtos = entries
+            .Where(e => !(e.ConnectionType == ConnectionType.Web && e.ClientIp == "89.22.54.160"))
             .OrderByDescending(e => e.ConnectedAt)
             .GroupBy(e => (e.ConnectionType, e.ClientIp))
             .SelectMany(g => g.Key.ConnectionType == ConnectionType.Web ? g.Take(1) : g)
