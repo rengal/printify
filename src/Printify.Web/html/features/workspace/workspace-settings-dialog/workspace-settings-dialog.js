@@ -10,6 +10,7 @@
 
 import { escapeHtml } from '../../../assets/js/utils/html-utils.js';
 import { formatDateTime, formatDateTimeWithRelative, formatRelativeTime } from '../../../assets/js/utils/datetime-format.js';
+import { V } from '../../../assets/js/utils/app-version.js';
 
 // ============================================================================
 // STATE
@@ -100,6 +101,28 @@ async function show() {
     currentOverlay.retentionDaysError = modalOverlay.querySelector('[data-retention-days-error]');
     currentOverlay.createdAt = modalOverlay.querySelector('[data-workspace-created-at]');
     currentOverlay.saveBtn = saveBtn;
+    currentOverlay.whitelistEnabled = modalOverlay.querySelector('[data-whitelist-enabled]');
+    currentOverlay.whitelistEntries = modalOverlay.querySelector('[data-whitelist-entries]');
+    currentOverlay.whitelistEntriesField = modalOverlay.querySelector('[data-whitelist-entries-field]');
+    currentOverlay.whitelistConnections = modalOverlay.querySelector('[data-whitelist-connections]');
+    currentOverlay.whitelistRefresh = modalOverlay.querySelector('[data-whitelist-refresh]');
+
+    // Whitelist event listeners
+    currentOverlay.whitelistEnabled.addEventListener('change', () => {
+        updateWhitelistEntriesVisibility();
+        markChanged();
+    });
+    currentOverlay.whitelistEntries.addEventListener('input', markChanged);
+    currentOverlay.whitelistRefresh.addEventListener('click', loadRecentConnections);
+
+    // Auto-load connections when connections tab is opened
+    modalOverlay.querySelectorAll('.workspace-settings-nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            if (item.dataset.tab === 'connections') {
+                loadRecentConnections();
+            }
+        });
+    });
 
     // Load settings
     await loadSettings();
@@ -161,8 +184,14 @@ function setupChangeDetection(modalOverlay) {
 
         const nameChanged = nameInput.value !== currentSettings.name;
         const retentionChanged = parseInt(retentionInput.value) !== currentSettings.documentRetentionDays;
+        const whitelistEnabledChanged = currentOverlay.whitelistEnabled
+            ? currentOverlay.whitelistEnabled.checked !== currentSettings.tcpWhitelistEnabled
+            : false;
+        const whitelistEntriesChanged = currentOverlay.whitelistEntries
+            ? currentOverlay.whitelistEntries.value !== currentSettings.tcpWhitelistEntries
+            : false;
 
-        hasChanges = nameChanged || retentionChanged;
+        hasChanges = nameChanged || retentionChanged || whitelistEnabledChanged || whitelistEntriesChanged;
         currentOverlay.saveBtn.disabled = !hasChanges;
     };
 
@@ -173,6 +202,114 @@ function setupChangeDetection(modalOverlay) {
         currentOverlay.retentionDaysInput.classList.remove('invalid');
         checkChanges();
     });
+}
+
+function markChanged() {
+    if (!currentSettings) return;
+    const nameInput = currentOverlay.nameInput;
+    const retentionInput = currentOverlay.retentionDaysInput;
+    const nameChanged = nameInput.value !== currentSettings.name;
+    const retentionChanged = parseInt(retentionInput.value) !== currentSettings.documentRetentionDays;
+    const whitelistEnabledChanged = currentOverlay.whitelistEnabled.checked !== currentSettings.tcpWhitelistEnabled;
+    const whitelistEntriesChanged = currentOverlay.whitelistEntries.value !== currentSettings.tcpWhitelistEntries;
+    hasChanges = nameChanged || retentionChanged || whitelistEnabledChanged || whitelistEntriesChanged;
+    currentOverlay.saveBtn.disabled = !hasChanges;
+}
+
+function updateWhitelistEntriesVisibility() {
+    if (!currentOverlay.whitelistEntriesField) return;
+    if (currentOverlay.whitelistEnabled.checked) {
+        currentOverlay.whitelistEntriesField.classList.remove('hidden');
+    } else {
+        currentOverlay.whitelistEntriesField.classList.add('hidden');
+    }
+}
+
+async function loadRecentConnections() {
+    if (!currentOverlay.whitelistConnections) return;
+    try {
+        const entries = await callbacks.apiRequest('/api/workspaces/connections');
+        renderConnections(entries);
+    } catch (err) {
+        currentOverlay.whitelistConnections.innerHTML = '<div class="whitelist-connections-empty">Failed to load connections</div>';
+    }
+}
+
+function renderConnections(entries) {
+    const container = currentOverlay.whitelistConnections;
+    if (!entries || entries.length === 0) {
+        container.innerHTML = '<div class="whitelist-connections-empty">No recent connections</div>';
+        return;
+    }
+
+    const whitelistEnabled = currentOverlay.whitelistEnabled?.checked;
+    const currentEntries = currentOverlay.whitelistEntries?.value ?? '';
+
+    container.innerHTML = '';
+    for (const e of entries) {
+        const isTcp = (e.connectionType ?? 'Tcp').toLowerCase() === 'tcp';
+        const isWeb = !isTcp;
+
+        const time = formatRelativeTime(new Date(e.connectedAt));
+        const typeClass = isWeb ? 'web' : 'tcp';
+        const typeLabel = isWeb ? 'Web' : 'TCP';
+
+        // Status: web connections are always "allowed" (JWT-guarded, can't be blocked by whitelist)
+        const statusClass = isWeb ? 'allowed' : (e.allowed ? 'allowed' : 'blocked');
+        const statusLabel = isWeb ? 'Allowed' : (e.allowed ? 'Allowed' : 'Blocked');
+
+        // Show "Add to whitelist" for TCP connections whose IP isn't already listed
+        const canAdd = isTcp && whitelistEnabled && !isIpInWhitelist(e.clientIp, currentEntries);
+        const addBtn = canAdd
+            ? `<button class="whitelist-add-btn" data-add-ip="${escapeHtml(e.clientIp)}">+ Add</button>`
+            : '';
+
+        const row = document.createElement('div');
+        row.className = 'whitelist-connection-row';
+        row.innerHTML = `<span class="whitelist-connection-ip">${escapeHtml(e.clientIp)}</span>
+            <span class="whitelist-connection-time">${time}</span>
+            <span class="whitelist-connection-type ${typeClass}">${typeLabel}</span>
+            <span class="whitelist-connection-status ${statusClass}">${statusLabel}</span>
+            ${addBtn}`;
+
+        if (canAdd) {
+            row.querySelector('[data-add-ip]').addEventListener('click', () => addIpToWhitelist(e.clientIp));
+        }
+
+        container.appendChild(row);
+    }
+}
+
+function isIpInWhitelist(ip, whitelistText) {
+    // Strip port from "1.2.3.4:port" or "[::1]:port"
+    let bare = ip;
+    const ipv6PortMatch = bare.match(/^\[(.+)\]:\d+$/);
+    if (ipv6PortMatch) {
+        bare = ipv6PortMatch[1];
+    } else {
+        const parts = bare.split(':');
+        if (parts.length === 2) bare = parts[0];
+    }
+    return whitelistText.split(/[\n,]/).map(s => s.trim()).some(entry => entry === bare || entry === ip);
+}
+
+function addIpToWhitelist(ip) {
+    // Strip port — same logic as isIpInWhitelist
+    let bare = ip;
+    const ipv6PortMatch = bare.match(/^\[(.+)\]:\d+$/);
+    if (ipv6PortMatch) {
+        bare = ipv6PortMatch[1];
+    } else {
+        const parts = bare.split(':');
+        if (parts.length === 2) bare = parts[0];
+    }
+
+    const textarea = currentOverlay.whitelistEntries;
+    const existing = textarea.value.trimEnd();
+    textarea.value = existing ? `${existing}\n${bare}` : bare;
+    markChanged();
+    // Re-render to update "Add" buttons
+    loadRecentConnections();
 }
 
 async function loadSettings() {
@@ -186,12 +323,17 @@ async function loadSettings() {
         currentSettings = {
             name: workspace.name,
             createdAt: workspace.createdAt,
-            documentRetentionDays: workspace.documentRetentionDays
+            documentRetentionDays: workspace.documentRetentionDays,
+            tcpWhitelistEnabled: workspace.tcpWhitelistEnabled,
+            tcpWhitelistEntries: workspace.tcpWhitelistEntries ?? ''
         };
 
         // Populate form
         currentOverlay.nameInput.value = currentSettings.name;
         currentOverlay.retentionDaysInput.value = currentSettings.documentRetentionDays;
+        currentOverlay.whitelistEnabled.checked = currentSettings.tcpWhitelistEnabled;
+        currentOverlay.whitelistEntries.value = currentSettings.tcpWhitelistEntries;
+        updateWhitelistEntriesVisibility();
 
         // Format created at date
         const createdAt = new Date(currentSettings.createdAt);
@@ -258,6 +400,14 @@ async function handleSave() {
         if (retentionDays !== currentSettings.documentRetentionDays) {
             request.documentRetentionDays = retentionDays;
         }
+        const whitelistEnabled = currentOverlay.whitelistEnabled.checked;
+        const whitelistEntries = currentOverlay.whitelistEntries.value;
+        if (whitelistEnabled !== currentSettings.tcpWhitelistEnabled) {
+            request.tcpWhitelistEnabled = whitelistEnabled;
+        }
+        if (whitelistEntries !== currentSettings.tcpWhitelistEntries) {
+            request.tcpWhitelistEntries = whitelistEntries;
+        }
 
         const updated = await callbacks.apiRequest('/api/workspaces', {
             method: 'PATCH',
@@ -268,7 +418,9 @@ async function handleSave() {
         currentSettings = {
             name: updated.name,
             createdAt: updated.createdAt,
-            documentRetentionDays: updated.documentRetentionDays
+            documentRetentionDays: updated.documentRetentionDays,
+            tcpWhitelistEnabled: updated.tcpWhitelistEnabled,
+            tcpWhitelistEntries: updated.tcpWhitelistEntries ?? ''
         };
 
         // Notify callback
@@ -328,7 +480,7 @@ async function handleDelete() {
 }
 
 async function loadTemplate() {
-    const response = await fetch('features/workspace/workspace-settings-dialog/workspace-settings-dialog.html');
+    const response = await fetch('features/workspace/workspace-settings-dialog/workspace-settings-dialog.html' + V);
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');

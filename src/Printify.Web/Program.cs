@@ -1,5 +1,7 @@
+using System.Net;
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Printify.Infrastructure.Persistence;
@@ -22,6 +24,17 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 builder.Logging.SetMinimumLevel(LogLevel.Information);
+
+// Trust X-Forwarded-For / X-Forwarded-Proto from any local reverse proxy.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Clear default restrictions so any loopback or private-network proxy is trusted.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+    options.KnownProxies.Add(IPAddress.Loopback);
+    options.KnownProxies.Add(IPAddress.IPv6Loopback);
+});
 
 var app = builder.Build();
 
@@ -67,6 +80,7 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
+app.UseForwardedHeaders();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<ExceptionHandlingMiddleware>();

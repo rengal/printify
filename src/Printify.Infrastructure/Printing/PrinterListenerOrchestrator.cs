@@ -6,6 +6,7 @@ using Printify.Application.Printing.Events;
 using Printify.Application.Interfaces;
 using Printify.Domain.PrintJobs;
 using Printify.Domain.Printers;
+using Printify.Domain.Workspaces;
 
 namespace Printify.Infrastructure.Printing;
 
@@ -20,19 +21,24 @@ public sealed class PrinterListenerOrchestrator(
 {
     private readonly ConcurrentDictionary<Guid, IPrinterListener> listeners = new();
     private readonly ConcurrentDictionary<Guid, HashSet<IPrinterChannel>> printerChannels = new();
+    // Tracks the latest workspace snapshot per printer so whitelist changes take effect immediately.
+    private readonly ConcurrentDictionary<Guid, Workspace> printerWorkspaces = new();
 
     public async Task AddListenerAsync(
         Printer printer,
         PrinterSettings settings,
+        Workspace workspace,
         PrinterTargetState targetState,
         CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(printer);
         ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(workspace);
 
         await RemoveListenerAsync(printer, targetState, ct).ConfigureAwait(false);
 
-        var listener = listenerFactory.Create(printer, settings);
+        printerWorkspaces[printer.Id] = workspace;
+        var listener = listenerFactory.Create(printer, settings, () => printerWorkspaces.GetValueOrDefault(printer.Id, workspace));
         listeners[printer.Id] = listener;
         listener.ChannelAccepted += Listener_ChannelAccepted;
 
@@ -127,6 +133,8 @@ public sealed class PrinterListenerOrchestrator(
         if (!listeners.TryRemove(printer.Id, out var listener))
             return;
 
+        printerWorkspaces.TryRemove(printer.Id, out _);
+
         if (printerChannels.TryRemove(printer.Id, out var channels))
         {
             foreach (var channel in channels)
@@ -144,6 +152,17 @@ public sealed class PrinterListenerOrchestrator(
         logger.LogInformation("Listener removed for printer {PrinterId}", printer.Id);
         listener.ChannelAccepted -= Listener_ChannelAccepted;
         await UpdateRuntimeStatusAsync(printer, targetState, PrinterState.Stopped, ct).ConfigureAwait(false);
+    }
+
+    public void UpdateWorkspace(Workspace workspace)
+    {
+        ArgumentNullException.ThrowIfNull(workspace);
+        // Update all printers owned by this workspace.
+        foreach (var kvp in printerWorkspaces)
+        {
+            if (kvp.Value.Id == workspace.Id)
+                printerWorkspaces[kvp.Key] = workspace;
+        }
     }
 
     public ListenerStatusSnapshot GetStatus(Printer printer)

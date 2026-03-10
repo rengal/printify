@@ -4,11 +4,13 @@ using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
+using Printify.Domain.Workspaces;
 
 namespace Printify.Application.Features.Printers.Update;
 
 public sealed class UpdatePrinterHandler(
     IPrinterRepository printerRepository,
+    IWorkspaceRepository workspaceRepository,
     IPrinterListenerOrchestrator listenerOrchestrator,
     IPrinterStatusStream statusStream,
     IPrinterRuntimeStatusStore runtimeStatusStore)
@@ -68,7 +70,9 @@ public sealed class UpdatePrinterHandler(
         if (targetState == PrinterTargetState.Started)
         {
             await listenerOrchestrator.RemoveListenerAsync(printer, targetState, cancellationToken).ConfigureAwait(false);
-            await listenerOrchestrator.AddListenerAsync(updated, updatedSettings, targetState, cancellationToken)
+            var workspace = await workspaceRepository.GetByIdAsync(updated.OwnerWorkspaceId, cancellationToken).ConfigureAwait(false)
+                ?? throw new InvalidOperationException($"Workspace {updated.OwnerWorkspaceId} not found.");
+            await listenerOrchestrator.AddListenerAsync(updated, updatedSettings, workspace, targetState, cancellationToken)
                 .ConfigureAwait(false);
         }
 

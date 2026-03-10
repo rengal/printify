@@ -20,6 +20,8 @@ internal static class WorkspaceMapper
             CreatedAt = workspace.CreatedAt,
             CreatedFromIp = workspace.CreatedFromIp,
             DocumentRetentionDays = workspace.DocumentRetentionDays,
+            TcpWhitelistEnabled = workspace.TcpWhitelistEnabled,
+            TcpWhitelistEntries = workspace.TcpWhitelistEntries,
             IsDeleted = workspace.IsDeleted
         };
     }
@@ -35,6 +37,8 @@ internal static class WorkspaceMapper
             entity.CreatedAt,
             entity.CreatedFromIp,
             entity.DocumentRetentionDays,
+            entity.TcpWhitelistEnabled,
+            entity.TcpWhitelistEntries,
             entity.IsDeleted);
     }
 }

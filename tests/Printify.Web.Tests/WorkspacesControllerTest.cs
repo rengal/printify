@@ -74,7 +74,7 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         await AuthHelper.Login(client, workspaceResponse.Token);
 
         // Update workspace name
-        var updateRequest = new UpdateWorkspaceRequestDto(updatedName, null);
+        var updateRequest = new UpdateWorkspaceRequestDto(updatedName, null, null, null);
         var updateResponse = await client.PatchAsJsonAsync("/api/workspaces", updateRequest);
         updateResponse.EnsureSuccessStatusCode();
         var updatedWorkspace = await updateResponse.Content.ReadFromJsonAsync<WorkspaceDto>();
@@ -107,12 +107,12 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         await AuthHelper.Login(client, workspaceResponse.Token);
 
         // Try to update with invalid retention days (0, below minimum)
-        var updateRequest = new UpdateWorkspaceRequestDto(null, 0);
+        var updateRequest = new UpdateWorkspaceRequestDto(null, 0, null, null);
         var updateResponse = await client.PatchAsJsonAsync("/api/workspaces", updateRequest);
         Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
 
         // Try to update with invalid retention days (366, above maximum)
-        updateRequest = new UpdateWorkspaceRequestDto(null, 366);
+        updateRequest = new UpdateWorkspaceRequestDto(null, 366, null, null);
         updateResponse = await client.PatchAsJsonAsync("/api/workspaces", updateRequest);
         Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
     }
@@ -189,7 +189,7 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
 
-        var updateRequest = new UpdateWorkspaceRequestDto("new-name", 30);
+        var updateRequest = new UpdateWorkspaceRequestDto("new-name", 30, null, null);
         var updateResponse = await client.PatchAsJsonAsync("/api/workspaces", updateRequest);
         Assert.Equal(HttpStatusCode.Unauthorized, updateResponse.StatusCode);
     }
@@ -224,7 +224,7 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         await AuthHelper.Login(client, workspaceResponse.Token);
 
         // Update document retention days
-        var updateRequest = new UpdateWorkspaceRequestDto(null, 90);
+        var updateRequest = new UpdateWorkspaceRequestDto(null, 90, null, null);
         var updateResponse = await client.PatchAsJsonAsync("/api/workspaces", updateRequest);
         updateResponse.EnsureSuccessStatusCode();
         var updatedWorkspace = await updateResponse.Content.ReadFromJsonAsync<WorkspaceDto>();
@@ -257,7 +257,7 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         await AuthHelper.Login(client, workspaceResponse.Token);
 
         // Update both name and retention days
-        var updateRequest = new UpdateWorkspaceRequestDto(updatedName, 60);
+        var updateRequest = new UpdateWorkspaceRequestDto(updatedName, 60, null, null);
         var updateResponse = await client.PatchAsJsonAsync("/api/workspaces", updateRequest);
         updateResponse.EnsureSuccessStatusCode();
         var updatedWorkspace = await updateResponse.Content.ReadFromJsonAsync<WorkspaceDto>();
@@ -298,7 +298,7 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         Assert.NotNull(initialWorkspace);
 
         // Update with null fields (no-op)
-        var updateRequest = new UpdateWorkspaceRequestDto(null, null);
+        var updateRequest = new UpdateWorkspaceRequestDto(null, null, null, null);
         var updateResponse = await client.PatchAsJsonAsync("/api/workspaces", updateRequest);
         updateResponse.EnsureSuccessStatusCode();
         var updatedWorkspace = await updateResponse.Content.ReadFromJsonAsync<WorkspaceDto>();
@@ -326,7 +326,7 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         await AuthHelper.Login(client, workspaceResponse.Token);
 
         // Update with minimum valid retention days (1)
-        var updateRequest = new UpdateWorkspaceRequestDto(null, 1);
+        var updateRequest = new UpdateWorkspaceRequestDto(null, 1, null, null);
         var updateResponse = await client.PatchAsJsonAsync("/api/workspaces", updateRequest);
         updateResponse.EnsureSuccessStatusCode();
     }
@@ -349,7 +349,7 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
         await AuthHelper.Login(client, workspaceResponse.Token);
 
         // Update with maximum valid retention days (365)
-        var updateRequest = new UpdateWorkspaceRequestDto(null, 365);
+        var updateRequest = new UpdateWorkspaceRequestDto(null, 365, null, null);
         var updateResponse = await client.PatchAsJsonAsync("/api/workspaces", updateRequest);
         updateResponse.EnsureSuccessStatusCode();
     }

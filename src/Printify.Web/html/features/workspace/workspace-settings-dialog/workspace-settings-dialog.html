@@ -19,6 +19,14 @@
                         <img class="themed-icon" src="assets/icons/clock.svg" width="18" height="18" alt="">
                         Retention Policy
                     </button>
+                    <button class="workspace-settings-nav-item" data-tab="whitelist">
+                        <img class="themed-icon" src="assets/icons/shield.svg" width="18" height="18" alt="">
+                        IP Whitelist
+                    </button>
+                    <button class="workspace-settings-nav-item" data-tab="connections">
+                        <img class="themed-icon" src="assets/icons/activity.svg" width="18" height="18" alt="">
+                        Connections
+                    </button>
                     <button class="workspace-settings-nav-item" data-tab="usage">
                         <img class="themed-icon" src="assets/icons/bar-chart-2.svg" width="18" height="18" alt="">
                         Usage & Statistics
@@ -89,6 +97,56 @@
                             <div class="field" style="margin-top: 20px;">
                                 <label class="label">Created at</label>
                                 <div class="read-only-value" data-workspace-created-at></div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- IP Whitelist Tab -->
+                    <div class="workspace-settings-tab-content" data-content="whitelist">
+                        <div class="settings-section whitelist-section">
+                            <h3>TCP IP Whitelist</h3>
+                            <p class="whitelist-description">
+                                Only allow listed IP addresses and ranges to connect to raw TCP printer ports.
+                                Applies to all printers in this workspace.
+                            </p>
+
+                            <div class="field">
+                                <label class="whitelist-toggle-label">
+                                    <input type="checkbox" id="whitelist-enabled-checkbox" data-whitelist-enabled />
+                                    Enable IP whitelist
+                                </label>
+                            </div>
+
+                            <div class="field" data-whitelist-entries-field>
+                                <label class="label" for="whitelist-entries-input">Allowed IPs / ranges</label>
+                                <textarea
+                                    class="input whitelist-textarea"
+                                    id="whitelist-entries-input"
+                                    data-whitelist-entries
+                                    placeholder="192.168.1.0/24&#10;10.0.0.5&#10;2001:db8::/32"
+                                    rows="6"
+                                    spellcheck="false"
+                                ></textarea>
+                                <div class="field-hint">One entry per line. Accepts IPv4, IPv6, and CIDR notation (e.g. 192.168.1.0/24).</div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Connections Tab -->
+                    <div class="workspace-settings-tab-content" data-content="connections">
+                        <div class="settings-section connections-section">
+                            <h3>Recent Connections</h3>
+                            <p class="whitelist-description">
+                                All TCP and web connections to this workspace in the last hour.
+                            </p>
+                            <div class="whitelist-connections-header">
+                                <span></span>
+                                <button class="btn btn-secondary btn-sm" data-whitelist-refresh>Refresh</button>
+                            </div>
+                            <div class="whitelist-connections-list" data-whitelist-connections>
+                                <div class="whitelist-connections-empty">No recent connections</div>
                             </div>
                         </div>
                     </div>

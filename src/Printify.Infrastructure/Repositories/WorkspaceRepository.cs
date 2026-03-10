@@ -54,6 +54,8 @@ public sealed class WorkspaceRepository(PrintifyDbContext dbContext) : IWorkspac
 
         entity.Name = workspace.Name;
         entity.DocumentRetentionDays = workspace.DocumentRetentionDays;
+        entity.TcpWhitelistEnabled = workspace.TcpWhitelistEnabled;
+        entity.TcpWhitelistEntries = workspace.TcpWhitelistEntries;
 
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }

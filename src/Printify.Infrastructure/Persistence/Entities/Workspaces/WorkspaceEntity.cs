@@ -19,5 +19,11 @@ public sealed class WorkspaceEntity : BaseEntity
 
     [Column("document_retention_days")]
     public int DocumentRetentionDays { get; set; } = 30; // Default: 30 days
+
+    [Column("tcp_whitelist_enabled")]
+    public bool TcpWhitelistEnabled { get; set; } = true;
+
+    [Column("tcp_whitelist_entries")]
+    public string TcpWhitelistEntries { get; set; } = string.Empty;
 }
 

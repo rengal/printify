@@ -37,4 +37,20 @@ public class HttpContextExtensions(IServiceProvider serviceProvider)
 
         return new RequestContext(workspaceId, true, ipAddress);
     }
+
+    /// <summary>Synchronous variant that reads JWT claims without hitting the database.</summary>
+    public RequestContext GetRequestContext(HttpContext httpContext)
+    {
+        var user = httpContext.User;
+        Guid? workspaceId = null;
+
+        if (user?.Identity?.IsAuthenticated == true)
+        {
+            if (Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var wid))
+                workspaceId = wid;
+        }
+
+        var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+        return new RequestContext(workspaceId, workspaceId.HasValue, ipAddress);
+    }
 }

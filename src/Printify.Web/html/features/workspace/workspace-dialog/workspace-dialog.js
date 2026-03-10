@@ -1,4 +1,5 @@
 import { createUuid } from '../../../assets/js/utils/uuid.js';
+import { V } from '../../../assets/js/utils/app-version.js';
 
 /**
  * Workspace Dialog Module
@@ -308,7 +309,7 @@ async function handleAccess() {
 }
 
 async function loadTemplate() {
-    const response = await fetch('features/workspace/workspace-dialog/workspace-dialog.html');
+    const response = await fetch('features/workspace/workspace-dialog/workspace-dialog.html' + V);
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');

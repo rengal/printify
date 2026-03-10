@@ -11,6 +11,8 @@ using Mediator.Net.Contracts;
 /// <param name="CreatedAt">Creation timestamp in UTC.</param>
 /// <param name="CreatedFromIp">IP address captured when the workspace was registered.</param>
 /// <param name="DocumentRetentionDays">Number of days to keep documents before automatic cleanup (1-365).</param>
+/// <param name="TcpWhitelistEnabled">When true, only IPs matching <see cref="TcpWhitelistEntries"/> are allowed to open raw TCP connections.</param>
+/// <param name="TcpWhitelistEntries">Newline-separated list of allowed IPv4/IPv6 addresses or CIDR ranges (e.g. 192.168.1.0/24).</param>
 /// <param name="IsDeleted">Soft-delete marker for the workspace.</param>
 public sealed record Workspace(
     Guid Id,
@@ -19,6 +21,8 @@ public sealed record Workspace(
     DateTimeOffset CreatedAt,
     string CreatedFromIp,
     int DocumentRetentionDays,
+    bool TcpWhitelistEnabled,
+    string TcpWhitelistEntries,
     bool IsDeleted)
     : BaseDomainEntity(Id, CreatedAt, IsDeleted), IResponse;
 

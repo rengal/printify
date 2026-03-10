@@ -4,11 +4,13 @@ using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
+using Printify.Domain.Workspaces;
 
 namespace Printify.Application.Features.Printers.Create;
 
 public sealed class CreatePrinterHandler(
     IPrinterRepository printerRepository,
+    IWorkspaceRepository workspaceRepository,
     IPrinterListenerOrchestrator listenerOrchestrator,
     IPrinterRuntimeStatusStore runtimeStatusStore)
     : IRequestHandler<CreatePrinterCommand, PrinterDetailsSnapshot>
@@ -84,11 +86,13 @@ public sealed class CreatePrinterHandler(
             false);
 
         // Start the printer listener asynchronously without blocking the response
+        var creatorWorkspace = await workspaceRepository.GetByIdAsync(printer.OwnerWorkspaceId, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Workspace {printer.OwnerWorkspaceId} not found.");
         _ = Task.Run(async () =>
         {
             try
             {
-                await listenerOrchestrator.AddListenerAsync(printer, settings, PrinterTargetState.Started, ct)
+                await listenerOrchestrator.AddListenerAsync(printer, settings, creatorWorkspace, PrinterTargetState.Started, ct)
                     .ConfigureAwait(false);
             }
             catch (Exception ex)

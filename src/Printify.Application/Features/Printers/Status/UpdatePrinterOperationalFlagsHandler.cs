@@ -5,11 +5,13 @@ using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
+using Printify.Domain.Workspaces;
 
 namespace Printify.Application.Features.Printers.Status;
 
 public sealed class UpdatePrinterOperationalFlagsHandler(
     IPrinterRepository printerRepository,
+    IWorkspaceRepository workspaceRepository,
     IPrinterListenerOrchestrator listenerOrchestrator,
     IPrinterStatusStream statusStream,
     ILogger<UpdatePrinterOperationalFlagsHandler> logger)
@@ -63,9 +65,11 @@ public sealed class UpdatePrinterOperationalFlagsHandler(
                         throw new InvalidOperationException($"Settings for printer {printer.Id} are missing.");
                     }
 
+                    var workspace = await workspaceRepository.GetByIdAsync(printer.OwnerWorkspaceId, cancellationToken).ConfigureAwait(false)
+                        ?? throw new InvalidOperationException($"Workspace {printer.OwnerWorkspaceId} not found.");
                     try
                     {
-                        await listenerOrchestrator.AddListenerAsync(printer, settings, desiredTargetState, cancellationToken)
+                        await listenerOrchestrator.AddListenerAsync(printer, settings, workspace, desiredTargetState, cancellationToken)
                             .ConfigureAwait(false);
                     }
                     catch (Exception ex)

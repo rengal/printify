@@ -7,5 +7,7 @@ namespace Printify.Application.Features.Workspaces.UpdateWorkspace;
 public sealed record UpdateWorkspaceCommand(
     RequestContext Context,
     string? Name,
-    int? DocumentRetentionDays)
+    int? DocumentRetentionDays,
+    bool? TcpWhitelistEnabled,
+    string? TcpWhitelistEntries)
     : IRequest, ITransactionalRequest;

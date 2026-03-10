@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
+using Printify.Domain.Workspaces;
 
 namespace Printify.TestServices.Printing;
 
@@ -16,7 +17,7 @@ public sealed class TestPrinterListenerFactory : IPrinterListenerFactory
         this.serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     }
 
-    public IPrinterListener Create(Printer printer, PrinterSettings settings)
+    public IPrinterListener Create(Printer printer, PrinterSettings settings, Func<Workspace> getWorkspace)
     {
         ArgumentNullException.ThrowIfNull(printer);
         ArgumentNullException.ThrowIfNull(settings);

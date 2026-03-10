@@ -100,6 +100,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDocumentFinalizationCoordinator, DocumentFinalizationCoordinator>();
 
         // Printer listeners
+        services.AddSingleton<ITcpConnectionLog, TcpConnectionLog>();
         services.AddSingleton<IPrintJobSessionFactory, PrintJobSessionFactory>();
         services.AddSingleton<IPrintJobSessionsOrchestrator, PrintJobSessionsOrchestrator>();
         services.AddSingleton<IPrinterListenerOrchestrator, PrinterListenerOrchestrator>();

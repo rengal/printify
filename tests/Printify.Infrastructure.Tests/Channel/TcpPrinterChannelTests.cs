@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
+using Printify.Domain.Workspaces;
+using Printify.Infrastructure.Printing;
 using Printify.Infrastructure.Printing.Tcp;
 
 namespace Printify.Infrastructure.Tests.Channel;
@@ -35,7 +37,9 @@ public sealed class TcpPrinterChannelTests
             LastViewedDocumentId: null,
             LastDocumentReceivedAt: null);
 
-        await using var listener = new TcpPrinterListener(printer, settings, NullLogger<TcpPrinterListener>.Instance);
+        var workspaceId = printer.OwnerWorkspaceId;
+        var testWorkspace = new Workspace(workspaceId, "test", "token", DateTimeOffset.UtcNow, "127.0.0.1", 30, TcpWhitelistEnabled: false, TcpWhitelistEntries: string.Empty, IsDeleted: false);
+        await using var listener = new TcpPrinterListener(printer, settings, () => testWorkspace, new TcpConnectionLog(), NullLogger<TcpPrinterListener>.Instance);
         await listener.StartAsync(CancellationToken.None);
 
         var acceptedChannelSource = new TaskCompletionSource<IPrinterChannel>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -100,7 +104,9 @@ public sealed class TcpPrinterChannelTests
             LastViewedDocumentId: null,
             LastDocumentReceivedAt: null);
 
-        await using var listener = new TcpPrinterListener(printer, settings, NullLogger<TcpPrinterListener>.Instance);
+        var workspaceId = printer.OwnerWorkspaceId;
+        var testWorkspace = new Workspace(workspaceId, "test", "token", DateTimeOffset.UtcNow, "127.0.0.1", 30, TcpWhitelistEnabled: false, TcpWhitelistEntries: string.Empty, IsDeleted: false);
+        await using var listener = new TcpPrinterListener(printer, settings, () => testWorkspace, new TcpConnectionLog(), NullLogger<TcpPrinterListener>.Instance);
         await listener.StartAsync(CancellationToken.None);
 
         var firstChannelSource = new TaskCompletionSource<IPrinterChannel>(TaskCreationOptions.RunContinuationsAsynchronously);

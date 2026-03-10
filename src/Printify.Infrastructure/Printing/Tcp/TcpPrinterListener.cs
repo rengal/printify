@@ -4,12 +4,15 @@ using Microsoft.Extensions.Logging;
 using Printify.Application.Printing;
 using Printify.Application.Printing.Events;
 using Printify.Domain.Printers;
+using Printify.Domain.Workspaces;
 
 namespace Printify.Infrastructure.Printing.Tcp;
 
 public sealed class TcpPrinterListener(
     Printer printer,
     PrinterSettings settings,
+    Func<Workspace> getWorkspace,
+    ITcpConnectionLog connectionLog,
     ILogger<TcpPrinterListener>? logger = null) : IPrinterListener
 {
     private TcpListener? listener;
@@ -77,7 +80,22 @@ public sealed class TcpPrinterListener(
                 try
                 {
                     var tcpClient = await listener.AcceptTcpClientAsync(ct).ConfigureAwait(false);
-                    logger?.LogInformation("Accepted new TCP connection for printer {PrinterId}", printer.Id);
+                    var clientAddress = tcpClient.Client.RemoteEndPoint?.ToString() ?? string.Empty;
+
+                    var workspace = getWorkspace();
+                    if (workspace.TcpWhitelistEnabled &&
+                        !IpWhitelistMatcher.IsAllowed(clientAddress, workspace.TcpWhitelistEntries))
+                    {
+                        logger?.LogInformation(
+                            "TCP connection from {ClientAddress} rejected by IP whitelist for printer {PrinterId}",
+                            clientAddress, printer.Id);
+                        connectionLog.Record(workspace.Id, clientAddress, allowed: false);
+                        tcpClient.Dispose();
+                        continue;
+                    }
+
+                    connectionLog.Record(workspace.Id, clientAddress, allowed: true);
+                    logger?.LogInformation("Accepted new TCP connection from {ClientAddress} for printer {PrinterId}", clientAddress, printer.Id);
 
                     var channel = new TcpPrinterChannel(printer, settings, tcpClient);
                     if (ChannelAccepted != null)

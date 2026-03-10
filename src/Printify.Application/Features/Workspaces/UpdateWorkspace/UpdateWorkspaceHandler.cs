@@ -1,12 +1,14 @@
 using Mediator.Net.Contracts;
 using Mediator.Net.Context;
 using Printify.Application.Interfaces;
+using Printify.Application.Printing;
 using Printify.Domain.Workspaces;
 
 namespace Printify.Application.Features.Workspaces.UpdateWorkspace;
 
 public sealed class UpdateWorkspaceHandler(
-    IWorkspaceRepository workspaceRepository)
+    IWorkspaceRepository workspaceRepository,
+    IPrinterListenerOrchestrator listenerOrchestrator)
     : IRequestHandler<UpdateWorkspaceCommand, Workspace>
 {
     public async Task<Workspace> Handle(IReceiveContext<UpdateWorkspaceCommand> context, CancellationToken cancellationToken)
@@ -42,10 +44,15 @@ public sealed class UpdateWorkspaceHandler(
         var updated = workspace with
         {
             Name = request.Name ?? workspace.Name,
-            DocumentRetentionDays = request.DocumentRetentionDays ?? workspace.DocumentRetentionDays
+            DocumentRetentionDays = request.DocumentRetentionDays ?? workspace.DocumentRetentionDays,
+            TcpWhitelistEnabled = request.TcpWhitelistEnabled ?? workspace.TcpWhitelistEnabled,
+            TcpWhitelistEntries = request.TcpWhitelistEntries ?? workspace.TcpWhitelistEntries
         };
 
         await workspaceRepository.UpdateAsync(updated, cancellationToken).ConfigureAwait(false);
+
+        // Propagate whitelist changes to any running TCP listeners immediately.
+        listenerOrchestrator.UpdateWorkspace(updated);
 
         return updated;
     }

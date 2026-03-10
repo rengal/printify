@@ -12,6 +12,7 @@ internal sealed class PrinterListenerBootstrapper(
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var printerRepository = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
+        var workspaceRepository = scope.ServiceProvider.GetRequiredService<IWorkspaceRepository>();
         var printers = await printerRepository.ListAllAsync(ct);
 
         foreach (var printer in printers)
@@ -33,7 +34,10 @@ internal sealed class PrinterListenerBootstrapper(
             // Only start listeners for printers marked as Started.
             if (targetState == PrinterTargetState.Started)
             {
-                await orchestrator.AddListenerAsync(printer, printerSettings, targetState, ct).ConfigureAwait(false);
+                var workspace = await workspaceRepository.GetByIdAsync(printer.OwnerWorkspaceId, ct).ConfigureAwait(false);
+                if (workspace is null)
+                    throw new InvalidOperationException($"Workspace {printer.OwnerWorkspaceId} not found for printer {printer.Id}.");
+                await orchestrator.AddListenerAsync(printer, printerSettings, workspace, targetState, ct).ConfigureAwait(false);
             }
             else
             {

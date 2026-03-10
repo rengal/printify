@@ -24,6 +24,7 @@ public sealed class CreateWorkspaceHandler(IWorkspaceRepository workspaceReposit
         // We do not store the original response payload, so repeated calls could observe new fields if contracts evolve.
         var token = GenerateRandomToken();
 
+        // Whitelist starts enabled with the creator's IP pre-populated.
         var workspace = new Workspace(
             request.WorkspaceId,
             request.WorkspaceName,
@@ -31,6 +32,8 @@ public sealed class CreateWorkspaceHandler(IWorkspaceRepository workspaceReposit
             DateTimeOffset.UtcNow,
             request.Context.IpAddress,
             30, // Default document retention days: 30
+            TcpWhitelistEnabled: true,
+            TcpWhitelistEntries: request.Context.IpAddress,
             false);
 
         // Persist immediately so the workspace becomes visible for authentication flows.
