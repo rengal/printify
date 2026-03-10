@@ -24,18 +24,20 @@ public sealed class TcpConnectionLog : ITcpConnectionLog
         }
     }
 
-    public IReadOnlyList<TcpConnectionEntry> GetRecent(Guid workspaceId)
+    public IReadOnlyList<TcpConnectionEntry> GetRecent(Guid workspaceId, TimeSpan? window = null)
     {
         if (!store.TryGetValue(workspaceId, out var list))
             return [];
 
-        var cutoff = DateTimeOffset.UtcNow - RetentionWindow;
+        var retentionCutoff = DateTimeOffset.UtcNow - RetentionWindow;
+        var filterCutoff = DateTimeOffset.UtcNow - (window ?? RetentionWindow);
 
         lock (list)
         {
-            // Remove stale entries.
-            list.RemoveAll(e => e.ConnectedAt < cutoff);
-            return list.ToArray();
+            // Prune entries older than the max retention window.
+            list.RemoveAll(e => e.ConnectedAt < retentionCutoff);
+            // Return only entries within the requested window.
+            return list.Where(e => e.ConnectedAt >= filterCutoff).ToArray();
         }
     }
 }

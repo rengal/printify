@@ -8,6 +8,7 @@ set -euo pipefail
 #   SKIP_ARTIFACT_DEPLOY  (1 = skip, 0 = deploy)
 #   PRESERVE_SETTINGS     (1 = preserve, 0 = don't)
 #   REQUIRES_PRIVILEGED_PORT (1 = yes, 0 = no)
+#   ROOT_MODE             (1 = running as root, skip sudo)
 
 DOTNET_BIN=$(command -v dotnet || true)
 if [ -z "$DOTNET_BIN" ]; then
@@ -19,13 +20,20 @@ if [ -z "$DOTNET_PATH" ]; then
   DOTNET_PATH="$DOTNET_BIN"
 fi
 
-sudo mkdir -p "$REMOTE_APP_DIR"
-sudo mkdir -p "$REMOTE_DB_DIR"
-sudo mkdir -p "$REMOTE_MEDIA_DIR"
+# When running as root, sudo is unnecessary and unavailable without a tty.
+if [ "${ROOT_MODE:-0}" = "1" ]; then
+  SUDO=""
+else
+  SUDO="sudo"
+fi
+
+$SUDO mkdir -p "$REMOTE_APP_DIR"
+$SUDO mkdir -p "$REMOTE_DB_DIR"
+$SUDO mkdir -p "$REMOTE_MEDIA_DIR"
 
 if id "$SERVICE_RUN_USER" >/dev/null 2>&1; then
   SERVICE_GROUP=$(id -gn "$SERVICE_RUN_USER")
-  sudo chown -R "$SERVICE_RUN_USER:$SERVICE_GROUP" "$REMOTE_DB_DIR" "$REMOTE_MEDIA_DIR"
+  $SUDO chown -R "$SERVICE_RUN_USER:$SERVICE_GROUP" "$REMOTE_DB_DIR" "$REMOTE_MEDIA_DIR"
 else
   echo "WARN: Service user '$SERVICE_RUN_USER' not found. Skipping ownership updates."
 fi
@@ -43,11 +51,11 @@ else
     cp "$REMOTE_APP_DIR/appsettings.Production.json" "/tmp/appsettings.Production.json.bak"
   fi
 
-  sudo rm -rf "$REMOTE_APP_DIR"/*
-  sudo tar -xzf "$REMOTE_ARCHIVE_PATH" -C "$REMOTE_APP_DIR"
+  $SUDO rm -rf "$REMOTE_APP_DIR"/*
+  $SUDO tar -xzf "$REMOTE_ARCHIVE_PATH" -C "$REMOTE_APP_DIR"
 
   if id "$SERVICE_RUN_USER" >/dev/null 2>&1; then
-    sudo chown -R "$SERVICE_RUN_USER:$SERVICE_GROUP" "$REMOTE_APP_DIR"
+    $SUDO chown -R "$SERVICE_RUN_USER:$SERVICE_GROUP" "$REMOTE_APP_DIR"
   fi
 
   if [ "$PRESERVE_SETTINGS" = "1" ] && [ -f "/tmp/appsettings.Production.json.bak" ]; then
@@ -66,7 +74,7 @@ NoNewPrivileges=true"
 fi
 
 # Install or update systemd unit.
-sudo tee "/etc/systemd/system/$SERVICE_NAME.service" > /dev/null <<EOF
+$SUDO tee "/etc/systemd/system/$SERVICE_NAME.service" > /dev/null <<EOF
 [Unit]
 Description=Printify
 After=network.target
@@ -88,8 +96,8 @@ SyslogIdentifier=$SERVICE_NAME
 WantedBy=multi-user.target
 EOF
 
-sudo systemctl daemon-reload
-sudo systemctl enable "$SERVICE_NAME"
-sudo systemctl stop "$SERVICE_NAME" || true
-sudo systemctl start "$SERVICE_NAME"
-sudo systemctl --no-pager --full status "$SERVICE_NAME" | head -n 25
+$SUDO systemctl daemon-reload
+$SUDO systemctl enable "$SERVICE_NAME"
+$SUDO systemctl stop "$SERVICE_NAME" || true
+$SUDO systemctl start "$SERVICE_NAME"
+$SUDO systemctl --no-pager --full status "$SERVICE_NAME" | head -n 25

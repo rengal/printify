@@ -90,6 +90,8 @@ public sealed class TcpPrinterListener(
                             "TCP connection from {ClientAddress} rejected by IP whitelist for printer {PrinterId}",
                             clientAddress, printer.Id);
                         connectionLog.Record(workspace.Id, clientAddress, allowed: false);
+                        // Force RST instead of FIN so the client gets "connection reset" error.
+                        tcpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Linger, new LingerOption(true, 0));
                         tcpClient.Dispose();
                         continue;
                     }

@@ -8,8 +8,8 @@ public interface ITcpConnectionLog
     /// <summary>Append a connection attempt to the log.</summary>
     void Record(Guid workspaceId, string clientIp, bool allowed, ConnectionType connectionType = ConnectionType.Tcp);
 
-    /// <summary>Returns all connection attempts from the last 10 minutes for the workspace.</summary>
-    IReadOnlyList<TcpConnectionEntry> GetRecent(Guid workspaceId);
+    /// <summary>Returns connection attempts within the given window for the workspace.</summary>
+    IReadOnlyList<TcpConnectionEntry> GetRecent(Guid workspaceId, TimeSpan? window = null);
 }
 
 public enum ConnectionType { Tcp, Web }

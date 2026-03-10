@@ -4,6 +4,8 @@ param(
 
     [switch]$SkipArtifactDeploy,
 
+    [switch]$SkipRestore,
+
     [switch]$WhatIf
 )
 
@@ -176,6 +178,31 @@ Invoke-Logged -Message "Cleaning local publish directory" -Action {
     }
 }
 
+Invoke-Logged -Message "Restoring NuGet packages" -Action {
+    if ($SkipArtifactDeploy) {
+        Write-Host "Skipping restore because -SkipArtifactDeploy is enabled."
+        return
+    }
+
+    if ($SkipRestore) {
+        Write-Host "Skipping restore because -SkipRestore is enabled."
+        return
+    }
+
+    $restoreArgs = @(
+        "restore",
+        $projectFullPath,
+        "-r", $RuntimeIdentifier
+    )
+
+    if ($WhatIf) {
+        Write-Host "dotnet $($restoreArgs -join ' ')"
+    }
+    else {
+        Invoke-Native -FilePath "dotnet" -Arguments $restoreArgs
+    }
+}
+
 Invoke-Logged -Message "Publishing app ($Configuration)" -Action {
     if ($SkipArtifactDeploy) {
         Write-Host "Skipping publish because -SkipArtifactDeploy is enabled."
@@ -188,6 +215,7 @@ Invoke-Logged -Message "Publishing app ($Configuration)" -Action {
         "-c", $Configuration,
         "-r", $RuntimeIdentifier,
         "--self-contained", $SelfContained,
+        "--no-restore",
         "-o", $publishRoot
     )
 
@@ -280,21 +308,23 @@ Invoke-Logged -Message "Deploying on remote server and restarting service" -Acti
     $preserveSettings = if ($PreserveProductionSettings -and -not $SkipArtifactDeploy) { "1" } else { "0" }
     $skipArtifact = if ($SkipArtifactDeploy) { "1" } else { "0" }
     $requiresPrivilegedPort = if ($RequiresPrivilegedPort) { "1" } else { "0" }
+    $useRootMode = if ($User -eq "root") { "1" } else { "0" }
 
-    # Env vars passed to the remote script as a prefix on the bash invocation.
-    $envPrefix = "REMOTE_APP_DIR='$RemoteAppDir' " +
-                 "REMOTE_DB_DIR='$RemoteDbDir' " +
-                 "REMOTE_MEDIA_DIR='$RemoteMediaDir' " +
-                 "REMOTE_ARCHIVE_PATH='$remoteArchivePath' " +
-                 "SERVICE_RUN_USER='$ServiceRunUser' " +
-                 "SERVICE_NAME='$ServiceName' " +
-                 "SKIP_ARTIFACT_DEPLOY='$skipArtifact' " +
-                 "PRESERVE_SETTINGS='$preserveSettings' " +
-                 "REQUIRES_PRIVILEGED_PORT='$requiresPrivilegedPort'"
+    # Env vars exported before running the remote script.
+    $envExports = "export REMOTE_APP_DIR='$RemoteAppDir'; " +
+                  "export REMOTE_DB_DIR='$RemoteDbDir'; " +
+                  "export REMOTE_MEDIA_DIR='$RemoteMediaDir'; " +
+                  "export REMOTE_ARCHIVE_PATH='$remoteArchivePath'; " +
+                  "export SERVICE_RUN_USER='$ServiceRunUser'; " +
+                  "export SERVICE_NAME='$ServiceName'; " +
+                  "export SKIP_ARTIFACT_DEPLOY='$skipArtifact'; " +
+                  "export PRESERVE_SETTINGS='$preserveSettings'; " +
+                  "export REQUIRES_PRIVILEGED_PORT='$requiresPrivilegedPort'; " +
+                  "export ROOT_MODE='$useRootMode';"
 
     if ($WhatIf) {
         Write-Host "scp deploy-remote.sh ${sshTarget}:$remoteScriptPath"
-        Write-Host "ssh $($sshArgs -join ' ') $sshTarget `"$envPrefix bash -l $remoteScriptPath`""
+        Write-Host "ssh $($sshArgs -join ' ') $sshTarget `"$envExports bash $remoteScriptPath`""
         return
     }
 
@@ -312,7 +342,7 @@ Invoke-Logged -Message "Deploying on remote server and restarting service" -Acti
     Invoke-Native -FilePath "scp" -Arguments $scpArgs
 
     # Execute the script on the remote.
-    $sshRunArgs = @("-T") + $sshArgs + $sshTarget + "$envPrefix bash -l $remoteScriptPath; rm -f $remoteScriptPath"
+    $sshRunArgs = @("-T") + $sshArgs + $sshTarget + "$envExports bash $remoteScriptPath; rm -f $remoteScriptPath"
     Invoke-Native -FilePath "ssh" -Arguments $sshRunArgs
 }
 
