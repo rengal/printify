@@ -1,27 +1,15 @@
-/**
- * Printer Dialogue Module
- *
- * Manages the printer add/edit dialog:
- * - Shows dialog for creating new printers
- * - Shows dialog for editing existing printers
- * - Handles form validation and submission
- * - Uses template-based rendering with data-* attributes
- */
-
 import { normalizeProtocol } from '../../../assets/js/api/protocol.js';
+import { V } from '../../../assets/js/utils/app-version.js';
 import { createUuid } from '../../../assets/js/utils/uuid.js';
-
-// ============================================================================
-// STATE
-// ============================================================================
+import { escapeHtml } from '../../../assets/js/utils/html-utils.js';
 
 let template = null;
-let currentMode = null; // 'create' or 'edit'
+let currentMode = null;
 let currentPrinterId = null;
+let currentPrinterName = '';
 let currentOverlay = null;
-let protocolDefaultsSet = false; // Track if defaults have been set for current dialog
+let protocolDefaultsSet = false;
 
-// Callbacks for actions (set by main.js)
 const callbacks = {
     apiRequest: null,
     normalizeProtocol: null,
@@ -30,80 +18,68 @@ const callbacks = {
     showToast: null
 };
 
-// ============================================================================
-// PUBLIC API
-// ============================================================================
-
-/**
- * Initialize the printer dialogue module with action callbacks
- */
-export function init(actionCallbacks) {
+export function init(actionCallbacks)
+{
     Object.assign(callbacks, actionCallbacks);
 }
 
-/**
- * Show the printer dialog for creating a new printer
- */
-export async function showCreate() {
+export async function showCreate()
+{
     await show('create', null);
 }
 
-/**
- * Show the printer dialog for editing an existing printer
- * @param {Object} printer - Printer object with id, name, protocol, width, emulateBuffer, bufferSize, drainRate
- */
-export async function showEdit(printer) {
-    if (!printer) {
+export async function showEdit(printer)
+{
+    if (!printer)
+    {
         console.error('Printer data is required for edit mode');
         return;
     }
+
     await show('edit', printer);
 }
 
-/**
- * Close the current printer dialog
- */
-export function close() {
-    if (currentOverlay) {
-        if (currentOverlay.escapeHandler) {
-            document.removeEventListener('keydown', currentOverlay.escapeHandler);
-        }
-        currentOverlay.remove();
-        currentOverlay = null;
-        currentMode = null;
-        currentPrinterId = null;
+export function close()
+{
+    if (!currentOverlay)
+    {
+        return;
     }
+
+    if (currentOverlay.escapeHandler)
+    {
+        document.removeEventListener('keydown', currentOverlay.escapeHandler);
+    }
+
+    currentOverlay.remove();
+    currentOverlay = null;
+    currentMode = null;
+    currentPrinterId = null;
+    currentPrinterName = '';
 }
 
-// ============================================================================
-// INTERNAL FUNCTIONS
-// ============================================================================
-
-/**
- * Show the printer dialog
- * @param {string} mode - 'create' or 'edit'
- * @param {Object|null} printer - Printer data for edit mode
- */
-async function show(mode, printer) {
-    // Close any existing dialog
+async function show(mode, printer)
+{
     close();
 
-    // Load template if not already loaded
-    if (!template) {
+    if (!template)
+    {
         await loadTemplate();
     }
 
     currentMode = mode;
-    currentPrinterId = printer?.id || null;
+    currentPrinterId = printer?.id ?? null;
+    currentPrinterName = printer?.name ?? '';
 
-    // Clone the template
     const overlay = template.content.cloneNode(true);
     const modalOverlay = overlay.querySelector('[data-printer-dialogue-overlay]');
 
-    // Store element references
     const elements = {
         overlay: modalOverlay,
         title: modalOverlay.querySelector('[data-printer-dialogue-title]'),
+        closeBtn: modalOverlay.querySelector('[data-printer-dialogue-close]'),
+        cancelBtn: modalOverlay.querySelector('[data-printer-dialogue-cancel]'),
+        submitBtn: modalOverlay.querySelector('[data-printer-dialogue-submit]'),
         nameInput: modalOverlay.querySelector('[data-printer-dialogue-name-input]'),
         nameError: modalOverlay.querySelector('[data-printer-dialogue-name-error]'),
         protocolInput: modalOverlay.querySelector('[data-printer-dialogue-protocol-input]'),
@@ -112,300 +88,285 @@ async function show(mode, printer) {
         widthInput: modalOverlay.querySelector('[data-printer-dialogue-width-input]'),
         heightField: modalOverlay.querySelector('[data-printer-dialogue-height-field]'),
         heightInput: modalOverlay.querySelector('[data-printer-dialogue-height-input]'),
+        dimensionsAckSection: modalOverlay.querySelector('[data-printer-dialogue-dimensions-ack-section]'),
+        dimensionsAckInput: modalOverlay.querySelector('[data-printer-dialogue-dimensions-ack-input]'),
+        dimensionsAckError: modalOverlay.querySelector('[data-printer-dialogue-dimensions-ack-error]'),
         emulateBufferField: modalOverlay.querySelector('[data-printer-dialogue-emulate-buffer-field]'),
         emulateBufferInput: modalOverlay.querySelector('[data-printer-dialogue-emulate-buffer-input]'),
         bufferFields: modalOverlay.querySelector('[data-printer-dialogue-buffer-fields]'),
         bufferSizeInput: modalOverlay.querySelector('[data-printer-dialogue-buffer-size-input]'),
         drainRateInput: modalOverlay.querySelector('[data-printer-dialogue-drain-rate-input]'),
-        securitySection: modalOverlay.querySelector('[data-printer-dialogue-security-section]'),
-        securityAckInput: modalOverlay.querySelector('[data-printer-dialogue-security-ack-input]'),
-        securityAckError: modalOverlay.querySelector('[data-printer-dialogue-security-ack-error]'),
-        cancelBtn: modalOverlay.querySelector('[data-printer-dialogue-cancel]'),
-        submitBtn: modalOverlay.querySelector('[data-printer-dialogue-submit]')
+        clearDocumentsBtn: modalOverlay.querySelector('[data-printer-dialogue-clear-documents]'),
+        deletePrinterBtn: modalOverlay.querySelector('[data-printer-dialogue-delete-printer]'),
+        dangerHint: modalOverlay.querySelector('[data-printer-dialogue-danger-hint]')
     };
 
-    // Setup event listeners
-    elements.cancelBtn.addEventListener('click', close);
-    elements.submitBtn.addEventListener('click', () => handleSubmit(elements));
-    elements.emulateBufferInput.addEventListener('change', () => toggleBufferFields(elements));
-    elements.protocolInput.addEventListener('change', () => {
-        elements.protocolInput.classList.remove('invalid');
-        updateProtocolFields(elements);
-    });
-    elements.nameInput.addEventListener('input', () => clearNameError(elements));
-    elements.securityAckInput?.addEventListener('change', () => clearSecurityError(elements));
-
-    // ESC key closes dialog
-    const handleEscape = (e) => {
-        if (e.key === 'Escape') {
-            close();
-        }
-    };
-    document.addEventListener('keydown', handleEscape);
-    elements.overlay.escapeHandler = handleEscape;
-
-    // Configure dialog based on mode
+    setupTabs(modalOverlay);
     configureDialog(elements, mode, printer);
+    bindEvents(elements);
 
-    // Append to DOM (fully prepared before showing)
     document.getElementById('modalContainer').appendChild(modalOverlay);
+    currentOverlay = modalOverlay;
 
-    // Store overlay reference
-    currentOverlay = elements.overlay;
-
-    // Focus name input after a short delay to ensure dialog is visible
     setTimeout(() => {
-        elements.nameInput.focus();
+        elements.nameInput?.focus();
     }, 50);
 }
 
-/**
- * Configure the dialog based on mode (create/edit) and printer data
- */
-function configureDialog(elements, mode, printer) {
-    const isEditMode = mode === 'edit';
+function setupTabs(modalOverlay)
+{
+    const navItems = modalOverlay.querySelectorAll('.printer-dialog-nav-item');
+    const tabContents = modalOverlay.querySelectorAll('.printer-dialog-tab-content');
 
-    // Reset protocol defaults tracking
+    navItems.forEach((item) => {
+        item.addEventListener('click', () => {
+            const tabName = item.dataset.tab;
+
+            navItems.forEach((navItem) => navItem.classList.remove('active'));
+            item.classList.add('active');
+
+            tabContents.forEach((content) => {
+                content.classList.toggle('active', content.dataset.content === tabName);
+            });
+        });
+    });
+}
+
+function bindEvents(elements)
+{
+    elements.closeBtn.addEventListener('click', close);
+    elements.cancelBtn.addEventListener('click', close);
+    elements.submitBtn.addEventListener('click', () => handleSubmit(elements));
+
+    elements.protocolInput.addEventListener('change', () => {
+        elements.protocolInput.classList.remove('invalid');
+        updateProtocolFields(elements);
+        updateSubmitButtonState(elements);
+    });
+
+    elements.nameInput.addEventListener('input', () => {
+        clearNameError(elements);
+        updateSubmitButtonState(elements);
+    });
+
+    elements.emulateBufferInput.addEventListener('change', () => toggleBufferFields(elements));
+    elements.dimensionsAckInput?.addEventListener('change', () => {
+        clearDimensionsAckError(elements);
+        updateSubmitButtonState(elements);
+    });
+
+    elements.clearDocumentsBtn?.addEventListener('click', handleClearDocuments);
+    elements.deletePrinterBtn?.addEventListener('click', handleDeletePrinter);
+
+    elements.overlay.addEventListener('click', (event) => {
+        if (event.target === elements.overlay)
+        {
+            close();
+        }
+    });
+
+    const handleEscape = (event) => {
+        if (event.key === 'Escape')
+        {
+            close();
+        }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    elements.overlay.escapeHandler = handleEscape;
+}
+
+function configureDialog(elements, mode, printer)
+{
+    const isEditMode = mode === 'edit';
     protocolDefaultsSet = false;
 
-    // Set title
-    elements.title.textContent = isEditMode ? 'Edit Printer' : 'New Printer';
+    elements.title.textContent = isEditMode ? 'Printer Settings' : 'Add Printer';
+    elements.submitBtn.textContent = isEditMode ? 'Save Changes' : 'Create Printer';
 
-    // Set submit button text and initial state
-    elements.submitBtn.textContent = isEditMode ? 'Save' : 'Create';
-    elements.submitBtn.disabled = !isEditMode; // Disabled in create mode until protocol selected
-
-    // In create mode, hide all protocol-dependent fields initially
-    if (!isEditMode) {
-        elements.dimensionsGroup.style.display = 'none';
-        elements.heightField.style.display = 'none';
-        elements.emulateBufferField.style.display = 'none';
-        elements.bufferFields.style.display = 'none';
-        elements.securitySection.style.display = 'none';
-    } else {
-        // In edit mode, show security section is handled below
-        // All fields will be shown by updateProtocolFields
-    }
-
-    // Hide security section in edit mode
-    if (isEditMode) {
-        elements.securitySection.style.display = 'none';
-    }
-
-    // Configure protocol field
-    if (isEditMode) {
-        elements.protocolInput.disabled = true;
-        elements.protocolInput.classList.add('no-dropdown');
-        elements.protocolHint.textContent = 'Protocol cannot be changed after creation';
-        elements.protocolHint.style.display = 'block';
-    } else {
-        elements.protocolInput.disabled = false;
-        elements.protocolInput.classList.remove('no-dropdown');
-        elements.protocolHint.style.display = 'none';
-    }
-
-    // Populate fields for edit mode
-    if (isEditMode && printer) {
-        elements.nameInput.value = printer.name || '';
+    if (isEditMode)
+    {
+        elements.nameInput.value = printer.name ?? '';
         elements.protocolInput.value = normalizeProtocol(printer.protocol);
-        elements.widthInput.value = printer.width || 512;
-        if (elements.heightInput) {
-            elements.heightInput.value = printer.height || 300;
-        }
-        elements.emulateBufferInput.checked = printer.emulateBuffer || false;
-        elements.bufferSizeInput.value = printer.bufferSize || 4096;
-        elements.drainRateInput.value = printer.drainRate || 2048;
-
-        // In edit mode, show all fields based on protocol
-        protocolDefaultsSet = true; // Don't override existing values
-    }
-
-    // Set initial protocol-specific field visibility
-    updateProtocolFields(elements);
-
-    // Set initial buffer fields visibility
-    toggleBufferFields(elements);
-}
-
-/**
- * Toggle visibility of buffer fields based on emulate buffer checkbox
- */
-function toggleBufferFields(elements) {
-    const shouldShow = elements.emulateBufferInput.checked;
-    elements.bufferFields.style.display = shouldShow ? 'block' : 'none';
-}
-
-// Protocol-specific defaults
-const DEFAULT_WIDTH_ESCPOS = 512;
-const DEFAULT_WIDTH_EPL = 412;
-const DEFAULT_HEIGHT_EPL = 310;
-
-/**
- * Update field visibility and defaults based on protocol selection
- */
-function updateProtocolFields(elements) {
-    const protocol = elements.protocolInput.value;
-    const isEpl = protocol === 'epl';
-    const isEscPos = protocol === 'escpos';
-    const hasProtocol = protocol !== '';
-    const isEditMode = currentMode === 'edit';
-
-    // Show/hide protocol-dependent fields based on whether protocol is selected
-    if (hasProtocol) {
-        // Show dimensions group (contains width and height fields)
-        if (elements.dimensionsGroup) {
-            elements.dimensionsGroup.style.display = 'grid';
-        }
-
-        // Show height field only for EPL
-        if (elements.heightField) {
-            elements.heightField.style.display = isEpl ? 'block' : 'none';
-        }
-
-        // Show buffer emulation only for ESC/POS
-        if (elements.emulateBufferField) {
-            elements.emulateBufferField.style.display = isEscPos ? 'flex' : 'none';
-        }
-
-        // Show security section in create mode
-        if (!isEditMode && elements.securitySection) {
-            elements.securitySection.style.display = 'block';
-        }
-
-        // Enable submit button in create mode
-        if (!isEditMode && elements.submitBtn) {
-            elements.submitBtn.disabled = false;
-        }
-    } else {
-        // Hide all protocol-dependent fields when no protocol selected
-        if (elements.dimensionsGroup) {
-            elements.dimensionsGroup.style.display = 'none';
-        }
-        if (elements.heightField) {
-            elements.heightField.style.display = 'none';
-        }
-        if (elements.emulateBufferField) {
-            elements.emulateBufferField.style.display = 'none';
-        }
-        if (elements.bufferFields) {
-            elements.bufferFields.style.display = 'none';
-        }
-        if (!isEditMode && elements.securitySection) {
-            elements.securitySection.style.display = 'none';
-        }
-
-        // Disable submit button in create mode
-        if (!isEditMode && elements.submitBtn) {
-            elements.submitBtn.disabled = true;
-        }
-
-        // Clear values when no protocol selected
-        if (elements.widthInput) elements.widthInput.value = '';
-        if (elements.heightInput) elements.heightInput.value = '';
-
-        return;
-    }
-
-    // Set defaults only on first protocol selection in create mode
-    if (!isEditMode && !protocolDefaultsSet) {
-        if (isEscPos) {
-            elements.widthInput.value = DEFAULT_WIDTH_ESCPOS;
-        } else if (isEpl) {
-            elements.widthInput.value = DEFAULT_WIDTH_EPL;
-            if (elements.heightInput) {
-                elements.heightInput.value = DEFAULT_HEIGHT_EPL;
-            }
-        }
+        elements.widthInput.value = printer.width ?? 512;
+        elements.heightInput.value = printer.height ?? 310;
+        elements.emulateBufferInput.checked = printer.emulateBuffer ?? false;
+        elements.bufferSizeInput.value = printer.bufferSize ?? 4096;
+        elements.drainRateInput.value = printer.drainRate ?? 2048;
         protocolDefaultsSet = true;
     }
 
-    // Handle buffer fields visibility
-    if (isEpl) {
+    if (isEditMode)
+    {
+        elements.protocolInput.disabled = true;
+        elements.protocolInput.classList.add('no-dropdown');
+        elements.protocolHint.textContent = 'Protocol is set on creation and cannot be changed.';
+        elements.protocolHint.style.display = 'block';
+        elements.dimensionsAckSection.style.display = 'none';
+    }
+    else
+    {
+        elements.protocolInput.disabled = false;
+        elements.protocolInput.classList.remove('no-dropdown');
+        elements.protocolHint.style.display = 'none';
+        elements.dimensionsAckSection.style.display = 'flex';
+    }
+
+    const hasPersistedPrinter = Boolean(currentPrinterId);
+    elements.clearDocumentsBtn.disabled = !hasPersistedPrinter;
+    elements.deletePrinterBtn.disabled = !hasPersistedPrinter;
+    elements.dangerHint.style.display = hasPersistedPrinter ? 'none' : 'block';
+
+    updateProtocolFields(elements);
+    toggleBufferFields(elements);
+    updateSubmitButtonState(elements);
+}
+
+function toggleBufferFields(elements)
+{
+    if (elements.emulateBufferField.style.display === 'none')
+    {
         elements.bufferFields.style.display = 'none';
-    } else if (isEscPos) {
-        // For ESC/POS, respect the checkbox state
+        return;
+    }
+
+    elements.bufferFields.style.display = elements.emulateBufferInput.checked ? 'grid' : 'none';
+}
+
+const defaultWidthEscPos = 512;
+const defaultWidthEpl = 412;
+const defaultHeightEpl = 310;
+
+function updateProtocolFields(elements)
+{
+    const protocol = elements.protocolInput.value;
+    const isEscPos = protocol === 'escpos';
+    const isEpl = protocol === 'epl';
+    const hasProtocol = Boolean(protocol);
+
+    elements.dimensionsGroup.style.display = hasProtocol ? 'grid' : 'none';
+    elements.heightField.style.display = isEpl ? 'block' : 'none';
+    elements.emulateBufferField.style.display = isEscPos ? 'flex' : 'none';
+
+    if (!hasProtocol)
+    {
+        elements.bufferFields.style.display = 'none';
+        elements.widthInput.value = '';
+        elements.heightInput.value = '';
+        return;
+    }
+
+    if (currentMode === 'create' && !protocolDefaultsSet)
+    {
+        if (isEscPos)
+        {
+            elements.widthInput.value = defaultWidthEscPos;
+        }
+
+        if (isEpl)
+        {
+            elements.widthInput.value = defaultWidthEpl;
+            elements.heightInput.value = defaultHeightEpl;
+        }
+
+        protocolDefaultsSet = true;
+    }
+
+    if (!isEscPos)
+    {
+        elements.bufferFields.style.display = 'none';
+    }
+    else
+    {
         toggleBufferFields(elements);
     }
 }
 
-/**
- * Clear name validation error
- */
-function clearNameError(elements) {
+function updateSubmitButtonState(elements)
+{
+    if (currentMode === 'edit')
+    {
+        elements.submitBtn.disabled = false;
+        return;
+    }
+
+    const hasName = Boolean(elements.nameInput.value.trim());
+    const hasProtocol = Boolean(elements.protocolInput.value);
+    const hasAck = elements.dimensionsAckInput?.checked ?? false;
+    elements.submitBtn.disabled = !(hasName && hasProtocol && hasAck);
+}
+
+function clearNameError(elements)
+{
     elements.nameInput.classList.remove('invalid');
     elements.nameError.classList.remove('show');
 }
 
-/**
- * Clear security acknowledgment error
- */
-function clearSecurityError(elements) {
-    elements.securityAckInput.classList.remove('invalid');
-    elements.securityAckError.classList.remove('show');
+function clearDimensionsAckError(elements)
+{
+    elements.dimensionsAckError.classList.remove('show');
 }
 
-/**
- * Handle form submission
- */
-async function handleSubmit(elements) {
-    if (currentMode === 'create') {
+async function handleSubmit(elements)
+{
+    if (currentMode === 'create')
+    {
         await handleCreate(elements);
-    } else if (currentMode === 'edit') {
-        await handleEdit(elements);
+        return;
     }
+
+    await handleEdit(elements);
 }
 
-/**
- * Handle create printer submission
- */
-async function handleCreate(elements) {
+async function handleCreate(elements)
+{
     const name = elements.nameInput.value.trim();
     const protocol = elements.protocolInput.value;
-    const width = parseInt(elements.widthInput.value) || 512;
-    const height = elements.heightInput ? (parseInt(elements.heightInput.value) || 300) : 300;
+    const width = parseInt(elements.widthInput.value, 10) || 512;
+    const height = parseInt(elements.heightInput.value, 10) || 310;
     const emulateBuffer = elements.emulateBufferInput.checked;
-    const bufferSize = parseInt(elements.bufferSizeInput.value) || 4096;
-    const drainRate = parseInt(elements.drainRateInput.value) || 2048;
-    const securityAck = elements.securityAckInput.checked;
+    const bufferSize = parseInt(elements.bufferSizeInput.value, 10) || 4096;
+    const drainRate = parseInt(elements.drainRateInput.value, 10) || 2048;
+    const hasAck = elements.dimensionsAckInput.checked;
 
-    // Clear validation errors
     clearNameError(elements);
-    clearSecurityError(elements);
+    clearDimensionsAckError(elements);
     elements.protocolInput.classList.remove('invalid');
 
-    // Validate name
-    if (!name) {
+    if (!name)
+    {
         elements.nameInput.classList.add('invalid');
         elements.nameError.classList.add('show');
         elements.nameInput.focus();
         return;
     }
 
-    // Validate protocol
-    if (!protocol) {
+    if (!protocol)
+    {
         elements.protocolInput.classList.add('invalid');
         elements.protocolInput.focus();
-        if (callbacks.showToast) {
-            callbacks.showToast('Please select a protocol', true);
-        }
+        callbacks.showToast?.('Please select a protocol', true);
         return;
     }
 
-    // Validate security acknowledgment
-    if (!securityAck) {
-        elements.securityAckError.classList.add('show');
-        elements.securityAckInput.focus();
+    if (!hasAck)
+    {
+        elements.dimensionsAckError.classList.add('show');
+        elements.dimensionsAckInput.focus();
         return;
     }
 
-    try {
+    try
+    {
         const request = {
             printer: {
                 id: createUuid(),
                 displayName: name
             },
             settings: {
-                protocol: callbacks.normalizeProtocol ? callbacks.normalizeProtocol(protocol) : normalizeProtocol(protocol),
+                protocol: callbacks.normalizeProtocol
+                    ? callbacks.normalizeProtocol(protocol)
+                    : normalizeProtocol(protocol),
                 widthInDots: width,
                 heightInDots: protocol === 'epl' ? height : null,
                 emulateBufferCapacity: emulateBuffer,
@@ -420,58 +381,53 @@ async function handleCreate(elements) {
         });
 
         close();
-
-        if (callbacks.loadPrinters) {
-            await callbacks.loadPrinters(created.printer.id);
-        }
-
-        if (callbacks.showToast) {
-            callbacks.showToast('Printer created successfully');
-        }
-    } catch (err) {
+        await callbacks.loadPrinters?.(created.printer.id);
+        callbacks.showToast?.('Printer created successfully');
+    }
+    catch (err)
+    {
         console.error(err);
-        if (callbacks.showToast) {
-            callbacks.showToast(err.message || 'Failed to create printer', true);
-        }
+        callbacks.showToast?.(err.message || 'Failed to create printer', true);
     }
 }
 
-/**
- * Handle edit printer submission
- */
-async function handleEdit(elements) {
-    if (!currentPrinterId) {
+async function handleEdit(elements)
+{
+    if (!currentPrinterId)
+    {
         console.error('Printer ID is required for edit mode');
         return;
     }
 
     const name = elements.nameInput.value.trim();
     const protocol = elements.protocolInput.value;
-    const width = parseInt(elements.widthInput.value) || 512;
-    const height = elements.heightInput ? (parseInt(elements.heightInput.value) || 300) : 300;
+    const width = parseInt(elements.widthInput.value, 10) || 512;
+    const height = parseInt(elements.heightInput.value, 10) || 310;
     const emulateBuffer = elements.emulateBufferInput.checked;
-    const bufferSize = parseInt(elements.bufferSizeInput.value) || 4096;
-    const drainRate = parseInt(elements.drainRateInput.value) || 2048;
+    const bufferSize = parseInt(elements.bufferSizeInput.value, 10) || 4096;
+    const drainRate = parseInt(elements.drainRateInput.value, 10) || 2048;
 
-    // Clear validation errors
     clearNameError(elements);
 
-    // Validate name
-    if (!name) {
+    if (!name)
+    {
         elements.nameInput.classList.add('invalid');
         elements.nameError.classList.add('show');
         elements.nameInput.focus();
         return;
     }
 
-    try {
+    try
+    {
         const request = {
             printer: {
                 id: currentPrinterId,
                 displayName: name
             },
             settings: {
-                protocol: callbacks.normalizeProtocol ? callbacks.normalizeProtocol(protocol) : normalizeProtocol(protocol),
+                protocol: callbacks.normalizeProtocol
+                    ? callbacks.normalizeProtocol(protocol)
+                    : normalizeProtocol(protocol),
                 widthInDots: width,
                 heightInDots: protocol === 'epl' ? height : null,
                 emulateBufferCapacity: emulateBuffer,
@@ -486,38 +442,97 @@ async function handleEdit(elements) {
         });
 
         close();
-
-        if (callbacks.loadPrinters) {
-            await callbacks.loadPrinters(currentPrinterId);
-        }
-
-        if (callbacks.showToast) {
-            callbacks.showToast('Printer updated successfully');
-        }
-    } catch (err) {
+        await callbacks.loadPrinters?.(currentPrinterId);
+        callbacks.showToast?.('Printer updated successfully');
+    }
+    catch (err)
+    {
         console.error(err);
-        if (callbacks.showToast) {
-            callbacks.showToast(err.message || 'Failed to update printer', true);
-        }
+        callbacks.showToast?.(err.message || 'Failed to update printer', true);
     }
 }
 
-/**
- * Load the HTML template
- */
-async function loadTemplate() {
-    // Add cache busting parameter to force reload
-    const cacheBuster = `?v=${Date.now()}`;
-    const response = await fetch('features/printers/printer-dialog/printer-dialog.html' + cacheBuster, { cache: 'no-store' });
+async function handleClearDocuments()
+{
+    if (!currentPrinterId)
+    {
+        return;
+    }
+
+    const printerName = escapeHtml(currentPrinterName || 'this printer');
+    const message = `Delete all documents for <strong>${printerName}</strong>?<br><br>This action cannot be undone.`;
+
+    if (!window.ConfirmDialog)
+    {
+        return;
+    }
+
+    ConfirmDialog.show(
+        'Delete All Documents',
+        message,
+        'Delete Documents',
+        async () => {
+            try
+            {
+                await callbacks.apiRequest(`/api/printers/${currentPrinterId}/documents`, { method: 'DELETE' });
+                callbacks.showToast?.('All documents deleted');
+                await callbacks.loadPrinters?.(currentPrinterId);
+            }
+            catch (err)
+            {
+                console.error(err);
+                callbacks.showToast?.(err.message || 'Failed to delete documents', true);
+            }
+        },
+        true
+    );
+}
+
+async function handleDeletePrinter()
+{
+    if (!currentPrinterId)
+    {
+        return;
+    }
+
+    const printerName = escapeHtml(currentPrinterName || 'this printer');
+    const message = `Delete <strong>${printerName}</strong>?<br><br>This action cannot be undone.`;
+
+    if (!window.ConfirmDialog)
+    {
+        return;
+    }
+
+    ConfirmDialog.show(
+        'Delete Printer',
+        message,
+        'Delete Printer',
+        async () => {
+            try
+            {
+                await callbacks.apiRequest(`/api/printers/${currentPrinterId}`, { method: 'DELETE' });
+                close();
+                callbacks.showToast?.('Printer deleted');
+                await callbacks.loadPrinters?.();
+            }
+            catch (err)
+            {
+                console.error(err);
+                callbacks.showToast?.(err.message || 'Failed to delete printer', true);
+            }
+        },
+        true
+    );
+}
+
+async function loadTemplate()
+{
+    const response = await fetch('features/printers/printer-dialog/printer-dialog.html' + V);
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     template = doc.querySelector('template');
 }
-
-// ============================================================================
-// WINDOW EXPORTS (for non-module scripts like main.js)
-// ============================================================================
 
 window.PrinterDialogue = {
     init,

@@ -1,33 +1,227 @@
-/* Printer Dialogue Styles */
-/* This file contains only printer-dialog specific styles */
-/* All modal, form, button, and layout styles are imported from main.css */
+/* Printer dialog local styles aligned with workspace settings dialog */
 
-/* Printer dialog specific overrides */
-.field-group {
+.printer-dialog {
+    max-width: 800px;
+}
+
+.printer-dialog-header {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.printer-dialog-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.printer-dialog-content-wrapper {
+    display: flex;
+    min-height: 480px;
+    height: 480px;
+    overflow: hidden;
+}
+
+.printer-dialog-nav {
+    width: 220px;
+    flex-shrink: 0;
+    padding: 20px 0;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+}
+
+.printer-dialog-nav-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-left: 3px solid transparent;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
 }
 
-.field-group .field {
+.printer-dialog-nav-item:hover {
+    background-color: rgba(128, 128, 128, 0.3);
+    color: var(--text);
+}
+
+.printer-dialog-nav-item.active {
+    color: var(--text);
+    border-left-color: var(--accent);
+    background-color: rgba(16, 185, 129, 0.15);
+}
+
+.printer-dialog-nav-item.active:hover {
+    background-color: rgba(16, 185, 129, 0.2);
+}
+
+.printer-dialog-nav-item.danger {
+    color: var(--danger);
+}
+
+.printer-dialog-nav-item.danger:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.printer-dialog-nav-item.danger.active {
+    border-left-color: var(--danger);
+}
+
+.printer-dialog-nav-divider {
+    height: 1px;
+    margin: 8px 20px;
+    background-color: var(--border);
+}
+
+.printer-dialog-content {
     flex: 1;
+    padding: 20px;
+    overflow-y: auto;
 }
 
-.checkbox-field {
-    margin: 16px 0;
+.printer-dialog-tab-content {
+    display: none;
 }
 
-.checkbox-field input[type="checkbox"] {
+.printer-dialog-tab-content.active {
+    display: block;
+}
+
+.settings-section {
+    max-width: 520px;
+}
+
+.settings-section h3 {
+    margin: 0 0 20px 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.printer-dimensions-grid,
+.printer-buffer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.input-short {
+    max-width: 160px;
+}
+
+.printer-toggle-label,
+.printer-ack-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    line-height: 1.4;
+    cursor: pointer;
+    user-select: none;
+}
+
+.printer-toggle-label input[type='checkbox'],
+.printer-ack-label input[type='checkbox'] {
     width: 16px;
     height: 16px;
+    margin-top: 1px;
+    accent-color: var(--accent);
+    flex-shrink: 0;
 }
 
-.indent {
-    margin-left: 20px;
+.printer-ack-label input[type='checkbox'] {
+    accent-color: var(--danger);
 }
 
-/* Hide dropdown arrow for read-only protocol field in edit mode */
-select.no-dropdown {
+.info-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    background-color: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    margin-top: 16px;
+}
+
+.danger-ack-box {
+    background-color: rgba(239, 68, 68, 0.12);
+    border-color: var(--danger);
+}
+
+.danger-ack-box a {
+    color: var(--danger);
+    text-decoration: underline;
+}
+
+.danger-ack-box .themed-icon {
+    color: var(--danger);
+}
+
+.tab-placeholder {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.danger-section {
+    border: 1px solid var(--danger);
+    border-radius: 12px;
+    padding: 20px;
+    background-color: rgba(239, 68, 68, 0.05);
+}
+
+.danger-description {
+    margin: 0 0 16px 0;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.danger-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.printer-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s, color 0.15s;
+}
+
+.btn-close:hover {
+    background-color: var(--bg-elev);
+    color: var(--text);
+}
+
+.no-dropdown {
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;
