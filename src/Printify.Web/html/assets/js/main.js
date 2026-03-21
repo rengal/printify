@@ -1326,7 +1326,8 @@
                         canvas.heightInDots,
                         `${updated.id}-canvas-${index}`,
                         updated.errorMessages,
-                        isDocumentRawDataActive(updated)
+                        isDocumentRawDataActive(updated),
+                        updated.protocol
                     )
                 }));
             } else {
@@ -1337,7 +1338,8 @@
                     updated.heightInDots,
                     updated.id,
                     updated.errorMessages,
-                    isDocumentRawDataActive(updated)
+                    isDocumentRawDataActive(updated),
+                    updated.protocol
                 );
             }
 
@@ -1366,7 +1368,8 @@
                                         canvas.heightInDots,
                                         `${doc.id}-canvas-${index}`,
                                         doc.errorMessages,
-                                        isDocumentRawDataActive(doc)
+                                        isDocumentRawDataActive(doc),
+                                        doc.protocol
                                     )
                                 }))
                             };
@@ -1380,7 +1383,8 @@
                                     doc.heightInDots,
                                     doc.id,
                                     doc.errorMessages,
-                                    isDocumentRawDataActive(doc)
+                                    isDocumentRawDataActive(doc),
+                                    doc.protocol
                                 )
                             };
                         }
@@ -1617,7 +1621,8 @@
                                                 canvas.heightInDots,
                                                 `${doc.id}-canvas-${index}`,
                                                 doc.errorMessages,
-                                                isDocumentRawDataActive(doc)
+                                                isDocumentRawDataActive(doc),
+                                                doc.protocol
                                             )
                                         }))
                                     };
@@ -1631,7 +1636,8 @@
                                             doc.heightInDots,
                                             doc.id,
                                             doc.errorMessages,
-                                            isDocumentRawDataActive(doc)
+                                            isDocumentRawDataActive(doc),
+                                            doc.protocol
                                         )
                                     };
                                 }
