@@ -305,7 +305,7 @@ public static class EscPosScenarioData
                     },
                     // The image that cleared the buffer
                     DebugElement("rasterImage", lengthInBytes: 10),
-                    ViewImage(0, 10, 8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10),
+                    ViewImage(0, 0, 8, 2, Media.CreateDefaultPng(85), lengthInBytes: 10),
                     // "DEF" added to fresh buffer
                     DebugElement("appendToLineBuffer", parameters: new Dictionary<string, string> { ["Text"] = "DEF" }, lengthInBytes: 3),
                     // Flush - only "DEF" prints (positioned below the image)
