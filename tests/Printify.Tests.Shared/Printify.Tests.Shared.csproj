@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="TestData\EscPos\**\*.b64" />
+    <EmbeddedResource Include="TestData\Epl\**\*.b64" />
   </ItemGroup>
 
 </Project>

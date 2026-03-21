@@ -278,7 +278,7 @@ public static class EscPosGoldenCases
 
         var resources = assembly
             .GetManifestResourceNames()
-            .Where(name => name.EndsWith(".b64", StringComparison.OrdinalIgnoreCase))
+            .Where(name => name.Contains(".EscPos.") && name.EndsWith(".b64", StringComparison.OrdinalIgnoreCase))
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase);
 
         foreach (var resourceName in resources)
