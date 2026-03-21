@@ -352,7 +352,7 @@ function renderDocumentItem(doc) {
                         <div class="document-canvas-footer-right">
                             <span class="document-meta-text document-footer-text">Page ${index + 1}/${totalPages}</span>
                             <button class="copy-icon-btn document-copy-btn" data-docs-copy data-docs-canvas-index="${index}" title="Copy canvas content">
-                                <img src="assets/icons/copy.svg" width="14" height="14" alt="Copy">
+                                <img src="assets/icons/copy.svg" width="14" height="14" alt="Copy" class="themed-icon">
                             </button>
                         </div>
                     </div>
@@ -589,12 +589,13 @@ function renderViewLineElement(element, id) {
     const width = maxX - minX;
     const height = maxY - minY;
 
-    // Use SVG for drawing the box (rectangle with stroke)
+    // Use SVG for drawing the box (rectangle with stroke).
+    // Inset by 0.5px so the 1px stroke sits on integer pixel boundaries (crisp, no sub-pixel blur).
     return `
         <div id="${id}" data-element-type="line" data-original-y="${minY}" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none;">
             <svg style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible;" xmlns="http://www.w3.org/2000/svg">
-                <rect x="${minX}" y="${minY}" width="${width}" height="${height}"
-                      fill="none" stroke="black" stroke-width="${thickness}" vector-effect="non-scaling-stroke" />
+                <rect x="${minX + 0.5}" y="${minY + 0.5}" width="${Math.max(0, width - 1)}" height="${Math.max(0, height - 1)}"
+                      fill="none" stroke="currentColor" stroke-width="1" shape-rendering="crispEdges" />
             </svg>
         </div>
     `;
