@@ -41,6 +41,488 @@ const callbacks = {
 };
 
 // ============================================================================
+// PER-PRINTER STATE
+// Each printer gets its own panel div and data cache.
+// printerStates[printerId] = {
+//   el,            — the panel div (child of host, display:none when inactive)
+//   docs,          — Array of mapped document objects (newest first)
+//   firstDocId,    — id of the newest cached doc (top of list)
+//   lastDocId,     — id of the oldest cached doc (bottom of list, for beforeId)
+//   hasMore,       — whether there are older pages to load
+//   paginationLoading, — guard for concurrent load-more
+//   nextBeforeId,  — cursor for next older page
+// }
+// ============================================================================
+
+const printerStates = {};
+let activePrinterId = null;
+
+// Scroll observer (one at a time, for the active printer panel)
+let _scrollObserver = null;
+let _scrollSentinel = null;
+let _scrollObserverPrinterId = null;
+
+function getOrCreatePrinterState(printerId) {
+    if (!printerStates[printerId]) {
+        printerStates[printerId] = {
+            el: null,
+            docs: [],
+            firstDocId: null,
+            lastDocId: null,
+            hasMore: false,
+            paginationLoading: false,
+            nextBeforeId: null
+        };
+    }
+    return printerStates[printerId];
+}
+
+function getHostContainer() {
+    return document.getElementById('documentsPanel');
+}
+
+function getPrinterPanel(printerId) {
+    const state = printerStates[printerId];
+    if (state?.el) return state.el;
+    return null;
+}
+
+function getOrCreatePrinterPanel(printerId) {
+    const state = getOrCreatePrinterState(printerId);
+    if (!state.el) {
+        const host = getHostContainer();
+        if (!host) return null;
+        const panel = document.createElement('div');
+        panel.className = 'printer-doc-panel';
+        panel.dataset.printerPanel = printerId;
+        panel.style.display = 'none';
+        host.appendChild(panel);
+        state.el = panel;
+    }
+    return state.el;
+}
+
+function getOrCreateStubPanel() {
+    const host = getHostContainer();
+    if (!host) return null;
+    let stub = host.querySelector('.docs-stub-panel');
+    if (!stub) {
+        stub = document.createElement('div');
+        stub.className = 'docs-stub-panel';
+        stub.style.display = 'none';
+        host.appendChild(stub);
+    }
+    return stub;
+}
+
+function hideAllPanelsAndStub() {
+    for (const id in printerStates) {
+        if (printerStates[id].el) printerStates[id].el.style.display = 'none';
+    }
+    const stub = getHostContainer()?.querySelector('.docs-stub-panel');
+    if (stub) stub.style.display = 'none';
+}
+
+function showPrinterPanel(printerId) {
+    hideAllPanelsAndStub();
+    const panel = getPrinterPanel(printerId);
+    if (panel) panel.style.display = '';
+}
+
+function showStubPanel(contentNode) {
+    hideAllPanelsAndStub();
+    const stub = getOrCreateStubPanel();
+    if (!stub) return;
+    stub.innerHTML = '';
+    if (contentNode) stub.appendChild(contentNode);
+    stub.style.display = '';
+}
+
+function updatePrinterCursors(printerId) {
+    const state = printerStates[printerId];
+    if (!state || state.docs.length === 0) {
+        state.firstDocId = null;
+        state.lastDocId = null;
+        return;
+    }
+    state.firstDocId = state.docs[0].id;
+    state.lastDocId = state.docs[state.docs.length - 1].id;
+}
+
+// ============================================================================
+// SCROLL OBSERVER (per active printer panel)
+// ============================================================================
+
+function attachScrollObserver(printerId) {
+    detachScrollObserver();
+
+    const panel = getPrinterPanel(printerId);
+    if (!panel) return;
+
+    const sentinel = document.createElement('div');
+    sentinel.className = 'docs-scroll-spacer';
+    panel.appendChild(sentinel);
+    _scrollSentinel = sentinel;
+    _scrollObserverPrinterId = printerId;
+
+    _scrollObserver = new IntersectionObserver((entries) => {
+        console.debug(`[pagination] sentinel intersecting=${entries[0].isIntersecting}`);
+        if (entries[0].isIntersecting) {
+            _loadMoreCallback?.(_scrollObserverPrinterId);
+        }
+    }, { root: panel.parentElement, rootMargin: '0px 0px 60px 0px', threshold: 0 });
+
+    _scrollObserver.observe(sentinel);
+    console.debug(`[pagination] scroll observer attached for printer=${printerId}`);
+}
+
+function detachScrollObserver() {
+    if (_scrollObserver) {
+        _scrollObserver.disconnect();
+        _scrollObserver = null;
+    }
+    if (_scrollSentinel) {
+        _scrollSentinel.remove();
+        _scrollSentinel = null;
+    }
+    _scrollObserverPrinterId = null;
+}
+
+// Injected by main.js via init so panel can trigger load-more
+let _loadMoreCallback = null;
+
+// ============================================================================
+// PUBLIC: PRINTER SELECTION
+// Called by main.js when user selects a printer.
+// Fetches latest docs (always), diffs against cache, prepends new ones.
+// ============================================================================
+
+export async function selectPrinter(printerId, printer, apiFetch) {
+    activePrinterId = printerId;
+    detachScrollObserver();
+
+    const host = getHostContainer();
+    if (!host) return;
+
+    const state = getOrCreatePrinterState(printerId);
+    const panel = getOrCreatePrinterPanel(printerId);
+
+    const isFirstLoad = state.docs.length === 0;
+
+    showPrinterPanel(printerId);
+    await showState('loading', { printerId });
+
+    await loadTemplateDocument();
+
+    const t0 = performance.now();
+    let fetchedDocs = [];
+    let hasMore = false;
+    let nextBeforeId = null;
+
+    try {
+        const response = await apiFetch(`/api/printers/${printerId}/documents/canvas?limit=20`);
+        console.debug(`[selectPrinter] fetch: ${(performance.now() - t0).toFixed(0)}ms`);
+        const result = response?.result;
+        const items = result?.items || [];
+        hasMore = result?.hasMore ?? false;
+        nextBeforeId = result?.nextBeforeId ?? null;
+        fetchedDocs = items.map(dto => mapViewDocumentDto(dto, printer));
+    } catch (err) {
+        console.error('[DocumentsPanel] Failed to fetch documents', err);
+        panel.innerHTML = '';
+        return;
+    }
+
+    if (fetchedDocs.length === 0 && state.docs.length === 0) {
+        state.hasMore = false;
+        state.nextBeforeId = null;
+        updatePrinterCursors(printerId);
+        await showState('no-documents', { printerId, printer });
+        return;
+    }
+
+    // Diff: find docs from fetch that are not already cached
+    const cachedIds = new Set(state.docs.map(d => d.id));
+    const newDocs = fetchedDocs.filter(d => !cachedIds.has(d.id));
+
+    if (newDocs.length > 0) {
+        // Prepend new docs to cache (newest first)
+        state.docs = [...newDocs, ...state.docs].slice(0, 200);
+        state.hasMore = hasMore;
+        state.nextBeforeId = nextBeforeId;
+        updatePrinterCursors(printerId);
+        console.debug(`[selectPrinter] ${newDocs.length} new docs prepended, total=${state.docs.length}`);
+    } else {
+        // No new docs — keep existing cache, but update pagination from fresh fetch
+        state.hasMore = hasMore;
+        state.nextBeforeId = nextBeforeId;
+        console.debug(`[selectPrinter] no new docs, showing cached ${state.docs.length}`);
+    }
+
+    // Render full list into this printer's panel
+    const t1 = performance.now();
+    await _renderDocsInPanel(panel, state.docs, printerId);
+    console.debug(`[selectPrinter] render: ${(performance.now() - t1).toFixed(0)}ms`);
+
+    if (state.hasMore) {
+        attachScrollObserver(printerId);
+    }
+}
+
+// ============================================================================
+// PUBLIC: PREPEND SINGLE DOCUMENT (from stream)
+// ============================================================================
+
+export function prependDocument(printerId, doc) {
+    const state = getOrCreatePrinterState(printerId);
+
+    // Update cache
+    const existingIdx = state.docs.findIndex(d => d.id === doc.id);
+    if (existingIdx !== -1) {
+        state.docs[existingIdx] = doc;
+    } else {
+        state.docs.unshift(doc);
+        state.docs.sort((a, b) => b.timestamp - a.timestamp);
+        state.docs = state.docs.slice(0, 200);
+    }
+    updatePrinterCursors(printerId);
+
+    const panel = getPrinterPanel(printerId);
+    if (!panel || activePrinterId !== printerId) return; // panel not visible — cache updated, done
+
+    // If panel currently shows empty/loading state, do a full render instead
+    if (!panel.querySelector('.document-item')) {
+        _renderDocsInPanel(panel, state.docs, printerId).then(() => {
+            if (state.hasMore) attachScrollObserver(printerId);
+        });
+        return;
+    }
+
+    // Prepend single node to top of existing list
+    loadTemplateDocument().then(() => {
+        const el = renderDocumentItem(doc);
+        if (!el) return;
+
+        // Build off-screen for image loading
+        const offscreen = document.createElement('div');
+        offscreen.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0;pointer-events:none;';
+        document.body.appendChild(offscreen);
+        offscreen.appendChild(el);
+
+        const imgs = Array.from(offscreen.querySelectorAll('img[src]')).filter(img => {
+            const src = img.getAttribute('src') || '';
+            return src.startsWith('/api/') || src.includes('/media/');
+        });
+
+        const waitForImages = imgs.length > 0
+            ? Promise.all(imgs.map(img => {
+                if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+                return new Promise(resolve => {
+                    const t = setTimeout(resolve, 5000);
+                    img.onload = img.onerror = () => { clearTimeout(t); resolve(); };
+                    if (img.complete) { clearTimeout(t); resolve(); }
+                });
+            }))
+            : Promise.resolve();
+
+        waitForImages.then(() => {
+            document.body.removeChild(offscreen);
+            // Insert before the first .document-item
+            const first = panel.querySelector('.document-item');
+            if (first) {
+                panel.insertBefore(el, first);
+            } else {
+                panel.insertBefore(el, panel.firstChild);
+            }
+        });
+    });
+}
+
+// ============================================================================
+// PUBLIC: LOAD MORE (infinite scroll — older pages)
+// ============================================================================
+
+export async function loadMore(printerId, printer, apiFetch) {
+    const state = printerStates[printerId];
+    if (!state || !state.hasMore || state.paginationLoading) {
+        console.debug(`[pagination] loadMore skipped: hasMore=${state?.hasMore}, loading=${state?.paginationLoading}`);
+        return;
+    }
+
+    state.paginationLoading = true;
+    const panel = getPrinterPanel(printerId);
+    if (panel) renderLoadingMore(panel);
+
+    try {
+        const url = `/api/printers/${printerId}/documents/canvas?limit=20&beforeId=${state.nextBeforeId}`;
+        console.debug(`[pagination] fetching more: ${url}`);
+        const response = await apiFetch(url);
+        const result = response?.result;
+        const items = result?.items || [];
+
+        const existingIds = new Set(state.docs.map(d => d.id));
+        const mapped = items
+            .filter(dto => !existingIds.has(dto.id))
+            .map(dto => mapViewDocumentDto(dto, printer));
+
+        state.docs = [...state.docs, ...mapped];
+        state.hasMore = result?.hasMore ?? false;
+        state.nextBeforeId = result?.nextBeforeId ?? null;
+        state.paginationLoading = false;
+        updatePrinterCursors(printerId);
+
+        console.debug(`[pagination] got ${mapped.length} new docs, hasMore=${state.hasMore}, total=${state.docs.length}`);
+
+        if (panel) {
+            removeLoadingMore(panel);
+            if (mapped.length > 0) {
+                await renderDocumentsList(mapped, printer, panel, { append: true });
+            }
+        }
+
+        if (state.hasMore) {
+            attachScrollObserver(printerId);
+        } else {
+            detachScrollObserver();
+        }
+    } catch (err) {
+        if (state) state.paginationLoading = false;
+        if (panel) removeLoadingMore(panel);
+        console.error('[DocumentsPanel] Failed to load more documents', err);
+    }
+}
+
+// ============================================================================
+// PUBLIC: CLEAR PRINTER (after delete documents action)
+// ============================================================================
+
+export function clearPrinter(printerId) {
+    const state = printerStates[printerId];
+    if (!state) return;
+    state.docs = [];
+    state.firstDocId = null;
+    state.lastDocId = null;
+    state.hasMore = false;
+    state.nextBeforeId = null;
+    state.paginationLoading = false;
+    if (state.el) state.el.innerHTML = '';
+}
+
+export function disposePrinter(printerId) {
+    const state = printerStates[printerId];
+    if (!state) return;
+    state.el?.remove();
+    delete printerStates[printerId];
+}
+
+// ============================================================================
+// PUBLIC: DOC COUNT (for confirm dialogs in main.js)
+// ============================================================================
+
+export function getDocCount(printerId) {
+    return printerStates[printerId]?.docs.length ?? 0;
+}
+
+// ============================================================================
+// PUBLIC: RE-RENDER ALL DOCS (when debug mode toggles)
+// ============================================================================
+
+export function reRenderAll(isRawDataActiveFn) {
+    for (const printerId in printerStates) {
+        const state = printerStates[printerId];
+        if (!state.docs.length) continue;
+
+        state.docs = state.docs.map(doc => _reRenderDoc(doc, isRawDataActiveFn(doc)));
+
+        // If this printer's panel is active, re-render into DOM
+        if (activePrinterId === printerId && state.el) {
+            _renderDocsInPanel(state.el, state.docs, printerId).then(() => {
+                if (state.hasMore) attachScrollObserver(printerId);
+            });
+        }
+    }
+}
+
+// ============================================================================
+// PUBLIC: TOGGLE SINGLE DOCUMENT DEBUG
+// ============================================================================
+
+export function toggleDocumentDebug(printerId, documentId, isEnabled, isRawDataActiveFn) {
+    const state = printerStates[printerId];
+    if (!state) return;
+
+    const idx = state.docs.findIndex(d => d.id === documentId);
+    if (idx === -1) return;
+
+    const updated = { ...state.docs[idx], debugEnabled: !!isEnabled };
+    state.docs[idx] = _reRenderDoc(updated, isRawDataActiveFn(updated));
+
+    // Update just this document's DOM node if panel is active
+    if (activePrinterId === printerId && state.el) {
+        const existingItem = state.el.querySelector(`.document-item[data-doc-id="${documentId}"]`);
+        loadTemplateDocument().then(() => {
+            const newEl = renderDocumentItem(state.docs[idx]);
+            if (!newEl) return;
+            if (existingItem) {
+                existingItem.replaceWith(newEl);
+            }
+            if (callbacks.isDocumentRawDataActive?.(state.docs[idx])) {
+                requestAnimationFrame(() => {
+                    if (state.docs[idx].canvases?.length > 0) {
+                        state.docs[idx].canvases.forEach((_, i) => {
+                            adjustDebugYPositions(`doc-content-${documentId}-canvas-${i}`, true);
+                        });
+                    } else {
+                        adjustDebugYPositions(`doc-content-${documentId}`, true);
+                    }
+                });
+            }
+        });
+    }
+}
+
+function _reRenderDoc(doc, includeDebug) {
+    if (doc.canvases && doc.canvases.length > 0) {
+        return {
+            ...doc,
+            canvases: doc.canvases.map((canvas, index) => ({
+                ...canvas,
+                previewHtml: renderViewDocument(
+                    canvas.elements || [],
+                    canvas.width,
+                    canvas.heightInDots,
+                    `${doc.id}-canvas-${index}`,
+                    doc.errorMessages,
+                    includeDebug,
+                    doc.protocol
+                )
+            }))
+        };
+    }
+    return {
+        ...doc,
+        previewHtml: renderViewDocument(
+            doc.elements || [],
+            doc.widthInDots,
+            doc.heightInDots,
+            doc.id,
+            doc.errorMessages,
+            includeDebug,
+            doc.protocol
+        )
+    };
+}
+
+// ============================================================================
+// INTERNAL: RENDER DOCS INTO A PANEL DIV
+// ============================================================================
+
+async function _renderDocsInPanel(panel, docs, printerId) {
+    if (docs.length === 0) return;
+    await renderDocumentsList(docs, null, panel);
+}
+
+// ============================================================================
 // PUBLIC API
 // ============================================================================
 
@@ -49,6 +531,9 @@ const callbacks = {
  */
 export function init(actionCallbacks) {
     Object.assign(callbacks, actionCallbacks);
+    if (actionCallbacks.onLoadMore) {
+        _loadMoreCallback = actionCallbacks.onLoadMore;
+    }
 }
 
 // ============================================================================
@@ -84,19 +569,73 @@ async function loadTemplateDocument() {
 /**
  * Render the loading state (initial documents fetch in progress)
  */
-export function renderLoading(targetContainer) {
-    const container = targetContainer || document.getElementById('documentsPanel');
-    if (!container) return;
-    container.innerHTML = `
-        <div class="docs-loading">
-            <div class="docs-progress-bar"><div class="docs-progress-bar-fill"></div></div>
-            <span>Loading documents...</span>
-        </div>`;
-    currentContainer = container;
+// ============================================================================
+// SINGLE POINT OF ENTRY — show one of 4 panel states
+//
+// States:
+//   'no-workspace'  — not logged in (welcome + create/access buttons)
+//   'no-printer'    — logged in, no printer selected (greeting message)
+//   'no-documents'  — printer selected, no docs yet (setup instructions)
+//                     options: { printerId, printer }
+//   'loading'       — printer selected, fetching docs
+//                     options: { printerId }
+// ============================================================================
+
+export async function showState(state, options = {}) {
+    await loadTemplateDocument();
+
+    switch (state) {
+        case 'no-workspace': {
+            const wrap = document.createElement('div');
+            wrap.appendChild(templates.noWorkspace.content.cloneNode(true));
+            wrap.querySelector('[data-action="create-workspace"]')
+                ?.addEventListener('click', () => callbacks.onCreateWorkspace?.());
+            wrap.querySelector('[data-action="access-workspace"]')
+                ?.addEventListener('click', () => callbacks.onAccessWorkspace?.());
+            showStubPanel(wrap);
+            break;
+        }
+        case 'no-printer': {
+            const wrap = document.createElement('div');
+            wrap.appendChild(templates.noPrinter.content.cloneNode(true));
+            const greetingEl = wrap.querySelector('[data-docs-greeting]');
+            const messageEl  = wrap.querySelector('[data-docs-message]');
+            if (greetingEl) greetingEl.textContent = options.greeting || 'Welcome!';
+            if (messageEl)  messageEl.textContent  = options.message  || 'Select a printer to view documents';
+            showStubPanel(wrap);
+            break;
+        }
+        case 'no-documents': {
+            const panel = options.printerId ? getOrCreatePrinterPanel(options.printerId) : null;
+            if (!panel) break;
+            const printer = options.printer;
+            panel.innerHTML = '';
+            const wrap = document.createElement('div');
+            wrap.appendChild(templates.noDocuments.content.cloneNode(true));
+            const hostEl     = wrap.querySelector('[data-docs-host]');
+            const portEl     = wrap.querySelector('[data-docs-port]');
+            const protocolEl = wrap.querySelector('[data-docs-protocol]');
+            if (hostEl)     hostEl.textContent     = printer?.publicHost || 'localhost';
+            if (portEl)     portEl.textContent     = printer?.port || 'not configured';
+            if (protocolEl) protocolEl.textContent = (printer?.protocol || 'ESC/POS').toUpperCase();
+            panel.appendChild(wrap);
+            break;
+        }
+        case 'loading': {
+            const panel = options.printerId ? getOrCreatePrinterPanel(options.printerId) : null;
+            if (!panel) break;
+            panel.innerHTML = `
+                <div class="docs-loading">
+                    <div class="docs-progress-bar"><div class="docs-progress-bar-fill"></div></div>
+                    <span>Loading documents...</span>
+                </div>`;
+            break;
+        }
+    }
 }
 
 /**
- * Append a "loading more" indicator at the bottom of the container
+ * Append a "loading more" indicator at the bottom of a printer panel
  */
 export function renderLoadingMore(targetContainer) {
     const container = targetContainer || document.getElementById('documentsPanel');
@@ -107,7 +646,6 @@ export function renderLoadingMore(targetContainer) {
     el.innerHTML = `
         <div class="docs-progress-bar"><div class="docs-progress-bar-fill"></div></div>
         <span>Loading more documents...</span>`;
-    // Insert before the scroll sentinel so it appears inside the panel, not after it
     const sentinel = container.querySelector('.docs-scroll-spacer');
     if (sentinel) {
         container.insertBefore(el, sentinel);
@@ -122,88 +660,6 @@ export function renderLoadingMore(targetContainer) {
 export function removeLoadingMore(targetContainer) {
     const container = targetContainer || document.getElementById('documentsPanel');
     (container || document).querySelector('#docs-loading-more-indicator')?.remove();
-}
-
-/**
- * Render the no-workspace state (landing page)
- */
-export async function renderNoWorkspace(targetContainer) {
-    const container = targetContainer || document.getElementById('documentsPanel');
-    if (!container) return null;
-
-    await loadTemplateDocument();
-    container.innerHTML = '';
-
-    const fragment = templates.noWorkspace.content.cloneNode(true);
-    container.appendChild(fragment);
-
-    // Attach event handlers
-    const createBtn = container.querySelector('[data-action="create-workspace"]');
-    const accessBtn = container.querySelector('[data-action="access-workspace"]');
-
-    if (createBtn) {
-        createBtn.addEventListener('click', () => callbacks.onCreateWorkspace?.());
-    }
-    if (accessBtn) {
-        accessBtn.addEventListener('click', () => callbacks.onAccessWorkspace?.());
-    }
-
-    currentContainer = container;
-    return container;
-}
-
-/**
- * Render the no-printer-selected state
- */
-export async function renderNoPrinter(options, targetContainer) {
-    const container = targetContainer || document.getElementById('documentsPanel');
-    if (!container) return null;
-
-    await loadTemplateDocument();
-    container.innerHTML = '';
-
-    const fragment = templates.noPrinter.content.cloneNode(true);
-    container.appendChild(fragment);
-
-    // Set greeting and message
-    const greetingEl = container.querySelector('[data-docs-greeting]');
-    const messageEl = container.querySelector('[data-docs-message]');
-
-    if (greetingEl) {
-        greetingEl.textContent = options?.greeting || 'Welcome!';
-    }
-    if (messageEl) {
-        messageEl.textContent = options?.message || 'Select a printer to view documents';
-    }
-
-    currentContainer = container;
-    return container;
-}
-
-/**
- * Render the no-documents state for a selected printer
- */
-export async function renderNoDocuments(printer, targetContainer) {
-    const container = targetContainer || document.getElementById('documentsPanel');
-    if (!container) return null;
-
-    await loadTemplateDocument();
-    container.innerHTML = '';
-
-    const fragment = templates.noDocuments.content.cloneNode(true);
-    container.appendChild(fragment);
-
-    // Set printer connection info
-    const hostEl = container.querySelector('[data-docs-host]');
-    const portEl = container.querySelector('[data-docs-port]');
-    const protocolEl = container.querySelector('[data-docs-protocol]');
-
-    if (hostEl) hostEl.textContent = printer?.publicHost || 'localhost';
-    if (portEl) portEl.textContent = printer?.port || 'not configured';
-    if (protocolEl) protocolEl.textContent = (printer?.protocol || 'ESC/POS').toUpperCase();
-
-    currentContainer = container;
-    return container;
 }
 
 /**
@@ -294,6 +750,7 @@ function renderDocumentItem(doc) {
 
     const fragment = templates.documentItem.content.cloneNode(true);
     const item = fragment.querySelector('.document-item');
+    if (item && doc.id) item.dataset.docId = doc.id;
 
     // Format datetime
     const dateTime = doc.timestamp?.toLocaleString(undefined, {
@@ -891,13 +1348,21 @@ function adjustDebugYPositions(contentId, includeDebug) {
 
 window.DocumentsPanel = {
     init,
-    renderLoading,
+    // Single entry point for all panel states
+    showState,
+    // Per-printer panel management
+    selectPrinter,
+    prependDocument,
+    loadMore,
+    clearPrinter,
+    disposePrinter,
+    getDocCount,
+    reRenderAll,
+    toggleDocumentDebug,
+    // Pagination indicators (used internally and by loadMore)
     renderLoadingMore,
     removeLoadingMore,
-    renderNoWorkspace,
-    renderNoPrinter,
-    renderNoDocuments,
-    renderDocumentsList,
+    // Used by main.js for re-rendering
     renderViewDocument,
     extractViewDocumentText,
     mapViewDocumentDto

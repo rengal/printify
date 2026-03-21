@@ -9,10 +9,7 @@
 
         // Data
         let printers = [];
-        let documents = {};
         let selectedPrinterId = null;
-        // Pagination state per printer: { nextBeforeId, hasMore, loading }
-        let documentsPagination = {};
         let statusStreamController = null;
         let documentStreamController = null;
         let documentStreamPrinterId = null;
@@ -342,165 +339,33 @@
                 printer.newDocs = 0;
                 renderSidebar();
 
-                // Load operations panel using the module
-                if (window.OperationsPanel && accessToken) {
-                    try {
-                        const container = document.getElementById('operationsPanel');
-                        await OperationsPanel.loadPanel(id, accessToken, container);
+                const t0 = performance.now();
 
-                        // Restore danger zone state
-                        OperationsPanel.restoreDangerZoneState();
-                    } catch (err) {
-                        console.error('Failed to load operations panel', err);
-                    }
-                }
+                // Load operations panel and documents panel in parallel
+                const opsPromise = (window.OperationsPanel && accessToken)
+                    ? OperationsPanel.loadPanel(id, accessToken, document.getElementById('operationsPanel'))
+                        .then(() => {
+                            console.debug(`[selectPrinter] loadPanel: ${(performance.now() - t0).toFixed(0)}ms`);
+                            OperationsPanel.restoreDangerZoneState();
+                        })
+                        .catch(err => console.error('Failed to load operations panel', err))
+                    : Promise.resolve();
 
-                try {
-                    await ensureDocumentsLoaded(id);
-                    startDocumentStream(id);
-                    startRuntimeStream(id);
-                } catch (err) {
-                    console.error('Failed to load documents', err);
-                    showToast('Unable to load documents', true);
-                }
-                renderDocuments();
+                const docsPromise = window.DocumentsPanel
+                    ? DocumentsPanel.selectPrinter(id, printer, apiRequest)
+                        .then(() => console.debug(`[selectPrinter] docs ready: ${(performance.now() - t0).toFixed(0)}ms`))
+                        .catch(err => {
+                            console.error('Failed to load documents', err);
+                            showToast('Unable to load documents', true);
+                        })
+                    : Promise.resolve();
+
+                await Promise.all([opsPromise, docsPromise]);
+                console.debug(`[selectPrinter] total: ${(performance.now() - t0).toFixed(0)}ms`);
+
+                startDocumentStream(id);
+                startRuntimeStream(id);
             }
-        }
-
-        async function ensureDocumentsLoaded(printerId) {
-            if (documents[printerId]) {
-                return;
-            }
-
-            // Show loading indicator while fetching
-            const documentsPanel = document.getElementById('documentsPanel');
-            if (window.DocumentsPanel?.renderLoading) {
-                DocumentsPanel.renderLoading(documentsPanel);
-            }
-
-            const response = await apiRequest(`/api/printers/${printerId}/documents/canvas?limit=20`);
-            const result = response?.result;
-            const items = result?.items || [];
-            const printer = getPrinterById(printerId);
-            documents[printerId] = items.map(dto => DocumentsPanel.mapViewDocumentDto(dto, printer));
-            documentsPagination[printerId] = {
-                hasMore: result?.hasMore ?? false,
-                nextBeforeId: result?.nextBeforeId ?? null,
-                loading: false
-            };
-            console.debug(`[pagination] initial load: ${items.length} docs, hasMore=${result?.hasMore}, nextBeforeId=${result?.nextBeforeId}`);
-        }
-
-        async function loadMoreDocuments(printerId) {
-            const pagination = documentsPagination[printerId];
-            console.debug(`[pagination] loadMoreDocuments called: hasMore=${pagination?.hasMore}, loading=${pagination?.loading}, nextBeforeId=${pagination?.nextBeforeId}, existingDocs=${(documents[printerId] || []).length}`);
-            if (!pagination || !pagination.hasMore || pagination.loading) {
-                console.debug(`[pagination] loadMoreDocuments skipped (guard): hasMore=${pagination?.hasMore}, loading=${pagination?.loading}`);
-                return;
-            }
-
-            pagination.loading = true;
-            const documentsPanel = document.getElementById('documentsPanel');
-            if (window.DocumentsPanel?.renderLoadingMore) {
-                DocumentsPanel.renderLoadingMore(documentsPanel);
-            }
-
-            try {
-                const url = `/api/printers/${printerId}/documents/canvas?limit=20&beforeId=${pagination.nextBeforeId}`;
-                console.debug(`[pagination] fetching: ${url}`);
-                const response = await apiRequest(url);
-                const result = response?.result;
-                const items = result?.items || [];
-                console.debug(`[pagination] got ${items.length} items, hasMore=${result?.hasMore}, nextBeforeId=${result?.nextBeforeId}`);
-                if (items.length > 0) {
-                    console.debug(`[pagination] first item id=${items[0]?.id}, last item id=${items[items.length-1]?.id}`);
-                    const existingIds = new Set((documents[printerId] || []).map(d => d.id));
-                    const dupes = items.filter(i => existingIds.has(i.id));
-                    if (dupes.length > 0) console.warn(`[pagination] DUPLICATE items detected: ${dupes.map(d => d.id).join(', ')}`);
-                }
-                const printer = getPrinterById(printerId);
-                const mapped = items.map(dto => DocumentsPanel.mapViewDocumentDto(dto, printer));
-
-                documents[printerId] = [...(documents[printerId] || []), ...mapped];
-                documentsPagination[printerId] = {
-                    hasMore: result?.hasMore ?? false,
-                    nextBeforeId: result?.nextBeforeId ?? null,
-                    loading: false
-                };
-                console.debug(`[pagination] updated state: hasMore=${documentsPagination[printerId].hasMore}, nextBeforeId=${documentsPagination[printerId].nextBeforeId}, totalDocs=${documents[printerId].length}`);
-
-                // Append new docs without clearing existing ones
-                if (window.DocumentsPanel?.renderDocumentsList) {
-                    await DocumentsPanel.renderDocumentsList(mapped, printer, documentsPanel, { append: true });
-                }
-                if (window.DocumentsPanel?.removeLoadingMore) {
-                    DocumentsPanel.removeLoadingMore(documentsPanel);
-                }
-
-                // Re-attach or detach scroll observer depending on whether more pages exist
-                if (documentsPagination[printerId].hasMore) {
-                    console.debug(`[pagination] re-attaching observer (more pages available)`);
-                    attachScrollObserver(printerId);
-                } else {
-                    console.debug(`[pagination] detaching observer (no more pages)`);
-                    detachScrollObserver();
-                }
-            } catch (err) {
-                pagination.loading = false;
-                if (window.DocumentsPanel?.removeLoadingMore) {
-                    DocumentsPanel.removeLoadingMore(document.getElementById('documentsPanel'));
-                }
-                console.error('Failed to load more documents', err);
-            }
-        }
-
-        let _scrollObserverPrinterId = null;
-        let _scrollObserver = null;
-        let _scrollSentinel = null;
-
-        function attachScrollObserver(printerId) {
-            // Clean up previous observer
-            if (_scrollObserver) {
-                _scrollObserver.disconnect();
-                _scrollObserver = null;
-            }
-            if (_scrollSentinel) {
-                _scrollSentinel.remove();
-                _scrollSentinel = null;
-            }
-
-            const documentsPanel = document.getElementById('documentsPanel');
-            if (!documentsPanel) return;
-
-            // Create a sentinel element at the bottom.
-            // Give it visible height so the user can scroll it into view before loading triggers.
-            const sentinel = document.createElement('div');
-            sentinel.className = 'docs-scroll-spacer';
-            documentsPanel.appendChild(sentinel);
-            _scrollSentinel = sentinel;
-            _scrollObserverPrinterId = printerId;
-
-            _scrollObserver = new IntersectionObserver((entries) => {
-                console.debug(`[pagination] sentinel intersecting=${entries[0].isIntersecting}, ratio=${entries[0].intersectionRatio}`);
-                if (entries[0].isIntersecting) {
-                    loadMoreDocuments(_scrollObserverPrinterId);
-                }
-            }, { root: documentsPanel.parentElement, rootMargin: '0px 0px 60px 0px', threshold: 0 });
-
-            _scrollObserver.observe(sentinel);
-            console.debug(`[pagination] scroll observer attached for printer=${printerId}`);
-        }
-
-        function detachScrollObserver() {
-            if (_scrollObserver) {
-                _scrollObserver.disconnect();
-                _scrollObserver = null;
-            }
-            if (_scrollSentinel) {
-                _scrollSentinel.remove();
-                _scrollSentinel = null;
-            }
-            _scrollObserverPrinterId = null;
         }
 
         async function startDocumentStream(printerId) {
@@ -582,25 +447,18 @@
                 const payload = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
                 const printer = getPrinterById(printerId);
                 const mapped = DocumentsPanel.mapViewDocumentDto(payload, printer);
-                const list = documents[printerId] || [];
-                list.unshift(mapped);
-                list.sort((a, b) => b.timestamp - a.timestamp);
-                documents[printerId] = list.slice(0, 200);
 
-                if (selectedPrinterId !== printerId) {
-                    const target = getPrinterById(printerId);
-                    if (target) target.newDocs += 1;
-                }
-                else
-                {
-                    const target = getPrinterById(printerId);
-                    if (target)
-                    {
+                DocumentsPanel.prependDocument(printerId, mapped);
+
+                const target = getPrinterById(printerId);
+                if (target) {
+                    if (selectedPrinterId !== printerId) {
+                        target.newDocs += 1;
+                    } else {
                         target.lastDocumentAt = mapped.timestamp;
                     }
                 }
 
-                renderDocuments();
                 renderSidebar();
             } catch (e) {
                 console.error('Failed to parse document event', e);
@@ -860,10 +718,7 @@
                 } else {
                     operationsPanel.textContent = 'No Workspace';
                 }
-                // Use DocumentsPanel module for no-workspace state
-                if (window.DocumentsPanel?.renderNoWorkspace) {
-                    await DocumentsPanel.renderNoWorkspace(documentsPanel);
-                }
+                await DocumentsPanel.showState?.('no-workspace');
                 return;
             }
 
@@ -877,60 +732,14 @@
                 } else {
                     operationsPanel.textContent = noPrinterCaption;
                 }
-                // Use DocumentsPanel module for no-printer state
-                if (window.DocumentsPanel?.renderNoPrinter) {
-                    const greeting = await getWelcomeMessage();
-                    const noPrintersMsg = printers.length === 0
-                        ? 'No printers available. Add a printer to view documents.'
-                        : 'Select a printer to view documents';
-                    await DocumentsPanel.renderNoPrinter({
-                        greeting: greeting,
-                        message: noPrintersMsg
-                    }, documentsPanel);
-                }
+                const greeting = await getWelcomeMessage();
+                const noPrintersMsg = printers.length === 0
+                    ? 'No printers available. Add a printer to view documents.'
+                    : 'Select a printer to view documents';
+                await DocumentsPanel.showState?.('no-printer', { greeting, message: noPrintersMsg });
                 return;
             }
-
-            const docs = documents[selectedPrinterId] || [];
-            const printer = getPrinterById(selectedPrinterId);
-
-            if (!printer) {
-                if (window.OperationsPanel?.renderEmptyState) {
-                    await OperationsPanel.renderEmptyState(
-                        { title: 'Printer not found', body: '' },
-                        operationsPanel);
-                } else {
-                    operationsPanel.textContent = 'Printer not found';
-                }
-                documentsPanel.innerHTML = '';
-                return;
-            }
-
-            // Note: Operations panel is now rendered by OperationsPanel module
-            // This function only handles the documents panel rendering
-
-            detachScrollObserver();
-
-            // Render documents in documents panel using the module
-            if (docs.length === 0) {
-                if (window.DocumentsPanel?.renderNoDocuments) {
-                    await DocumentsPanel.renderNoDocuments(printer, documentsPanel);
-                }
-                return;
-            }
-
-            const pagination = documentsPagination[selectedPrinterId];
-            console.debug(`[pagination] renderDocuments: ${docs.length} docs, pagination hasMore=${pagination?.hasMore}, nextBeforeId=${pagination?.nextBeforeId}`);
-
-            if (window.DocumentsPanel?.renderDocumentsList) {
-                await DocumentsPanel.renderDocumentsList(docs, printer, documentsPanel);
-            }
-
-            // Attach infinite scroll if more pages available
-            if (pagination?.hasMore) {
-                attachScrollObserver(selectedPrinterId);
-            }
-          }
+        }
 
         function showMenu(event, printerId, isPinned, isStarted) {
             event.stopPropagation();
@@ -1005,7 +814,7 @@
             const printer = printers.find(p => p.id === printerId);
             if (!printer) return;
 
-            const docCount = (documents[printerId] || []).length;
+            const docCount = window.DocumentsPanel?.getDocCount(printerId) ?? 0;
             let message = `Are you sure you want to delete "<strong>${escapeHtml(printer.name)}</strong>"?`;
 
             if (docCount > 0) {
@@ -1021,6 +830,7 @@
                 async () => {
                     try {
                         await apiRequest(`/api/printers/${printerId}`, { method: 'DELETE' });
+                        DocumentsPanel.disposePrinter?.(printerId);
                         if (selectedPrinterId === printerId) {
                             selectedPrinterId = null;
                         }
@@ -1131,7 +941,7 @@
             const printer = printers.find(p => p.id === printerId);
             if (!printer) return;
 
-            const docCount = (documents[printerId] || []).length;
+            const docCount = window.DocumentsPanel?.getDocCount(printerId) ?? 0;
             let message;
 
             if (docCount === 0) {
@@ -1148,11 +958,8 @@
                 'Delete Documents',
                 async () => {
                     try {
-                        // Delete server-side documents so the printer history is cleared.
                         await apiRequest(`/api/printers/${printerId}/documents`, { method: 'DELETE' });
-                        // Reset cached documents to match the server state.
-                        documents[printerId] = [];
-                        delete documentsPagination[printerId];
+                        DocumentsPanel.clearPrinter?.(printerId);
 
                         if (selectedPrinterId === printerId) {
                             renderDocuments();
@@ -1289,110 +1096,18 @@
 
         // Theme Functions
         function isDocumentRawDataActive(doc) {
-            // Global raw data overrides per-document selection.
             return debugMode || !!doc.debugEnabled;
         }
 
         function toggleDocumentDebug(documentId, isEnabled) {
-            if (debugMode) {
-                // Prevent per-document changes while the global switch is active.
-                return;
-            }
-
-            const printerId = selectedPrinterId;
-            if (!printerId || !documents[printerId]) {
-                return;
-            }
-
-            const docIndex = documents[printerId].findIndex(doc => doc.id === documentId);
-            if (docIndex === -1) {
-                return;
-            }
-
-            const target = documents[printerId][docIndex];
-            const updated = {
-                ...target,
-                debugEnabled: !!isEnabled
-            };
-
-            // Only re-render the requested document for performance.
-            if (updated.canvases && updated.canvases.length > 0) {
-                // Re-render all canvases with new debug mode
-                updated.canvases = updated.canvases.map((canvas, index) => ({
-                    ...canvas,
-                    previewHtml: DocumentsPanel.renderViewDocument(
-                        canvas.elements || [],
-                        canvas.width,
-                        canvas.heightInDots,
-                        `${updated.id}-canvas-${index}`,
-                        updated.errorMessages,
-                        isDocumentRawDataActive(updated),
-                        updated.protocol
-                    )
-                }));
-            } else {
-                // Fallback for old single canvas format
-                updated.previewHtml = DocumentsPanel.renderViewDocument(
-                    updated.elements || [],
-                    updated.widthInDots,
-                    updated.heightInDots,
-                    updated.id,
-                    updated.errorMessages,
-                    isDocumentRawDataActive(updated),
-                    updated.protocol
-                );
-            }
-
-            documents[printerId][docIndex] = updated;
-            renderDocuments();
+            if (debugMode) return;
+            if (!selectedPrinterId) return;
+            DocumentsPanel.toggleDocumentDebug?.(selectedPrinterId, documentId, isEnabled, isDocumentRawDataActive);
         }
 
         function toggleDebugMode() {
             debugMode = !debugMode;
-
-            // Re-render all cached documents with new debug mode
-            for (const printerId in documents) {
-                const docs = documents[printerId];
-                const printer = getPrinterById(printerId);
-                if (printer && docs) {
-                    documents[printerId] = docs.map(doc => {
-                        if (doc.canvases && doc.canvases.length > 0) {
-                            // Re-render all canvases with new debug mode
-                            return {
-                                ...doc,
-                                canvases: doc.canvases.map((canvas, index) => ({
-                                    ...canvas,
-                                    previewHtml: DocumentsPanel.renderViewDocument(
-                                        canvas.elements || [],
-                                        canvas.width,
-                                        canvas.heightInDots,
-                                        `${doc.id}-canvas-${index}`,
-                                        doc.errorMessages,
-                                        isDocumentRawDataActive(doc),
-                                        doc.protocol
-                                    )
-                                }))
-                            };
-                        } else {
-                            // Fallback for old single canvas format
-                            return {
-                                ...doc,
-                                previewHtml: DocumentsPanel.renderViewDocument(
-                                    doc.elements || [],
-                                    doc.widthInDots,
-                                    doc.heightInDots,
-                                    doc.id,
-                                    doc.errorMessages,
-                                    isDocumentRawDataActive(doc),
-                                    doc.protocol
-                                )
-                            };
-                        }
-                    });
-                }
-            }
-
-            renderDocuments();
+            DocumentsPanel.reRenderAll?.(isDocumentRawDataActive);
         }
 
         function toggleTheme() {
@@ -1603,48 +1318,7 @@
                 onToggleFlag: (flag, value) => toggleOperationalFlag(selectedPrinterId, flag, value),
                 onToggleDebug: (value) => {
                     debugMode = value;
-                    // Re-render all cached documents with new debug mode
-                    for (const printerId in documents) {
-                        const docs = documents[printerId];
-                        const printer = getPrinterById(printerId);
-                        if (printer && docs) {
-                            documents[printerId] = docs.map(doc => {
-                                if (doc.canvases && doc.canvases.length > 0) {
-                                    // Re-render all canvases with new debug mode
-                                    return {
-                                        ...doc,
-                                        canvases: doc.canvases.map((canvas, index) => ({
-                                            ...canvas,
-                                            previewHtml: DocumentsPanel.renderViewDocument(
-                                                canvas.elements || [],
-                                                canvas.width,
-                                                canvas.heightInDots,
-                                                `${doc.id}-canvas-${index}`,
-                                                doc.errorMessages,
-                                                isDocumentRawDataActive(doc),
-                                                doc.protocol
-                                            )
-                                        }))
-                                    };
-                                } else {
-                                    // Fallback for old single canvas format
-                                    return {
-                                        ...doc,
-                                        previewHtml: DocumentsPanel.renderViewDocument(
-                                            doc.elements || [],
-                                            doc.widthInDots,
-                                            doc.heightInDots,
-                                            doc.id,
-                                            doc.errorMessages,
-                                            isDocumentRawDataActive(doc),
-                                            doc.protocol
-                                        )
-                                    };
-                                }
-                            });
-                        }
-                    }
-                    renderDocuments();
+                    DocumentsPanel.reRenderAll?.(isDocumentRawDataActive);
                 },
                 onGetDebugMode: () => debugMode,
                 onToggleDrawer: (drawerNumber) => {
@@ -1737,6 +1411,10 @@
                 onAccessWorkspace: () => WorkspaceDialog?.show?.('access'),
                 onToggleDocumentDebug: (docId, enabled) => toggleDocumentDebug(docId, enabled),
                 onCopyDocument: (text) => copyToClipboard(text),
+                onLoadMore: (printerId) => {
+                    const printer = getPrinterById(printerId);
+                    if (printer) DocumentsPanel.loadMore(printerId, printer, apiRequest);
+                },
                 getWelcomeMessage: () => getWelcomeMessage(),
                 getDebugMode: () => debugMode,
                 getPrinterById: (id) => getPrinterById(id),

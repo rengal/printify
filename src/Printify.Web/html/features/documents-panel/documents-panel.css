@@ -1,3 +1,8 @@
+/* Per-printer panel — fills the host div, hidden when not active */
+.printer-doc-panel {
+    display: contents; /* inherits host scrolling/layout when visible */
+}
+
 /* Document preview typography and layout */
 .document-preview {
     background: white;
