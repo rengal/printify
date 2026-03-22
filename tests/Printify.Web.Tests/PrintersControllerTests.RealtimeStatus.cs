@@ -145,11 +145,12 @@ public sealed partial class PrintersControllerTests
     [Fact]
     public async Task StatusStream_StateScope_IncludesAllPrinters()
     {
-        return; //todo debugnow fix test
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
+        using var patchClient = environment.CreateClient();
 
         await CreateWorkspaceAndLoginAsync(client);
+        patchClient.DefaultRequestHeaders.Authorization = client.DefaultRequestHeaders.Authorization;
 
         var printerA = Guid.NewGuid();
         var createRequestA = new CreatePrinterRequestDto(
@@ -165,35 +166,27 @@ public sealed partial class PrintersControllerTests
         var responseB = await client.PostAsJsonAsync("/api/printers", createRequestB);
         responseB.EnsureSuccessStatusCode();
 
-        var listenTask = ListenForStatusEventsAsync(
-            client,
-            expectedCount: 2,
-            timeout: TimeSpan.FromSeconds(2),
-            breakOnDistinct: true,
-            url: "/api/printers/sidebar/stream");
+        await WaitForPrinterStateAsync(client, printerA, PrinterState.Started, CancellationToken.None);
+        await WaitForPrinterStateAsync(client, printerB, PrinterState.Started, CancellationToken.None);
 
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var sseResponse = await client.GetAsync("/api/printers/sidebar/stream", HttpCompletionOption.ResponseHeadersRead, cts.Token);
+        sseResponse.EnsureSuccessStatusCode();
+        await using var sseStream = await sseResponse.Content.ReadAsStreamAsync(cts.Token);
+        using var sseReader = new StreamReader(sseStream);
 
-        var stopResponse = await client.PatchAsJsonAsync(
+        string? connectedLine;
+        do { connectedLine = await sseReader.ReadLineAsync(cts.Token); }
+        while (connectedLine != null && !connectedLine.StartsWith(':'));
+
+        var listenTask = CollectSidebarEventsAsync(sseReader, expectedCount: 2, cts.Token);
+
+        await patchClient.PatchAsJsonAsync(
             $"/api/printers/{printerA}/operational-flags",
-            new UpdatePrinterOperationalFlagsRequestDto(
-                IsCoverOpen: null,
-                IsPaperOut: null,
-                IsOffline: null,
-                HasError: null,
-                IsPaperNearEnd: null,
-                TargetState: "Stopped"));
-        stopResponse.EnsureSuccessStatusCode();
-        var stopResponseB = await client.PatchAsJsonAsync(
+            new UpdatePrinterOperationalFlagsRequestDto(null, null, null, null, null, TargetState: "Stopped"));
+        await patchClient.PatchAsJsonAsync(
             $"/api/printers/{printerB}/operational-flags",
-            new UpdatePrinterOperationalFlagsRequestDto(
-                IsCoverOpen: null,
-                IsPaperOut: null,
-                IsOffline: null,
-                HasError: null,
-                IsPaperNearEnd: null,
-                TargetState: "Stopped"));
-        stopResponseB.EnsureSuccessStatusCode();
+            new UpdatePrinterOperationalFlagsRequestDto(null, null, null, null, null, TargetState: "Stopped"));
 
         var events = await listenTask;
         Assert.Equal(2, events.Count);
