@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -197,10 +196,12 @@ public sealed partial class PrintersControllerTests
     [Fact]
     public async Task StatusStream_StateScope_EmitsOnEachToggle()
     {
-        return; //todo debugnow fix test
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
+        using var patchClient = environment.CreateClient();
+
         await CreateWorkspaceAndLoginAsync(client);
+        patchClient.DefaultRequestHeaders.Authorization = client.DefaultRequestHeaders.Authorization;
 
         var printerId = Guid.NewGuid();
         var createRequest = new CreatePrinterRequestDto(
@@ -209,55 +210,34 @@ public sealed partial class PrintersControllerTests
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
-        // Avoid the startup race by waiting until the listener reports Started before toggling state.
         await WaitForPrinterStateAsync(client, printerId, PrinterState.Started, CancellationToken.None);
-        Console.WriteLine("Printer reached Started state, opening SSE stream...");
 
-        var responseTask = client.GetAsync(
-            "/api/printers/sidebar/stream",
-            HttpCompletionOption.ResponseHeadersRead,
-            CancellationToken.None);
-        // Diagnostic log if the SSE response headers are not received quickly.
-        var headersDelay = Task.Delay(TimeSpan.FromSeconds(1));
-        var headersWinner = await Task.WhenAny(responseTask, headersDelay);
-        if (headersWinner == headersDelay)
-        {
-            Console.WriteLine("SSE headers not received after 1s, still waiting...");
-        }
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        using var sseResponse = await client.GetAsync("/api/printers/sidebar/stream", HttpCompletionOption.ResponseHeadersRead, cts.Token);
+        sseResponse.EnsureSuccessStatusCode();
+        await using var sseStream = await sseResponse.Content.ReadAsStreamAsync(cts.Token);
+        using var reader = new StreamReader(sseStream);
 
-        using var response = await responseTask;
-        response.EnsureSuccessStatusCode();
-        Console.WriteLine("SSE stream opened, entering toggle loop...");
-
-        await using var stream = await response.Content.ReadAsStreamAsync();
-        using var reader = new StreamReader(stream);
-        var stopwatch = Stopwatch.StartNew();
+        string? connectedLine;
+        do { connectedLine = await reader.ReadLineAsync(cts.Token); }
+        while (connectedLine != null && !connectedLine.StartsWith(':'));
 
         var targetStates = new[] { "Stopped", "Started", "Stopped", "Started" };
         for (var i = 0; i < targetStates.Length; i++)
         {
-            Console.WriteLine($"Loop iteration {i + 1} starting");
             var targetState = targetStates[i];
-            var sendAtMs = stopwatch.ElapsedMilliseconds;
-            Console.WriteLine($"[{sendAtMs} ms] Iteration {i + 1}: sending targetState={targetState}");
+            var expectedPrinterState = Enum.Parse<PrinterState>(targetState);
 
-            var patchResponse = await client.PatchAsJsonAsync(
+            var patchResponse = await patchClient.PatchAsJsonAsync(
                 $"/api/printers/{printerId}/operational-flags",
-                new UpdatePrinterOperationalFlagsRequestDto(
-                    IsCoverOpen: null,
-                    IsPaperOut: null,
-                    IsOffline: null,
-                    HasError: null,
-                    IsPaperNearEnd: null,
-                    TargetState: targetState));
+                new UpdatePrinterOperationalFlagsRequestDto(null, null, null, null, null, TargetState: targetState),
+                cts.Token);
             patchResponse.EnsureSuccessStatusCode();
 
-            using var sseTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-            var update = await ReadSidebarEventAsync(reader, printerId, targetState, sseTimeout.Token);
-            var receiveAtMs = stopwatch.ElapsedMilliseconds;
-            Console.WriteLine(
-                $"[{receiveAtMs} ms] Iteration {i + 1}: received state={update.RuntimeStatus?.State} after {receiveAtMs - sendAtMs} ms");
+            // Wait for the actual state transition before reading the SSE event.
+            await WaitForPrinterStateAsync(patchClient, printerId, expectedPrinterState, cts.Token);
 
+            var update = await ReadSidebarEventAsync(reader, printerId, targetState, cts.Token);
             Assert.Equal(printerId, update.Printer.Id);
             Assert.Equal(targetState, update.RuntimeStatus?.State);
         }
@@ -604,7 +584,7 @@ public sealed partial class PrintersControllerTests
         while (true)
         {
             ct.ThrowIfCancellationRequested();
-            var line = await reader.ReadLineAsync().WaitAsync(ct);
+            var line = await reader.ReadLineAsync(ct);
             if (line is null)
             {
                 throw new InvalidOperationException("SSE stream closed unexpectedly.");
