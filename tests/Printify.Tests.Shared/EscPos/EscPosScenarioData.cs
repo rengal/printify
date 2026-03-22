@@ -839,6 +839,12 @@ public static class EscPosScenarioData
         var upload = CreateExpectedRasterMedia(widthInDots, heightInDots, bitmap);
         var media = Media.CreateDefaultPng(upload.Content.Length);
 
+        // Image is 576 dots wide, which exceeds the default printer canvas of 512 dots.
+        // The parser emits a printerError element before the image when a printer context is present.
+        // expectedRequestCommands has no error (used by the no-context Infrastructure parser test).
+        // expectedPersistedCommands includes the error (used by the web integration test with printer context).
+        var dimensionError = new EscPosCommands.EscPosPrinterError($"Image exceeds printer width: right edge at {widthInDots} px exceeds {EscPosSpecs.DefaultCanvasWidth} dots") { LengthInBytes = 0 };
+
         return new EscPosScenario(
             id: 210001,
             input:
@@ -854,11 +860,16 @@ public static class EscPosScenarioData
             ],
             expectedPersistedCommands:
             [
+                dimensionError,
                 new EscPosCommands.EscPosRasterImage(widthInDots, heightInDots, media) { LengthInBytes = lengthInBytes }
             ],
             expectedCanvasElements:
             [
                 [
+                    DebugElement("printerError", lengthInBytes: 0, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = dimensionError.Message!
+                    }),
                     DebugElement("rasterImage", lengthInBytes: lengthInBytes),
                     ViewImage(0, 0, widthInDots, heightInDots, media, lengthInBytes)
                 ]
