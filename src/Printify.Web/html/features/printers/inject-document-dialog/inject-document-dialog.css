@@ -1,0 +1,130 @@
+/* Inject Document Dialog */
+
+.inject-dialog-description {
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+/* Drop Zone */
+.inject-drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    margin-bottom: 4px;
+    cursor: default;
+}
+
+.inject-drop-zone:hover,
+.inject-drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb, 59, 130, 246), 0.05);
+}
+
+.inject-drop-zone-idle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.inject-drop-icon {
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+.inject-drop-label {
+    font-size: 14px;
+    color: var(--muted);
+}
+
+.inject-file-label {
+    cursor: pointer;
+}
+
+.inject-drop-zone-active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.inject-file-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.inject-file-name {
+    font-weight: 500;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.inject-file-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+}
+
+.inject-file-clear:hover {
+    opacity: 1;
+    background: var(--bg);
+}
+
+/* Divider */
+.inject-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0 12px;
+}
+
+.inject-divider::before,
+.inject-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.inject-divider-text {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Base64 textarea */
+.inject-base64-input {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    resize: vertical;
+    min-height: 100px;
+    word-break: break-all;
+}
+
+.inject-base64-input.invalid {
+    border-color: var(--danger);
+    outline-color: var(--danger);
+}

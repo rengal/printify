@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Printify.Application.Features.Printers.Create;
 using Printify.Application.Features.Printers.Delete;
 using Printify.Application.Features.Printers.Documents.Clear;
+using Printify.Application.Features.Printers.Documents.Inject;
 using Printify.Application.Features.Printers.Documents.Canvas;
 using Printify.Application.Features.Printers.Get;
 using Printify.Application.Features.Printers.List;
@@ -217,6 +218,21 @@ public sealed class PrintersController : ControllerBase
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         await mediator.RequestAsync<ClearPrinterDocumentsCommand, Unit>(
             new ClearPrinterDocumentsCommand(httpContext, id),
+            cancellationToken);
+        return NoContent();
+    }
+
+    [Authorize]
+    [HttpPost("{id:guid}/documents/inject")]
+    public async Task<IActionResult> InjectDocument(Guid id, [FromBody] InjectDocumentRequestDto request, CancellationToken cancellationToken)
+    {
+        byte[] data;
+        try { data = Convert.FromBase64String(request.Data); }
+        catch (FormatException) { return BadRequest("Invalid base64 string."); }
+
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        await mediator.RequestAsync<InjectPrinterDocumentCommand, Unit>(
+            new InjectPrinterDocumentCommand(httpContext, id, data),
             cancellationToken);
         return NoContent();
     }

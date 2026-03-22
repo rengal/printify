@@ -33,7 +33,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
     /// </summary>
     public EscPosParser(
         EscPosCommandTrieProvider trieProvider,
-        IServiceScopeFactory scopeFactory,
+        IServiceScopeFactory? scopeFactory,
         Printer printer,
         PrinterSettings settings,
         Action<Command> onElement,
@@ -331,6 +331,21 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         if (isPaperOut)
             status |= 0x20;
         return status;
+    }
+
+    protected override bool TryGetImageDimensions(Command element, out int x, out int y, out int width, out int height)
+    {
+        if (element is EscPosBaseRasterImage img)
+        {
+            x = 0;
+            y = 0;
+            width = img.Width;
+            height = img.Height;
+            return true;
+        }
+
+        x = y = width = height = 0;
+        return false;
     }
 
     protected override bool IsPrintableCommand(Command element)

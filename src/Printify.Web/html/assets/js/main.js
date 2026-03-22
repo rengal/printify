@@ -937,6 +937,13 @@
             </div>`;
         }
 
+        function injectDocument(printerId) {
+            if (!printerId) return;
+            if (window.InjectDocumentDialog) {
+                InjectDocumentDialog.show(printerId);
+            }
+        }
+
         async function clearDocuments(printerId) {
             const printer = printers.find(p => p.id === printerId);
             if (!printer) return;
@@ -1329,6 +1336,7 @@
                     const drawerProp = `drawer${drawerNumber}State`;
                     setDrawerState(selectedPrinterId, drawerProp, newState);
                 },
+                onInjectDocument: () => injectDocument(selectedPrinterId),
                 onClearDocuments: () => clearDocuments(selectedPrinterId),
                 onDeletePrinter: () => deletePrinter(selectedPrinterId),
                 onCopyAddress: (address) => copyToClipboard(address)
@@ -1390,6 +1398,15 @@
                 onWorkspaceDeleted: () => {
                     logOut();
                 }
+            });
+        }
+
+        // Initialize Inject Document Dialog module
+        if (window.InjectDocumentDialog) {
+            InjectDocumentDialog.init({
+                apiRequest: (path, options) => apiRequest(path, options),
+                showToast: (msg, isError) => showToast(msg, isError),
+                loadPrinters: (selectId) => loadPrinters(selectId)
             });
         }
 

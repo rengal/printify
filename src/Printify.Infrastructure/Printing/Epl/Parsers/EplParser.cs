@@ -138,6 +138,21 @@ public sealed class EplParser : Parser<EplDeviceContext, EplCommandTrieProvider>
         return IsErrorCommand(element);
     }
 
+    protected override bool TryGetImageDimensions(Command element, out int x, out int y, out int width, out int height)
+    {
+        if (element is EplBaseRasterImage img)
+        {
+            x = img.X;
+            y = img.Y;
+            width = img.Width;
+            height = img.Height;
+            return true;
+        }
+
+        x = y = width = height = 0;
+        return false;
+    }
+
     protected override bool IsPrintableCommand(Command element)
     {
         return element is EplScalableText

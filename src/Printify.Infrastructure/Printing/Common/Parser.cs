@@ -404,6 +404,34 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
             }
         }
 
+        // Check image dimensions against printer canvas.
+        if (printer is not null &&
+            settings is not null &&
+            TryGetImageDimensions(element, out var imgX, out var imgY, out var imgWidth, out var imgHeight))
+        {
+            var rightEdge = imgX + imgWidth;
+            var bottomEdge = imgY + imgHeight;
+            var canvasWidth = settings.WidthInDots;
+            var canvasHeight = settings.HeightInDots;
+
+            string? dimensionError = null;
+            if (rightEdge > canvasWidth && (canvasHeight is null || bottomEdge > canvasHeight))
+                dimensionError = $"Image exceeds printer canvas: {imgWidth}×{imgHeight} px at ({imgX},{imgY}) overflows {canvasWidth}×{canvasHeight} dots (width and height)";
+            else if (rightEdge > canvasWidth)
+                dimensionError = $"Image exceeds printer width: right edge at {rightEdge} px exceeds {canvasWidth} dots";
+            else if (canvasHeight is not null && bottomEdge > canvasHeight)
+                dimensionError = $"Image exceeds printer height: bottom edge at {bottomEdge} px exceeds {canvasHeight} dots";
+
+            if (dimensionError is not null)
+            {
+                onElement.Invoke(CreatePrinterError(dimensionError) with
+                {
+                    RawBytes = Array.Empty<byte>(),
+                    LengthInBytes = 0
+                });
+            }
+        }
+
         onElement.Invoke(element);
     }
 
@@ -460,6 +488,17 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
     protected virtual bool ShouldSkipBufferOverflowCheck(Command element)
     {
         return IsErrorCommand(element);
+    }
+
+    /// <summary>
+    /// Derived classes can override to extract image position and size from a command element.
+    /// Return true and set the out parameters if the element is a raster image command.
+    /// x/y are the top-left position in dots (0 for protocols without positioning).
+    /// </summary>
+    protected virtual bool TryGetImageDimensions(Command element, out int x, out int y, out int width, out int height)
+    {
+        x = y = width = height = 0;
+        return false;
     }
 
     /// <summary>
