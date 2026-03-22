@@ -197,12 +197,12 @@ async function handleSubmit(elements, printerId) {
             showError(elements, 'Paste base64 data or select a file.');
             return;
         }
-        if (!isValidBase64(raw)) {
+        base64 = raw.replace(/\s/g, '');
+        if (!isValidBase64(base64)) {
             showError(elements, 'Invalid base64 string.');
             elements.base64Input.classList.add('invalid');
             return;
         }
-        base64 = raw;
     }
 
     elements.submitBtn.disabled = true;
@@ -233,13 +233,28 @@ function readFileAsBase64(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
-            // result is "data:<mime>;base64,<data>" — strip the prefix
+            // If the file is a text file containing base64, use it directly.
+            // If it's a binary file, encode it as base64.
             const result = reader.result;
-            const comma = result.indexOf(',');
-            resolve(comma >= 0 ? result.slice(comma + 1) : result);
+            const stripped = result.replace(/\s/g, '');
+
+            if (isValidBase64(stripped)) {
+                resolve(stripped);
+            } else {
+                // Binary file — re-read as ArrayBuffer and encode
+                const binaryReader = new FileReader();
+                binaryReader.onload = () => {
+                    const bytes = new Uint8Array(binaryReader.result);
+                    let binary = '';
+                    for (const b of bytes) binary += String.fromCharCode(b);
+                    resolve(btoa(binary));
+                };
+                binaryReader.onerror = () => reject(binaryReader.error);
+                binaryReader.readAsArrayBuffer(file);
+            }
         };
         reader.onerror = () => reject(reader.error);
-        reader.readAsDataURL(file);
+        reader.readAsText(file);
     });
 }
 
