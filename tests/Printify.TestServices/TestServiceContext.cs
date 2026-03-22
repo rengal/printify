@@ -21,17 +21,25 @@ namespace Printify.TestServices;
 public sealed class TestServiceContext(ServiceProvider provider)
     : IAsyncDisposable, IDisposable
 {
-    private const string InMemoryConnectionStringFormat = "Data Source=file:{0}?mode=memory&cache=shared";
-
     public static ControllerTestContext CreateForControllerTest(WebApplicationFactory<Program> factory)
     {
         ArgumentNullException.ThrowIfNull(factory);
 
+        // Named shared in-memory SQLite database, unique per test environment.
+        // A single physical connection is kept open for the lifetime of the test to prevent
+        // the in-memory database from being dropped when all connections close.
+        // EF Core's scoped DbContext instances open their own connections to the same named file,
+        // so we set Busy Timeout to let them retry briefly instead of immediately failing with
+        // "database is locked" when SQLite function registration races between concurrent scopes.
         var dbId = Guid.NewGuid().ToString("N");
-        var connectionString = string.Format(InMemoryConnectionStringFormat, dbId);
+        var connectionString = $"Data Source=file:{dbId}?mode=memory&cache=shared;Pooling=False";
         var connection = new SqliteConnection(connectionString);
         connection.Open();
-
+        using (var cmd = connection.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA busy_timeout=5000;";
+            cmd.ExecuteNonQuery();
+        }
 
         var configuredFactory = factory.WithWebHostBuilder(builder =>
         {
@@ -69,7 +77,9 @@ public sealed class TestServiceContext(ServiceProvider provider)
 
 
                 services.AddSingleton(connection);
-                services.AddDbContext<PrintifyDbContext>((_, options) => options.UseSqlite(connection));
+                services.AddDbContext<PrintifyDbContext>((_, options) =>
+                    options.UseSqlite(connectionString, sqlite =>
+                        sqlite.CommandTimeout(10)));
                 services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
                 services.AddSingleton<IClockFactory, TestClockFactory>();
                 services.AddSingleton<ITestPortRegistry, TestPortRegistry>();
