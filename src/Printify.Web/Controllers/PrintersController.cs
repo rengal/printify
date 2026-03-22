@@ -110,24 +110,13 @@ public sealed class PrintersController : ControllerBase
         Response.Headers.CacheControl = "no-store";
         Response.Headers["X-Accel-Buffering"] = "no";
         Response.ContentType = "text/event-stream";
-        logger.LogInformation("Sidebar SSE headers set for workspace {WorkspaceId}.", httpContext.WorkspaceId);
         await Response.Body.FlushAsync(cancellationToken);
-        logger.LogInformation("Sidebar SSE headers flushed for workspace {WorkspaceId}.", httpContext.WorkspaceId);
+        await Response.WriteAsync(": connected\n\n", cancellationToken);
+        await Response.Body.FlushAsync(cancellationToken);
 
-        var wroteFirst = false;
         await foreach (var snapshot in streamResult.Updates.WithCancellation(cancellationToken))
         {
-            var payload = snapshot.ToSidebarSnapshotDto();
-            if (!wroteFirst)
-            {
-                logger.LogInformation("Sidebar SSE first write starting for workspace {WorkspaceId}.", httpContext.WorkspaceId);
-                await WriteSseAsync(streamResult.EventName, payload, cancellationToken);
-                logger.LogInformation("Sidebar SSE first write completed for workspace {WorkspaceId}.", httpContext.WorkspaceId);
-                wroteFirst = true;
-                continue;
-            }
-
-            await WriteSseAsync(streamResult.EventName, payload, cancellationToken);
+            await WriteSseAsync(streamResult.EventName, snapshot.ToSidebarSnapshotDto(), cancellationToken);
         }
     }
 
@@ -143,6 +132,9 @@ public sealed class PrintersController : ControllerBase
         Response.Headers.CacheControl = "no-store";
         Response.Headers["X-Accel-Buffering"] = "no";
         Response.ContentType = "text/event-stream";
+        await Response.Body.FlushAsync(cancellationToken);
+        await Response.WriteAsync(": connected\n\n", cancellationToken);
+        await Response.Body.FlushAsync(cancellationToken);
 
         await foreach (var statusUpdate in streamResult.Updates.WithCancellation(cancellationToken))
         {

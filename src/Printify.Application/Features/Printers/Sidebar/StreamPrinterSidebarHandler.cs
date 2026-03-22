@@ -27,21 +27,26 @@ public sealed class StreamPrinterSidebarHandler(
             throw new BadRequestException("Workspace identifier must be provided.");
         }
 
-        var updates = ReadUpdatesAsync(
-            request.Context.WorkspaceId.Value,
-            cancellationToken);
+        var workspaceId = request.Context.WorkspaceId.Value;
+        // Subscribe eagerly so the channel is registered before the response headers are flushed.
+        // Use CancellationToken.None here — the controller applies client-disconnect cancellation
+        // via WithCancellation() when it iterates the result. The handler's cancellationToken is
+        // scoped to the request dispatch and may fire before streaming completes.
+        var subscription = statusStream.Subscribe(workspaceId, CancellationToken.None);
+        var updates = ReadUpdatesAsync(workspaceId, subscription, CancellationToken.None);
 
         return new PrinterSidebarStreamResult("sidebar", updates);
     }
 
     private async IAsyncEnumerable<PrinterSidebarSnapshot> ReadUpdatesAsync(
         Guid workspaceId,
+        IAsyncEnumerable<PrinterStatusUpdate> subscription,
         [EnumeratorCancellation] CancellationToken ct)
     {
         // Baseline snapshots sent to the stream (keyed by printer ID)
         var baselines = new Dictionary<Guid, PrinterSidebarSnapshot>();
 
-        await foreach (var update in statusStream.Subscribe(workspaceId, ct))
+        await foreach (var update in subscription.WithCancellation(ct))
         {
             // Only process updates with runtime changes or printer metadata changes
             if (update.RuntimeUpdate is null && update.Printer is null)
@@ -59,10 +64,11 @@ public sealed class StreamPrinterSidebarHandler(
 
             var currentStatus = runtimeStatusStore.Get(printer.Id);
 
-            // Get or create baseline for this printer
+            // Get or create baseline for this printer.
+            // Use null RuntimeStatus on first encounter so the first update always passes through.
             if (!baselines.TryGetValue(printer.Id, out var baseline))
             {
-                baseline = new PrinterSidebarSnapshot(printer, currentStatus);
+                baseline = new PrinterSidebarSnapshot(printer, null);
             }
 
             // Check for printer changes (sidebar only shows name and pin status)

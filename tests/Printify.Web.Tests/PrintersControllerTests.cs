@@ -113,7 +113,15 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
 
         while (!cts.IsCancellationRequested)
         {
-            var line = await reader.ReadLineAsync();
+            string? line;
+            try
+            {
+                line = await reader.ReadLineAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
             if (line is null)
             {
                 break;
@@ -182,7 +190,15 @@ public sealed partial class PrintersControllerTests(WebApplicationFactory<Progra
 
         while (!cts.IsCancellationRequested)
         {
-            var line = await reader.ReadLineAsync();
+            string? line;
+            try
+            {
+                line = await reader.ReadLineAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
             if (line is null)
             {
                 break;

@@ -91,11 +91,13 @@ public sealed partial class PrintersControllerTests
     [Fact]
     public async Task StatusStream_EmitsPublishedEvent()
     {
-        return; //todo debugnow fix test
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
+        using var patchClient = environment.CreateClient();
 
         await CreateWorkspaceAndLoginAsync(client);
+        patchClient.DefaultRequestHeaders.Authorization = client.DefaultRequestHeaders.Authorization;
+
         var printerId = Guid.NewGuid();
         var createRequest = new CreatePrinterRequestDto(
             new PrinterRequestDto(printerId, "Realtime Stream"),
@@ -103,17 +105,27 @@ public sealed partial class PrintersControllerTests
         var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
         createResponse.EnsureSuccessStatusCode();
 
-        var listenTask = ListenForStatusEventsAsync(
-            client,
-            expectedCount: 1,
-            timeout: TimeSpan.FromSeconds(2),
-            breakOnDistinct: true,
-            url: "/api/printers/sidebar/stream");
+        // Wait for the listener to reach Started so stopping it produces a real RuntimeUpdate.
+        await WaitForPrinterStateAsync(client, printerId, PrinterState.Started, CancellationToken.None);
 
-        // Ensure the SSE reader is active before we publish the event.
-        await Task.Delay(TimeSpan.FromMilliseconds(50));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var sseResponse = await client.GetAsync(
+            "/api/printers/sidebar/stream",
+            HttpCompletionOption.ResponseHeadersRead,
+            cts.Token);
+        sseResponse.EnsureSuccessStatusCode();
+        await using var sseStream = await sseResponse.Content.ReadAsStreamAsync(cts.Token);
+        using var sseReader = new StreamReader(sseStream);
 
-        var stopResponse = await client.PatchAsJsonAsync(
+        // Wait for the ": connected" comment — server sends it after Subscribe() is registered.
+        string? connectedLine;
+        do { connectedLine = await sseReader.ReadLineAsync(cts.Token); }
+        while (connectedLine != null && !connectedLine.StartsWith(':'));
+
+        var listenTask = CollectSidebarEventsAsync(sseReader, expectedCount: 1, cts.Token);
+
+        // Use a separate client so the PATCH isn't queued behind the open SSE connection.
+        var stopResponse = await patchClient.PatchAsJsonAsync(
             $"/api/printers/{printerId}/operational-flags",
             new UpdatePrinterOperationalFlagsRequestDto(
                 IsCoverOpen: null,
@@ -645,5 +657,42 @@ public sealed partial class PrintersControllerTests
                 }
             }
         }
+    }
+
+    private static async Task<List<PrinterSidebarSnapshotDto>> CollectSidebarEventsAsync(
+        StreamReader reader,
+        int expectedCount,
+        CancellationToken ct)
+    {
+        var events = new List<PrinterSidebarSnapshotDto>();
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        string? currentEvent = null;
+        string? currentData = null;
+
+        while (events.Count < expectedCount)
+        {
+            string? line;
+            try { line = await reader.ReadLineAsync(ct); }
+            catch (OperationCanceledException) { break; }
+            if (line is null) break;
+
+            if (line.StartsWith("event:", StringComparison.OrdinalIgnoreCase))
+                currentEvent = line[6..].Trim();
+            else if (line.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                currentData = line[5..].Trim();
+            else if (string.IsNullOrWhiteSpace(line))
+            {
+                if (string.Equals(currentEvent, "sidebar", StringComparison.OrdinalIgnoreCase)
+                    && !string.IsNullOrEmpty(currentData))
+                {
+                    var ev = JsonSerializer.Deserialize<PrinterSidebarSnapshotDto>(currentData, options);
+                    if (ev != null) events.Add(ev);
+                }
+                currentEvent = null;
+                currentData = null;
+            }
+        }
+
+        return events;
     }
 }

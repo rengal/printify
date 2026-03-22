@@ -35,23 +35,25 @@ public sealed class StreamPrinterRuntimeHandler(
             throw new PrinterNotFoundException(request.PrinterId);
         }
 
-        var updates = ReadUpdatesAsync(
-            request.Context.WorkspaceId.Value,
-            request.PrinterId,
-            cancellationToken);
+        var workspaceId = request.Context.WorkspaceId.Value;
+        // Subscribe eagerly so the channel is registered before the response headers are flushed.
+        // Use CancellationToken.None here — the controller applies client-disconnect cancellation
+        // via WithCancellation() when it iterates the result.
+        var subscription = statusStream.Subscribe(workspaceId, CancellationToken.None);
+        var updates = ReadUpdatesAsync(request.PrinterId, subscription, CancellationToken.None);
 
         return new PrinterRuntimeStreamResult("status", updates);
     }
 
     private async IAsyncEnumerable<PrinterStatusUpdate> ReadUpdatesAsync(
-        Guid workspaceId,
         Guid printerId,
+        IAsyncEnumerable<PrinterStatusUpdate> subscription,
         [EnumeratorCancellation] CancellationToken ct)
     {
         // Track last sent runtime status for this printer
         PrinterRuntimeStatus? lastSentRuntime = null;
 
-        await foreach (var update in statusStream.Subscribe(workspaceId, ct))
+        await foreach (var update in subscription.WithCancellation(ct))
         {
             if (update.PrinterId != printerId)
             {
