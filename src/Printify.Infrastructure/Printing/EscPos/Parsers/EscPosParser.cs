@@ -251,7 +251,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
             var statusByte = requestType switch
             {
                 EscPosStatusRequestType.PrinterStatus => BuildPrinterStatusByte(isPrinterOffline, hasError, isPaperOut),
-                EscPosStatusRequestType.OfflineCause => BuildOfflineCauseByte(isCoverOpen, isPaperOut, hasError, isOfflineFlag),
+                EscPosStatusRequestType.OfflineCause => BuildOfflineCauseByte(isCoverOpen, isPaperOut, hasError, isOfflineFlag, isBufferBusy),
                 EscPosStatusRequestType.ErrorCause => BuildErrorCauseByte(hasError),
                 EscPosStatusRequestType.PaperRollSensor => BuildPaperRollSensorByte(isPaperNearEnd, isPaperOut),
                 _ => BuildPrinterStatusByte(isPrinterOffline, hasError, isPaperOut)
@@ -259,6 +259,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
 
             // Emit the response element for document/debugging
             var response = new EscPosStatusResponse(statusByte,
+                RequestType: requestType,
                 IsPaperOut: isPaperOut,
                 IsCoverOpen: isCoverOpen,
                 IsOffline: isPrinterOffline)
@@ -300,7 +301,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         return status;
     }
 
-    private static byte BuildOfflineCauseByte(bool isCoverOpen, bool isPaperOut, bool hasError, bool isOfflineFlag)
+    private static byte BuildOfflineCauseByte(bool isCoverOpen, bool isPaperOut, bool hasError, bool isOfflineFlag, bool isBufferBusy)
     {
         const byte baseStatus = 0x12;
         var status = baseStatus;
@@ -308,7 +309,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
             status |= 0x04;
         if (isPaperOut)
             status |= 0x20;
-        if (hasError || isOfflineFlag)
+        if (hasError || isOfflineFlag || isBufferBusy)
             status |= 0x40;
         return status;
     }

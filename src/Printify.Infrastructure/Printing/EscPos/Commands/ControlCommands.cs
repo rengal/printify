@@ -115,11 +115,13 @@ public sealed record EscPosStatusRequest(EscPosStatusRequestType RequestType) : 
 /// Generated in response to StatusRequest command.
 /// </summary>
 /// <param name="StatusByte">Single byte containing printer status flags.</param>
-/// <param name="IsPaperOut">Paper end detected (bit 5).</param>
-/// <param name="IsCoverOpen">Cover is open (bit 2).</param>
-/// <param name="IsOffline">Printer is offline/error (bit 6).</param>
+/// <param name="RequestType">The request type this response corresponds to.</param>
+/// <param name="IsPaperOut">Paper end detected.</param>
+/// <param name="IsCoverOpen">Cover is open.</param>
+/// <param name="IsOffline">Printer is offline.</param>
 public sealed record EscPosStatusResponse(
     byte StatusByte,
+    EscPosStatusRequestType RequestType,
     bool IsPaperOut,
     bool IsCoverOpen,
     bool IsOffline) : EscPosCommand;

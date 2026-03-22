@@ -138,4 +138,5 @@ public sealed record StatusResponseElementPayload(
     byte StatusByte,
     bool IsPaperOut,
     bool IsCoverOpen,
-    bool IsOffline) : EscPosDocumentElementPayload;
+    bool IsOffline,
+    byte RequestType = 0x01) : EscPosDocumentElementPayload;

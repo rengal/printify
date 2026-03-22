@@ -27,7 +27,7 @@ public sealed class EscPosRendererCoverageTests
             new EscPosGetPrinterStatus(1),
             new EscPosGetPrinterStatus(1, 2),
             new EscPosStatusRequest(EscPosStatusRequestType.PrinterStatus),
-            new EscPosStatusResponse(0x00, false, false, false),
+            new EscPosStatusResponse(0x00, EscPosStatusRequestType.PrinterStatus, false, false, false),
 
             // Text commands
             new EscPosSetBoldMode(true),
@@ -120,7 +120,7 @@ public sealed class EscPosRendererCoverageTests
             new EscPosGetPrinterStatus(1),
             new EscPosGetPrinterStatus(1, 2),
             new EscPosStatusRequest(EscPosStatusRequestType.PrinterStatus),
-            new EscPosStatusResponse(0x00, false, false, false),
+            new EscPosStatusResponse(0x00, EscPosStatusRequestType.PrinterStatus, false, false, false),
 
             // Text commands
             new EscPosSetBoldMode(true),

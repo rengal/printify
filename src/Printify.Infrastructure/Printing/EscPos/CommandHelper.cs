@@ -208,18 +208,50 @@ public static class EscPosCommandHelper
 
     private static IReadOnlyList<string> BuildStatusResponseDescription(EscPosStatusResponse response)
     {
+        var b = response.StatusByte;
         var flags = new List<string>();
-        if (response.IsPaperOut)
-            flags.Add("paper out");
-        if (response.IsCoverOpen)
-            flags.Add("cover open");
-        if (response.IsOffline)
-            flags.Add("offline");
+
+        switch (response.RequestType)
+        {
+            case EscPosStatusRequestType.PrinterStatus:
+                // bit3: offline, bit5: error, bit6: paper out
+                if ((b & 0x08) != 0) flags.Add("offline");
+                if ((b & 0x20) != 0) flags.Add("error");
+                if ((b & 0x40) != 0) flags.Add("paper out");
+                break;
+            case EscPosStatusRequestType.OfflineCause:
+                // bit2: cover open, bit5: paper out, bit6: error/offline
+                if ((b & 0x04) != 0) flags.Add("cover open");
+                if ((b & 0x20) != 0) flags.Add("paper out");
+                if ((b & 0x40) != 0) flags.Add("error / offline / busy");
+                break;
+            case EscPosStatusRequestType.ErrorCause:
+                // bit4: auto-cutter error, bit5: unrecoverable error, bit6: auto-recoverable error
+                if ((b & 0x10) != 0) flags.Add("auto-cutter error");
+                if ((b & 0x20) != 0) flags.Add("unrecoverable error");
+                if ((b & 0x40) != 0) flags.Add("auto-recoverable error");
+                break;
+            case EscPosStatusRequestType.PaperRollSensor:
+                // bit2-3: near end, bit5-6: paper out
+                if ((b & 0x0C) != 0) flags.Add("paper near end");
+                if ((b & 0x60) != 0) flags.Add("paper out");
+                break;
+        }
+
+        var requestTypeLabel = response.RequestType switch
+        {
+            EscPosStatusRequestType.PrinterStatus => "printer status",
+            EscPosStatusRequestType.OfflineCause => "offline cause",
+            EscPosStatusRequestType.ErrorCause => "error cause",
+            EscPosStatusRequestType.PaperRollSensor => "paper roll sensor",
+            _ => "unknown"
+        };
 
         var flagsText = flags.Count > 0 ? string.Join(", ", flags) : "ready";
 
         return Lines(
             "Status response from printer",
+            $"n={FormatHexByte((byte)response.RequestType)} ({requestTypeLabel})",
             $"Status byte: {FormatHexByte(response.StatusByte)}",
             $"State: {flagsText}");
     }

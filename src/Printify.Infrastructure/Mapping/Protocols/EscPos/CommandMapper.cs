@@ -71,7 +71,8 @@ public static class CommandMapper
                 response.StatusByte,
                 response.IsPaperOut,
                 response.IsCoverOpen,
-                response.IsOffline),
+                response.IsOffline,
+                (byte)response.RequestType),
             EscPosRasterImageUpload => throw new NotSupportedException("Raster image persistence is handled separately."),
             _ => throw new NotSupportedException($"Element type '{command.GetType().Name}' is not supported.")
         };
@@ -132,6 +133,7 @@ public static class CommandMapper
             StatusRequestElementPayload request => new EscPosStatusRequest((EscPosStatusRequestType)request.RequestType),
             StatusResponseElementPayload response => new EscPosStatusResponse(
                 response.StatusByte,
+                RequestType: (EscPosStatusRequestType)response.RequestType,
                 response.IsPaperOut,
                 response.IsCoverOpen,
                 response.IsOffline),
