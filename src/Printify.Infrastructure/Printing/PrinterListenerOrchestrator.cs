@@ -223,4 +223,5 @@ public sealed class PrinterListenerOrchestrator(
             _ => throw new InvalidOperationException("Unknown listener status")
         };
     }
+
 }

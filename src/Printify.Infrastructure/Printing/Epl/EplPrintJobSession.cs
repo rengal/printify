@@ -39,7 +39,7 @@ public class EplPrintJobSession : PrintJobSession
         PrintJob job,
         IPrinterChannel channel,
         EplCommandTrieProvider trieProvider,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory? scopeFactory)
         : base(bufferCoordinator, job, channel)
     {
         ArgumentNullException.ThrowIfNull(bufferCoordinator);
@@ -47,7 +47,6 @@ public class EplPrintJobSession : PrintJobSession
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(trieProvider);
-        ArgumentNullException.ThrowIfNull(scopeFactory);
         this.bufferCoordinator = bufferCoordinator;
         idleClock = clockFactory.Create();
         parser = new EplParser(scopeFactory, Printer, Job.PrinterSettings, OnElement);

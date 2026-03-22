@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
+using Printify.Application.Printing.Events;
 using Printify.Domain.Documents;
 using Printify.Domain.Printing;
 using Printify.Domain.Printers;
@@ -25,7 +26,7 @@ public sealed class PrintJobSessionsOrchestrator(
 {
     private readonly ConcurrentDictionary<IPrinterChannel, IPrintJobSession> jobSessions = new();
 
-    public async Task<IPrintJobSession> StartSessionAsync(IPrinterChannel channel, CancellationToken ct)
+    public async Task<IPrintJobSession> StartSessionAsync(IPrinterChannel channel, CancellationToken ct, bool skipBufferCheck = false)
     {
         ArgumentNullException.ThrowIfNull(channel);
         ct.ThrowIfCancellationRequested();
@@ -48,7 +49,7 @@ public sealed class PrintJobSessionsOrchestrator(
         var printJobRepository = scope.ServiceProvider.GetRequiredService<IPrintJobRepository>();
         await printJobRepository.AddAsync(printJob, ct).ConfigureAwait(false);
 
-        var jobSession = await printJobSessionFactory.Create(printJob, channel, ct);
+        var jobSession = await printJobSessionFactory.Create(printJob, channel, ct, skipBufferCheck);
         jobSessions[channel] = jobSession;
         return jobSession;
     }
@@ -114,6 +115,17 @@ public sealed class PrintJobSessionsOrchestrator(
         }
     }
 
+    public async Task InjectDocumentAsync(Printer printer, PrinterSettings settings, ReadOnlyMemory<byte> data, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(printer);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        await using var channel = new InjectedChannel(printer, settings);
+        var session = await StartSessionAsync(channel, ct, skipBufferCheck: true).ConfigureAwait(false);
+        await FeedAsync(channel, data, ct).ConfigureAwait(false);
+        await CompleteAsync(channel, PrintJobCompletionReason.ClientDisconnected, ct).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Emits drawer state updates derived from ESC/POS pulse elements.
     /// </summary>
@@ -169,5 +181,18 @@ public sealed class PrintJobSessionsOrchestrator(
         }
 
         return (drawer1, drawer2);
+    }
+
+    private sealed class InjectedChannel(Printer printer, PrinterSettings settings) : IPrinterChannel
+    {
+#pragma warning disable CS0067
+        public event Func<IPrinterChannel, PrinterChannelDataEventArgs, ValueTask>? DataReceived;
+        public event Func<IPrinterChannel, PrinterChannelClosedEventArgs, ValueTask>? Closed;
+#pragma warning restore CS0067
+        public Printer Printer { get; } = printer;
+        public PrinterSettings Settings { get; } = settings;
+        public string ClientAddress => "inject://api";
+        public ValueTask SendToClientAsync(ReadOnlyMemory<byte> data, CancellationToken ct) => ValueTask.CompletedTask;
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

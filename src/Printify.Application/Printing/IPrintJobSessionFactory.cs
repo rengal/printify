@@ -4,5 +4,5 @@ namespace Printify.Application.Printing;
 
 public interface IPrintJobSessionFactory
 {
-    Task<IPrintJobSession> Create(PrintJob job, IPrinterChannel channel, CancellationToken ct);
+    Task<IPrintJobSession> Create(PrintJob job, IPrinterChannel channel, CancellationToken ct, bool skipBufferCheck = false);
 }

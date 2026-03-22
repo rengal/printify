@@ -16,9 +16,10 @@ public class PrintJobSessionFactory(
     IServiceScopeFactory scopeFactory)
     : IPrintJobSessionFactory
 {
-    public Task<IPrintJobSession> Create(PrintJob job, IPrinterChannel channel, CancellationToken ct)
+    public Task<IPrintJobSession> Create(PrintJob job, IPrinterChannel channel, CancellationToken ct, bool skipBufferCheck = false)
     {
         var protocol = channel.Settings.Protocol;
+        var effectiveScopeFactory = skipBufferCheck ? null : scopeFactory;
         if (protocol == Protocol.EscPos)
         {
             return Task.FromResult<IPrintJobSession>(
@@ -28,7 +29,7 @@ public class PrintJobSessionFactory(
                     job,
                     channel,
                     escPosCommandTrieProvider,
-                    scopeFactory));
+                    effectiveScopeFactory));
         }
 
         if (protocol == Protocol.Epl)
@@ -40,7 +41,7 @@ public class PrintJobSessionFactory(
                     job,
                     channel,
                     eplCommandTrieProvider,
-                    scopeFactory));
+                    effectiveScopeFactory));
         }
 
         throw new ArgumentOutOfRangeException(nameof(protocol));

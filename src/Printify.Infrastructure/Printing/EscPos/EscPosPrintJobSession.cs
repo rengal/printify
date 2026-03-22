@@ -38,7 +38,7 @@ public class EscPosPrintJobSession : PrintJobSession
         PrintJob job,
         IPrinterChannel channel,
         EscPosCommandTrieProvider trieProvider,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory? scopeFactory)
         : base(bufferCoordinator, job, channel)
     {
         ArgumentNullException.ThrowIfNull(bufferCoordinator);
@@ -46,7 +46,6 @@ public class EscPosPrintJobSession : PrintJobSession
         ArgumentNullException.ThrowIfNull(job);
         ArgumentNullException.ThrowIfNull(channel);
         ArgumentNullException.ThrowIfNull(trieProvider);
-        ArgumentNullException.ThrowIfNull(scopeFactory);
         this.bufferCoordinator = bufferCoordinator;
         idleClock = clockFactory.Create();
         parser = new EscPosParser(
