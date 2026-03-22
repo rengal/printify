@@ -20,7 +20,6 @@
     font-size: 24px;
     line-height: 24px;
     letter-spacing: 0;
-    filter: url(#crisp-text);
 }
 
 /* Font B: 9×17 dots (smaller ESC/POS font) */
@@ -29,7 +28,6 @@
     font-size: 17px;
     line-height: 17px;
     letter-spacing: 0;
-    filter: url(#crisp-text);
 }
 
 /* Text styling modifiers (applied inline as needed) */
