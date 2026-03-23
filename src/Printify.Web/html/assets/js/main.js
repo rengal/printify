@@ -1062,8 +1062,11 @@
                     startRuntimeStream(selectedPrinterId);
                 }
             } catch (error) {
-                console.error('Auth error:', error);
-                throw error;
+                // Only rethrow if login itself failed (accessToken not yet set)
+                if (!accessToken) {
+                    throw error;
+                }
+                console.error('Post-login data load error:', error);
             }
         }
 
