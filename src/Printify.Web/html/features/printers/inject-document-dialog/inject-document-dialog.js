@@ -277,7 +277,7 @@ function clearError(elements) {
 }
 
 async function loadTemplate() {
-    const response = await fetch('features/printers/inject-document-dialog/import-document-dialog.html');
+    const response = await fetch('features/printers/inject-document-dialog/inject-document-dialog.html');
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
