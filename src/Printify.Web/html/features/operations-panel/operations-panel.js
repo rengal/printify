@@ -44,7 +44,7 @@ const callbacks = {
     onGetDebugMode: null,
     onToggleDrawer: null,
     onToggleDangerZone: null,
-    onInjectDocument: null,
+    onImportDocument: null,
     onClearDocuments: null,
     onDeletePrinter: null,
     onCopyAddress: null
@@ -156,8 +156,8 @@ function cacheElementReferences(panelElement) {
         bufferBar: panelElement.querySelector('[data-ops-buffer-bar]'),
         bufferFill: panelElement.querySelector('[data-ops-buffer-fill]'),
 
-        // Inject document
-        injectDocumentBtn: panelElement.querySelector('[data-action="inject-document"]'),
+        // Import document
+        importDocumentBtn: panelElement.querySelector('[data-action="inject-document"]'),
 
         // Danger zone
         dangerZone: panelElement.querySelector('[data-danger-zone]'),
@@ -208,8 +208,8 @@ function attachEventHandlers(elements) {
     // Danger zone
     elements.dangerHeader.addEventListener('click', toggleDangerZone);
 
-    // Inject document
-    elements.injectDocumentBtn?.addEventListener('click', () => callbacks.onInjectDocument?.());
+    // Import document
+    elements.importDocumentBtn?.addEventListener('click', () => callbacks.onImportDocument?.());
 
     // Clear documents
     const clearDocsBtn = elements.dangerContent.querySelector('[data-action="clear-documents"]');

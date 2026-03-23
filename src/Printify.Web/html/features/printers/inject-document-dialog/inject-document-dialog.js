@@ -1,7 +1,7 @@
 /**
- * Inject Document Dialog Module
+ * Import Document Dialog Module
  *
- * Shows a dialog that lets the user inject raw document bytes into a printer
+ * Shows a dialog that lets the user import raw document bytes into a printer
  * either by pasting base64 text or by dropping / selecting a binary file.
  */
 
@@ -37,22 +37,22 @@ export async function show(printerId) {
     selectedFile = null;
 
     const fragment = template.content.cloneNode(true);
-    const overlay = fragment.querySelector('[data-inject-dialog-overlay]');
+    const overlay = fragment.querySelector('[data-import-dialog-overlay]');
 
     const elements = {
         overlay,
-        closeBtn:      overlay.querySelector('[data-inject-dialog-close]'),
-        cancelBtn:     overlay.querySelector('[data-inject-dialog-cancel]'),
-        submitBtn:     overlay.querySelector('[data-inject-dialog-submit]'),
-        dropZone:      overlay.querySelector('[data-inject-drop-zone]'),
-        dropIdle:      overlay.querySelector('[data-inject-drop-idle]'),
-        dropActive:    overlay.querySelector('[data-inject-drop-active]'),
-        fileInfo:      overlay.querySelector('[data-inject-file-info]'),
-        fileInput:     overlay.querySelector('[data-inject-file-input]'),
-        fileName:      overlay.querySelector('[data-inject-file-name]'),
-        fileClearBtn:  overlay.querySelector('[data-inject-file-clear]'),
-        base64Input:   overlay.querySelector('[data-inject-base64-input]'),
-        base64Error:   overlay.querySelector('[data-inject-base64-error]')
+        closeBtn:      overlay.querySelector('[data-import-dialog-close]'),
+        cancelBtn:     overlay.querySelector('[data-import-dialog-cancel]'),
+        submitBtn:     overlay.querySelector('[data-import-dialog-submit]'),
+        dropZone:      overlay.querySelector('[data-import-drop-zone]'),
+        dropIdle:      overlay.querySelector('[data-import-drop-idle]'),
+        dropActive:    overlay.querySelector('[data-import-drop-active]'),
+        fileInfo:      overlay.querySelector('[data-import-file-info]'),
+        fileInput:     overlay.querySelector('[data-import-file-input]'),
+        fileName:      overlay.querySelector('[data-import-file-name]'),
+        fileClearBtn:  overlay.querySelector('[data-import-file-clear]'),
+        base64Input:   overlay.querySelector('[data-import-base64-input]'),
+        base64Error:   overlay.querySelector('[data-import-base64-error]')
     };
 
     bindEvents(elements, printerId);
@@ -206,22 +206,22 @@ async function handleSubmit(elements, printerId) {
     }
 
     elements.submitBtn.disabled = true;
-    elements.submitBtn.textContent = 'Injecting…';
+    elements.submitBtn.textContent = 'Importing…';
 
     try {
-        await callbacks.apiRequest(`/api/printers/${printerId}/documents/inject`, {
+        await callbacks.apiRequest(`/api/printers/${printerId}/documents/import`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ data: base64 })
         });
-        callbacks.showToast?.('Document injected');
+        callbacks.showToast?.('Document imported');
         await callbacks.loadPrinters?.(printerId);
         close();
     } catch (err) {
         console.error(err);
-        showError(elements, err.message || 'Failed to inject document.');
+        showError(elements, err.message || 'Failed to import document.');
         elements.submitBtn.disabled = false;
-        elements.submitBtn.textContent = 'Inject';
+        elements.submitBtn.textContent = 'Import';
     }
 }
 
@@ -277,7 +277,7 @@ function clearError(elements) {
 }
 
 async function loadTemplate() {
-    const response = await fetch('features/printers/inject-document-dialog/inject-document-dialog.html');
+    const response = await fetch('features/printers/inject-document-dialog/import-document-dialog.html');
     const html = await response.text();
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
@@ -288,7 +288,7 @@ async function loadTemplate() {
 // WINDOW EXPORTS
 // ============================================================================
 
-window.InjectDocumentDialog = {
+window.ImportDocumentDialog = {
     init,
     show,
     close

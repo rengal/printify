@@ -937,10 +937,10 @@
             </div>`;
         }
 
-        function injectDocument(printerId) {
+        function importDocument(printerId) {
             if (!printerId) return;
-            if (window.InjectDocumentDialog) {
-                InjectDocumentDialog.show(printerId);
+            if (window.ImportDocumentDialog) {
+                ImportDocumentDialog.show(printerId);
             }
         }
 
@@ -1336,7 +1336,7 @@
                     const drawerProp = `drawer${drawerNumber}State`;
                     setDrawerState(selectedPrinterId, drawerProp, newState);
                 },
-                onInjectDocument: () => injectDocument(selectedPrinterId),
+                onImportDocument: () => importDocument(selectedPrinterId),
                 onClearDocuments: () => clearDocuments(selectedPrinterId),
                 onDeletePrinter: () => deletePrinter(selectedPrinterId),
                 onCopyAddress: (address) => copyToClipboard(address)
@@ -1401,9 +1401,9 @@
             });
         }
 
-        // Initialize Inject Document Dialog module
-        if (window.InjectDocumentDialog) {
-            InjectDocumentDialog.init({
+        // Initialize Import Document Dialog module
+        if (window.ImportDocumentDialog) {
+            ImportDocumentDialog.init({
                 apiRequest: (path, options) => apiRequest(path, options),
                 showToast: (msg, isError) => showToast(msg, isError),
                 loadPrinters: (selectId) => loadPrinters(selectId)
