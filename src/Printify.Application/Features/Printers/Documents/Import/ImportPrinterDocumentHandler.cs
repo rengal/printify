@@ -5,14 +5,14 @@ using Printify.Application.Interfaces;
 using Printify.Application.Mediation;
 using Printify.Application.Printing;
 
-namespace Printify.Application.Features.Printers.Documents.Inject;
+namespace Printify.Application.Features.Printers.Documents.Import;
 
-public sealed class InjectPrinterDocumentHandler(
+public sealed class ImportPrinterDocumentHandler(
     IPrinterRepository printerRepository,
     IPrintJobSessionsOrchestrator printJobSessions)
-    : IRequestHandler<InjectPrinterDocumentCommand, Unit>
+    : IRequestHandler<ImportPrinterDocumentCommand, Unit>
 {
-    public async Task<Unit> Handle(IReceiveContext<InjectPrinterDocumentCommand> context, CancellationToken cancellationToken)
+    public async Task<Unit> Handle(IReceiveContext<ImportPrinterDocumentCommand> context, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(context);
         var request = context.Message;
@@ -33,7 +33,7 @@ public sealed class InjectPrinterDocumentHandler(
             throw new PrinterNotFoundException(request.PrinterId);
 
         await printJobSessions
-            .InjectDocumentAsync(printer, settings, request.Data, cancellationToken)
+            .ImportDocumentAsync(printer, settings, request.Data, cancellationToken)
             .ConfigureAwait(false);
 
         return Unit.Value;

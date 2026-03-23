@@ -115,7 +115,7 @@ public sealed class PrintJobSessionsOrchestrator(
         }
     }
 
-    public async Task InjectDocumentAsync(Printer printer, PrinterSettings settings, ReadOnlyMemory<byte> data, CancellationToken ct)
+    public async Task ImportDocumentAsync(Printer printer, PrinterSettings settings, ReadOnlyMemory<byte> data, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(printer);
         ArgumentNullException.ThrowIfNull(settings);
