@@ -1017,6 +1017,7 @@
 
         // Workspace Management
         async function loginWithToken(token) {
+            let loginSucceeded = false;
             try {
                 const loginResponse = await apiRequest('/api/auth/login', {
                     method: 'POST',
@@ -1024,6 +1025,7 @@
                     isTokenLogin: true  // Prevent auto-logout on 401
                 });
 
+                loginSucceeded = true;
                 accessToken = loginResponse.accessToken;
                 updateWorkspaceToken(token); // This will invalidate cache if token changed
                 const workspace = loginResponse.workspace;
@@ -1062,8 +1064,7 @@
                     startRuntimeStream(selectedPrinterId);
                 }
             } catch (error) {
-                // Only rethrow if login itself failed (accessToken not yet set)
-                if (!accessToken) {
+                if (!loginSucceeded) {
                     throw error;
                 }
                 console.error('Post-login data load error:', error);
@@ -1083,7 +1084,6 @@
             documents = {};
             documentsPagination = {};
             selectedPrinterId = null;
-            detachScrollObserver();
             stopStatusStream();
             stopDocumentStream();
             stopRuntimeStream();
