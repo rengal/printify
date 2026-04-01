@@ -26,9 +26,9 @@ public static class EscPosGoldenCases
                     expectedRequestElement:
                     [
                         new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
-                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetCodePage("866") { LengthInBytes = 3 },
-                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
                         CreateAppendText(Pad("font 0", 42)),
                         new EscPosCommands.EscPosPrintAndLineFeed { LengthInBytes = 1 },
                         new EscPosCommands.EscPosCutPaper(EscPosCommands.EscPosPagecutMode.Partial, 0) { LengthInBytes = 4 }
@@ -60,15 +60,15 @@ public static class EscPosGoldenCases
                     expectedRequestElement:
                     [
                         new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
-                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetCodePage("866") { LengthInBytes = 3 },
-                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
                         CreateAppendText(Pad("font 0", 42)),
                         new EscPosCommands.EscPosPrintAndLineFeed { LengthInBytes = 1 },
-                        new EscPosCommands.EscPosSelectFont(1, true, true) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetPrintMode(1, true, true) { LengthInBytes = 3 },
                         CreateAppendText(Pad("font 1", 28)),
                         new EscPosCommands.EscPosPrintAndLineFeed { LengthInBytes = 1 },
-                        new EscPosCommands.EscPosSelectFont(0, true, true) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetPrintMode(0, true, true) { LengthInBytes = 3 },
                         CreateAppendText(Pad("font 2", 21)),
                         new EscPosCommands.EscPosPrintAndLineFeed { LengthInBytes = 1 },
                         new EscPosCommands.EscPosCutPaper(EscPosCommands.EscPosPagecutMode.Partial, 0) { LengthInBytes = 4 }
@@ -136,9 +136,9 @@ public static class EscPosGoldenCases
                     expectedRequestElement:
                     [
                         new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
-                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetCodePage("866") { LengthInBytes = 3 },
-                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetJustification(EscPosCommands.EscPosTextJustification.Right) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetBarcodeHeight(101) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetBarcodeModuleWidth(3) { LengthInBytes = 3 },
@@ -151,9 +151,9 @@ public static class EscPosGoldenCases
                     expectedFinalizedElements:
                     [
                         new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
-                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetCodePage("866") { LengthInBytes = 3 },
-                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetJustification(EscPosCommands.EscPosTextJustification.Right) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetBarcodeHeight(101) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetBarcodeModuleWidth(3) { LengthInBytes = 3 },
@@ -194,7 +194,7 @@ public static class EscPosGoldenCases
                     expectedRequestElement:
                     [
                         new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
-                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetCodePage("866") { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetJustification(EscPosCommands.EscPosTextJustification.Left) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetQrModel(EscPosCommands.EscPosQrModel.Model2) { LengthInBytes = 9 },
@@ -208,7 +208,7 @@ public static class EscPosGoldenCases
                     expectedFinalizedElements:
                     [
                         new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
-                        new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                        new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetCodePage("866") { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetJustification(EscPosCommands.EscPosTextJustification.Left) { LengthInBytes = 3 },
                         new EscPosCommands.EscPosSetQrModel(EscPosCommands.EscPosQrModel.Model2) { LengthInBytes = 9 },
@@ -249,7 +249,7 @@ public static class EscPosGoldenCases
                     expectedRequestElement:
                         [
                             new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
-                            new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                            new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
                             new EscPosCommands.EscPosPrintLogo(0) { LengthInBytes = 4 },
                             new EscPosCommands.EscPosCutPaper(EscPosCommands.EscPosPagecutMode.Partial, 0) { LengthInBytes = 4 }
                         ],

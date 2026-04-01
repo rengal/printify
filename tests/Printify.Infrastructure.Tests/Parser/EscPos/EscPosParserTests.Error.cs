@@ -8,11 +8,4 @@ public partial class EscPosParserTests
     {
         AssertScenario(scenario);
     }
-
-    [Fact]
-    public void Debug_Specific_Scenario2()
-    {
-        var scenario = EscPosScenarioData.ErrorScenarios.Cast<EscPosScenario>().ElementAt(3); // todo debugnow
-        AssertScenario(scenario);
-    }
 }

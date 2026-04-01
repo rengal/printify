@@ -4,11 +4,11 @@ using Printify.Infrastructure.Printing.EscPos.Commands;
 namespace Printify.Infrastructure.Printing.EscPos.CommandDescriptors;
 
 /// <summary>
-/// Command: ESC ! - select font characteristics.
+/// Command: ESC ! - select print mode.
 /// ASCII: ESC ! n.
 /// HEX: 1B 21 n.
 /// </summary>
-public sealed class SetFontDescriptor : ICommandDescriptor
+public sealed class SetPrintModeDescriptor : ICommandDescriptor
 {
     private const int FixedLength = 3;
 
@@ -24,8 +24,27 @@ public sealed class SetFontDescriptor : ICommandDescriptor
         var isDoubleHeight = (parameter & 0x10) != 0;
         var isDoubleWidth = (parameter & 0x20) != 0;
 
-        var fontElement = new EscPosSelectFont(fontNumber, isDoubleWidth, isDoubleHeight);
+        var fontElement = new EscPosSetPrintMode(fontNumber, isDoubleWidth, isDoubleHeight);
         return MatchResult.Matched(fontElement);
+    }
+}
+
+/// <summary>
+/// Command: ESC M n - select character font.
+/// ASCII: ESC M n.
+/// HEX: 1B 4D n (00=Font A, 01=Font B).
+/// </summary>
+public sealed class SetFontDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 3;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, 0x4D };
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        var fontNumber = buffer[2] & 0x01; // bit0: 0=Font A, 1=Font B
+        return MatchResult.Matched(new EscPosSetFont(fontNumber));
     }
 }
 

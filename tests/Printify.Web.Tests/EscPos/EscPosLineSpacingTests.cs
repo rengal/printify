@@ -10,4 +10,5 @@ public class EscPosLineSpacingTests(WebApplicationFactory<Program> factory) : Es
     {
         await RunScenarioAsync(scenario);
     }
+
 }

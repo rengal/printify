@@ -41,6 +41,25 @@ public sealed class LegacyCarriageReturnDescriptor : ICommandDescriptor
 }
 
 /// <summary>
+/// Command: ESC d n - print and feed n lines.
+/// ASCII: ESC d n.
+/// HEX: 1B 64 n.
+/// </summary>
+public sealed class PrintAndFeedLinesDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 3;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, 0x64 };
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        var lines = buffer[2];
+        return MatchResult.Matched(new EscPosPrintAndFeedLines(lines));
+    }
+}
+
+/// <summary>
 /// Command: GS V m [n] - paper cut with mode.
 /// ASCII: GS V m [n].
 /// HEX: 1D 56 0xMM [0xNN].

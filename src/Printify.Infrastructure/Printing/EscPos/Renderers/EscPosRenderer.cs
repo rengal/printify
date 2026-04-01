@@ -200,17 +200,44 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
-                case EscPosSelectFont font:
+                case EscPosSetPrintMode font:
                     state.FontNumber = font.FontNumber;
                     state.ScaleX = font.IsDoubleWidth ? 2 : 1;
                     state.ScaleY = font.IsDoubleHeight ? 2 : 1;
                     currentItems.Add(new DebugInfo(
-                        "setFont",
+                        "setPrintMode",
                         new Dictionary<string, string>
                         {
                             ["FontNumber"] = font.FontNumber.ToString(),
                             ["IsDoubleWidth"] = font.IsDoubleWidth.ToString(),
                             ["IsDoubleHeight"] = font.IsDoubleHeight.ToString()
+                        },
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
+                    break;
+
+                case EscPosPrintAndFeedLines feedLines:
+                    currentItems.Add(new DebugInfo(
+                        "printAndFeedLines",
+                        new Dictionary<string, string>
+                        {
+                            ["Lines"] = feedLines.Lines.ToString()
+                        },
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
+                    FlushLine(state, lineBuffer, currentItems, canvasWidthInDots);
+                    state.CurrentY += feedLines.Lines * (GetFontHeight(state.FontNumber) * state.ScaleY + state.LineSpacing);
+                    break;
+
+                case EscPosSetFont setFont:
+                    state.FontNumber = setFont.FontNumber;
+                    currentItems.Add(new DebugInfo(
+                        "setFont",
+                        new Dictionary<string, string>
+                        {
+                            ["FontNumber"] = setFont.FontNumber.ToString()
                         },
                         command.RawBytes,
                         command.LengthInBytes,
@@ -415,7 +442,9 @@ public sealed class EscPosRenderer : IRenderer
             EscPosSetBarcodeModuleWidth => "setBarcodeModuleWidth",
             EscPosSetBoldMode => "setBoldMode",
             EscPosSetCodePage => "setCodePage",
-            EscPosSelectFont => "setFont",
+            EscPosSetPrintMode => "setFont",
+            EscPosSetFont => "setFont",
+            EscPosPrintAndFeedLines => "printAndFeedLines",
             EscPosSetJustification => "setJustification",
             EscPosSetLineSpacing => "setLineSpacing",
             EscPosResetLineSpacing => "resetLineSpacing",

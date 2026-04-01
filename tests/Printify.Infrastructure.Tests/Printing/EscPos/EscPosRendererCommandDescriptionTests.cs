@@ -21,7 +21,7 @@ public sealed class EscPosRendererCommandDescriptionTests
             new EscPosSetUnderlineMode(false),
             new EscPosSetJustification(EscPosTextJustification.Center),
             new EscPosSetCodePage("437"),
-            new EscPosSelectFont(FontNumber: 0, IsDoubleWidth: false, IsDoubleHeight: false),
+            new EscPosSetPrintMode(FontNumber: 0, IsDoubleWidth: false, IsDoubleHeight: false),
         };
 
         var document = new Document(

@@ -84,7 +84,7 @@ public static class EscPosScenarioData
                 [
                     DebugAppendText("ABC", lengthInBytes: 3),
                     DebugFlush(lengthInBytes: 1),
-                    TextElement("ABC", x: 0, y: 0, lengthInBytes: 3)
+                    TextElement("ABC", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 0, lengthInBytes: 3)
                 ]
             ]),
         new(
@@ -102,7 +102,7 @@ public static class EscPosScenarioData
                     DebugAppendText("ABC", lengthInBytes: 3),
                     DebugElement("legacyCarriageReturn", lengthInBytes: 1),
                     DebugFlush(lengthInBytes: 1),
-                    TextElement("ABC", x: 0, y: 0, lengthInBytes: 3)
+                    TextElement("ABC", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 0, lengthInBytes: 3)
                 ]
             ]),
         new(
@@ -143,10 +143,14 @@ public static class EscPosScenarioData
                 [
                     DebugAppendText("ABC", lengthInBytes: 3),
                     DebugFlush(lengthInBytes: 1),
-                    TextElement("ABC", x: 0, y: 0, lengthInBytes: 3),
+                    TextElement("ABC", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 0, lengthInBytes: 3),
                     DebugAppendText("DEF", lengthInBytes: 3),
                     DebugFlush(lengthInBytes: 1),
-                    TextElement("DEF", x: 0, y: DefaultLineHeight, lengthInBytes: 3),
+                    TextElement("DEF", 
+                        fontName: EscPosSpecs.Fonts.FontA.FontName,
+                        x: 0,
+                        y: EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing,
+                        lengthInBytes: 3),
                     DebugAppendText("G", lengthInBytes: 1),
                     DebugDiscardedError()
                 ]
@@ -227,8 +231,8 @@ public static class EscPosScenarioData
                     DebugElement("bell", lengthInBytes: 1),
                     DebugAppendText("DEF", lengthInBytes: 3),
                     DebugFlush(lengthInBytes: 1),
-                    TextElement("ABC", x: 0, y: 0, lengthInBytes: 3),
-                    TextElement("DEF", x: 36, y: 0, lengthInBytes: 3),
+                    TextElement("ABC", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 0, lengthInBytes: 3),
+                    TextElement("DEF", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 36, y: 0, lengthInBytes: 3),
                     DebugElement("bell", lengthInBytes: 1)
                 ]
             ]),
@@ -257,7 +261,7 @@ public static class EscPosScenarioData
                 [
                     DebugAppendText("DEF", lengthInBytes: 3),
                     DebugFlush(lengthInBytes: 1),
-                    TextElement("DEF", x: 0, y: 0, lengthInBytes: 3)
+                    TextElement("DEF", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 0, lengthInBytes: 3)
                 ]
             ]),
         new(
@@ -310,7 +314,7 @@ public static class EscPosScenarioData
                     DebugElement("appendToLineBuffer", parameters: new Dictionary<string, string> { ["Text"] = "DEF" }, lengthInBytes: 3),
                     // Flush - only "DEF" prints (positioned below the image)
                     DebugElement("flushLineBufferAndFeed", lengthInBytes: 1),
-                    TextElement("DEF", x: 0, y: 2, lengthInBytes: 3)  // Y=2 because image (height=2) is above
+                    TextElement("DEF", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 2, lengthInBytes: 3)  // Y=2 because image (height=2) is above
                 ]
             ]),
         new(
@@ -439,6 +443,30 @@ public static class EscPosScenarioData
                         ["Message"] = string.Empty
                     }),
                     DebugElement("bell", lengthInBytes: 1)
+                ]
+            ]),
+        // Reset followed by unknown ESC command, then pagecut
+        // Sequence: ESC @ (reset), ESC 0xFF (unknown), ESC i (partial cut)
+        // Bug expected: ESC 0xFF may not properly emit error before pagecut
+        new(
+            id: 160007,
+            input: [Esc, 0x40, Esc, 0xFF, Esc, (byte)'i'],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosInitialize { LengthInBytes = 2 },
+                new EscPosCommands.EscPosParseError("ESCPOS_PARSER_ERROR", "Unrecognized command: ESC 0xFF") { LengthInBytes = 2 },
+                new EscPosCommands.EscPosCutPaper(EscPosCommands.EscPosPagecutMode.PartialOnePoint) { LengthInBytes = 2 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("reset", lengthInBytes: 2),
+                    DebugElement("error", lengthInBytes: 2, parameters: new Dictionary<string, string>
+                    {
+                        ["Code"] = "ESCPOS_PARSER_ERROR",
+                        ["Message"] = "Unrecognized command: ESC 0xFF"
+                    }),
+                    DebugElement("pagecut", lengthInBytes: 2, parameters: PagecutParameters(EscPosCommands.EscPosPagecutMode.PartialOnePoint, null))
                 ]
             ])
     ];
@@ -890,20 +918,20 @@ public static class EscPosScenarioData
             ],
             expectedRequestCommands:
             [
-                new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
-                new EscPosCommands.EscPosSelectFont(1, false, false) { LengthInBytes = 3 },
-                new EscPosCommands.EscPosSelectFont(0, true, false) { LengthInBytes = 3 },
-                new EscPosCommands.EscPosSelectFont(1, true, true) { LengthInBytes = 3 },
-                new EscPosCommands.EscPosSelectFont(2, false, false) { LengthInBytes = 3 }
+                new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
+                new EscPosCommands.EscPosSetPrintMode(1, false, false) { LengthInBytes = 3 },
+                new EscPosCommands.EscPosSetPrintMode(0, true, false) { LengthInBytes = 3 },
+                new EscPosCommands.EscPosSetPrintMode(1, true, true) { LengthInBytes = 3 },
+                new EscPosCommands.EscPosSetPrintMode(2, false, false) { LengthInBytes = 3 }
             ],
             expectedCanvasElements:
             [
                 [
-                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, false, false)),
-                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, false, false)),
-                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, true, false)),
-                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, true, true)),
-                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(2, false, false))
+                    DebugElement("setPrintMode", lengthInBytes: 3, parameters: SetFontParameters(0, false, false)),
+                    DebugElement("setPrintMode", lengthInBytes: 3, parameters: SetFontParameters(1, false, false)),
+                    DebugElement("setPrintMode", lengthInBytes: 3, parameters: SetFontParameters(0, true, false)),
+                    DebugElement("setPrintMode", lengthInBytes: 3, parameters: SetFontParameters(1, true, true)),
+                    DebugElement("setPrintMode", lengthInBytes: 3, parameters: SetFontParameters(2, false, false))
                 ]
             ]),
         new(
@@ -976,10 +1004,10 @@ public static class EscPosScenarioData
             ],
             expectedRequestCommands:
             [
-                new EscPosCommands.EscPosSelectFont(0, false, false) { LengthInBytes = 3 },
+                new EscPosCommands.EscPosSetPrintMode(0, false, false) { LengthInBytes = 3 },
                 CommandAppendText("AA"),
                 CommandPrintAndLineFeed(),
-                new EscPosCommands.EscPosSelectFont(1, true, true) { LengthInBytes = 3 },
+                new EscPosCommands.EscPosSetPrintMode(1, true, true) { LengthInBytes = 3 },
                 new EscPosCommands.EscPosSetBoldMode(true) { LengthInBytes = 3 },
                 new EscPosCommands.EscPosSetUnderlineMode(true) { LengthInBytes = 3 },
                 new EscPosCommands.EscPosSetReverseMode(true) { LengthInBytes = 3 },
@@ -989,7 +1017,7 @@ public static class EscPosScenarioData
             expectedCanvasElements:
             [
                 [
-                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(0, false, false)),
+                    DebugElement("setPrintMode", lengthInBytes: 3, parameters: SetFontParameters(0, false, false)),
                     DebugAppendText("AA", lengthInBytes: 2),
                     DebugFlush(lengthInBytes: 1),
                     TextElement(
@@ -1003,7 +1031,7 @@ public static class EscPosScenarioData
                         isBold: false,
                         isUnderline: false,
                         isReverse: false),
-                    DebugElement("setFont", lengthInBytes: 3, parameters: SetFontParameters(1, true, true)),
+                    DebugElement("setPrintMode", lengthInBytes: 3, parameters: SetFontParameters(1, true, true)),
                     DebugElement("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
                     DebugElement("setUnderlineMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
                     DebugElement("setReverseMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
@@ -1012,7 +1040,7 @@ public static class EscPosScenarioData
                     TextElement(
                         "BB",
                         x: 0,
-                        y: DefaultLineHeight,
+                        y: EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing,
                         lengthInBytes: 2,
                         charScaleX: 2,
                         charScaleY: 2,
@@ -1048,6 +1076,198 @@ public static class EscPosScenarioData
             ])
     ];
 
+    // ESC M n (1B 4D n) — select character font (0=Font A, 1=Font B)
+    public static TheoryData<EscPosScenario> SetFontScenarios { get; } =
+    [
+        // Font A (n=0)
+        new(
+            id: 250001,
+            input: [Esc, 0x4D, 0x00],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetFont(0) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("setFont", lengthInBytes: 3,
+                        parameters: new Dictionary<string, string> { ["FontNumber"] = "0" })
+                ]
+            ]),
+        // Font B (n=1)
+        new(
+            id: 250002,
+            input: [Esc, 0x4D, 0x01],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetFont(1) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("setFont", lengthInBytes: 3,
+                        parameters: new Dictionary<string, string> { ["FontNumber"] = "1" })
+                ]
+            ]),
+        // n=2 maps to Font A (only bit0 used)
+        new(
+            id: 250003,
+            input: [Esc, 0x4D, 0x02],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetFont(0) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("setFont", lengthInBytes: 3,
+                        parameters: new Dictionary<string, string> { ["FontNumber"] = "0" })
+                ]
+            ]),
+        // ESC M switches font; text renders with correct font name
+        new(
+            id: 250004,
+            input:
+            [
+                Esc, 0x4D, 0x00,
+                (byte)'A', Lf,
+                Esc, 0x4D, 0x01,
+                (byte)'B', Lf
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetFont(0) { LengthInBytes = 3 },
+                CommandAppendText("A"),
+                CommandPrintAndLineFeed(),
+                new EscPosCommands.EscPosSetFont(1) { LengthInBytes = 3 },
+                CommandAppendText("B"),
+                CommandPrintAndLineFeed()
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("setFont", lengthInBytes: 3,
+                        parameters: new Dictionary<string, string> { ["FontNumber"] = "0" }),
+                    DebugAppendText("A", lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement("A", x: 0, y: 0, lengthInBytes: 1, fontName: EscPosSpecs.Fonts.FontA.FontName),
+                    DebugElement("setFont", lengthInBytes: 3,
+                        parameters: new Dictionary<string, string> { ["FontNumber"] = "1" }),
+                    DebugAppendText("B", lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement("B",
+                        x: 0,
+                        y: EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing,
+                        lengthInBytes: 1,
+                        fontName: EscPosSpecs.Fonts.FontB.FontName)
+                ]
+            ])
+    ];
+
+    // ESC d n (1B 64 n) — print and feed n lines
+    public static TheoryData<EscPosScenario> PrintAndFeedLinesScenarios { get; } =
+    [
+        // Feed 0 lines — no Y advance
+        new(
+            id: 260001,
+            input: [Esc, 0x64, 0x00],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosPrintAndFeedLines(0) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("printAndFeedLines", lengthInBytes: 3,
+                        parameters: new Dictionary<string, string> { ["Lines"] = "0" })
+                ]
+            ]),
+        // Feed 1 line — advances Y by one line height
+        new(
+            id: 260002,
+            input: [Esc, 0x64, 0x01],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosPrintAndFeedLines(1) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("printAndFeedLines", lengthInBytes: 3,
+                        parameters: new Dictionary<string, string> { ["Lines"] = "1" })
+                ]
+            ]),
+        // Feed 3 lines — text after feed starts at correct Y position
+        new(
+            id: 260003,
+            input:
+            [
+                (byte)'A', Lf,
+                Esc, 0x64, 0x03,
+                (byte)'B', Lf
+            ],
+            expectedRequestCommands:
+            [
+                CommandAppendText("A"),
+                CommandPrintAndLineFeed(),
+                new EscPosCommands.EscPosPrintAndFeedLines(3) { LengthInBytes = 3 },
+                CommandAppendText("B"),
+                CommandPrintAndLineFeed()
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugAppendText("A", lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement("A", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 0, lengthInBytes: 1),
+                    DebugElement("printAndFeedLines", lengthInBytes: 3,
+                        parameters: new Dictionary<string, string> { ["Lines"] = "3" }),
+                    DebugAppendText("B", lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    // After LF: y = DefaultLineHeight; after ESC d 3: y += 3 * DefaultLineHeight
+                    TextElement("B",
+                        fontName: EscPosSpecs.Fonts.FontA.FontName,
+                        x: 0,
+                        y: 3 * (EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing),
+                        lengthInBytes: 1)
+                ]
+            ]),
+        // ESC d flushes pending text before feeding
+        new(
+            id: 260004,
+            input:
+            [
+                (byte)'H', (byte)'i',
+                Esc, 0x64, 0x02,
+                (byte)'B', Lf
+            ],
+            expectedRequestCommands:
+            [
+                CommandAppendText("Hi"),
+                new EscPosCommands.EscPosPrintAndFeedLines(2) { LengthInBytes = 3 },
+                CommandAppendText("B"),
+                CommandPrintAndLineFeed()
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugAppendText("Hi", lengthInBytes: 2),
+                    // FlushLine runs first (produces TextElement), then DebugInfo for ESC d is appended
+                    TextElement("Hi", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 0, lengthInBytes: 2),
+                    DebugElement("printAndFeedLines", lengthInBytes: 3,
+                        parameters: new Dictionary<string, string> { ["Lines"] = "2" }),
+                    DebugAppendText("B", lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    // y = DefaultLineHeight (flush of Hi) + 2 * DefaultLineHeight (ESC d 2)
+                    TextElement("B",
+                        fontName: EscPosSpecs.Fonts.FontA.FontName,
+                        x: 0,
+                        y: 2 * (EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing),
+                        lengthInBytes: 1)
+                ]
+            ])
+    ];
+
     public static TheoryData<EscPosScenario> CodePageScenarios { get; }
 
     public static TheoryData<EscPosScenario> AllScenarios { get; }
@@ -1063,6 +1283,8 @@ public static class EscPosScenarioData
         AddRange(data, RasterImageScenarios);
         AddRange(data, FontStyleScenarios);
         AddRange(data, LineSpacingScenarios);
+        AddRange(data, SetFontScenarios);
+        AddRange(data, PrintAndFeedLinesScenarios);
         AddRange(data, CodePageScenarios);
         return data;
     }
@@ -1107,9 +1329,9 @@ public static class EscPosScenarioData
 
                 expectedView.Add(DebugAppendText(normalized, lengthInBytes: bytes.Length));
                 expectedView.Add(DebugFlush(lengthInBytes: 1));
-                expectedView.Add(TextElement(normalized, x: 0, y: currentY, lengthInBytes: bytes.Length));
+                expectedView.Add(TextElement(normalized, fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: currentY, lengthInBytes: bytes.Length));
                 // ESC/POS advances by font height plus the configured line spacing for each feed.
-                currentY += DefaultFontHeight + DefaultLineSpacing;
+                currentY += EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing;
             }
 
             AppendText(vector.Uppercase);
@@ -1197,11 +1419,10 @@ public static class EscPosScenarioData
         string Lowercase,
         Encoding Encoding);
 
-    // Default ESC/POS font A metrics and spacing, aligned with renderer defaults.
-    private const int DefaultFontWidth = EscPosSpecs.Fonts.FontA.WidthInDots;
-    private const int DefaultFontHeight = EscPosSpecs.Fonts.FontA.HeightInDots;
+    // Default ESC/POS font metrics and spacing, aligned with renderer defaults.
+    //private const int DefaultFontHeight = EscPosSpecs.Fonts.FontA.HeightInDots;
     private const int DefaultLineSpacing = EscPosSpecs.Rendering.DefaultLineSpacing;
-    private const int DefaultLineHeight = DefaultFontHeight + DefaultLineSpacing;
+    //private const int DefaultLineHeight = DefaultFontHeight + DefaultLineSpacing;
 
     private static CanvasDebugElementDto DebugAppendText(string text, int lengthInBytes)
     {
@@ -1221,22 +1442,28 @@ public static class EscPosScenarioData
 
     private static CanvasTextElementDto TextElement(
         string text,
+        string fontName,
         int x,
         int y,
         int lengthInBytes,
         int charScaleX = 1,
         int charScaleY = 1,
-        string fontName = EscPosSpecs.Fonts.FontA.FontName,
         bool isBold = false,
         bool isUnderline = false,
         bool isReverse = false)
     {
+        var charWidth = fontName == EscPosSpecs.Fonts.FontA.FontName
+            ? EscPosSpecs.Fonts.FontA.WidthInDots
+            : EscPosSpecs.Fonts.FontB.WidthInDots;
+        var charHeight = fontName == EscPosSpecs.Fonts.FontA.FontName
+            ? EscPosSpecs.Fonts.FontA.HeightInDots
+            : EscPosSpecs.Fonts.FontB.HeightInDots;
         var element = new CanvasTextElementDto(
             text,
             x,
             y,
-            text.Length * DefaultFontWidth * charScaleX,
-            DefaultFontHeight * charScaleY,
+            text.Length * charWidth * charScaleX,
+            charHeight * charScaleY,
             fontName,
             0,
             isBold,

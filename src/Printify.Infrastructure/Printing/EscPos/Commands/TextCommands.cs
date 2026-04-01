@@ -26,8 +26,14 @@ public sealed record EscPosLegacyCarriageReturn : EscPosCommand;
 /// <param name="FontNumber">Protocol-specific font number (e.g., 0=A, 1=B).</param>
 /// <param name="IsDoubleWidth">True when double-width bit is set.</param>
 /// <param name="IsDoubleHeight">True when double-height bit is set.</param>
-public sealed record EscPosSelectFont(int FontNumber, bool IsDoubleWidth, bool IsDoubleHeight)
+public sealed record EscPosSetPrintMode(int FontNumber, bool IsDoubleWidth, bool IsDoubleHeight)
     : EscPosCommand;
+
+/// <summary>
+/// Selects the character font using ESC M (0x1B 0x4D).
+/// </summary>
+/// <param name="FontNumber">Font number: 0 = Font A (12×24), 1 = Font B (9×17).</param>
+public sealed record EscPosSetFont(int FontNumber) : EscPosCommand;
 
 /// <summary>
 /// Enables or disables emphasized (bold) text mode (ESC E).
@@ -64,6 +70,13 @@ public sealed record EscPosSetLineSpacing(int Spacing) : EscPosCommand;
 /// Resets the line spacing to the printer default value.
 /// </summary>
 public sealed record EscPosResetLineSpacing : EscPosCommand;
+
+/// <summary>
+/// Prints the data in the line buffer and feeds n lines (ESC d).
+/// HEX: 1B 64 n.
+/// </summary>
+/// <param name="Lines">Number of lines to feed (0–255).</param>
+public sealed record EscPosPrintAndFeedLines(int Lines) : EscPosCommand;
 
 /// <summary>
 /// Sets the code page used to decode incoming bytes to text.

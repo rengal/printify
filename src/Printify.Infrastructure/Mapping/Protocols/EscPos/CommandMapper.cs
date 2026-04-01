@@ -50,7 +50,7 @@ public static class CommandMapper
             EscPosSetBarcodeModuleWidth moduleWidth => new SetBarcodeModuleWidthElementPayload(moduleWidth.ModuleWidth),
             EscPosSetBoldMode bold => new SetBoldModeElementPayload(SerializeBool(bold.IsEnabled)),
             EscPosSetCodePage codePage => new SetCodePageElementPayload(codePage.CodePage),
-            EscPosSelectFont font => new SetFontElementPayload(font.FontNumber, SerializeBool(font.IsDoubleWidth), SerializeBool(font.IsDoubleHeight)),
+            EscPosSetPrintMode font => new SetPrintModePayload(font.FontNumber, SerializeBool(font.IsDoubleWidth), SerializeBool(font.IsDoubleHeight)),
             EscPosSetJustification justification => new SetJustificationElementPayload(
                 EnumMapper.ToString(justification.Justification)),
             EscPosSetLineSpacing spacing => new SetLineSpacingElementPayload(spacing.Spacing),
@@ -74,6 +74,8 @@ public static class CommandMapper
                 response.IsOffline,
                 (byte)response.RequestType),
             EscPosRasterImageUpload => throw new NotSupportedException("Raster image persistence is handled separately."),
+            EscPosSetFont setFont => new SetFontElementPayload(setFont.FontNumber),
+            EscPosPrintAndFeedLines feedLines => new PrintAndFeedLinesElementPayload(feedLines.Lines),
             _ => throw new NotSupportedException($"Element type '{command.GetType().Name}' is not supported.")
         };
     }
@@ -110,7 +112,7 @@ public static class CommandMapper
             SetBarcodeModuleWidthElementPayload moduleWidth => new EscPosSetBarcodeModuleWidth(moduleWidth.ModuleWidth),
             SetBoldModeElementPayload bold => new EscPosSetBoldMode(bold.IsEnabled ?? DefaultBoolean),
             SetCodePageElementPayload codePage => new EscPosSetCodePage(codePage.CodePage ?? "437"),
-            SetFontElementPayload font => new EscPosSelectFont(
+            SetPrintModePayload font => new EscPosSetPrintMode(
                 font.FontNumber,
                 font.IsDoubleWidth ?? DefaultBoolean,
                 font.IsDoubleHeight ?? DefaultBoolean),
@@ -141,6 +143,8 @@ public static class CommandMapper
                 raster.Width,
                 raster.Height,
                 media),
+            SetFontElementPayload charFont => new EscPosSetFont(charFont.FontNumber),
+            PrintAndFeedLinesElementPayload feedLines => new EscPosPrintAndFeedLines(feedLines.Lines),
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }
@@ -193,7 +197,7 @@ public static class CommandMapper
             EscPosDocumentElementTypeNames.SetBarcodeModuleWidth => JsonSerializer.Deserialize<SetBarcodeModuleWidthElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetBoldMode => JsonSerializer.Deserialize<SetBoldModeElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetCodePage => JsonSerializer.Deserialize<SetCodePageElementPayload>(entity.Payload, SerializerOptions),
-            EscPosDocumentElementTypeNames.SetFont => JsonSerializer.Deserialize<SetFontElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.SetPrintMode => JsonSerializer.Deserialize<SetPrintModePayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetJustification => JsonSerializer.Deserialize<SetJustificationElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetLineSpacing => JsonSerializer.Deserialize<SetLineSpacingElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.ResetLineSpacing => JsonSerializer.Deserialize<ResetLineSpacingElementPayload>(entity.Payload, SerializerOptions),
@@ -209,6 +213,8 @@ public static class CommandMapper
             EscPosDocumentElementTypeNames.LegacyCarriageReturn => JsonSerializer.Deserialize<LegacyCarriageReturnElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.StatusRequest => JsonSerializer.Deserialize<StatusRequestElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.StatusResponse => JsonSerializer.Deserialize<StatusResponseElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.SetFont => JsonSerializer.Deserialize<SetFontElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.PrintAndFeedLines => JsonSerializer.Deserialize<PrintAndFeedLinesElementPayload>(entity.Payload, SerializerOptions),
             _ => throw new NotSupportedException($"Element type '{entity.ElementType}' is not supported.")
         };
     }
@@ -242,7 +248,7 @@ public static class CommandMapper
             SetBarcodeModuleWidthElementPayload => EscPosDocumentElementTypeNames.SetBarcodeModuleWidth,
             SetBoldModeElementPayload => EscPosDocumentElementTypeNames.SetBoldMode,
             SetCodePageElementPayload => EscPosDocumentElementTypeNames.SetCodePage,
-            SetFontElementPayload => EscPosDocumentElementTypeNames.SetFont,
+            SetPrintModePayload => EscPosDocumentElementTypeNames.SetPrintMode,
             SetJustificationElementPayload => EscPosDocumentElementTypeNames.SetJustification,
             SetLineSpacingElementPayload => EscPosDocumentElementTypeNames.SetLineSpacing,
             ResetLineSpacingElementPayload => EscPosDocumentElementTypeNames.ResetLineSpacing,
@@ -259,6 +265,8 @@ public static class CommandMapper
             RasterImageElementPayload => EscPosDocumentElementTypeNames.RasterImage,
             StatusRequestElementPayload => EscPosDocumentElementTypeNames.StatusRequest,
             StatusResponseElementPayload => EscPosDocumentElementTypeNames.StatusResponse,
+            SetFontElementPayload => EscPosDocumentElementTypeNames.SetFont,
+            PrintAndFeedLinesElementPayload => EscPosDocumentElementTypeNames.PrintAndFeedLines,
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }

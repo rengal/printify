@@ -44,7 +44,7 @@ public static class EscPosSpecs
         public static class FontB
         {
             public const int WidthInDots = 12;
-            public const int HeightInDots = 24;
+            public const int HeightInDots = 17;
             public const string FontName = "EscPosB";
         }
 

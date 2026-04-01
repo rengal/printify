@@ -109,11 +109,17 @@ public static class EscPosCommandHelper
             EscPosSetBarcodeModuleWidth moduleWidth => Lines(
                 "GS w n - Set barcode module width",
                 $"n={moduleWidth.ModuleWidth} (module width)"),
+            EscPosSetFont charFont => Lines(
+                "ESC M n - Select character font",
+                $"n={charFont.FontNumber} (Font {(charFont.FontNumber == 0 ? "A" : "B")})"),
+            EscPosPrintAndFeedLines feedLines => Lines(
+                "ESC d n - Print and feed n lines",
+                $"n={feedLines.Lines}"),
             EscPosSetBoldMode bold => Lines(
                 "ESC E n - Turn emphasized (bold) mode on/off",
                 $"n={(bold.IsEnabled ? 1 : 0)} ({(bold.IsEnabled ? "on" : "off")})"),
             EscPosSetCodePage codePage => BuildCodePageDescription(codePage.CodePage),
-            EscPosSelectFont font => BuildFontDescription(font),
+            EscPosSetPrintMode font => BuildFontDescription(font),
             EscPosSetJustification justification => BuildJustificationDescription(justification.Justification),
             EscPosSetLineSpacing spacing => Lines(
                 "ESC 3 n - Set line spacing",
@@ -289,7 +295,7 @@ public static class EscPosCommandHelper
             $"n={FormatHexByte((byte)value)} ({value}) - {EnumMapper.ToString(justification)}");
     }
 
-    private static IReadOnlyList<string> BuildFontDescription(EscPosSelectFont font)
+    private static IReadOnlyList<string> BuildFontDescription(EscPosSetPrintMode font)
     {
         // ESC ! n: low 3 bits = font, bit 4 = double height, bit 5 = double width.
         var parameter = (byte)(font.FontNumber & 0x07);

@@ -1,5 +1,3 @@
-using System.Linq;
-
 namespace Printify.Infrastructure.Tests.Parser.EscPos;
 
 public partial class EscPosParserTests

@@ -19,7 +19,7 @@ internal static class EscPosDocumentElementTypeNames
     public const string SetBarcodeModuleWidth = "setBarcodeModuleWidth";
     public const string SetBoldMode = "setBoldMode";
     public const string SetCodePage = "setCodePage";
-    public const string SetFont = "setFont";
+    public const string SetPrintMode = "setPrintMode";
     public const string SetJustification = "setJustification";
     public const string SetLineSpacing = "setLineSpacing";
     public const string ResetLineSpacing = "resetLineSpacing";
@@ -36,4 +36,6 @@ internal static class EscPosDocumentElementTypeNames
     public const string RasterImage = "rasterImage";
     public const string StatusRequest = "statusRequest";
     public const string StatusResponse = "statusResponse";
+    public const string SetFont = "setFont";
+    public const string PrintAndFeedLines = "printAndFeedLines";
 }

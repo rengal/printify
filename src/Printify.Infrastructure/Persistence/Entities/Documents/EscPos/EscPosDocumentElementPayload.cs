@@ -79,7 +79,7 @@ public sealed record SetBoldModeElementPayload(
 
 public sealed record SetCodePageElementPayload(string CodePage) : EscPosDocumentElementPayload;
 
-public sealed record SetFontElementPayload(
+public sealed record SetPrintModePayload(
     int FontNumber,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     bool? IsDoubleWidth,
@@ -140,3 +140,17 @@ public sealed record StatusResponseElementPayload(
     bool IsCoverOpen,
     bool IsOffline,
     byte RequestType = 0x01) : EscPosDocumentElementPayload;
+
+/// <summary>
+/// Payload for ESC M n - Select character font (Font A/B).
+/// </summary>
+public sealed record SetFontElementPayload(
+    int FontNumber)
+    : EscPosDocumentElementPayload;
+
+/// <summary>
+/// Payload for ESC d n - Print and feed n lines.
+/// </summary>
+public sealed record PrintAndFeedLinesElementPayload(
+    int Lines)
+    : EscPosDocumentElementPayload;
