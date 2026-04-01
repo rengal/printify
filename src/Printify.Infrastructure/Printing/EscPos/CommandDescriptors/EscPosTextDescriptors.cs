@@ -68,6 +68,60 @@ public sealed class SetBoldModeDescriptor : ICommandDescriptor
 }
 
 /// <summary>
+/// Command: ESC F - cancel emphasized (bold) mode.
+/// ASCII: ESC F.
+/// HEX: 1B 46.
+/// </summary>
+public sealed class CancelBoldModeDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 2;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, (byte)'F' };
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        return MatchResult.Matched(new EscPosCancelBoldMode());
+    }
+}
+
+/// <summary>
+/// Command: ESC 4 - enable italic mode.
+/// ASCII: ESC 4.
+/// HEX: 1B 34.
+/// </summary>
+public sealed class EnableItalicModeDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 2;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, 0x34 };
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        return MatchResult.Matched(new EscPosEnableItalicMode());
+    }
+}
+
+/// <summary>
+/// Command: ESC 5 - disable italic mode.
+/// ASCII: ESC 5.
+/// HEX: 1B 35.
+/// </summary>
+public sealed class DisableItalicModeDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 2;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, 0x35 };
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        return MatchResult.Matched(new EscPosDisableItalicMode());
+    }
+}
+
+/// <summary>
 /// Command: ESC - n - enable/disable underline mode.
 /// ASCII: ESC - n.
 /// HEX: 1B 2D n (00=off, 01=on).
@@ -104,6 +158,28 @@ public sealed class SetReverseModeDescriptor : ICommandDescriptor
         var mode = buffer[2] == 0x01;
         var element = new EscPosSetReverseMode(mode);
         return MatchResult.Matched(element);
+    }
+}
+
+/// <summary>
+/// Command: GS ! n - select character size.
+/// ASCII: GS ! n.
+/// HEX: 1D 21 n.
+/// </summary>
+public sealed class SetCharacterSizeDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 3;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1D, 0x21 };
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        var parameter = buffer[2];
+        // GS ! encodes height in the low nibble and width in the high nibble, zero-based.
+        var heightMultiplier = (parameter & 0x0F) + 1;
+        var widthMultiplier = ((parameter >> 4) & 0x0F) + 1;
+        return MatchResult.Matched(new EscPosSetCharacterSize(widthMultiplier, heightMultiplier));
     }
 }
 

@@ -1055,6 +1055,135 @@ public static class EscPosScenarioData
                         isUnderline: true,
                         isReverse: true)
                 ]
+            ]),
+        new(
+            id: 220005,
+            input:
+            [
+                Esc, (byte)'E', 0x01,
+                Esc, (byte)'F',
+                Esc, (byte)'E', 0x01
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetBoldMode(true) { LengthInBytes = 3 },
+                new EscPosCommands.EscPosCancelBoldMode { LengthInBytes = 2 },
+                new EscPosCommands.EscPosSetBoldMode(true) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                    DebugElement("cancelBoldMode", lengthInBytes: 2),
+                    DebugElement("setBoldMode", lengthInBytes: 3, parameters: ToggleParameters(true))
+                ]
+            ]),
+        new(
+            id: 220006,
+            input:
+            [
+                Esc, 0x34,
+                (byte)'I', (byte)'T', Lf,
+                Esc, 0x35,
+                (byte)'N', (byte)'O', Lf
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosEnableItalicMode { LengthInBytes = 2 },
+                CommandAppendText("IT"),
+                CommandPrintAndLineFeed(),
+                new EscPosCommands.EscPosDisableItalicMode { LengthInBytes = 2 },
+                CommandAppendText("NO"),
+                CommandPrintAndLineFeed()
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("enableItalicMode", lengthInBytes: 2),
+                    DebugAppendText("IT", lengthInBytes: 2),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement(
+                        "IT",
+                        x: 0,
+                        y: 0,
+                        lengthInBytes: 2,
+                        fontName: EscPosSpecs.Fonts.FontA.FontName,
+                        isItalic: true),
+                    DebugElement("disableItalicMode", lengthInBytes: 2),
+                    DebugAppendText("NO", lengthInBytes: 2),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement(
+                        "NO",
+                        x: 0,
+                        y: EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing,
+                        lengthInBytes: 2,
+                        fontName: EscPosSpecs.Fonts.FontA.FontName)
+                ]
+            ]),
+        new(
+            id: 220007,
+            input:
+            [
+                Gs, 0x21, 0x00,
+                Gs, 0x21, 0x12,
+                Gs, 0x21, 0x70
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetCharacterSize(1, 1) { LengthInBytes = 3 },
+                new EscPosCommands.EscPosSetCharacterSize(2, 3) { LengthInBytes = 3 },
+                new EscPosCommands.EscPosSetCharacterSize(8, 1) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("setCharacterSize", lengthInBytes: 3, parameters: CharacterSizeParameters(1, 1)),
+                    DebugElement("setCharacterSize", lengthInBytes: 3, parameters: CharacterSizeParameters(2, 3)),
+                    DebugElement("setCharacterSize", lengthInBytes: 3, parameters: CharacterSizeParameters(8, 1))
+                ]
+            ]),
+        new(
+            id: 220008,
+            input:
+            [
+                Gs, 0x21, 0x12,
+                (byte)'A', Lf,
+                Gs, 0x21, 0x00,
+                (byte)'B', Lf
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetCharacterSize(2, 3) { LengthInBytes = 3 },
+                CommandAppendText("A"),
+                CommandPrintAndLineFeed(),
+                new EscPosCommands.EscPosSetCharacterSize(1, 1) { LengthInBytes = 3 },
+                CommandAppendText("B"),
+                CommandPrintAndLineFeed()
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("setCharacterSize", lengthInBytes: 3, parameters: CharacterSizeParameters(2, 3)),
+                    DebugAppendText("A", lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement(
+                        "A",
+                        x: 0,
+                        y: 0,
+                        lengthInBytes: 1,
+                        charScaleX: 2,
+                        charScaleY: 3,
+                        fontName: EscPosSpecs.Fonts.FontA.FontName),
+                    DebugElement("setCharacterSize", lengthInBytes: 3, parameters: CharacterSizeParameters(1, 1)),
+                    DebugAppendText("B", lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement(
+                        "B",
+                        x: 0,
+                        y: (EscPosSpecs.Fonts.FontA.HeightInDots * 3) + DefaultLineSpacing,
+                        lengthInBytes: 1,
+                        fontName: EscPosSpecs.Fonts.FontA.FontName)
+                ]
             ])
     ];
 
@@ -1078,6 +1207,43 @@ public static class EscPosScenarioData
             [
                 [
                     DebugElement("resetLineSpacing", lengthInBytes: 2)
+                ]
+            ])
+    ];
+
+    public static TheoryData<EscPosScenario> FeedScenarios { get; } =
+    [
+        new(
+            id: 260005,
+            input:
+            [
+                (byte)'A', Lf,
+                Esc, 0x4A, 0x05,
+                (byte)'B', Lf
+            ],
+            expectedRequestCommands:
+            [
+                CommandAppendText("A"),
+                CommandPrintAndLineFeed(),
+                new EscPosCommands.EscPosPrintAndFeedDots(5) { LengthInBytes = 3 },
+                CommandAppendText("B"),
+                CommandPrintAndLineFeed()
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugAppendText("A", lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement("A", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 0, lengthInBytes: 1),
+                    DebugElement("printAndFeedDots", lengthInBytes: 3, parameters: FeedDotsParameters(5)),
+                    DebugAppendText("B", lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement(
+                        "B",
+                        fontName: EscPosSpecs.Fonts.FontA.FontName,
+                        x: 0,
+                        y: EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing + 5,
+                        lengthInBytes: 1)
                 ]
             ])
     ];
@@ -1289,6 +1455,7 @@ public static class EscPosScenarioData
         AddRange(data, RasterImageScenarios);
         AddRange(data, FontStyleScenarios);
         AddRange(data, LineSpacingScenarios);
+        AddRange(data, FeedScenarios);
         AddRange(data, SetFontScenarios);
         AddRange(data, PrintAndFeedLinesScenarios);
         AddRange(data, CodePageScenarios);
@@ -1456,7 +1623,8 @@ public static class EscPosScenarioData
         int charScaleY = 1,
         bool isBold = false,
         bool isUnderline = false,
-        bool isReverse = false)
+        bool isReverse = false,
+        bool isItalic = false)
     {
         var charWidth = fontName == EscPosSpecs.Fonts.FontA.FontName
             ? EscPosSpecs.Fonts.FontA.WidthInDots
@@ -1476,7 +1644,8 @@ public static class EscPosScenarioData
             isUnderline,
             isReverse,
             CharScaleX: charScaleX,
-            CharScaleY: charScaleY);
+            CharScaleY: charScaleY,
+            IsItalic: isItalic);
 
         return element with
         {
@@ -1556,6 +1725,23 @@ public static class EscPosScenarioData
         return new Dictionary<string, string>
         {
             ["Spacing"] = spacing.ToString()
+        };
+    }
+
+    private static IReadOnlyDictionary<string, string> CharacterSizeParameters(int widthMultiplier, int heightMultiplier)
+    {
+        return new Dictionary<string, string>
+        {
+            ["WidthMultiplier"] = widthMultiplier.ToString(),
+            ["HeightMultiplier"] = heightMultiplier.ToString()
+        };
+    }
+
+    private static IReadOnlyDictionary<string, string> FeedDotsParameters(int dots)
+    {
+        return new Dictionary<string, string>
+        {
+            ["Dots"] = dots.ToString()
         };
     }
 

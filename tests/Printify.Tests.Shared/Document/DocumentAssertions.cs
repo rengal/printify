@@ -330,6 +330,7 @@ public static class DocumentAssertions
                     Assert.Equal(expectedText.CharScaleX, actualText.CharScaleX);
                     Assert.Equal(expectedText.CharScaleY, actualText.CharScaleY);
                     Assert.Equal(expectedText.Rotation, actualText.Rotation);
+                    Assert.Equal(expectedText.IsItalic, actualText.IsItalic);
                     break;
                 case CanvasImageElementDto expectedImage:
                     var actualImage = Assert.IsType<CanvasImageElementDto>(actualElement);

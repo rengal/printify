@@ -90,7 +90,8 @@ internal static class RenderedDocumentMapper
                     text.IsReverse,
                     text.CharScaleX,
                     text.CharScaleY,
-                    RotationMapper.ToDto(text.Rotation)),
+                    RotationMapper.ToDto(text.Rotation),
+                    text.IsItalic),
                 element),
             ImageElement image => WithCommandMetadata(
                 new CanvasImageElementDto(

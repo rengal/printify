@@ -112,14 +112,24 @@ public static class EscPosCommandHelper
             EscPosSetFont charFont => Lines(
                 "ESC M n - Select character font",
                 $"n={charFont.FontNumber} (Font {(charFont.FontNumber == 0 ? "A" : "B")})"),
+            EscPosSetCharacterSize size => BuildCharacterSizeDescription(size),
             EscPosPrintAndFeedLines feedLines => Lines(
                 "ESC d n - Print and feed n lines",
                 $"n={feedLines.Lines}"),
+            EscPosPrintAndFeedDots feedDots => Lines(
+                "ESC J n - Print and feed paper",
+                $"n={feedDots.Dots} (dots)"),
             EscPosSetBoldMode bold => Lines(
                 "ESC E n - Turn emphasized (bold) mode on/off",
                 $"n={(bold.IsEnabled ? 1 : 0)} ({(bold.IsEnabled ? "on" : "off")})"),
+            EscPosCancelBoldMode => Lines(
+                "ESC F - Cancel emphasized (bold) mode"),
             EscPosSetCodePage codePage => BuildCodePageDescription(codePage.CodePage),
             EscPosSetPrintMode font => BuildFontDescription(font),
+            EscPosEnableItalicMode => Lines(
+                "ESC 4 - Turn italic mode on"),
+            EscPosDisableItalicMode => Lines(
+                "ESC 5 - Turn italic mode off"),
             EscPosSetJustification justification => BuildJustificationDescription(justification.Justification),
             EscPosSetLineSpacing spacing => Lines(
                 "ESC 3 n - Set line spacing",
@@ -293,6 +303,15 @@ public static class EscPosCommandHelper
         return Lines(
             "ESC a n - Select justification",
             $"n={FormatHexByte((byte)value)} ({value}) - {EnumMapper.ToString(justification)}");
+    }
+
+    private static IReadOnlyList<string> BuildCharacterSizeDescription(EscPosSetCharacterSize size)
+    {
+        var parameter = (byte)(((size.WidthMultiplier - 1) << 4) | ((size.HeightMultiplier - 1) & 0x0F));
+
+        return Lines(
+            "GS ! n - Select character size",
+            $"n={FormatHexByte(parameter)} (width={size.WidthMultiplier}, height={size.HeightMultiplier})");
     }
 
     private static IReadOnlyList<string> BuildFontDescription(EscPosSetPrintMode font)

@@ -138,6 +138,36 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
+                case EscPosCancelBoldMode:
+                    state.IsBold = false;
+                    currentItems.Add(new DebugInfo(
+                        "cancelBoldMode",
+                        new Dictionary<string, string>(),
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
+                    break;
+
+                case EscPosEnableItalicMode:
+                    state.IsItalic = true;
+                    currentItems.Add(new DebugInfo(
+                        "enableItalicMode",
+                        new Dictionary<string, string>(),
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
+                    break;
+
+                case EscPosDisableItalicMode:
+                    state.IsItalic = false;
+                    currentItems.Add(new DebugInfo(
+                        "disableItalicMode",
+                        new Dictionary<string, string>(),
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
+                    break;
+
                 case EscPosSetUnderlineMode underline:
                     state.IsUnderline = underline.IsEnabled;
                     currentItems.Add(new DebugInfo(
@@ -158,6 +188,21 @@ public sealed class EscPosRenderer : IRenderer
                         new Dictionary<string, string>
                         {
                             ["IsEnabled"] = reverse.IsEnabled.ToString()
+                        },
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
+                    break;
+
+                case EscPosSetCharacterSize size:
+                    state.ScaleX = size.WidthMultiplier;
+                    state.ScaleY = size.HeightMultiplier;
+                    currentItems.Add(new DebugInfo(
+                        "setCharacterSize",
+                        new Dictionary<string, string>
+                        {
+                            ["WidthMultiplier"] = size.WidthMultiplier.ToString(),
+                            ["HeightMultiplier"] = size.HeightMultiplier.ToString()
                         },
                         command.RawBytes,
                         command.LengthInBytes,
@@ -229,6 +274,21 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     FlushLine(state, lineBuffer, currentItems, canvasWidthInDots);
                     state.CurrentY += feedLines.Lines * (GetFontHeight(state.FontNumber) * state.ScaleY + state.LineSpacing);
+                    break;
+
+                case EscPosPrintAndFeedDots feedDots:
+                    currentItems.Add(new DebugInfo(
+                        "printAndFeedDots",
+                        new Dictionary<string, string>
+                        {
+                            ["Dots"] = feedDots.Dots.ToString()
+                        },
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
+                    FlushLine(state, lineBuffer, currentItems, canvasWidthInDots);
+                    // ESC J moves paper by a raw dot distance after printing any pending text.
+                    state.CurrentY += feedDots.Dots;
                     break;
 
                 case EscPosSetFont setFont:
@@ -337,6 +397,7 @@ public sealed class EscPosRenderer : IRenderer
             state.ScaleY,
             state.IsBold,
             state.IsUnderline,
+            state.IsItalic,
             state.IsReverse));
     }
 
@@ -368,7 +429,8 @@ public sealed class EscPosRenderer : IRenderer
                 segment.IsReverse,
                 segment.ScaleX,
                 segment.ScaleY,
-                Rotation.None));
+                Rotation.None,
+                segment.IsItalic));
         }
 
         state.CurrentY += lineBuffer.LineHeight + state.LineSpacing;
@@ -441,10 +503,13 @@ public sealed class EscPosRenderer : IRenderer
             EscPosSetBarcodeLabelPosition => "setBarcodeLabelPosition",
             EscPosSetBarcodeModuleWidth => "setBarcodeModuleWidth",
             EscPosSetBoldMode => "setBoldMode",
+            EscPosCancelBoldMode => "cancelBoldMode",
             EscPosSetCodePage => "setCodePage",
             EscPosSetPrintMode => "setFont",
+            EscPosSetCharacterSize => "setCharacterSize",
             EscPosSetFont => "setFont",
             EscPosPrintAndFeedLines => "printAndFeedLines",
+            EscPosPrintAndFeedDots => "printAndFeedDots",
             EscPosSetJustification => "setJustification",
             EscPosSetLineSpacing => "setLineSpacing",
             EscPosResetLineSpacing => "resetLineSpacing",
@@ -452,6 +517,8 @@ public sealed class EscPosRenderer : IRenderer
             EscPosSetQrModel => "setQrModel",
             EscPosSetQrModuleSize => "setQrModuleSize",
             EscPosSetReverseMode => "setReverseMode",
+            EscPosEnableItalicMode => "enableItalicMode",
+            EscPosDisableItalicMode => "disableItalicMode",
             EscPosSetUnderlineMode => "setUnderlineMode",
             EscPosStoreQrData => "storeQrData",
             EscPosStatusRequest => "statusRequest",
@@ -489,6 +556,10 @@ public sealed class EscPosRenderer : IRenderer
             {
                 ["Mode"] = pagecut.Mode.ToString(),
                 ["FeedMotionUnits"] = pagecut.FeedMotionUnits?.ToString() ?? string.Empty
+            },
+            EscPosPrintAndFeedDots feedDots => new Dictionary<string, string>
+            {
+                ["Dots"] = feedDots.Dots.ToString()
             },
             _ => new Dictionary<string, string>()
         };
@@ -546,13 +617,14 @@ public sealed class EscPosRenderer : IRenderer
     private sealed class RenderState
     {
         public EscPosTextJustification Justification { get; set; } = EscPosTextJustification.Left;
+        public int CharSpacing { get; set; } = EscPosSpecs.Rendering.DefaultCharSpacing;
         public int LineSpacing { get; set; } = EscPosSpecs.Rendering.DefaultLineSpacing;
         public int FontNumber { get; set; }
         public int ScaleX { get; set; } = 1;
         public int ScaleY { get; set; } = 1;
-        public int CharSpacing => 0;
         public bool IsBold { get; set; }
         public bool IsUnderline { get; set; }
+        public bool IsItalic { get; set; }
         public bool IsReverse { get; set; }
         public int CurrentY { get; set; }
         public Encoding CurrentEncoding { get; set; } = Encoding.GetEncoding(437);
@@ -562,12 +634,14 @@ public sealed class EscPosRenderer : IRenderer
         public void Initialize()
         {
             Justification = EscPosTextJustification.Left;
+            CharSpacing = EscPosSpecs.Rendering.DefaultCharSpacing;
             LineSpacing = EscPosSpecs.Rendering.DefaultLineSpacing;
             FontNumber = 0;
             ScaleX = 1;
             ScaleY = 1;
             IsBold = false;
             IsUnderline = false;
+            IsItalic = false;
             IsReverse = false;
             CurrentEncoding = Encoding.GetEncoding(437);
             // ESC @ does not reset the print position (CurrentY), only printer settings
@@ -644,6 +718,7 @@ public sealed class EscPosRenderer : IRenderer
         int ScaleY,
         bool IsBold,
         bool IsUnderline,
+        bool IsItalic,
         bool IsReverse);
 
     private sealed record CanvasInfo(IReadOnlyList<BaseElement> Items);

@@ -49,8 +49,10 @@ public static class CommandMapper
                 EnumMapper.ToString(position.Position)),
             EscPosSetBarcodeModuleWidth moduleWidth => new SetBarcodeModuleWidthElementPayload(moduleWidth.ModuleWidth),
             EscPosSetBoldMode bold => new SetBoldModeElementPayload(SerializeBool(bold.IsEnabled)),
+            EscPosCancelBoldMode => new CancelBoldModeElementPayload(),
             EscPosSetCodePage codePage => new SetCodePageElementPayload(codePage.CodePage),
             EscPosSetPrintMode font => new SetPrintModePayload(font.FontNumber, SerializeBool(font.IsDoubleWidth), SerializeBool(font.IsDoubleHeight)),
+            EscPosSetCharacterSize size => new SetCharacterSizeElementPayload(size.WidthMultiplier, size.HeightMultiplier),
             EscPosSetJustification justification => new SetJustificationElementPayload(
                 EnumMapper.ToString(justification.Justification)),
             EscPosSetLineSpacing spacing => new SetLineSpacingElementPayload(spacing.Spacing),
@@ -60,6 +62,8 @@ public static class CommandMapper
             EscPosSetQrModel model => new SetQrModelElementPayload(EnumMapper.ToString(model.Model)),
             EscPosSetQrModuleSize moduleSize => new SetQrModuleSizeElementPayload(moduleSize.ModuleSize),
             EscPosSetReverseMode reverse => new SetReverseModeElementPayload(SerializeBool(reverse.IsEnabled)),
+            EscPosEnableItalicMode => new EnableItalicModeElementPayload(),
+            EscPosDisableItalicMode => new DisableItalicModeElementPayload(),
             EscPosSetUnderlineMode underline => new SetUnderlineModeElementPayload(SerializeBool(underline.IsEnabled)),
             EscPosStoreQrData store => new StoreQrDataElementPayload(store.Content),
             EscPosPrintLogo logo => new StoredLogoElementPayload(logo.LogoId),
@@ -76,6 +80,7 @@ public static class CommandMapper
             EscPosRasterImageUpload => throw new NotSupportedException("Raster image persistence is handled separately."),
             EscPosSetFont setFont => new SetFontElementPayload(setFont.FontNumber),
             EscPosPrintAndFeedLines feedLines => new PrintAndFeedLinesElementPayload(feedLines.Lines),
+            EscPosPrintAndFeedDots feedDots => new PrintAndFeedDotsElementPayload(feedDots.Dots),
             _ => throw new NotSupportedException($"Element type '{command.GetType().Name}' is not supported.")
         };
     }
@@ -111,11 +116,13 @@ public static class CommandMapper
                 EnumMapper.ParseBarcodeLabelPosition(position.Position ?? "Below")),
             SetBarcodeModuleWidthElementPayload moduleWidth => new EscPosSetBarcodeModuleWidth(moduleWidth.ModuleWidth),
             SetBoldModeElementPayload bold => new EscPosSetBoldMode(bold.IsEnabled ?? DefaultBoolean),
+            CancelBoldModeElementPayload => new EscPosCancelBoldMode(),
             SetCodePageElementPayload codePage => new EscPosSetCodePage(codePage.CodePage ?? "437"),
             SetPrintModePayload font => new EscPosSetPrintMode(
                 font.FontNumber,
                 font.IsDoubleWidth ?? DefaultBoolean,
                 font.IsDoubleHeight ?? DefaultBoolean),
+            SetCharacterSizeElementPayload size => new EscPosSetCharacterSize(size.WidthMultiplier, size.HeightMultiplier),
             SetJustificationElementPayload justification => new EscPosSetJustification(
                 EnumMapper.ParseTextJustification(justification.Justification ?? "Left")),
             SetLineSpacingElementPayload spacing => new EscPosSetLineSpacing(spacing.Spacing),
@@ -125,6 +132,8 @@ public static class CommandMapper
             SetQrModelElementPayload model => new EscPosSetQrModel(EnumMapper.ParseQrModel(model.Model ?? "Model2")),
             SetQrModuleSizeElementPayload moduleSize => new EscPosSetQrModuleSize(moduleSize.ModuleSize),
             SetReverseModeElementPayload reverse => new EscPosSetReverseMode(reverse.IsEnabled ?? DefaultBoolean),
+            EnableItalicModeElementPayload => new EscPosEnableItalicMode(),
+            DisableItalicModeElementPayload => new EscPosDisableItalicMode(),
             SetUnderlineModeElementPayload underline => new EscPosSetUnderlineMode(underline.IsEnabled ?? DefaultBoolean),
             StoreQrDataElementPayload store => new EscPosStoreQrData(store.Content ?? string.Empty),
             StoredLogoElementPayload logo => new EscPosPrintLogo(logo.LogoId),
@@ -145,6 +154,7 @@ public static class CommandMapper
                 media),
             SetFontElementPayload charFont => new EscPosSetFont(charFont.FontNumber),
             PrintAndFeedLinesElementPayload feedLines => new EscPosPrintAndFeedLines(feedLines.Lines),
+            PrintAndFeedDotsElementPayload feedDots => new EscPosPrintAndFeedDots(feedDots.Dots),
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }
@@ -196,8 +206,10 @@ public static class CommandMapper
             EscPosDocumentElementTypeNames.SetBarcodeLabelPosition => JsonSerializer.Deserialize<SetBarcodeLabelPositionElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetBarcodeModuleWidth => JsonSerializer.Deserialize<SetBarcodeModuleWidthElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetBoldMode => JsonSerializer.Deserialize<SetBoldModeElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.CancelBoldMode => JsonSerializer.Deserialize<CancelBoldModeElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetCodePage => JsonSerializer.Deserialize<SetCodePageElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetPrintMode => JsonSerializer.Deserialize<SetPrintModePayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.SetCharacterSize => JsonSerializer.Deserialize<SetCharacterSizeElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetJustification => JsonSerializer.Deserialize<SetJustificationElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetLineSpacing => JsonSerializer.Deserialize<SetLineSpacingElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.ResetLineSpacing => JsonSerializer.Deserialize<ResetLineSpacingElementPayload>(entity.Payload, SerializerOptions),
@@ -205,6 +217,8 @@ public static class CommandMapper
             EscPosDocumentElementTypeNames.SetQrModel => JsonSerializer.Deserialize<SetQrModelElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetQrModuleSize => JsonSerializer.Deserialize<SetQrModuleSizeElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetReverseMode => JsonSerializer.Deserialize<SetReverseModeElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.EnableItalicMode => JsonSerializer.Deserialize<EnableItalicModeElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.DisableItalicMode => JsonSerializer.Deserialize<DisableItalicModeElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetUnderlineMode => JsonSerializer.Deserialize<SetUnderlineModeElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.StoreQrData => JsonSerializer.Deserialize<StoreQrDataElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.StoredLogo => JsonSerializer.Deserialize<StoredLogoElementPayload>(entity.Payload, SerializerOptions),
@@ -215,6 +229,7 @@ public static class CommandMapper
             EscPosDocumentElementTypeNames.StatusResponse => JsonSerializer.Deserialize<StatusResponseElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetFont => JsonSerializer.Deserialize<SetFontElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.PrintAndFeedLines => JsonSerializer.Deserialize<PrintAndFeedLinesElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.PrintAndFeedDots => JsonSerializer.Deserialize<PrintAndFeedDotsElementPayload>(entity.Payload, SerializerOptions),
             _ => throw new NotSupportedException($"Element type '{entity.ElementType}' is not supported.")
         };
     }
@@ -247,8 +262,10 @@ public static class CommandMapper
             SetBarcodeLabelPositionElementPayload => EscPosDocumentElementTypeNames.SetBarcodeLabelPosition,
             SetBarcodeModuleWidthElementPayload => EscPosDocumentElementTypeNames.SetBarcodeModuleWidth,
             SetBoldModeElementPayload => EscPosDocumentElementTypeNames.SetBoldMode,
+            CancelBoldModeElementPayload => EscPosDocumentElementTypeNames.CancelBoldMode,
             SetCodePageElementPayload => EscPosDocumentElementTypeNames.SetCodePage,
             SetPrintModePayload => EscPosDocumentElementTypeNames.SetPrintMode,
+            SetCharacterSizeElementPayload => EscPosDocumentElementTypeNames.SetCharacterSize,
             SetJustificationElementPayload => EscPosDocumentElementTypeNames.SetJustification,
             SetLineSpacingElementPayload => EscPosDocumentElementTypeNames.SetLineSpacing,
             ResetLineSpacingElementPayload => EscPosDocumentElementTypeNames.ResetLineSpacing,
@@ -256,6 +273,8 @@ public static class CommandMapper
             SetQrModelElementPayload => EscPosDocumentElementTypeNames.SetQrModel,
             SetQrModuleSizeElementPayload => EscPosDocumentElementTypeNames.SetQrModuleSize,
             SetReverseModeElementPayload => EscPosDocumentElementTypeNames.SetReverseMode,
+            EnableItalicModeElementPayload => EscPosDocumentElementTypeNames.EnableItalicMode,
+            DisableItalicModeElementPayload => EscPosDocumentElementTypeNames.DisableItalicMode,
             SetUnderlineModeElementPayload => EscPosDocumentElementTypeNames.SetUnderlineMode,
             StoreQrDataElementPayload => EscPosDocumentElementTypeNames.StoreQrData,
             StoredLogoElementPayload => EscPosDocumentElementTypeNames.StoredLogo,
@@ -267,6 +286,7 @@ public static class CommandMapper
             StatusResponseElementPayload => EscPosDocumentElementTypeNames.StatusResponse,
             SetFontElementPayload => EscPosDocumentElementTypeNames.SetFont,
             PrintAndFeedLinesElementPayload => EscPosDocumentElementTypeNames.PrintAndFeedLines,
+            PrintAndFeedDotsElementPayload => EscPosDocumentElementTypeNames.PrintAndFeedDots,
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }

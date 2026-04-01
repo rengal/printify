@@ -982,6 +982,9 @@ function renderViewTextElement(element, id, protocol = 'escpos') {
     if (element.isUnderline) {
         styles.push('text-decoration: underline');
     }
+    if (element.isItalic) {
+        styles.push('font-style: italic');
+    }
     if (element.isReverse) {
         styles.push('background: #000');
         styles.push('color: #fff');

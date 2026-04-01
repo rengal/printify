@@ -60,6 +60,25 @@ public sealed class PrintAndFeedLinesDescriptor : ICommandDescriptor
 }
 
 /// <summary>
+/// Command: ESC J n - print and feed paper by n dots.
+/// ASCII: ESC J n.
+/// HEX: 1B 4A n.
+/// </summary>
+public sealed class PrintAndFeedDotsDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 3;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, 0x4A };
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        var dots = buffer[2];
+        return MatchResult.Matched(new EscPosPrintAndFeedDots(dots));
+    }
+}
+
+/// <summary>
 /// Command: GS V m [n] - paper cut with mode.
 /// ASCII: GS V m [n].
 /// HEX: 1D 56 0xMM [0xNN].

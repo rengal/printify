@@ -42,6 +42,21 @@ public sealed record EscPosSetFont(int FontNumber) : EscPosCommand;
 public sealed record EscPosSetBoldMode(bool IsEnabled) : EscPosCommand;
 
 /// <summary>
+/// Cancels emphasized (bold) mode using the dedicated ESC F opcode.
+/// </summary>
+public sealed record EscPosCancelBoldMode : EscPosCommand;
+
+/// <summary>
+/// Enables italic mode using the dedicated ESC 4 opcode.
+/// </summary>
+public sealed record EscPosEnableItalicMode : EscPosCommand;
+
+/// <summary>
+/// Disables italic mode using the dedicated ESC 5 opcode.
+/// </summary>
+public sealed record EscPosDisableItalicMode : EscPosCommand;
+
+/// <summary>
 /// Enables or disables underline text mode (ESC -).
 /// </summary>
 /// <param name="IsEnabled">True when underline mode is turned on; false when turned off.</param>
@@ -52,6 +67,13 @@ public sealed record EscPosSetUnderlineMode(bool IsEnabled) : EscPosCommand;
 /// </summary>
 /// <param name="IsEnabled">True when reverse mode is turned on; false when turned off.</param>
 public sealed record EscPosSetReverseMode(bool IsEnabled) : EscPosCommand;
+
+/// <summary>
+/// Selects character width and height multipliers using GS !.
+/// </summary>
+/// <param name="WidthMultiplier">Horizontal size multiplier in the range 1-8.</param>
+/// <param name="HeightMultiplier">Vertical size multiplier in the range 1-8.</param>
+public sealed record EscPosSetCharacterSize(int WidthMultiplier, int HeightMultiplier) : EscPosCommand;
 
 /// <summary>
 /// Selects justification for subsequent printable data using ESC a (0x1B 0x61).
@@ -77,6 +99,12 @@ public sealed record EscPosResetLineSpacing : EscPosCommand;
 /// </summary>
 /// <param name="Lines">Number of lines to feed (0–255).</param>
 public sealed record EscPosPrintAndFeedLines(int Lines) : EscPosCommand;
+
+/// <summary>
+/// Prints the current line buffer and feeds the paper by a dot distance using ESC J.
+/// </summary>
+/// <param name="Dots">Number of dots to feed (0-255).</param>
+public sealed record EscPosPrintAndFeedDots(int Dots) : EscPosCommand;
 
 /// <summary>
 /// Sets the code page used to decode incoming bytes to text.

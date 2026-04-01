@@ -77,6 +77,8 @@ public sealed record SetBoldModeElementPayload(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? IsEnabled)
     : EscPosDocumentElementPayload;
 
+public sealed record CancelBoldModeElementPayload : EscPosDocumentElementPayload;
+
 public sealed record SetCodePageElementPayload(string CodePage) : EscPosDocumentElementPayload;
 
 public sealed record SetPrintModePayload(
@@ -113,9 +115,18 @@ public sealed record SetReverseModeElementPayload(
     bool? IsEnabled)
     : EscPosDocumentElementPayload;
 
+public sealed record EnableItalicModeElementPayload : EscPosDocumentElementPayload;
+
+public sealed record DisableItalicModeElementPayload : EscPosDocumentElementPayload;
+
 public sealed record SetUnderlineModeElementPayload(
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     bool? IsEnabled)
+    : EscPosDocumentElementPayload;
+
+public sealed record SetCharacterSizeElementPayload(
+    int WidthMultiplier,
+    int HeightMultiplier)
     : EscPosDocumentElementPayload;
 
 public sealed record StoreQrDataElementPayload(string Content) : EscPosDocumentElementPayload;
@@ -153,4 +164,11 @@ public sealed record SetFontElementPayload(
 /// </summary>
 public sealed record PrintAndFeedLinesElementPayload(
     int Lines)
+    : EscPosDocumentElementPayload;
+
+/// <summary>
+/// Payload for ESC J n - print and feed n dots.
+/// </summary>
+public sealed record PrintAndFeedDotsElementPayload(
+    int Dots)
     : EscPosDocumentElementPayload;
