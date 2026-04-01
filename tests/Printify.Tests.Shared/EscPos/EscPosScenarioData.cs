@@ -1184,6 +1184,103 @@ public static class EscPosScenarioData
                         lengthInBytes: 1,
                         fontName: EscPosSpecs.Fonts.FontA.FontName)
                 ]
+            ]),
+        new(
+            id: 220009,
+            input:
+            [
+                Esc, (byte)'G', 0x01,
+                (byte)'D', (byte)'S', Lf,
+                Esc, (byte)'G', 0x00
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetDoubleStrikeMode(true) { LengthInBytes = 3 },
+                CommandAppendText("DS"),
+                CommandPrintAndLineFeed(),
+                new EscPosCommands.EscPosSetDoubleStrikeMode(false) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("setDoubleStrikeMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                    DebugAppendText("DS", lengthInBytes: 2),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement(
+                        "DS",
+                        x: 0,
+                        y: 0,
+                        lengthInBytes: 2,
+                        fontName: EscPosSpecs.Fonts.FontA.FontName,
+                        isDoubleStrike: true),
+                    DebugElement("setDoubleStrikeMode", lengthInBytes: 3, parameters: ToggleParameters(false))
+                ]
+            ]),
+        new(
+            id: 220010,
+            input:
+            [
+                Esc, 0x20, 0x03,
+                (byte)'A', (byte)'B', Lf
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetRightCharacterSpacing(3) { LengthInBytes = 3 },
+                CommandAppendText("AB"),
+                CommandPrintAndLineFeed()
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("setRightCharacterSpacing", lengthInBytes: 3, parameters: LineSpacingParameters(3)),
+                    DebugAppendText("AB", lengthInBytes: 2),
+                    DebugFlush(lengthInBytes: 1),
+                    new CanvasTextElementDto(
+                        "AB",
+                        0,
+                        0,
+                        (2 * EscPosSpecs.Fonts.FontA.WidthInDots) + 3,
+                        EscPosSpecs.Fonts.FontA.HeightInDots,
+                        EscPosSpecs.Fonts.FontA.FontName,
+                        3,
+                        false,
+                        false,
+                        false)
+                    {
+                        LengthInBytes = 2
+                    }
+                ]
+            ]),
+        new(
+            id: 220011,
+            input:
+            [
+                Esc, 0x7B, 0x01,
+                (byte)'U', (byte)'D', Lf,
+                Esc, 0x7B, 0x00
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetUpsideDownMode(true) { LengthInBytes = 3 },
+                CommandAppendText("UD"),
+                CommandPrintAndLineFeed(),
+                new EscPosCommands.EscPosSetUpsideDownMode(false) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("setUpsideDownMode", lengthInBytes: 3, parameters: ToggleParameters(true)),
+                    DebugAppendText("UD", lengthInBytes: 2),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement(
+                        "UD",
+                        x: 0,
+                        y: 0,
+                        lengthInBytes: 2,
+                        fontName: EscPosSpecs.Fonts.FontA.FontName,
+                        rotation: "180"),
+                    DebugElement("setUpsideDownMode", lengthInBytes: 3, parameters: ToggleParameters(false))
+                ]
             ])
     ];
 
@@ -1244,6 +1341,61 @@ public static class EscPosScenarioData
                         x: 0,
                         y: EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing + 5,
                         lengthInBytes: 1)
+                ]
+            ])
+    ];
+
+    public static TheoryData<EscPosScenario> TabScenarios { get; } =
+    [
+        new(
+            id: 270001,
+            input:
+            [
+                (byte)'A', 0x09, (byte)'B', Lf
+            ],
+            expectedRequestCommands:
+            [
+                CommandAppendText("A"),
+                new EscPosCommands.EscPosHorizontalTab { LengthInBytes = 1 },
+                CommandAppendText("B"),
+                CommandPrintAndLineFeed()
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugAppendText("A", lengthInBytes: 1),
+                    DebugElement("horizontalTab", lengthInBytes: 1),
+                    DebugAppendText("B", lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement("A", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 0, lengthInBytes: 1),
+                    TextElement("B", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 96, y: 0, lengthInBytes: 1)
+                ]
+            ]),
+        new(
+            id: 270002,
+            input:
+            [
+                Esc, 0x44, 0x04, 0x08, 0x00,
+                (byte)'A', 0x09, (byte)'B', Lf
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetHorizontalTabStops([4, 8]) { LengthInBytes = 5 },
+                CommandAppendText("A"),
+                new EscPosCommands.EscPosHorizontalTab { LengthInBytes = 1 },
+                CommandAppendText("B"),
+                CommandPrintAndLineFeed()
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("setHorizontalTabStops", lengthInBytes: 5, parameters: TabStopsParameters(4, 8)),
+                    DebugAppendText("A", lengthInBytes: 1),
+                    DebugElement("horizontalTab", lengthInBytes: 1),
+                    DebugAppendText("B", lengthInBytes: 1),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement("A", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 0, lengthInBytes: 1),
+                    TextElement("B", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 48, y: 0, lengthInBytes: 1)
                 ]
             ])
     ];
@@ -1456,6 +1608,7 @@ public static class EscPosScenarioData
         AddRange(data, FontStyleScenarios);
         AddRange(data, LineSpacingScenarios);
         AddRange(data, FeedScenarios);
+        AddRange(data, TabScenarios);
         AddRange(data, SetFontScenarios);
         AddRange(data, PrintAndFeedLinesScenarios);
         AddRange(data, CodePageScenarios);
@@ -1624,7 +1777,9 @@ public static class EscPosScenarioData
         bool isBold = false,
         bool isUnderline = false,
         bool isReverse = false,
-        bool isItalic = false)
+        bool isItalic = false,
+        bool isDoubleStrike = false,
+        string rotation = "none")
     {
         var charWidth = fontName == EscPosSpecs.Fonts.FontA.FontName
             ? EscPosSpecs.Fonts.FontA.WidthInDots
@@ -1645,7 +1800,9 @@ public static class EscPosScenarioData
             isReverse,
             CharScaleX: charScaleX,
             CharScaleY: charScaleY,
-            IsItalic: isItalic);
+            Rotation: rotation,
+            IsItalic: isItalic,
+            IsDoubleStrike: isDoubleStrike);
 
         return element with
         {
@@ -1742,6 +1899,14 @@ public static class EscPosScenarioData
         return new Dictionary<string, string>
         {
             ["Dots"] = dots.ToString()
+        };
+    }
+
+    private static IReadOnlyDictionary<string, string> TabStopsParameters(params int[] columns)
+    {
+        return new Dictionary<string, string>
+        {
+            ["Columns"] = string.Join(",", columns)
         };
     }
 

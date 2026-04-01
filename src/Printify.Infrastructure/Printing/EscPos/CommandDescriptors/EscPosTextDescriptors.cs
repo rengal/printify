@@ -86,6 +86,24 @@ public sealed class CancelBoldModeDescriptor : ICommandDescriptor
 }
 
 /// <summary>
+/// Command: ESC G n - enable/disable double-strike mode.
+/// ASCII: ESC G n.
+/// HEX: 1B 47 n (00=off, 01=on).
+/// </summary>
+public sealed class SetDoubleStrikeModeDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 3;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, (byte)'G' };
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        return MatchResult.Matched(new EscPosSetDoubleStrikeMode(buffer[2] != 0x00));
+    }
+}
+
+/// <summary>
 /// Command: ESC 4 - enable italic mode.
 /// ASCII: ESC 4.
 /// HEX: 1B 34.
@@ -180,6 +198,109 @@ public sealed class SetCharacterSizeDescriptor : ICommandDescriptor
         var heightMultiplier = (parameter & 0x0F) + 1;
         var widthMultiplier = ((parameter >> 4) & 0x0F) + 1;
         return MatchResult.Matched(new EscPosSetCharacterSize(widthMultiplier, heightMultiplier));
+    }
+}
+
+/// <summary>
+/// Command: ESC SP n - set right-side character spacing.
+/// ASCII: ESC SP n.
+/// HEX: 1B 20 n.
+/// </summary>
+public sealed class SetRightCharacterSpacingDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 3;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, 0x20 };
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        return MatchResult.Matched(new EscPosSetRightCharacterSpacing(buffer[2]));
+    }
+}
+
+/// <summary>
+/// Command: ESC { n - enable/disable upside-down mode.
+/// ASCII: ESC { n.
+/// HEX: 1B 7B n.
+/// </summary>
+public sealed class SetUpsideDownModeDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 3;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1B, 0x7B };
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        // ESC/POS uses the least-significant bit of n for the mode.
+        return MatchResult.Matched(new EscPosSetUpsideDownMode((buffer[2] & 0x01) != 0));
+    }
+}
+
+/// <summary>
+/// Command: HT - move to next horizontal tab stop.
+/// ASCII: HT.
+/// HEX: 09.
+/// </summary>
+public sealed class HorizontalTabDescriptor : ICommandDescriptor
+{
+    private const int FixedLength = 1;
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x09 };
+    public int MinLength => FixedLength;
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => FixedLength;
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        return MatchResult.Matched(new EscPosHorizontalTab());
+    }
+}
+
+/// <summary>
+/// Command: ESC D n1 ... nk NUL - set horizontal tab positions.
+/// ASCII: ESC D n1 ... nk NUL.
+/// HEX: 1B 44 n1 ... nk 00.
+/// </summary>
+public sealed class SetHorizontalTabStopsDescriptor : ICommandDescriptor
+{
+    private static readonly byte[] PrefixBytes = [0x1B, 0x44];
+    public ReadOnlyMemory<byte> Prefix => PrefixBytes;
+    public int MinLength => 3;
+
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    {
+        if (buffer.Length < MinLength)
+        {
+            return null;
+        }
+
+        for (var i = 2; i < buffer.Length; i++)
+        {
+            if (buffer[i] == 0x00)
+            {
+                return i + 1;
+            }
+        }
+
+        return null;
+    }
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        var exactLength = TryGetExactLength(buffer);
+        if (!exactLength.HasValue)
+        {
+            return MatchResult.NeedMore();
+        }
+
+        var stopCount = exactLength.Value - 3;
+        var columns = new int[Math.Max(0, stopCount)];
+        for (var i = 0; i < stopCount; i++)
+        {
+            columns[i] = buffer[i + 2];
+        }
+
+        return MatchResult.Matched(new EscPosSetHorizontalTabStops(columns));
     }
 }
 

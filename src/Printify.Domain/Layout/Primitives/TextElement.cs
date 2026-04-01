@@ -2,7 +2,7 @@ namespace Printify.Domain.Layout.Primitives;
 
 /// <summary>
 /// Text primitive with position, font, and styling.
-/// Supports features from ESC/POS, EPL, ZPL, TSPL: rotation, scaling, bold, underline, italic, reverse.
+/// Supports features from ESC/POS, EPL, ZPL, TSPL: rotation, scaling, bold, underline, italic, reverse, double-strike.
 /// Decoupled from protocol commands - represents final rendered text, not the command that produced it.
 /// </summary>
 public sealed record TextElement(
@@ -19,4 +19,5 @@ public sealed record TextElement(
     int CharScaleX,
     int CharScaleY,
     Rotation Rotation,
-    bool IsItalic = false) : BaseElement;
+    bool IsItalic = false,
+    bool IsDoubleStrike = false) : BaseElement;

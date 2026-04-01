@@ -148,6 +148,19 @@ public sealed class EscPosRenderer : IRenderer
                         GetDescription(command)));
                     break;
 
+                case EscPosSetDoubleStrikeMode doubleStrike:
+                    state.IsDoubleStrike = doubleStrike.IsEnabled;
+                    currentItems.Add(new DebugInfo(
+                        "setDoubleStrikeMode",
+                        new Dictionary<string, string>
+                        {
+                            ["IsEnabled"] = doubleStrike.IsEnabled.ToString()
+                        },
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
+                    break;
+
                 case EscPosEnableItalicMode:
                     state.IsItalic = true;
                     currentItems.Add(new DebugInfo(
@@ -203,6 +216,32 @@ public sealed class EscPosRenderer : IRenderer
                         {
                             ["WidthMultiplier"] = size.WidthMultiplier.ToString(),
                             ["HeightMultiplier"] = size.HeightMultiplier.ToString()
+                        },
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
+                    break;
+
+                case EscPosSetRightCharacterSpacing spacing:
+                    state.CharSpacing = spacing.Spacing;
+                    currentItems.Add(new DebugInfo(
+                        "setRightCharacterSpacing",
+                        new Dictionary<string, string>
+                        {
+                            ["Spacing"] = spacing.Spacing.ToString()
+                        },
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
+                    break;
+
+                case EscPosSetUpsideDownMode upsideDown:
+                    state.IsUpsideDown = upsideDown.IsEnabled;
+                    currentItems.Add(new DebugInfo(
+                        "setUpsideDownMode",
+                        new Dictionary<string, string>
+                        {
+                            ["IsEnabled"] = upsideDown.IsEnabled.ToString()
                         },
                         command.RawBytes,
                         command.LengthInBytes,
@@ -289,6 +328,29 @@ public sealed class EscPosRenderer : IRenderer
                     FlushLine(state, lineBuffer, currentItems, canvasWidthInDots);
                     // ESC J moves paper by a raw dot distance after printing any pending text.
                     state.CurrentY += feedDots.Dots;
+                    break;
+
+                case EscPosHorizontalTab:
+                    currentItems.Add(new DebugInfo(
+                        "horizontalTab",
+                        new Dictionary<string, string>(),
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
+                    ApplyHorizontalTab(state, lineBuffer, currentItems);
+                    break;
+
+                case EscPosSetHorizontalTabStops tabStops:
+                    state.HorizontalTabStops = tabStops.Columns.ToArray();
+                    currentItems.Add(new DebugInfo(
+                        "setHorizontalTabStops",
+                        new Dictionary<string, string>
+                        {
+                            ["Columns"] = string.Join(",", tabStops.Columns)
+                        },
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
                     break;
 
                 case EscPosSetFont setFont:
@@ -398,6 +460,8 @@ public sealed class EscPosRenderer : IRenderer
             state.IsBold,
             state.IsUnderline,
             state.IsItalic,
+            state.IsDoubleStrike,
+            state.IsUpsideDown,
             state.IsReverse));
     }
 
@@ -416,6 +480,7 @@ public sealed class EscPosRenderer : IRenderer
 
         foreach (var segment in lineBuffer.Segments)
         {
+            var rotation = segment.IsUpsideDown ? Rotation.Rotate180 : Rotation.None;
             items.Add(new TextElement(
                 segment.Text,
                 baseX + segment.StartX,
@@ -429,8 +494,9 @@ public sealed class EscPosRenderer : IRenderer
                 segment.IsReverse,
                 segment.ScaleX,
                 segment.ScaleY,
-                Rotation.None,
-                segment.IsItalic));
+                rotation,
+                segment.IsItalic,
+                segment.IsDoubleStrike));
         }
 
         state.CurrentY += lineBuffer.LineHeight + state.LineSpacing;
@@ -488,6 +554,48 @@ public sealed class EscPosRenderer : IRenderer
         state.CurrentY += qrCode.Height + state.LineSpacing;
     }
 
+    private static void ApplyHorizontalTab(RenderState state, LineBufferState lineBuffer, List<BaseElement> items)
+    {
+        var currentAdvance = GetFontWidth(state.FontNumber) * state.ScaleX + Math.Max(0, state.CharSpacing);
+        if (currentAdvance <= 0)
+        {
+            return;
+        }
+
+        var currentColumn = lineBuffer.LineWidth / currentAdvance;
+        var nextTabColumn = GetNextHorizontalTabColumn(state.HorizontalTabStops, currentColumn);
+        if (!nextTabColumn.HasValue)
+        {
+            return;
+        }
+
+        var nextX = nextTabColumn.Value * currentAdvance;
+        if (nextX > lineBuffer.LineWidth)
+        {
+            // A tab only affects the cursor position inside the pending line buffer.
+            lineBuffer.LineWidth = nextX;
+        }
+    }
+
+    private static int? GetNextHorizontalTabColumn(IReadOnlyList<int>? configuredStops, int currentColumn)
+    {
+        if (configuredStops is not null)
+        {
+            foreach (var stop in configuredStops)
+            {
+                if (stop > currentColumn)
+                {
+                    return stop;
+                }
+            }
+
+            return null;
+        }
+
+        // ESC/POS default tab interval is every 8 character columns.
+        return ((currentColumn / 8) + 1) * 8;
+    }
+
     private static string GetDebugType(Command command)
     {
         return command switch
@@ -504,12 +612,16 @@ public sealed class EscPosRenderer : IRenderer
             EscPosSetBarcodeModuleWidth => "setBarcodeModuleWidth",
             EscPosSetBoldMode => "setBoldMode",
             EscPosCancelBoldMode => "cancelBoldMode",
+            EscPosSetDoubleStrikeMode => "setDoubleStrikeMode",
             EscPosSetCodePage => "setCodePage",
             EscPosSetPrintMode => "setFont",
             EscPosSetCharacterSize => "setCharacterSize",
+            EscPosSetRightCharacterSpacing => "setRightCharacterSpacing",
             EscPosSetFont => "setFont",
             EscPosPrintAndFeedLines => "printAndFeedLines",
             EscPosPrintAndFeedDots => "printAndFeedDots",
+            EscPosHorizontalTab => "horizontalTab",
+            EscPosSetHorizontalTabStops => "setHorizontalTabStops",
             EscPosSetJustification => "setJustification",
             EscPosSetLineSpacing => "setLineSpacing",
             EscPosResetLineSpacing => "resetLineSpacing",
@@ -519,6 +631,7 @@ public sealed class EscPosRenderer : IRenderer
             EscPosSetReverseMode => "setReverseMode",
             EscPosEnableItalicMode => "enableItalicMode",
             EscPosDisableItalicMode => "disableItalicMode",
+            EscPosSetUpsideDownMode => "setUpsideDownMode",
             EscPosSetUnderlineMode => "setUnderlineMode",
             EscPosStoreQrData => "storeQrData",
             EscPosStatusRequest => "statusRequest",
@@ -560,6 +673,10 @@ public sealed class EscPosRenderer : IRenderer
             EscPosPrintAndFeedDots feedDots => new Dictionary<string, string>
             {
                 ["Dots"] = feedDots.Dots.ToString()
+            },
+            EscPosSetHorizontalTabStops tabStops => new Dictionary<string, string>
+            {
+                ["Columns"] = string.Join(",", tabStops.Columns)
             },
             _ => new Dictionary<string, string>()
         };
@@ -623,10 +740,13 @@ public sealed class EscPosRenderer : IRenderer
         public int ScaleX { get; set; } = 1;
         public int ScaleY { get; set; } = 1;
         public bool IsBold { get; set; }
+        public bool IsDoubleStrike { get; set; }
         public bool IsUnderline { get; set; }
         public bool IsItalic { get; set; }
+        public bool IsUpsideDown { get; set; }
         public bool IsReverse { get; set; }
         public int CurrentY { get; set; }
+        public int[]? HorizontalTabStops { get; set; }
         public Encoding CurrentEncoding { get; set; } = Encoding.GetEncoding(437);
 
         public static RenderState CreateDefault() => new();
@@ -640,9 +760,12 @@ public sealed class EscPosRenderer : IRenderer
             ScaleX = 1;
             ScaleY = 1;
             IsBold = false;
+            IsDoubleStrike = false;
             IsUnderline = false;
             IsItalic = false;
+            IsUpsideDown = false;
             IsReverse = false;
+            HorizontalTabStops = null;
             CurrentEncoding = Encoding.GetEncoding(437);
             // ESC @ does not reset the print position (CurrentY), only printer settings
         }
@@ -719,6 +842,8 @@ public sealed class EscPosRenderer : IRenderer
         bool IsBold,
         bool IsUnderline,
         bool IsItalic,
+        bool IsDoubleStrike,
+        bool IsUpsideDown,
         bool IsReverse);
 
     private sealed record CanvasInfo(IReadOnlyList<BaseElement> Items);

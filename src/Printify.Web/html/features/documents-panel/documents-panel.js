@@ -951,11 +951,17 @@ function renderViewTextElement(element, id, protocol = 'escpos') {
     const charSpacing = Number(element.charSpacing) || 0;
     const charScaleX = Number(element.charScaleX) || 1;
     const charScaleY = Number(element.charScaleY) || 1;
+    const rotation = String(element.rotation || 'none');
 
     const fontClass = protocol === 'escpos' ? toEscPosFontCssClass(font) : toEplFontCssClass(font);
-    const transformCss = (charScaleX !== 1 || charScaleY !== 1)
-        ? `scale(${charScaleX}, ${charScaleY})`
-        : 'none';
+    const transforms = [];
+    if (rotation === '90' || rotation === '180' || rotation === '270') {
+        transforms.push(`rotate(${rotation}deg)`);
+    }
+    if (charScaleX !== 1 || charScaleY !== 1) {
+        transforms.push(`scale(${charScaleX}, ${charScaleY})`);
+    }
+    const transformCss = transforms.length > 0 ? transforms.join(' ') : 'none';
 
     // Build inline styles
     const styles = [];
@@ -973,6 +979,9 @@ function renderViewTextElement(element, id, protocol = 'escpos') {
     if (charScaleX !== 1 || charScaleY !== 1) {
         styles.push(`transform: ${transformCss}`);
         styles.push('transform-origin: left top');
+    } else if (rotation !== 'none') {
+        styles.push(`transform: ${transformCss}`);
+        styles.push('transform-origin: center center');
     }
 
     // Apply text styling modifiers inline
@@ -984,6 +993,9 @@ function renderViewTextElement(element, id, protocol = 'escpos') {
     }
     if (element.isItalic) {
         styles.push('font-style: italic');
+    }
+    if (element.isDoubleStrike) {
+        styles.push('text-shadow: 0.6px 0 currentColor');
     }
     if (element.isReverse) {
         styles.push('background: #000');

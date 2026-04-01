@@ -176,6 +176,10 @@ public static class DocumentAssertions
                     Assert.NotEmpty(actualRasterImage.Media.Url);
                     Assert.Equal(expectedRasterImage.Media.Length, actualRasterImage.Media.Length);
                     break;
+                case EscPosSetHorizontalTabStops expectedTabStops:
+                    var actualTabStops = Assert.IsType<EscPosSetHorizontalTabStops>(actualElement);
+                    Assert.Equal(expectedTabStops.Columns, actualTabStops.Columns);
+                    break;
                 default:
                     Assert.Equal(NormalizeDomain(expected, actualElement), actualElement);
                     break;
@@ -331,6 +335,7 @@ public static class DocumentAssertions
                     Assert.Equal(expectedText.CharScaleY, actualText.CharScaleY);
                     Assert.Equal(expectedText.Rotation, actualText.Rotation);
                     Assert.Equal(expectedText.IsItalic, actualText.IsItalic);
+                    Assert.Equal(expectedText.IsDoubleStrike, actualText.IsDoubleStrike);
                     break;
                 case CanvasImageElementDto expectedImage:
                     var actualImage = Assert.IsType<CanvasImageElementDto>(actualElement);

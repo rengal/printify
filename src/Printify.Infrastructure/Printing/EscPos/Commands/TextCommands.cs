@@ -42,6 +42,12 @@ public sealed record EscPosSetFont(int FontNumber) : EscPosCommand;
 public sealed record EscPosSetBoldMode(bool IsEnabled) : EscPosCommand;
 
 /// <summary>
+/// Enables or disables double-strike mode (ESC G).
+/// </summary>
+/// <param name="IsEnabled">True when double-strike mode is turned on; false when turned off.</param>
+public sealed record EscPosSetDoubleStrikeMode(bool IsEnabled) : EscPosCommand;
+
+/// <summary>
 /// Cancels emphasized (bold) mode using the dedicated ESC F opcode.
 /// </summary>
 public sealed record EscPosCancelBoldMode : EscPosCommand;
@@ -76,6 +82,18 @@ public sealed record EscPosSetReverseMode(bool IsEnabled) : EscPosCommand;
 public sealed record EscPosSetCharacterSize(int WidthMultiplier, int HeightMultiplier) : EscPosCommand;
 
 /// <summary>
+/// Sets the right-side character spacing in dots using ESC SP.
+/// </summary>
+/// <param name="Spacing">Character spacing value in dots.</param>
+public sealed record EscPosSetRightCharacterSpacing(int Spacing) : EscPosCommand;
+
+/// <summary>
+/// Enables or disables upside-down mode using ESC {.
+/// </summary>
+/// <param name="IsEnabled">True when upside-down mode is turned on; false when turned off.</param>
+public sealed record EscPosSetUpsideDownMode(bool IsEnabled) : EscPosCommand;
+
+/// <summary>
 /// Selects justification for subsequent printable data using ESC a (0x1B 0x61).
 /// </summary>
 /// <param name="Justification">Requested alignment value.</param>
@@ -105,6 +123,17 @@ public sealed record EscPosPrintAndFeedLines(int Lines) : EscPosCommand;
 /// </summary>
 /// <param name="Dots">Number of dots to feed (0-255).</param>
 public sealed record EscPosPrintAndFeedDots(int Dots) : EscPosCommand;
+
+/// <summary>
+/// Moves the print position to the next horizontal tab stop.
+/// </summary>
+public sealed record EscPosHorizontalTab : EscPosCommand;
+
+/// <summary>
+/// Replaces the current horizontal tab stop configuration using ESC D ... NUL.
+/// </summary>
+/// <param name="Columns">Tab stop columns expressed in character positions.</param>
+public sealed record EscPosSetHorizontalTabStops(int[] Columns) : EscPosCommand;
 
 /// <summary>
 /// Sets the code page used to decode incoming bytes to text.

@@ -79,6 +79,10 @@ public sealed record SetBoldModeElementPayload(
 
 public sealed record CancelBoldModeElementPayload : EscPosDocumentElementPayload;
 
+public sealed record SetDoubleStrikeModeElementPayload(
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? IsEnabled)
+    : EscPosDocumentElementPayload;
+
 public sealed record SetCodePageElementPayload(string CodePage) : EscPosDocumentElementPayload;
 
 public sealed record SetPrintModePayload(
@@ -129,6 +133,12 @@ public sealed record SetCharacterSizeElementPayload(
     int HeightMultiplier)
     : EscPosDocumentElementPayload;
 
+public sealed record SetRightCharacterSpacingElementPayload(int Spacing) : EscPosDocumentElementPayload;
+
+public sealed record SetUpsideDownModeElementPayload(
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? IsEnabled)
+    : EscPosDocumentElementPayload;
+
 public sealed record StoreQrDataElementPayload(string Content) : EscPosDocumentElementPayload;
 
 public sealed record StoredLogoElementPayload(int LogoId) : EscPosDocumentElementPayload;
@@ -172,3 +182,7 @@ public sealed record PrintAndFeedLinesElementPayload(
 public sealed record PrintAndFeedDotsElementPayload(
     int Dots)
     : EscPosDocumentElementPayload;
+
+public sealed record HorizontalTabElementPayload : EscPosDocumentElementPayload;
+
+public sealed record SetHorizontalTabStopsElementPayload(int[] Columns) : EscPosDocumentElementPayload;

@@ -31,7 +31,8 @@ public sealed record CanvasTextElementDto(
     int CharScaleX = 1,
     int CharScaleY = 1,
     string Rotation = "none",
-    bool IsItalic = false)
+    bool IsItalic = false,
+    bool IsDoubleStrike = false)
     : CanvasElementDto;
 
 /// <summary>

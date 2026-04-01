@@ -113,6 +113,9 @@ public static class EscPosCommandHelper
                 "ESC M n - Select character font",
                 $"n={charFont.FontNumber} (Font {(charFont.FontNumber == 0 ? "A" : "B")})"),
             EscPosSetCharacterSize size => BuildCharacterSizeDescription(size),
+            EscPosSetRightCharacterSpacing spacing => Lines(
+                "ESC SP n - Set right-side character spacing",
+                $"n={spacing.Spacing} (dots)"),
             EscPosPrintAndFeedLines feedLines => Lines(
                 "ESC d n - Print and feed n lines",
                 $"n={feedLines.Lines}"),
@@ -124,12 +127,21 @@ public static class EscPosCommandHelper
                 $"n={(bold.IsEnabled ? 1 : 0)} ({(bold.IsEnabled ? "on" : "off")})"),
             EscPosCancelBoldMode => Lines(
                 "ESC F - Cancel emphasized (bold) mode"),
+            EscPosSetDoubleStrikeMode doubleStrike => Lines(
+                "ESC G n - Turn double-strike mode on/off",
+                $"n={(doubleStrike.IsEnabled ? 1 : 0)} ({(doubleStrike.IsEnabled ? "on" : "off")})"),
             EscPosSetCodePage codePage => BuildCodePageDescription(codePage.CodePage),
             EscPosSetPrintMode font => BuildFontDescription(font),
             EscPosEnableItalicMode => Lines(
                 "ESC 4 - Turn italic mode on"),
             EscPosDisableItalicMode => Lines(
                 "ESC 5 - Turn italic mode off"),
+            EscPosSetUpsideDownMode upsideDown => Lines(
+                "ESC { n - Turn upside-down mode on/off",
+                $"n={(upsideDown.IsEnabled ? 1 : 0)} ({(upsideDown.IsEnabled ? "on" : "off")})"),
+            EscPosHorizontalTab => Lines(
+                "HT - Move to next horizontal tab stop"),
+            EscPosSetHorizontalTabStops tabStops => BuildHorizontalTabStopsDescription(tabStops),
             EscPosSetJustification justification => BuildJustificationDescription(justification.Justification),
             EscPosSetLineSpacing spacing => Lines(
                 "ESC 3 n - Set line spacing",
@@ -312,6 +324,17 @@ public static class EscPosCommandHelper
         return Lines(
             "GS ! n - Select character size",
             $"n={FormatHexByte(parameter)} (width={size.WidthMultiplier}, height={size.HeightMultiplier})");
+    }
+
+    private static IReadOnlyList<string> BuildHorizontalTabStopsDescription(EscPosSetHorizontalTabStops tabStops)
+    {
+        var stops = tabStops.Columns.Length == 0
+            ? "clear all"
+            : string.Join(", ", tabStops.Columns);
+
+        return Lines(
+            "ESC D n1 ... nk NUL - Set horizontal tab positions",
+            $"Columns={stops}");
     }
 
     private static IReadOnlyList<string> BuildFontDescription(EscPosSetPrintMode font)

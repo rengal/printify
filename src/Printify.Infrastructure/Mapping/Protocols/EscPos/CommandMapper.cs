@@ -50,9 +50,12 @@ public static class CommandMapper
             EscPosSetBarcodeModuleWidth moduleWidth => new SetBarcodeModuleWidthElementPayload(moduleWidth.ModuleWidth),
             EscPosSetBoldMode bold => new SetBoldModeElementPayload(SerializeBool(bold.IsEnabled)),
             EscPosCancelBoldMode => new CancelBoldModeElementPayload(),
+            EscPosSetDoubleStrikeMode doubleStrike => new SetDoubleStrikeModeElementPayload(SerializeBool(doubleStrike.IsEnabled)),
             EscPosSetCodePage codePage => new SetCodePageElementPayload(codePage.CodePage),
             EscPosSetPrintMode font => new SetPrintModePayload(font.FontNumber, SerializeBool(font.IsDoubleWidth), SerializeBool(font.IsDoubleHeight)),
             EscPosSetCharacterSize size => new SetCharacterSizeElementPayload(size.WidthMultiplier, size.HeightMultiplier),
+            EscPosSetRightCharacterSpacing spacing => new SetRightCharacterSpacingElementPayload(spacing.Spacing),
+            EscPosSetUpsideDownMode upsideDown => new SetUpsideDownModeElementPayload(SerializeBool(upsideDown.IsEnabled)),
             EscPosSetJustification justification => new SetJustificationElementPayload(
                 EnumMapper.ToString(justification.Justification)),
             EscPosSetLineSpacing spacing => new SetLineSpacingElementPayload(spacing.Spacing),
@@ -81,6 +84,8 @@ public static class CommandMapper
             EscPosSetFont setFont => new SetFontElementPayload(setFont.FontNumber),
             EscPosPrintAndFeedLines feedLines => new PrintAndFeedLinesElementPayload(feedLines.Lines),
             EscPosPrintAndFeedDots feedDots => new PrintAndFeedDotsElementPayload(feedDots.Dots),
+            EscPosHorizontalTab => new HorizontalTabElementPayload(),
+            EscPosSetHorizontalTabStops tabStops => new SetHorizontalTabStopsElementPayload(tabStops.Columns),
             _ => throw new NotSupportedException($"Element type '{command.GetType().Name}' is not supported.")
         };
     }
@@ -117,12 +122,15 @@ public static class CommandMapper
             SetBarcodeModuleWidthElementPayload moduleWidth => new EscPosSetBarcodeModuleWidth(moduleWidth.ModuleWidth),
             SetBoldModeElementPayload bold => new EscPosSetBoldMode(bold.IsEnabled ?? DefaultBoolean),
             CancelBoldModeElementPayload => new EscPosCancelBoldMode(),
+            SetDoubleStrikeModeElementPayload doubleStrike => new EscPosSetDoubleStrikeMode(doubleStrike.IsEnabled ?? DefaultBoolean),
             SetCodePageElementPayload codePage => new EscPosSetCodePage(codePage.CodePage ?? "437"),
             SetPrintModePayload font => new EscPosSetPrintMode(
                 font.FontNumber,
                 font.IsDoubleWidth ?? DefaultBoolean,
                 font.IsDoubleHeight ?? DefaultBoolean),
             SetCharacterSizeElementPayload size => new EscPosSetCharacterSize(size.WidthMultiplier, size.HeightMultiplier),
+            SetRightCharacterSpacingElementPayload spacing => new EscPosSetRightCharacterSpacing(spacing.Spacing),
+            SetUpsideDownModeElementPayload upsideDown => new EscPosSetUpsideDownMode(upsideDown.IsEnabled ?? DefaultBoolean),
             SetJustificationElementPayload justification => new EscPosSetJustification(
                 EnumMapper.ParseTextJustification(justification.Justification ?? "Left")),
             SetLineSpacingElementPayload spacing => new EscPosSetLineSpacing(spacing.Spacing),
@@ -155,6 +163,8 @@ public static class CommandMapper
             SetFontElementPayload charFont => new EscPosSetFont(charFont.FontNumber),
             PrintAndFeedLinesElementPayload feedLines => new EscPosPrintAndFeedLines(feedLines.Lines),
             PrintAndFeedDotsElementPayload feedDots => new EscPosPrintAndFeedDots(feedDots.Dots),
+            HorizontalTabElementPayload => new EscPosHorizontalTab(),
+            SetHorizontalTabStopsElementPayload tabStops => new EscPosSetHorizontalTabStops(tabStops.Columns),
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }
@@ -207,9 +217,12 @@ public static class CommandMapper
             EscPosDocumentElementTypeNames.SetBarcodeModuleWidth => JsonSerializer.Deserialize<SetBarcodeModuleWidthElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetBoldMode => JsonSerializer.Deserialize<SetBoldModeElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.CancelBoldMode => JsonSerializer.Deserialize<CancelBoldModeElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.SetDoubleStrikeMode => JsonSerializer.Deserialize<SetDoubleStrikeModeElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetCodePage => JsonSerializer.Deserialize<SetCodePageElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetPrintMode => JsonSerializer.Deserialize<SetPrintModePayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetCharacterSize => JsonSerializer.Deserialize<SetCharacterSizeElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.SetRightCharacterSpacing => JsonSerializer.Deserialize<SetRightCharacterSpacingElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.SetUpsideDownMode => JsonSerializer.Deserialize<SetUpsideDownModeElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetJustification => JsonSerializer.Deserialize<SetJustificationElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetLineSpacing => JsonSerializer.Deserialize<SetLineSpacingElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.ResetLineSpacing => JsonSerializer.Deserialize<ResetLineSpacingElementPayload>(entity.Payload, SerializerOptions),
@@ -230,6 +243,8 @@ public static class CommandMapper
             EscPosDocumentElementTypeNames.SetFont => JsonSerializer.Deserialize<SetFontElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.PrintAndFeedLines => JsonSerializer.Deserialize<PrintAndFeedLinesElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.PrintAndFeedDots => JsonSerializer.Deserialize<PrintAndFeedDotsElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.HorizontalTab => JsonSerializer.Deserialize<HorizontalTabElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.SetHorizontalTabStops => JsonSerializer.Deserialize<SetHorizontalTabStopsElementPayload>(entity.Payload, SerializerOptions),
             _ => throw new NotSupportedException($"Element type '{entity.ElementType}' is not supported.")
         };
     }
@@ -263,9 +278,12 @@ public static class CommandMapper
             SetBarcodeModuleWidthElementPayload => EscPosDocumentElementTypeNames.SetBarcodeModuleWidth,
             SetBoldModeElementPayload => EscPosDocumentElementTypeNames.SetBoldMode,
             CancelBoldModeElementPayload => EscPosDocumentElementTypeNames.CancelBoldMode,
+            SetDoubleStrikeModeElementPayload => EscPosDocumentElementTypeNames.SetDoubleStrikeMode,
             SetCodePageElementPayload => EscPosDocumentElementTypeNames.SetCodePage,
             SetPrintModePayload => EscPosDocumentElementTypeNames.SetPrintMode,
             SetCharacterSizeElementPayload => EscPosDocumentElementTypeNames.SetCharacterSize,
+            SetRightCharacterSpacingElementPayload => EscPosDocumentElementTypeNames.SetRightCharacterSpacing,
+            SetUpsideDownModeElementPayload => EscPosDocumentElementTypeNames.SetUpsideDownMode,
             SetJustificationElementPayload => EscPosDocumentElementTypeNames.SetJustification,
             SetLineSpacingElementPayload => EscPosDocumentElementTypeNames.SetLineSpacing,
             ResetLineSpacingElementPayload => EscPosDocumentElementTypeNames.ResetLineSpacing,
@@ -287,6 +305,8 @@ public static class CommandMapper
             SetFontElementPayload => EscPosDocumentElementTypeNames.SetFont,
             PrintAndFeedLinesElementPayload => EscPosDocumentElementTypeNames.PrintAndFeedLines,
             PrintAndFeedDotsElementPayload => EscPosDocumentElementTypeNames.PrintAndFeedDots,
+            HorizontalTabElementPayload => EscPosDocumentElementTypeNames.HorizontalTab,
+            SetHorizontalTabStopsElementPayload => EscPosDocumentElementTypeNames.SetHorizontalTabStops,
             _ => throw new NotSupportedException($"Element DTO '{dto.GetType().Name}' is not supported.")
         };
     }
