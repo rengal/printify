@@ -160,9 +160,10 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
         {
             if (!TryNavigateChild(value))
             {
-                // We were in the middle of a command but hit invalid byte
+                // The invalid byte is already in Buffer; EmitBufferForModeChange will move it to
+                // UnrecognizedBuffer. Return true so the byte is not retried (and double-counted).
                 ChangeState(ParserMode.Error);
-                return false;
+                return true;
             }
         }
 
@@ -353,7 +354,7 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
 
         var rawBytes = CollectionsMarshal.AsSpan(unrecognizedBuffer);
 
-        var element = CreatePrinterError($"Unrecognized {rawBytes.Length} bytes") with
+        var element = CreateUnrecognizedBytesError(rawBytes) with
         {
             RawBytes = rawBytes.ToArray(),
             LengthInBytes = rawBytes.Length
@@ -510,6 +511,13 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
     /// Derived classes can provide protocol-specific printer error commands.
     /// </summary>
     protected abstract Command CreatePrinterError(string? message);
+
+    /// <summary>
+    /// Creates an error command for unrecognized bytes in the stream.
+    /// Derived classes can override to produce protocol-specific parse errors with structured codes.
+    /// </summary>
+    protected virtual Command CreateUnrecognizedBytesError(ReadOnlySpan<byte> bytes)
+        => CreatePrinterError($"Unrecognized {bytes.Length} bytes");
 
     /// <summary>
     /// Derived classes can define protocol-specific error command types.

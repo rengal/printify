@@ -115,13 +115,19 @@ public sealed class EplParser : Parser<EplDeviceContext, EplCommandTrieProvider>
     /// </summary>
     protected override void EmitBufferForModeChange(ParserMode oldMode, ParserMode newMode)
     {
-        // EPL doesn't have text mode, so we only handle command and error modes
-        if (oldMode == ParserMode.Command || oldMode == ParserMode.Error)
+        switch (oldMode)
         {
-            if (State.Buffer.Count > 0)
-            {
+            case ParserMode.Command:
+                if (newMode == ParserMode.Error)
+                {
+                    // Move command buffer to error buffer (same as EscPos)
+                    State.UnrecognizedBuffer.AddRange(State.Buffer);
+                    State.Buffer.Clear();
+                }
+                break;
+            case ParserMode.Error:
                 EmitUnrecognizedBufferAsError();
-            }
+                break;
         }
     }
 

@@ -352,13 +352,14 @@ public static class EscPosScenarioData
         new(
             id: 16001,
             input: [0x00],
-            expectedRequestCommands: [new EscPosCommands.EscPosPrinterError("") { LengthInBytes = 1 }],
+            expectedRequestCommands: [new EscPosCommands.EscPosParseError("ESCPOS_PARSER_ERROR", "Unrecognized command: 0x00") { LengthInBytes = 1 }],
             expectedCanvasElements:
             [
                 [
-                    DebugElement("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                    DebugElement("error", lengthInBytes: 1, parameters: new Dictionary<string, string>
                     {
-                        ["Message"] = string.Empty
+                        ["Code"] = "ESCPOS_PARSER_ERROR",
+                        ["Message"] = "Unrecognized command: 0x00"
                     })
                 ]
             ]),
@@ -366,13 +367,14 @@ public static class EscPosScenarioData
         new(
             id: 16002,
             input: [0x00, 0x00],
-            expectedRequestCommands: [new EscPosCommands.EscPosPrinterError("") { LengthInBytes = 2 }],
+            expectedRequestCommands: [new EscPosCommands.EscPosParseError("ESCPOS_PARSER_ERROR", "Unrecognized command: 0x00 0x00") { LengthInBytes = 2 }],
             expectedCanvasElements:
             [
                 [
-                    DebugElement("printerError", lengthInBytes: 2, parameters: new Dictionary<string, string>
+                    DebugElement("error", lengthInBytes: 2, parameters: new Dictionary<string, string>
                     {
-                        ["Message"] = string.Empty
+                        ["Code"] = "ESCPOS_PARSER_ERROR",
+                        ["Message"] = "Unrecognized command: 0x00 0x00"
                     })
                 ]
             ]),
@@ -380,13 +382,14 @@ public static class EscPosScenarioData
         new(
             id: 16003,
             input: [0x00, 0x01, 0x02],
-            expectedRequestCommands: [new EscPosCommands.EscPosPrinterError("") { LengthInBytes = 3 }],
+            expectedRequestCommands: [new EscPosCommands.EscPosParseError("ESCPOS_PARSER_ERROR", "Unrecognized command: 0x00 0x01 0x02") { LengthInBytes = 3 }],
             expectedCanvasElements:
             [
                 [
-                    DebugElement("printerError", lengthInBytes: 3, parameters: new Dictionary<string, string>
+                    DebugElement("error", lengthInBytes: 3, parameters: new Dictionary<string, string>
                     {
-                        ["Message"] = string.Empty
+                        ["Code"] = "ESCPOS_PARSER_ERROR",
+                        ["Message"] = "Unrecognized command: 0x00 0x01 0x02"
                     })
                 ]
             ]),
@@ -395,14 +398,15 @@ public static class EscPosScenarioData
             id: 160004,
             input: [0x00, .. "ABC"u8],
             expectedRequestCommands: [
-                new EscPosCommands.EscPosPrinterError("") { LengthInBytes = 1 },
+                new EscPosCommands.EscPosParseError("ESCPOS_PARSER_ERROR", "Unrecognized command: 0x00") { LengthInBytes = 1 },
                 CommandAppendText("ABC")],
             expectedCanvasElements:
             [
                 [
-                    DebugElement("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                    DebugElement("error", lengthInBytes: 1, parameters: new Dictionary<string, string>
                     {
-                        ["Message"] = string.Empty
+                        ["Code"] = "ESCPOS_PARSER_ERROR",
+                        ["Message"] = "Unrecognized command: 0x00"
                     }),
                     DebugAppendText("ABC", lengthInBytes: 3),
                     DebugDiscardedError()
@@ -414,15 +418,16 @@ public static class EscPosScenarioData
             input: [.. "ABC"u8, 0x00, .. "DEF"u8],
             expectedRequestCommands: [
                 CommandAppendText("ABC"),
-                new EscPosCommands.EscPosPrinterError("") { LengthInBytes = 1 },
+                new EscPosCommands.EscPosParseError("ESCPOS_PARSER_ERROR", "Unrecognized command: 0x00") { LengthInBytes = 1 },
                 CommandAppendText("DEF")],
             expectedCanvasElements:
             [
                 [
                     DebugAppendText("ABC", lengthInBytes: 3),
-                    DebugElement("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                    DebugElement("error", lengthInBytes: 1, parameters: new Dictionary<string, string>
                     {
-                        ["Message"] = string.Empty
+                        ["Code"] = "ESCPOS_PARSER_ERROR",
+                        ["Message"] = "Unrecognized command: 0x00"
                     }),
                     DebugAppendText("DEF", lengthInBytes: 3),
                     DebugDiscardedError()
@@ -433,14 +438,15 @@ public static class EscPosScenarioData
             id: 160006,
             input: [0x00, 0x07],
             expectedRequestCommands: [
-                new EscPosCommands.EscPosPrinterError("") { LengthInBytes = 1 },
+                new EscPosCommands.EscPosParseError("ESCPOS_PARSER_ERROR", "Unrecognized command: 0x00") { LengthInBytes = 1 },
                 new EscPosCommands.EscPosBell { LengthInBytes = 1 }],
             expectedCanvasElements:
             [
                 [
-                    DebugElement("printerError", lengthInBytes: 1, parameters: new Dictionary<string, string>
+                    DebugElement("error", lengthInBytes: 1, parameters: new Dictionary<string, string>
                     {
-                        ["Message"] = string.Empty
+                        ["Code"] = "ESCPOS_PARSER_ERROR",
+                        ["Message"] = "Unrecognized command: 0x00"
                     }),
                     DebugElement("bell", lengthInBytes: 1)
                 ]
@@ -1224,11 +1230,11 @@ public static class EscPosScenarioData
                         parameters: new Dictionary<string, string> { ["Lines"] = "3" }),
                     DebugAppendText("B", lengthInBytes: 1),
                     DebugFlush(lengthInBytes: 1),
-                    // After LF: y = DefaultLineHeight; after ESC d 3: y += 3 * DefaultLineHeight
+                    // LF advances by one line, then ESC d 3 feeds three more lines before "B" is flushed.
                     TextElement("B",
                         fontName: EscPosSpecs.Fonts.FontA.FontName,
                         x: 0,
-                        y: 3 * (EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing),
+                        y: 4 * (EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing),
                         lengthInBytes: 1)
                 ]
             ]),
@@ -1252,17 +1258,17 @@ public static class EscPosScenarioData
             [
                 [
                     DebugAppendText("Hi", lengthInBytes: 2),
-                    // FlushLine runs first (produces TextElement), then DebugInfo for ESC d is appended
-                    TextElement("Hi", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 0, lengthInBytes: 2),
                     DebugElement("printAndFeedLines", lengthInBytes: 3,
                         parameters: new Dictionary<string, string> { ["Lines"] = "2" }),
+                    // The renderer records the feed command, then flushes the pending text buffer.
+                    TextElement("Hi", fontName: EscPosSpecs.Fonts.FontA.FontName, x: 0, y: 0, lengthInBytes: 2),
                     DebugAppendText("B", lengthInBytes: 1),
                     DebugFlush(lengthInBytes: 1),
-                    // y = DefaultLineHeight (flush of Hi) + 2 * DefaultLineHeight (ESC d 2)
+                    // "Hi" flushes one line, then ESC d 2 feeds two more lines before "B".
                     TextElement("B",
                         fontName: EscPosSpecs.Fonts.FontA.FontName,
                         x: 0,
-                        y: 2 * (EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing),
+                        y: 3 * (EscPosSpecs.Fonts.FontA.HeightInDots + DefaultLineSpacing),
                         lengthInBytes: 1)
                 ]
             ])

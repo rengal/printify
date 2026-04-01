@@ -247,7 +247,7 @@ public sealed class EscPosRenderer : IRenderer
                 case EscPosInitialize:
                     state.Initialize();
                     currentItems.Add(new DebugInfo(
-                        "resetPrinter",
+                        "reset",
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
@@ -436,7 +436,7 @@ public sealed class EscPosRenderer : IRenderer
             EscPosPrinterError => "printerError",
             EscPosGetPrinterStatus => "printerStatus",
             EscPosPulse => "pulse",
-            EscPosInitialize => "resetPrinter",
+            EscPosInitialize => "reset",
             EscPosSetBarcodeHeight => "setBarcodeHeight",
             EscPosSetBarcodeLabelPosition => "setBarcodeLabelPosition",
             EscPosSetBarcodeModuleWidth => "setBarcodeModuleWidth",

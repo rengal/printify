@@ -36,10 +36,10 @@ public static class EscPosGoldenCases
                     expectedFinalizedElements: null, // the same as elements
                     expectedCanvasElements:
                     [
-                        new CanvasDebugElementDto("resetPrinter") { LengthInBytes = 2 },
-                        new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
+                        new CanvasDebugElementDto("reset") { LengthInBytes = 2 },
+                        new CanvasDebugElementDto("setPrintMode", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto("setCodePage", CodePageParameters("866")) { LengthInBytes = 3 },
-                        new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
+                        new CanvasDebugElementDto("setPrintMode", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto("appendToLineBuffer", AppendTextParameters(Pad("font 0", 42)))
                         { LengthInBytes = 42 },
                         new CanvasDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
@@ -76,10 +76,10 @@ public static class EscPosGoldenCases
                     expectedFinalizedElements: null, // the same as elements
                     expectedCanvasElements:
                     [
-                        new CanvasDebugElementDto("resetPrinter") { LengthInBytes = 2 },
-                        new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
+                        new CanvasDebugElementDto("reset") { LengthInBytes = 2 },
+                        new CanvasDebugElementDto("setPrintMode", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto("setCodePage", CodePageParameters("866")) { LengthInBytes = 3 },
-                        new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
+                        new CanvasDebugElementDto("setPrintMode", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto("appendToLineBuffer", AppendTextParameters(Pad("font 0", 42)))
                         { LengthInBytes = 42 },
                         new CanvasDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
@@ -94,7 +94,7 @@ public static class EscPosGoldenCases
                             false,
                             false,
                             false) { LengthInBytes = 42 },
-                        new CanvasDebugElementDto("setFont", SetFontParameters(1, true, true)) { LengthInBytes = 3 },
+                        new CanvasDebugElementDto("setPrintMode", SetFontParameters(1, true, true)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto("appendToLineBuffer", AppendTextParameters(Pad("font 1", 28)))
                         { LengthInBytes = 28 },
                         new CanvasDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
@@ -103,7 +103,7 @@ public static class EscPosGoldenCases
                             0,
                             24,
                             672,
-                            48,
+                            34,
                             EscPosSpecs.Fonts.FontB.FontName,
                             0,
                             false,
@@ -112,14 +112,14 @@ public static class EscPosGoldenCases
                             CharScaleX: 2,
                             CharScaleY: 2)
                         { LengthInBytes = 28 },
-                        new CanvasDebugElementDto("setFont", SetFontParameters(0, true, true)) { LengthInBytes = 3 },
+                        new CanvasDebugElementDto("setPrintMode", SetFontParameters(0, true, true)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto("appendToLineBuffer", AppendTextParameters(Pad("font 2", 21)))
                         { LengthInBytes = 21 },
                         new CanvasDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new CanvasTextElementDto(
                             Pad("font 2", 21),
                             0,
-                            72,
+                            58,
                             504,
                             48,
                             EscPosSpecs.Fonts.FontA.FontName,
@@ -165,10 +165,10 @@ public static class EscPosGoldenCases
                     ],
                     expectedCanvasElements:
                     [
-                        new CanvasDebugElementDto("resetPrinter") { LengthInBytes = 2 },
-                        new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
+                        new CanvasDebugElementDto("reset") { LengthInBytes = 2 },
+                        new CanvasDebugElementDto("setPrintMode", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto("setCodePage", CodePageParameters("866")) { LengthInBytes = 3 },
-                        new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
+                        new CanvasDebugElementDto("setPrintMode", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto(
                             "setJustification",
                             JustificationParameters(EscPosCommands.EscPosTextJustification.Right)) { LengthInBytes = 3 },
@@ -221,8 +221,8 @@ public static class EscPosGoldenCases
                     ],
                     expectedCanvasElements:
                     [
-                        new CanvasDebugElementDto("resetPrinter") { LengthInBytes = 2 },
-                        new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
+                        new CanvasDebugElementDto("reset") { LengthInBytes = 2 },
+                        new CanvasDebugElementDto("setPrintMode", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                         new CanvasDebugElementDto("setCodePage", CodePageParameters("866")) { LengthInBytes = 3 },
                         new CanvasDebugElementDto(
                             "setJustification",
@@ -256,8 +256,8 @@ public static class EscPosGoldenCases
                         expectedFinalizedElements: null, // the same as elements
                         expectedCanvasElements:
                         [
-                            new CanvasDebugElementDto("resetPrinter") { LengthInBytes = 2 },
-                            new CanvasDebugElementDto("setFont", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
+                            new CanvasDebugElementDto("reset") { LengthInBytes = 2 },
+                            new CanvasDebugElementDto("setPrintMode", SetFontParameters(0, false, false)) { LengthInBytes = 3 },
                             new CanvasDebugElementDto("storedLogo", StoredLogoParameters(0)) { LengthInBytes = 4 },
                             new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.EscPosPagecutMode.Partial, 0)) { LengthInBytes = 4 }
                         ]),

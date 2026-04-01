@@ -366,6 +366,22 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         return new EscPosPrinterError(message);
     }
 
+    protected override Command CreateUnrecognizedBytesError(ReadOnlySpan<byte> bytes)
+    {
+        var parts = new string[bytes.Length];
+        for (var i = 0; i < bytes.Length; i++)
+        {
+            parts[i] = bytes[i] switch
+            {
+                0x1B => "ESC",
+                0x1D => "GS",
+                0x1C => "FS",
+                _ => $"0x{bytes[i]:X2}"
+            };
+        }
+        return new EscPosParseError("ESCPOS_PARSER_ERROR", $"Unrecognized command: {string.Join(" ", parts)}");
+    }
+
     protected override bool IsErrorCommand(Command element)
     {
         return element is EscPosParseError or EscPosPrinterError;
