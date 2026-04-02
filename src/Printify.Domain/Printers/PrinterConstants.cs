@@ -16,5 +16,5 @@ public static class PrinterConstants
     public const int MaxTcpListenerPort = 65535;
 
     // Listener timeout
-    public const int ListenerIdleTimeoutMs = 2000;
+    public const int ListenerIdleTimeoutMs = 3000;
 }

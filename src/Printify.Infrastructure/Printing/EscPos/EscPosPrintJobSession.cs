@@ -31,6 +31,7 @@ public class EscPosPrintJobSession : PrintJobSession
     private readonly IClock idleClock;
     private readonly EscPosParser parser;
     private readonly IPrinterBufferCoordinator bufferCoordinator;
+    private CancellationTokenSource? idleCts;
 
     public EscPosPrintJobSession(
         IPrinterBufferCoordinator bufferCoordinator,
@@ -67,12 +68,19 @@ public class EscPosPrintJobSession : PrintJobSession
         if (IsCompleted)
             return Task.CompletedTask;
 
-        base.Feed(input, ct);
+        // Cancel any pending idle timer before processing the chunk
+        idleCts?.Cancel();
+        idleCts?.Dispose();
+        idleCts = null;
 
+        base.Feed(input, ct);
         parser.Feed(input.Span, ct);
 
+        // Start a fresh idle timer now that the chunk is fully processed
+        var cts = new CancellationTokenSource();
+        idleCts = cts;
         idleClock.Restart();
-        _ = IdleTimeoutAsync(ct);
+        _ = IdleTimeoutAsync(CancellationTokenSource.CreateLinkedTokenSource(ct, cts.Token).Token);
         return Task.CompletedTask;
     }
 
@@ -99,7 +107,7 @@ public class EscPosPrintJobSession : PrintJobSession
         }
         catch (OperationCanceledException)
         {
-            // expected if new data arrives or job is canceled
+            //  expected when a new chunk arrives and cancels the pending timer
         }
     }
 
@@ -108,8 +116,11 @@ public class EscPosPrintJobSession : PrintJobSession
         if (IsCompleted)
             return Task.CompletedTask;
 
-        parser.Complete();
+        idleCts?.Cancel();
+        idleCts?.Dispose();
+        idleCts = null;
 
+        parser.Complete();
 
         var snapshot = ElementBuffer.ToArray();
         var document = new Document(
