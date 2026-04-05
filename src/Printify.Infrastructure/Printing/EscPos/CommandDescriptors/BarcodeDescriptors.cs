@@ -84,6 +84,8 @@ public sealed class BarcodeSetLabelPositionDescriptor : ICommandDescriptor
 /// </summary>
 public sealed class BarcodePrintDescriptor : ICommandDescriptor
 {
+    private static readonly Encoding Latin1Encoding = Encoding.Latin1;
+
     public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1D, 0x6B };
     public int MinLength => 4;
     public int? TryGetExactLength(ReadOnlySpan<byte> buffer) => null;
@@ -96,7 +98,7 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
             return MatchResult.Matched(error);
         }
 
-        string content;
+        byte[] payload;
 
         // Function A: symbologyByte <= 0x06 uses null terminator
         // Function B: symbologyByte >= 0x41 uses length indicator
@@ -115,8 +117,7 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
                 return MatchResult.NeedMore();
             }
 
-            var payload = buffer.Slice(4, length).ToArray();
-            content = Encoding.ASCII.GetString(payload);
+            payload = buffer.Slice(4, length).ToArray();
         }
         else
         {
@@ -128,9 +129,12 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
             }
 
             var payloadLength = terminator - payloadStart;
-            var payload = payloadLength > 0 ? buffer.Slice(payloadStart, payloadLength).ToArray() : [];
-            content = Encoding.ASCII.GetString(payload);
+            payload = payloadLength > 0 ? buffer.Slice(payloadStart, payloadLength).ToArray() : [];
         }
+
+        // Code128 prefixes such as "{B" select the code set and must not become literal barcode data.
+        payload = NormalizePayload(symbology, payload);
+        var content = GetPayloadEncoding(symbologyByte).GetString(payload);
 
         return MatchResult.Matched(new EscPosPrintBarcodeUpload(symbology, content));
     }
@@ -171,12 +175,38 @@ public sealed class BarcodePrintDescriptor : ICommandDescriptor
                 symbology = EscPosBarcodeSymbology.Code93;
                 return true;
             case 0x49:
+            case 0x4F:
+            case 0x08:
                 symbology = EscPosBarcodeSymbology.Code128;
                 return true;
             default:
                 symbology = default;
                 return false;
         }
+    }
+
+    private static Encoding GetPayloadEncoding(byte symbologyByte)
+    {
+        // Code128 auto accepts full 8-bit payloads, so Latin-1 preserves bytes 0x00-0xFF one-to-one.
+        return symbologyByte == 0x4F
+            ? Latin1Encoding
+            : Encoding.ASCII;
+    }
+
+    private static byte[] NormalizePayload(EscPosBarcodeSymbology symbology, byte[] payload)
+    {
+        ArgumentNullException.ThrowIfNull(payload);
+
+        if (symbology != EscPosBarcodeSymbology.Code128 || payload.Length < 2 || payload[0] != (byte)'{')
+        {
+            return payload;
+        }
+
+        return payload[1] switch
+        {
+            (byte)'A' or (byte)'B' or (byte)'C' => payload[2..],
+            _ => payload
+        };
     }
 
     private static int FindNullTerminator(ReadOnlySpan<byte> data, int startIndex)

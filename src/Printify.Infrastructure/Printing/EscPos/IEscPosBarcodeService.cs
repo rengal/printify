@@ -1,4 +1,3 @@
-using Printify.Domain.Printers;
 using Printify.Infrastructure.Printing.EscPos.Commands;
 
 namespace Printify.Infrastructure.Printing.EscPos;
@@ -12,7 +11,7 @@ public interface IEscPosBarcodeService
     /// <summary>
     /// Generates a barcode image using the supplied payload and rendering options.
     /// </summary>
-    EscPosRasterImageUpload GenerateBarcodeMedia(EscPosPrintBarcodeUpload upload, BarcodeRenderOptions options);
+    EscPosRasterImageUpload GenerateEscPosBarcodeMedia(EscPosPrintBarcodeUpload upload, BarcodeRenderOptions options);
 
     /// <summary>
     /// Generates a QR code image using the supplied payload and rendering options.

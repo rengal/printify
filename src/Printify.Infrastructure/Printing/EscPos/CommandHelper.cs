@@ -177,9 +177,11 @@ public static class EscPosCommandHelper
                 $"DataLength={qr.Data.Length}",
                 $"Data=\"{EscapeDescriptionText(qr.Data)}\""),
             EscPosPrintBarcodeUpload barcodeUpload => BuildBarcodeDescription(
+                barcodeUpload,
                 barcodeUpload.Symbology,
                 barcodeUpload.Data),
             EscPosPrintBarcode barcode => BuildBarcodeDescription(
+                barcode,
                 barcode.Symbology,
                 barcode.Data),
             EscPosPrintLogo storedLogo => Lines(
@@ -377,14 +379,27 @@ public static class EscPosCommandHelper
     }
 
     private static IReadOnlyList<string> BuildBarcodeDescription(
+        EscPosCommand command,
         EscPosBarcodeSymbology symbology,
         string data)
     {
+        var symbologyDescription = EnumMapper.ToString(symbology);
+        if (IsLegacyCode128(command))
+        {
+            symbologyDescription += " (legacy)";
+        }
+
         return Lines(
             "GS k m - Print barcode",
-            $"m={EnumMapper.ToString(symbology)}",
+            $"m={symbologyDescription}",
             $"DataLength={data.Length}",
             $"Data=\"{EscapeDescriptionText(data)}\"");
+    }
+
+    private static bool IsLegacyCode128(EscPosCommand command)
+    {
+        // Legacy GS k used m=0x08 for Code128 before the newer Epson selector range.
+        return command.RawBytes is [0x1D, 0x6B, 0x08, ..];
     }
 
     private static IReadOnlyList<string> BuildRasterImageDescription(int widthInDots, int heightInDots)

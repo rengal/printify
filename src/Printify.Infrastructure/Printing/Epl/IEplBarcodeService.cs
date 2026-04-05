@@ -18,7 +18,7 @@ public interface IEplBarcodeService
     /// <param name="height">Barcode height in dots.</param>
     /// <param name="hri">Human readable interpretation flag.</param>
     /// <returns>MediaUpload containing the generated barcode image.</returns>
-    Domain.Media.MediaUpload GenerateBarcodeMedia(
+    Domain.Media.MediaUpload GenerateEplBarcodeMedia(
         string type,
         string data,
         int width,

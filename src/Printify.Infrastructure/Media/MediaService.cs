@@ -1,5 +1,4 @@
 using Printify.Application.Interfaces;
-using Printify.Domain.Printing;
 using Printify.Infrastructure.Printing.EscPos.Commands;
 using Printify.Infrastructure.Printing.EscPos;
 using Printify.Infrastructure.Printing.Epl;
@@ -46,23 +45,25 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         return new MediaUpload("image/png", content);
     }
 
-    public EscPosRasterImageUpload GenerateBarcodeMedia(EscPosPrintBarcodeUpload upload, BarcodeRenderOptions options)
+    public EscPosRasterImageUpload GenerateEscPosBarcodeMedia(EscPosPrintBarcodeUpload upload, BarcodeRenderOptions options)
     {
         ArgumentNullException.ThrowIfNull(upload);
         ArgumentNullException.ThrowIfNull(options);
 
-        var targetHeight = options.HeightInDots.GetValueOrDefault(100);
         var moduleWidth = Math.Max(1, options.ModuleWidthInDots.GetValueOrDefault(2));
-        var printerWidth = options.PrinterWidthInDots.GetValueOrDefault(Math.Max(200, moduleWidth * upload.Data.Length * 8));
 
-        var rawWidth = Math.Clamp(moduleWidth * upload.Data.Length * 8, 64, printerWidth);
+        var targetHeight = options.HeightInDots.GetValueOrDefault(100);
+        var printerWidth = options.PrinterWidthInDots.GetValueOrDefault(Math.Max(200, moduleWidth * upload.Data.Length * 8));
+        var targetWidth = options.ModuleWidthInDots.HasValue
+            ? Math.Clamp(moduleWidth * upload.Data.Length * 8, 64, printerWidth)
+            : (int)(0.70 * options.PrinterWidthInDots.GetValueOrDefault());
         var writer = new BarcodeWriter
         {
-            Format = MapSymbology(upload.Symbology),
+            Format = MapEscPosSymbology(upload.Symbology),
             Options = new EncodingOptions
             {
                 Height = targetHeight,
-                Width = rawWidth,
+                Width = targetWidth,
                 Margin = 0,
                 PureBarcode = options.LabelPosition == EscPosBarcodeLabelPosition.NotPrinted
             }
@@ -113,8 +114,7 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         return new EscPosRasterImageUpload(aligned.Width, aligned.Height, uploadMedia);
     }
 
-    /// <inheritdoc />
-    public MediaUpload GenerateBarcodeMedia(string type, string data, int width, int height, char hri)
+    public MediaUpload GenerateEplBarcodeMedia(string type, string data, int width, int height, char hri)
     {
         ArgumentNullException.ThrowIfNull(type);
         ArgumentNullException.ThrowIfNull(data);
@@ -198,7 +198,7 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         }
     }
 
-    private static BarcodeFormat MapSymbology(EscPosBarcodeSymbology symbology)
+    private static BarcodeFormat MapEscPosSymbology(EscPosBarcodeSymbology symbology)
     {
         return symbology switch
         {

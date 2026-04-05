@@ -76,7 +76,7 @@ public sealed class EscPosDocumentFinalizer(
                     case EscPos.Commands.EscPosPrintBarcodeUpload barcodeUpload when string.IsNullOrEmpty(barcodeUpload.Data):
                         continue;
                     case EscPos.Commands.EscPosPrintBarcodeUpload barcodeUpload:
-                        imageUpload = barcodeService.GenerateBarcodeMedia(
+                        imageUpload = barcodeService.GenerateEscPosBarcodeMedia(
                             barcodeUpload,
                             new BarcodeRenderOptions(
                                 barcodeState.HeightInDots,

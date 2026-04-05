@@ -654,6 +654,144 @@ public static class EscPosScenarioData
             ])
     ];
 
+    public static TheoryData<EscPosScenario> BarcodeScenarios { get; } =
+    [
+        new(
+            id: 185001,
+            input:
+            [
+                Gs, 0x48, 0x02,
+                Gs, 0x6B, 0x08, 0x7B,
+                (byte)'B', (byte)'1', (byte)'2', (byte)'3', (byte)'4', (byte)'5', (byte)'6', (byte)'7',
+                (byte)'8', (byte)'9', (byte)'0', (byte)'1', (byte)'2',
+                0x00,
+                Lf
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetBarcodeLabelPosition(EscPosCommands.EscPosBarcodeLabelPosition.Below)
+                {
+                    LengthInBytes = 3
+                },
+                new EscPosCommands.EscPosPrintBarcodeUpload(EscPosCommands.EscPosBarcodeSymbology.Code128, "123456789012")
+                {
+                    LengthInBytes = 18
+                },
+                new EscPosCommands.EscPosPrintAndLineFeed
+                {
+                    LengthInBytes = 1
+                }
+            ],
+            expectedPersistedCommands:
+            [
+                new EscPosCommands.EscPosSetBarcodeLabelPosition(EscPosCommands.EscPosBarcodeLabelPosition.Below)
+                {
+                    LengthInBytes = 3
+                },
+                new EscPosCommands.EscPosPrintBarcode(
+                    EscPosCommands.EscPosBarcodeSymbology.Code128,
+                    "123456789012",
+                    0,
+                    0,
+                    Media.CreateDefaultPng(1))
+                {
+                    LengthInBytes = 18
+                },
+                new EscPosCommands.EscPosPrintAndLineFeed
+                {
+                    LengthInBytes = 1
+                }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement(
+                        "setBarcodeLabelPosition",
+                        lengthInBytes: 3,
+                        parameters: new Dictionary<string, string>
+                        {
+                            ["Position"] = EscPosCommands.EscPosBarcodeLabelPosition.Below.ToString()
+                        }),
+                    DebugElement("printBarcode", lengthInBytes: 18),
+                    ViewImage(0, 0, 0, 0, Media.CreateDefaultPng(1), lengthInBytes: 18),
+                    DebugFlush(lengthInBytes: 1)
+                ]
+            ]),
+        new(
+            id: 185002,
+            input:
+            [
+                Gs, 0x6B, 0x43, 0x0D,
+                (byte)'1', (byte)'2', (byte)'3', (byte)'4', (byte)'5', (byte)'6', (byte)'7',
+                (byte)'8', (byte)'9', (byte)'0', (byte)'1', (byte)'2', (byte)'8',
+                Lf,
+                Gs, 0x6B, 0x08, 0x7B,
+                (byte)'B', (byte)'1', (byte)'2', (byte)'3', (byte)'4', (byte)'5', (byte)'6', (byte)'7',
+                (byte)'8', (byte)'9', (byte)'0', (byte)'1', (byte)'2',
+                0x00,
+                Lf
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosPrintBarcodeUpload(EscPosCommands.EscPosBarcodeSymbology.Ean13, "1234567890128")
+                {
+                    LengthInBytes = 17
+                },
+                new EscPosCommands.EscPosPrintAndLineFeed
+                {
+                    LengthInBytes = 1
+                },
+                new EscPosCommands.EscPosPrintBarcodeUpload(EscPosCommands.EscPosBarcodeSymbology.Code128, "123456789012")
+                {
+                    LengthInBytes = 18
+                },
+                new EscPosCommands.EscPosPrintAndLineFeed
+                {
+                    LengthInBytes = 1
+                }
+            ],
+            expectedPersistedCommands:
+            [
+                new EscPosCommands.EscPosPrintBarcode(
+                    EscPosCommands.EscPosBarcodeSymbology.Ean13,
+                    "1234567890128",
+                    0,
+                    0,
+                    Media.CreateDefaultPng(1))
+                {
+                    LengthInBytes = 17
+                },
+                new EscPosCommands.EscPosPrintAndLineFeed
+                {
+                    LengthInBytes = 1
+                },
+                new EscPosCommands.EscPosPrintBarcode(
+                    EscPosCommands.EscPosBarcodeSymbology.Code128,
+                    "123456789012",
+                    0,
+                    0,
+                    Media.CreateDefaultPng(1))
+                {
+                    LengthInBytes = 18
+                },
+                new EscPosCommands.EscPosPrintAndLineFeed
+                {
+                    LengthInBytes = 1
+                }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("printBarcode", lengthInBytes: 17),
+                    ViewImage(0, 0, 0, 0, Media.CreateDefaultPng(1), lengthInBytes: 17),
+                    DebugFlush(lengthInBytes: 1),
+                    DebugElement("printBarcode", lengthInBytes: 18),
+                    ViewImage(0, 0, 0, 0, Media.CreateDefaultPng(1), lengthInBytes: 18),
+                    DebugFlush(lengthInBytes: 1)
+                ]
+            ])
+    ];
+
     public static TheoryData<EscPosScenario> RasterImageScenarios { get; } =
     [
         // GS v 0: Print raster bit image - 8x2 partially set (with pixel verification)
@@ -1604,6 +1742,7 @@ public static class EscPosScenarioData
         AddRange(data, ErrorScenarios);
         AddRange(data, PagecutScenarios);
         AddRange(data, PulseScenarios);
+        AddRange(data, BarcodeScenarios);
         AddRange(data, RasterImageScenarios);
         AddRange(data, FontStyleScenarios);
         AddRange(data, LineSpacingScenarios);

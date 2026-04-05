@@ -179,7 +179,7 @@ public sealed class PrintBarcodeDescriptor(IEplBarcodeService barcodeService) : 
             var hri = parser.GetChar(6, 'N');
 
             // Generate barcode media using IEplBarcodeService
-            var mediaUpload = barcodeService.GenerateBarcodeMedia(type, data, width, height, hri);
+            var mediaUpload = barcodeService.GenerateEplBarcodeMedia(type, data, width, height, hri);
 
             // Calculate rendered dimensions based on rotation
             var (renderedWidth, renderedHeight) = CalculateRotatedDimensions(width, height, rotation);
