@@ -19,6 +19,9 @@ namespace Printify.Infrastructure.Printing.EscPos.Parsers;
 public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrieProvider>
 {
     private static readonly Encoding DefaultCodePage = Encoding.GetEncoding(437); // OEM-US (DOS)
+    private const string MissingCodePageErrorCode = "ESCPOS_PARSER_ERROR";
+    private const string MissingCodePageErrorMessage = "Text contains non-ASCII bytes, but no code page was set.";
+    private bool missingCodePageWarningEmitted;
 
     /// <summary>
     /// Simple constructor for testing or scenarios without printer context.
@@ -88,6 +91,7 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         }
 
         // Valid text byte - add to buffer
+        EmitMissingCodePageWarningIfNeeded(value);
         State.Buffer.Add(value);
         return true;
     }
@@ -161,10 +165,18 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
     /// </summary>
     protected override void ModifyDeviceContext(Command element)
     {
-        // Handle encoding change when SetCodePage is received
         if (element is EscPosSetCodePage setCodePage)
         {
             State.DeviceContext.Encoding = GetEncodingFromCodePage(setCodePage.CodePage);
+            State.DeviceContext.IsCodePageExplicitlySet = true;
+            return;
+        }
+
+        if (element is EscPosInitialize)
+        {
+            // ESC @ resets the active code page back to the printer default state.
+            State.DeviceContext.Encoding = DefaultCodePage;
+            State.DeviceContext.IsCodePageExplicitlySet = false;
         }
     }
 
@@ -387,6 +399,23 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         return element is EscPosParseError or EscPosPrinterError;
     }
 
+    private void EmitMissingCodePageWarningIfNeeded(byte value)
+    {
+        if (missingCodePageWarningEmitted)
+        {
+            return;
+        }
+
+        // Bytes above ASCII are code-page-dependent glyphs in ESC/POS single-byte encodings.
+        if (value < 0x80 || State.DeviceContext.IsCodePageExplicitlySet)
+        {
+            return;
+        }
+
+        missingCodePageWarningEmitted = true;
+        base.EmitElement(new EscPosParseError(MissingCodePageErrorCode, MissingCodePageErrorMessage), 0);
+    }
+
     /// <summary>
     /// Completes parsing and flushes any pending data.
     /// </summary>
@@ -406,5 +435,8 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
 
         // Reset to initial state
         State.Reset(GetDefaultMode());
+        State.DeviceContext.Encoding = DefaultCodePage;
+        State.DeviceContext.IsCodePageExplicitlySet = false;
+        missingCodePageWarningEmitted = false;
     }
 }

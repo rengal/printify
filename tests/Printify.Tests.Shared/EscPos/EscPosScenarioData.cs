@@ -1765,6 +1765,8 @@ public static class EscPosScenarioData
     private static TheoryData<EscPosScenario> BuildCodePageScenarios(IReadOnlyList<CodePageVector> codePages)
     {
         var scenarios = new TheoryData<EscPosScenario>();
+        var defaultEncoding = ResolveEncoding("437");
+
         foreach (var vector in codePages)
         {
             var input = new List<byte>();
@@ -1804,6 +1806,146 @@ public static class EscPosScenarioData
 
             scenarios.Add(new EscPosScenario(id: 240001, input.ToArray(), expected, expectedCanvasElements: [expectedView.ToArray()]));
         }
+
+        var suspiciousBytes = new byte[] { 0x87, 0xA0, 0xAA };
+        var suspiciousText = defaultEncoding.GetString(suspiciousBytes);
+
+        scenarios.Add(new EscPosScenario(
+            id: 240101,
+            input: [.. suspiciousBytes, Lf],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosParseError("ESCPOS_PARSER_ERROR", "Text contains non-ASCII bytes, but no code page was set.")
+                {
+                    LengthInBytes = 0
+                },
+                new EscPosCommands.EscPosAppendText(suspiciousBytes)
+                {
+                    LengthInBytes = suspiciousBytes.Length
+                },
+                new EscPosCommands.EscPosPrintAndLineFeed
+                {
+                    LengthInBytes = 1
+                }
+            ],
+            expectedPersistedCommands:
+            [
+                new EscPosCommands.EscPosParseError("ESCPOS_PARSER_ERROR", "Text contains non-ASCII bytes, but no code page was set.")
+                {
+                    LengthInBytes = 0
+                },
+                new EscPosCommands.EscPosAppendText(suspiciousBytes)
+                {
+                    LengthInBytes = suspiciousBytes.Length
+                },
+                new EscPosCommands.EscPosPrintAndLineFeed
+                {
+                    LengthInBytes = 1
+                }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement(
+                        "error",
+                        lengthInBytes: 0,
+                        parameters: new Dictionary<string, string>
+                        {
+                            ["Code"] = "ESCPOS_PARSER_ERROR",
+                            ["Message"] = "Text contains non-ASCII bytes, but no code page was set."
+                        }),
+                    DebugAppendText(suspiciousText, lengthInBytes: suspiciousBytes.Length),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement(
+                        suspiciousText,
+                        fontName: EscPosSpecs.Fonts.FontA.FontName,
+                        x: 0,
+                        y: 0,
+                        lengthInBytes: suspiciousBytes.Length)
+                ]
+            ]));
+
+        scenarios.Add(new EscPosScenario(
+            id: 240102,
+            input:
+            [
+                Esc, (byte)'t', 0x11,
+                Esc, (byte)'@',
+                .. suspiciousBytes,
+                Lf
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosSetCodePage("866")
+                {
+                    LengthInBytes = 3
+                },
+                new EscPosCommands.EscPosInitialize
+                {
+                    LengthInBytes = 2
+                },
+                new EscPosCommands.EscPosParseError("ESCPOS_PARSER_ERROR", "Text contains non-ASCII bytes, but no code page was set.")
+                {
+                    LengthInBytes = 0
+                },
+                new EscPosCommands.EscPosAppendText(suspiciousBytes)
+                {
+                    LengthInBytes = suspiciousBytes.Length
+                },
+                new EscPosCommands.EscPosPrintAndLineFeed
+                {
+                    LengthInBytes = 1
+                }
+            ],
+            expectedPersistedCommands:
+            [
+                new EscPosCommands.EscPosSetCodePage("866")
+                {
+                    LengthInBytes = 3
+                },
+                new EscPosCommands.EscPosInitialize
+                {
+                    LengthInBytes = 2
+                },
+                new EscPosCommands.EscPosParseError("ESCPOS_PARSER_ERROR", "Text contains non-ASCII bytes, but no code page was set.")
+                {
+                    LengthInBytes = 0
+                },
+                new EscPosCommands.EscPosAppendText(suspiciousBytes)
+                {
+                    LengthInBytes = suspiciousBytes.Length
+                },
+                new EscPosCommands.EscPosPrintAndLineFeed
+                {
+                    LengthInBytes = 1
+                }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement(
+                        "setCodePage",
+                        lengthInBytes: 3,
+                        parameters: CodePageParameters("866")),
+                    DebugElement("reset", lengthInBytes: 2),
+                    DebugElement(
+                        "error",
+                        lengthInBytes: 0,
+                        parameters: new Dictionary<string, string>
+                        {
+                            ["Code"] = "ESCPOS_PARSER_ERROR",
+                            ["Message"] = "Text contains non-ASCII bytes, but no code page was set."
+                        }),
+                    DebugAppendText(suspiciousText, lengthInBytes: suspiciousBytes.Length),
+                    DebugFlush(lengthInBytes: 1),
+                    TextElement(
+                        suspiciousText,
+                        fontName: EscPosSpecs.Fonts.FontA.FontName,
+                        x: 0,
+                        y: 0,
+                        lengthInBytes: suspiciousBytes.Length)
+                ]
+            ]));
 
         return scenarios;
     }

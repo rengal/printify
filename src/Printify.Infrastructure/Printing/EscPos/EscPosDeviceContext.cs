@@ -15,4 +15,10 @@ public sealed class EscPosDeviceContext : IDeviceContext
     /// Can be changed via SetCodePage command.
     /// </summary>
     public Encoding Encoding { get; set; } = Encoding.GetEncoding(437);
+
+    /// <summary>
+    /// Tracks whether the current code page came from an explicit ESC/POS command.
+    /// The default fallback encoding must not suppress "missing code page" warnings.
+    /// </summary>
+    public bool IsCodePageExplicitlySet { get; set; }
 }
