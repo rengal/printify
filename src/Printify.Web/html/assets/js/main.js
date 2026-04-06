@@ -6,6 +6,7 @@
         let workspaceName = null;
         let workspaceCreatedAt = null;
         let accessToken = null;
+        let workspaceTcpWhitelistEnabled = false;
 
         // Data
         let printers = [];
@@ -161,6 +162,10 @@
 
         function getPrinterById(id) {
             return printers.find(p => p.id === id) || null;
+        }
+
+        function getTcpWhitelistEnabled() {
+            return workspaceTcpWhitelistEnabled;
         }
 
         async function loadPrinters(selectId = null) {
@@ -1080,6 +1085,7 @@
             workspaceToken = null;
             workspaceName = null;
             accessToken = null;
+            workspaceTcpWhitelistEnabled = false;
             printers = [];
             documents = {};
             documentsPagination = {};
@@ -1372,6 +1378,7 @@
                 onWorkspaceCreated: (token, name) => {
                     updateWorkspaceToken(token);
                     workspaceName = name;
+                    workspaceTcpWhitelistEnabled = false;
                     WorkspaceMenu.updateDisplay(token, workspaceName);
                     renderSidebar();
                     renderDocuments();
@@ -1393,10 +1400,12 @@
                 workspaceName: () => workspaceName,
                 onWorkspaceUpdated: (settings) => {
                     workspaceName = settings.name;
+                    workspaceTcpWhitelistEnabled = settings.tcpWhitelistEnabled === true;
                     if (settings.name) {
                         localStorage.setItem('workspaceName', settings.name);
                     }
                     WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
+                    renderDocuments();
                 },
                 onWorkspaceDeleted: () => {
                     logOut();
@@ -1429,6 +1438,7 @@
             DocumentsPanel.init({
                 onCreateWorkspace: () => WorkspaceDialog?.show?.('create'),
                 onAccessWorkspace: () => WorkspaceDialog?.show?.('access'),
+                onOpenWorkspaceSettings: () => WorkspaceSettingsDialog?.show?.(),
                 onToggleDocumentDebug: (docId, enabled) => toggleDocumentDebug(docId, enabled),
                 onCopyDocument: (text) => copyToClipboard(text),
                 onLoadMore: (printerId) => {
@@ -1438,6 +1448,7 @@
                 getWelcomeMessage: () => getWelcomeMessage(),
                 getDebugMode: () => debugMode,
                 getPrinterById: (id) => getPrinterById(id),
+                getTcpWhitelistEnabled: () => getTcpWhitelistEnabled(),
                 isDocumentRawDataActive: (doc) => isDocumentRawDataActive(doc),
                 escapeHtml: (text) => escapeHtml(text),
                 resolveMediaUrl: (url) => resolveMediaUrl(url)
@@ -1462,6 +1473,7 @@
                     const workspaceInfo = await apiRequest('/api/workspaces');
                     if (workspaceInfo && workspaceInfo.name) {
                         workspaceName = workspaceInfo.name;
+                        workspaceTcpWhitelistEnabled = workspaceInfo.tcpWhitelistEnabled === true;
                         localStorage.setItem('workspaceName', workspaceName);
                         WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
                     }

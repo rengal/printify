@@ -305,9 +305,43 @@
 }
 
 .docs-setup-link {
-    margin: 24px 0 0 0;
+    margin: 16px 0 0 0;
     color: var(--muted);
     line-height: 1.5;
+}
+
+.docs-whitelist-notice {
+    margin: 16px 0;
+    padding: 16px 18px;
+    border-radius: 10px;
+    border: 1px solid rgba(217, 119, 6, 0.35);
+    background: rgba(245, 158, 11, 0.12);
+    color: #92400e;
+}
+
+.docs-whitelist-title {
+    margin: 0 0 8px;
+    font-weight: 700;
+    color: #b45309;
+}
+
+.docs-whitelist-notice p {
+    margin: 0;
+    line-height: 1.55;
+}
+
+.docs-whitelist-notice .docs-link {
+    font-weight: 600;
+}
+
+:root:not([data-theme="light"]) .docs-whitelist-notice {
+    border-color: rgba(251, 191, 36, 0.35);
+    background: rgba(245, 158, 11, 0.18);
+    color: #fcd34d;
+}
+
+:root:not([data-theme="light"]) .docs-whitelist-title {
+    color: #fbbf24;
 }
 
 /* Multiple canvas blocks */

@@ -30,11 +30,13 @@ let currentContainer = null;
 const callbacks = {
     onCreateWorkspace: null,
     onAccessWorkspace: null,
+    onOpenWorkspaceSettings: null,
     onToggleDocumentDebug: null,
     onCopyDocument: null,
     getWelcomeMessage: null,
     getDebugMode: null,
     getPrinterById: null,
+    getTcpWhitelistEnabled: null,
     isDocumentRawDataActive: null,
     escapeHtml: null,
     resolveMediaUrl: null
@@ -609,15 +611,26 @@ export async function showState(state, options = {}) {
             const panel = options.printerId ? getOrCreatePrinterPanel(options.printerId) : null;
             if (!panel) break;
             const printer = options.printer;
+            const isTcpWhitelistEnabled = callbacks.getTcpWhitelistEnabled?.() === true;
             panel.innerHTML = '';
             const wrap = document.createElement('div');
             wrap.appendChild(templates.noDocuments.content.cloneNode(true));
             const hostEl     = wrap.querySelector('[data-docs-host]');
             const portEl     = wrap.querySelector('[data-docs-port]');
             const protocolEl = wrap.querySelector('[data-docs-protocol]');
+            const whitelistNoticeEl = wrap.querySelector('[data-docs-whitelist-notice]');
+            const whitelistSettingsLinkEl = wrap.querySelector('[data-docs-whitelist-settings-link]');
             if (hostEl)     hostEl.textContent     = printer?.publicHost || 'localhost';
             if (portEl)     portEl.textContent     = printer?.port || 'not configured';
             if (protocolEl) protocolEl.textContent = (printer?.protocol || 'ESC/POS').toUpperCase();
+            if (isTcpWhitelistEnabled && whitelistNoticeEl) {
+                whitelistNoticeEl.hidden = false;
+            }
+
+            whitelistSettingsLinkEl?.addEventListener('click', (event) => {
+                event.preventDefault();
+                callbacks.onOpenWorkspaceSettings?.();
+            });
             panel.appendChild(wrap);
             break;
         }
