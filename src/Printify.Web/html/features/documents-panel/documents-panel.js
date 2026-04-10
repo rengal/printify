@@ -417,6 +417,20 @@ export function disposePrinter(printerId) {
     delete printerStates[printerId];
 }
 
+export function reset() {
+    detachScrollObserver();
+
+    for (const printerId in printerStates) {
+        printerStates[printerId].el?.remove();
+        delete printerStates[printerId];
+    }
+
+    activePrinterId = null;
+
+    const host = getHostContainer();
+    host?.querySelector('.docs-stub-panel')?.remove();
+}
+
 // ============================================================================
 // PUBLIC: DOC COUNT (for confirm dialogs in main.js)
 // ============================================================================

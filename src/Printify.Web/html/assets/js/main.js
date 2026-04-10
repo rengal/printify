@@ -168,6 +168,19 @@
             return workspaceTcpWhitelistEnabled;
         }
 
+        async function refreshSelectedPrinterDocumentsPanel() {
+            if (!selectedPrinterId || !window.DocumentsPanel) {
+                return;
+            }
+
+            const printer = getPrinterById(selectedPrinterId);
+            if (!printer) {
+                return;
+            }
+
+            await DocumentsPanel.selectPrinter(selectedPrinterId, printer, apiRequest);
+        }
+
         async function loadPrinters(selectId = null) {
             try {
                 const list = await apiRequest('/api/printers');
@@ -1024,6 +1037,13 @@
         async function loginWithToken(token) {
             let loginSucceeded = false;
             try {
+                stopStatusStream();
+                stopDocumentStream();
+                stopRuntimeStream();
+                selectedPrinterId = null;
+                printers = [];
+                DocumentsPanel.reset?.();
+
                 const loginResponse = await apiRequest('/api/auth/login', {
                     method: 'POST',
                     body: JSON.stringify({ token }),
@@ -1036,6 +1056,7 @@
                 const workspace = loginResponse.workspace;
                 workspaceName = workspace?.name || null;
                 workspaceCreatedAt = workspace?.createdAt ? new Date(workspace.createdAt) : new Date();
+                workspaceTcpWhitelistEnabled = workspace?.tcpWhitelistEnabled === true;
 
                 localStorage.setItem('accessToken', accessToken);
                 if (workspaceName) {
@@ -1053,6 +1074,7 @@
                     const workspace = await apiRequest('/api/workspaces');
                     if (workspace && workspace.name) {
                         workspaceName = workspace.name;
+                        workspaceTcpWhitelistEnabled = workspace.tcpWhitelistEnabled === true;
                         localStorage.setItem('workspaceName', workspaceName);
                         window.WorkspaceMenu?.updateDisplay(workspaceToken, workspaceName);
                     }
@@ -1063,11 +1085,7 @@
 
                 startStatusStream();
                 await loadPrinters();
-                if (selectedPrinterId) {
-                    await ensureDocumentsLoaded(selectedPrinterId);
-                    startDocumentStream(selectedPrinterId);
-                    startRuntimeStream(selectedPrinterId);
-                }
+                renderDocuments();
             } catch (error) {
                 if (!loginSucceeded) {
                     throw error;
@@ -1093,6 +1111,7 @@
             stopStatusStream();
             stopDocumentStream();
             stopRuntimeStream();
+            DocumentsPanel.reset?.();
 
             invalidateGreetingCache();
 
@@ -1405,7 +1424,9 @@
                         localStorage.setItem('workspaceName', settings.name);
                     }
                     WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);
-                    renderDocuments();
+                    refreshSelectedPrinterDocumentsPanel().catch((error) => {
+                        console.error('Failed to refresh documents panel after workspace update', error);
+                    });
                 },
                 onWorkspaceDeleted: () => {
                     logOut();
