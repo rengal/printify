@@ -35,6 +35,23 @@ public sealed class EplRenderer : IRenderer
         var debugElements = new List<BaseElement>();
         var viewElements = new List<BaseElement>();
 
+        // After a Print command, non-visual commands are held here.
+        // They are flushed into debugElements only when visual content arrives,
+        // confirming a new label has started. If no visual content follows,
+        // they are dropped (config/clear between labels produces no extra page).
+        var pendingDebugElements = new List<BaseElement>();
+        bool waitingForNewLabel = false;
+
+        // Flush pending debug elements into the active page buffer.
+        // Called as soon as any visual (printing) command is encountered.
+        void FlushPending()
+        {
+            if (pendingDebugElements.Count == 0) return;
+            debugElements.AddRange(pendingDebugElements);
+            pendingDebugElements.Clear();
+            waitingForNewLabel = false;
+        }
+
         // Process all commands - debug elements go to debugElements, visual elements go to viewElements
         foreach (var command in document.Commands)
         {
@@ -45,27 +62,38 @@ public sealed class EplRenderer : IRenderer
                     throw new InvalidOperationException("Upload requests must not be emitted");
 
                 case EplRasterImage rasterImage:
+                    FlushPending();
                     AddRasterImageDebugElement(rasterImage, debugElements);
                     AddRasterImageVisualElement(rasterImage, viewElements);
                     break;
 
                 case EplPrintBarcode barcode:
+                    FlushPending();
                     AddBarcodeDebugElement(barcode, debugElements);
                     AddBarcodeVisualElement(barcode, viewElements);
                     break;
 
                 case EplScalableText scalableText:
+                    FlushPending();
                     AddScalableTextDebugElement(scalableText, state, debugElements);
                     AddScalableTextVisualElement(scalableText, state, viewElements);
                     break;
 
                 case EplDrawHorizontalLine horizontalLine:
+                    FlushPending();
                     AddDrawHorizontalLineDebugElement(horizontalLine, debugElements);
                     AddDrawHorizontalLineVisualElement(horizontalLine, viewElements);
                     break;
 
+                case EplDrawBox drawLine:
+                    FlushPending();
+                    AddDrawLineDebugElement(drawLine, debugElements);
+                    AddDrawLineVisualElement(drawLine, viewElements);
+                    break;
+
                 case EplPrint print:
-                    debugElements.Add(new DebugInfo(
+                {
+                    var printEntry = new DebugInfo(
                         "print",
                         new Dictionary<string, string>
                         {
@@ -73,48 +101,76 @@ public sealed class EplRenderer : IRenderer
                         },
                         print.RawBytes,
                         print.LengthInBytes,
-                        GetDescription(print)));
-                    // On Print command, produce canvases with debug + view elements
-                    ProduceCanvases(document, debugElements, viewElements, print.Copies, canvases);
-                    // Clear elements for next canvas
-                    debugElements.Clear();
-                    viewElements.Clear();
-                    break;
+                        GetDescription(print));
 
-                case EplDrawBox drawLine:
-                    AddDrawLineDebugElement(drawLine, debugElements);
-                    AddDrawLineVisualElement(drawLine, viewElements);
+                    if (waitingForNewLabel)
+                    {
+                        // Another Print arrived before any visual content — the previous pending
+                        // commands and this Print belong to no label. Reset and keep waiting.
+                        pendingDebugElements.Clear();
+                        pendingDebugElements.Add(printEntry);
+                    }
+                    else
+                    {
+                        // Normal case: close the current label
+                        debugElements.Add(printEntry);
+                        ProduceCanvases(document, debugElements, viewElements, print.Copies, canvases);
+                        debugElements.Clear();
+                        viewElements.Clear();
+                        pendingDebugElements.Clear();
+                        waitingForNewLabel = true;
+                    }
                     break;
+                }
 
                 case EplClearBuffer:
-                    debugElements.Add(new DebugInfo(
+                {
+                    var entry = new DebugInfo(
                         "clearBuffer",
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        GetDescription(command)));
+                        GetDescription(command));
+                    if (waitingForNewLabel)
+                        pendingDebugElements.Add(entry);
+                    else
+                        debugElements.Add(entry);
                     break;
+                }
 
                 case EplCarriageReturn:
-                    debugElements.Add(new DebugInfo(
+                {
+                    var entry = new DebugInfo(
                         "carriageReturn",
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        GetDescription(command)));
+                        GetDescription(command));
+                    if (waitingForNewLabel)
+                        pendingDebugElements.Add(entry);
+                    else
+                        debugElements.Add(entry);
                     break;
+                }
 
                 case EplLineFeed:
-                    debugElements.Add(new DebugInfo(
+                {
+                    var entry = new DebugInfo(
                         "lineFeed",
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        GetDescription(command)));
+                        GetDescription(command));
+                    if (waitingForNewLabel)
+                        pendingDebugElements.Add(entry);
+                    else
+                        debugElements.Add(entry);
                     break;
+                }
 
                 case EplSetLabelWidth labelWidth:
-                    debugElements.Add(new DebugInfo(
+                {
+                    var entry = new DebugInfo(
                         "setLabelWidth",
                         new Dictionary<string, string>
                         {
@@ -122,11 +178,17 @@ public sealed class EplRenderer : IRenderer
                         },
                         labelWidth.RawBytes,
                         labelWidth.LengthInBytes,
-                        GetDescription(labelWidth)));
+                        GetDescription(labelWidth));
+                    if (waitingForNewLabel)
+                        pendingDebugElements.Add(entry);
+                    else
+                        debugElements.Add(entry);
                     break;
+                }
 
                 case EplSetLabelHeight labelHeight:
-                    debugElements.Add(new DebugInfo(
+                {
+                    var entry = new DebugInfo(
                         "setLabelHeight",
                         new Dictionary<string, string>
                         {
@@ -135,11 +197,17 @@ public sealed class EplRenderer : IRenderer
                         },
                         labelHeight.RawBytes,
                         labelHeight.LengthInBytes,
-                        GetDescription(labelHeight)));
+                        GetDescription(labelHeight));
+                    if (waitingForNewLabel)
+                        pendingDebugElements.Add(entry);
+                    else
+                        debugElements.Add(entry);
                     break;
+                }
 
                 case EplSetPrintSpeed speed:
-                    debugElements.Add(new DebugInfo(
+                {
+                    var entry = new DebugInfo(
                         "setPrintSpeed",
                         new Dictionary<string, string>
                         {
@@ -147,11 +215,17 @@ public sealed class EplRenderer : IRenderer
                         },
                         speed.RawBytes,
                         speed.LengthInBytes,
-                        GetDescription(speed)));
+                        GetDescription(speed));
+                    if (waitingForNewLabel)
+                        pendingDebugElements.Add(entry);
+                    else
+                        debugElements.Add(entry);
                     break;
+                }
 
                 case EplSetPrintDarkness darkness:
-                    debugElements.Add(new DebugInfo(
+                {
+                    var entry = new DebugInfo(
                         "setPrintDarkness",
                         new Dictionary<string, string>
                         {
@@ -159,11 +233,17 @@ public sealed class EplRenderer : IRenderer
                         },
                         darkness.RawBytes,
                         darkness.LengthInBytes,
-                        GetDescription(darkness)));
+                        GetDescription(darkness));
+                    if (waitingForNewLabel)
+                        pendingDebugElements.Add(entry);
+                    else
+                        debugElements.Add(entry);
                     break;
+                }
 
                 case SetPrintDirection direction:
-                    debugElements.Add(new DebugInfo(
+                {
+                    var entry = new DebugInfo(
                         "setPrintDirection",
                         new Dictionary<string, string>
                         {
@@ -171,12 +251,18 @@ public sealed class EplRenderer : IRenderer
                         },
                         direction.RawBytes,
                         direction.LengthInBytes,
-                        GetDescription(direction)));
+                        GetDescription(direction));
+                    if (waitingForNewLabel)
+                        pendingDebugElements.Add(entry);
+                    else
+                        debugElements.Add(entry);
                     break;
+                }
 
                 case EplSetInternationalCharacter characterSet:
+                {
                     state.CurrentEncoding = GetEncodingFromCodePage(characterSet.P1, characterSet.P2, characterSet.P3);
-                    debugElements.Add(new DebugInfo(
+                    var entry = new DebugInfo(
                         "setInternationalCharacter",
                         new Dictionary<string, string>
                         {
@@ -186,8 +272,13 @@ public sealed class EplRenderer : IRenderer
                         },
                         characterSet.RawBytes,
                         characterSet.LengthInBytes,
-                        GetDescription(characterSet)));
+                        GetDescription(characterSet));
+                    if (waitingForNewLabel)
+                        pendingDebugElements.Add(entry);
+                    else
+                        debugElements.Add(entry);
                     break;
+                }
 
                 case EplParseError error:
                     debugElements.Add(new DebugInfo(
@@ -215,17 +306,25 @@ public sealed class EplRenderer : IRenderer
                     break;
 
                 default:
-                    debugElements.Add(new DebugInfo(
+                {
+                    var entry = new DebugInfo(
                         command.GetType().Name,
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
-                        GetDescription(command)));
+                        GetDescription(command));
+                    if (waitingForNewLabel)
+                        pendingDebugElements.Add(entry);
+                    else
+                        debugElements.Add(entry);
                     break;
+                }
             }
         }
 
-        // After processing all commands, check if there are any remaining elements
+        // After processing all commands, check if there are any remaining elements.
+        // Pending debug elements are intentionally discarded — they followed a Print
+        // with no visual content, so they belong to no label.
         if (debugElements.Count > 0 || viewElements.Count > 0)
         {
             // If there are view elements without a Print command, add buffer discarded warning
@@ -392,7 +491,7 @@ public sealed class EplRenderer : IRenderer
             renderedWidth,
             renderedHeight,
             GetFontName(eplScalableText.Font),
-            0, // CharSpacing not applicable for EPL scalable text
+            2, // 2px inter-character spacing for EPL scalable fonts
             false, // IsBold - EPL doesn't have bold
             false, // IsUnderline
             eplScalableText.Reverse == 'R', // IsReverse

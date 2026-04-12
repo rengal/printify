@@ -364,7 +364,8 @@ public static class EplScenarioData
                     DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
                     TextElement("DEF", x: 10, y: 20,
                         width: EplSpecs.Fonts.Font2.BaseWidthInDots * "DEF".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
-                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false,
+                        charSpacing: 2)
                 ]
             ]),
         // Scenario: Text command followed by PRINT 2 (two copies)
@@ -395,13 +396,117 @@ public static class EplScenarioData
                     DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "2" }),
                     TextElement("XYZ", x: 10, y: 20,
                         width: EplSpecs.Fonts.Font2.BaseWidthInDots * "XYZ".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
-                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false,
+                        charSpacing: 2)
                 ],
                 [
                     // Canvas 1: Only visual elements (no debug)
                     TextElement("XYZ", x: 10, y: 20,
                         width: EplSpecs.Fonts.Font2.BaseWidthInDots * "XYZ".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
-                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false)
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false,
+                        charSpacing: 2)
+                ]
+            ]),
+
+        // Scenario: Print followed by N (ClearBuffer) alone — no visual content after print
+        // Expected: 1 canvas only (N is discarded, no phantom second page)
+        new(
+            id: 23013,
+            input: "A10,20,0,2,1,1,N,\"ABC\"\nP1\nN\n"u8.ToArray(),
+            expectedRequestCommands:
+            [
+                CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "ABC"),
+                new EplPrint(1) { LengthInBytes = 3 },
+                new EplClearBuffer() { LengthInBytes = 2 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("scalableText", lengthInBytes: 23, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10", ["Y"] = "20", ["Rotation"] = "0", ["Font"] = "2",
+                        ["HorizontalMultiplication"] = "1", ["VerticalMultiplication"] = "1",
+                        ["Reverse"] = "N", ["Text"] = "ABC"
+                    }),
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
+                    TextElement("ABC", x: 10, y: 20,
+                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "ABC".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false,
+                        charSpacing: 2)
+                ]
+            ]),
+
+        // Scenario: Print, then N + text + Print — N belongs to the second label
+        // Expected: 2 canvases; canvas 1 has N in its debug section
+        new(
+            id: 23014,
+            input: "A10,20,0,2,1,1,N,\"ABC\"\nP1\nN\nA10,20,0,2,1,1,N,\"DEF\"\nP1\n"u8.ToArray(),
+            expectedRequestCommands:
+            [
+                CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "ABC"),
+                new EplPrint(1) { LengthInBytes = 3 },
+                new EplClearBuffer() { LengthInBytes = 2 },
+                CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "DEF"),
+                new EplPrint(1) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("scalableText", lengthInBytes: 23, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10", ["Y"] = "20", ["Rotation"] = "0", ["Font"] = "2",
+                        ["HorizontalMultiplication"] = "1", ["VerticalMultiplication"] = "1",
+                        ["Reverse"] = "N", ["Text"] = "ABC"
+                    }),
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
+                    TextElement("ABC", x: 10, y: 20,
+                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "ABC".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false,
+                        charSpacing: 2)
+                ],
+                [
+                    // N is flushed into debug of the second label when visual content arrives
+                    DebugElement("clearBuffer", lengthInBytes: 2),
+                    DebugElement("scalableText", lengthInBytes: 23, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10", ["Y"] = "20", ["Rotation"] = "0", ["Font"] = "2",
+                        ["HorizontalMultiplication"] = "1", ["VerticalMultiplication"] = "1",
+                        ["Reverse"] = "N", ["Text"] = "DEF"
+                    }),
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
+                    TextElement("DEF", x: 10, y: 20,
+                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "DEF".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false,
+                        charSpacing: 2)
+                ]
+            ]),
+
+        // Scenario: Print followed by N then another Print with no visual content in between
+        // Expected: 1 canvas (second P1 has nothing to show, N is discarded)
+        new(
+            id: 23015,
+            input: "A10,20,0,2,1,1,N,\"ABC\"\nP1\nN\nP1\n"u8.ToArray(),
+            expectedRequestCommands:
+            [
+                CreateScalableTextCommand(10, 20, 0, 2, 1, 1, 'N', "ABC"),
+                new EplPrint(1) { LengthInBytes = 3 },
+                new EplClearBuffer() { LengthInBytes = 2 },
+                new EplPrint(1) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("scalableText", lengthInBytes: 23, parameters: new Dictionary<string, string>
+                    {
+                        ["X"] = "10", ["Y"] = "20", ["Rotation"] = "0", ["Font"] = "2",
+                        ["HorizontalMultiplication"] = "1", ["VerticalMultiplication"] = "1",
+                        ["Reverse"] = "N", ["Text"] = "ABC"
+                    }),
+                    DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
+                    TextElement("ABC", x: 10, y: 20,
+                        width: EplSpecs.Fonts.Font2.BaseWidthInDots * "ABC".Length, height: EplSpecs.Fonts.Font2.BaseHeightInDots,
+                        fontName: EplSpecs.Fonts.Font2.FontName, charScaleX: 1, charScaleY: 1, rotation: 0, isReverse: false,
+                        charSpacing: 2)
                 ]
             ])
     ];

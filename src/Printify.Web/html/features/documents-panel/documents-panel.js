@@ -14,6 +14,7 @@ import { normalizeEscPosFont, toEscPosFontCssClass } from '../../assets/js/api/e
  * Falls back to "epl-font" for unknown fonts.
  */
 function toEplFontCssClass(font) {
+    if (font === 'EplFontDefault') return 'epl-font-default';
     const match = String(font ?? '').match(/(\d+)$/);
     return match ? `epl-font-${match[1]}` : 'epl-font';
 }

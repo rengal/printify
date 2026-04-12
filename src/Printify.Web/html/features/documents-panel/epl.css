@@ -1,52 +1,61 @@
 /* EPL/Zebra Font Definitions */
 /* Font sizes match FixedSizeFontVariant(width, height) from EplPrinterCapabilities */
 
+@font-face {
+    font-family: 'VirtualPrinterMono-8x12';
+    src: url('/assets/fonts/VirtualPrinterMono-8x12.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'VirtualPrinterMono-10x16';
+    src: url('/assets/fonts/VirtualPrinterMono-10x16.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'VirtualPrinterMono-12x20';
+    src: url('/assets/fonts/VirtualPrinterMono-12x20.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'VirtualPrinterMono-14x24';
+    src: url('/assets/fonts/VirtualPrinterMono-14x24.ttf') format('truetype');
+}
+
 .epl-font {
     font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
     letter-spacing: 0;
 }
 
-/* EplFont0: 8×12 */
-.epl-font-10 {
-    font-family: 'Consolas', 'Liberation Mono', 'Menlo', 'Courier New', monospace;
+/* EplFontDefault: EPL font 1 → 8×12 */
+.epl-font-default {
+    font-family: 'VirtualPrinterMono-8x12', monospace;
     font-size: 12px;
     line-height: 12px;
-    letter-spacing: 0;
+    letter-spacing: 2px;
 }
 
+/* EplFont0: EPL font 2 → 10×16 */
 .epl-font-0 {
-    font-family: 'VirtualPrinterMono-A', monospace;
+    font-family: 'VirtualPrinterMono-10x16', monospace;
+    font-size: 16px;
+    line-height: 16px;
+    letter-spacing: 2px;
+}
+
+/* EplFont1: EPL font 3 → 12×20 */
+.epl-font-1 {
+    font-family: 'VirtualPrinterMono-12x20', monospace;
+    font-size: 20px;
+    line-height: 20px;
+    letter-spacing: 2px;
+}
+
+/* EplFont2: EPL font 4 → 14×24 */
+.epl-font-2 {
+    font-family: 'VirtualPrinterMono-14x24', monospace;
     font-size: 24px;
     line-height: 24px;
-    letter-spacing: 0;
-	
-	display: inline-block;
-    transform: scaleY(0.7);   /* adjust factor */
-    transform-origin: top;
-}
-
-
-/* EplFont1: 10×16 */
-.epl-font-1 {
-    font-family: 'Consolas', monospace;
-    font-size: 24px;
-    line-height: 16px;
-    letter-spacing: 0;
-	
-	display: inline-block;
-    transform-origin: top;
-}
-
-/* EplFont2: 12×20 */
-.epl-font-2 {
-    font-family: 'Consolas', monospace;
-    font-size: 28px;
-    line-height: 18px;
-    letter-spacing: 0;
-	
-	display: inline-block;
-    transform: scaleY(0.5);   /* adjust factor */
-    transform-origin: top;
+    letter-spacing: 2px;
 }
 
 /* EplFont3: 14×24 */
