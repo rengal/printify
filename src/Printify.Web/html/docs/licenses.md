@@ -49,6 +49,7 @@ The following Microsoft .NET packages are used under the **MIT License**:
 
 | Package | Version | Description | Link | License Text |
 |---------|---------|-------------|------|--------------|
+| **CodeGlyphX** | 1.4.0 | Zero-dependency QR and barcode toolkit for .NET | [GitHub](https://github.com/EvotecIT/CodeGlyphX) | [apache-2.0-license.txt](/assets/licenses/apache-2.0-license.txt) |
 | **FluentValidation** | 12.0.0 | Small validation library for .NET | [GitHub](https://github.com/FluentValidation/FluentValidation) | [fluentvalidation-apache-2.0-license.txt](/assets/licenses/fluentvalidation-apache-2.0-license.txt) |
 | **Mediator.Net** | 4.9.0 | In-process mediator with CQRS support | [GitHub](https://github.com/mayuanyang/Mediator.Net) | [apache-2.0-license.txt](/assets/licenses/apache-2.0-license.txt) |
 | **Mediator.Net.MicrosoftDependencyInjection** | 4.9.0 | Mediator.Net DI integration for Microsoft.Extensions.DependencyInjection | [GitHub](https://github.com/mayuanyang/Mediator.Net) | [apache-2.0-license.txt](/assets/licenses/apache-2.0-license.txt) |

@@ -1,14 +1,15 @@
-using Printify.Application.Interfaces;
-using Printify.Infrastructure.Printing.EscPos.Commands;
-using Printify.Infrastructure.Printing.EscPos;
-using Printify.Infrastructure.Printing.Epl;
-using Printify.Domain.Media;
+using CodeGlyphX;
+using CodeGlyphX.Rendering.Png;
 using SkiaSharp;
 using ZXing;
 using ZXing.Common;
-using ZXing.QrCode;
-using ZXing.QrCode.Internal;
 using ZXing.SkiaSharp;
+
+using Printify.Application.Interfaces;
+using Printify.Domain.Media;
+using Printify.Infrastructure.Printing.EscPos;
+using Printify.Infrastructure.Printing.EscPos.Commands;
+using Printify.Infrastructure.Printing.Epl;
 
 namespace Printify.Infrastructure.Media;
 
@@ -18,6 +19,9 @@ namespace Printify.Infrastructure.Media;
 /// </summary>
 public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBarcodeService
 {
+    private const int DefaultQrModuleSizeInDots = 4;
+    private const int DefaultQrQuietZoneInModules = 4;
+
     /// <inheritdoc />
     public MediaUpload ConvertToMediaUpload(MonochromeBitmap bitmap, string format = "image/png")
     {
@@ -45,7 +49,9 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         return new MediaUpload("image/png", content);
     }
 
-    public EscPosRasterImageUpload GenerateEscPosBarcodeMedia(EscPosPrintBarcodeUpload upload, BarcodeRenderOptions options)
+    public EscPosRasterImageUpload GenerateEscPosBarcodeMedia(
+        EscPosPrintBarcodeUpload upload,
+        BarcodeRenderOptions options)
     {
         ArgumentNullException.ThrowIfNull(upload);
         ArgumentNullException.ThrowIfNull(options);
@@ -53,7 +59,8 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         var moduleWidth = Math.Max(1, options.ModuleWidthInDots.GetValueOrDefault(2));
 
         var targetHeight = options.HeightInDots.GetValueOrDefault(100);
-        var printerWidth = options.PrinterWidthInDots.GetValueOrDefault(Math.Max(200, moduleWidth * upload.Data.Length * 8));
+        var printerWidth = options.PrinterWidthInDots.GetValueOrDefault(
+            Math.Max(200, moduleWidth * upload.Data.Length * 8));
         var targetWidth = options.ModuleWidthInDots.HasValue
             ? Math.Clamp(moduleWidth * upload.Data.Length * 8, 64, printerWidth)
             : (int)(0.70 * options.PrinterWidthInDots.GetValueOrDefault());
@@ -82,32 +89,21 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         ArgumentNullException.ThrowIfNull(options);
 
         var data = options.Data ?? string.Empty;
-        var moduleSize = Math.Max(2, options.ModuleSizeInDots.GetValueOrDefault(4));
-        var targetSide = (moduleSize + 2) * 25; // heuristic for typical QR version sizing
-        var printerWidth = options.PrinterWidthInDots.GetValueOrDefault(targetSide);
-
-        var minTargetSide = 0.1 * printerWidth;
-        var maxTargetSide = 0.7 * printerWidth;
-
-        targetSide = (int)Math.Clamp(targetSide, minTargetSide, maxTargetSide);
-
-        var qrOptions = new QrCodeEncodingOptions
+        var moduleSize = Math.Max(2, options.ModuleSizeInDots.GetValueOrDefault(DefaultQrModuleSizeInDots));
+        var qrOptions = new QrEasyOptions
         {
-            Height = targetSide,
-            Width = targetSide,
-            Margin = 0,
-            ErrorCorrection = MapErrorCorrection(options.ErrorCorrectionLevel),
-            CharacterSet = "UTF-8"
+            ModuleSize = moduleSize,
+            QuietZone = DefaultQrQuietZoneInModules,
+            ErrorCorrectionLevel = MapQrErrorCorrection(options.ErrorCorrectionLevel),
+            TextEncoding = QrTextEncoding.Utf8,
+            IncludeEci = true,
+            Foreground = Rgba32.Black,
+            Background = Rgba32.Transparent
         };
 
-        var writer = new BarcodeWriter
-        {
-            Format = BarcodeFormat.QR_CODE,
-            Options = qrOptions
-        };
-
-        using var image = writer.Write(data);
-        ConvertWhiteToTransparent(image);
+        var pixels = QrEasy.RenderPixels(data, out var width, out var height, out var stride, qrOptions);
+        using var image = CreateSkiaBitmapFromRgbaPixels(pixels, width, height, stride);
+        var printerWidth = options.PrinterWidthInDots.GetValueOrDefault(width);
         using var aligned = AlignToPrinter(image, printerWidth, options.Justification);
         var uploadMedia = EncodeMediaUpload(aligned);
 
@@ -198,6 +194,29 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         }
     }
 
+    private static SKBitmap CreateSkiaBitmapFromRgbaPixels(byte[] pixels, int width, int height, int stride)
+    {
+        var image = new SKBitmap(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
+
+        for (int y = 0; y < height; y++)
+        {
+            var rowOffset = y * stride;
+            for (int x = 0; x < width; x++)
+            {
+                var pixelOffset = rowOffset + x * 4;
+
+                // CodeGlyphX returns RGBA bytes; SkiaSharp receives explicit channel values for stable PNG output.
+                image.SetPixel(x, y, new SKColor(
+                    pixels[pixelOffset],
+                    pixels[pixelOffset + 1],
+                    pixels[pixelOffset + 2],
+                    pixels[pixelOffset + 3]));
+            }
+        }
+
+        return image;
+    }
+
     private static BarcodeFormat MapEscPosSymbology(EscPosBarcodeSymbology symbology)
     {
         return symbology switch
@@ -238,15 +257,15 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         };
     }
 
-    private static ErrorCorrectionLevel MapErrorCorrection(EscPosQrErrorCorrectionLevel? level)
+    private static QrErrorCorrectionLevel MapQrErrorCorrection(EscPosQrErrorCorrectionLevel? level)
     {
         return level switch
         {
-            EscPosQrErrorCorrectionLevel.Low => ErrorCorrectionLevel.L,
-            EscPosQrErrorCorrectionLevel.Medium => ErrorCorrectionLevel.M,
-            EscPosQrErrorCorrectionLevel.Quartile => ErrorCorrectionLevel.Q,
-            EscPosQrErrorCorrectionLevel.High => ErrorCorrectionLevel.H,
-            _ => ErrorCorrectionLevel.M
+            EscPosQrErrorCorrectionLevel.Low => QrErrorCorrectionLevel.L,
+            EscPosQrErrorCorrectionLevel.Medium => QrErrorCorrectionLevel.M,
+            EscPosQrErrorCorrectionLevel.Quartile => QrErrorCorrectionLevel.Q,
+            EscPosQrErrorCorrectionLevel.High => QrErrorCorrectionLevel.H,
+            _ => QrErrorCorrectionLevel.M
         };
     }
 }
