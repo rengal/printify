@@ -19,6 +19,9 @@ namespace Printify.Infrastructure.Printing.EscPos.Renderers;
 /// </summary>
 public sealed class EscPosRenderer : IRenderer
 {
+    private const int DefaultQrModuleSizeInDots = 4;
+    private const int DefaultQrQuietZoneInModules = 4;
+
     public Canvas[] Render(Document document)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -109,7 +112,7 @@ public sealed class EscPosRenderer : IRenderer
                         command.RawBytes,
                         command.LengthInBytes,
                         GetDescription(command)));
-                    AddImageElement(qrCode, state, currentItems);
+                    AddImageElement(qrCode, state, currentItems, canvasWidthInDots);
                     break;
 
                 case EscPosSetJustification justification:
@@ -312,7 +315,21 @@ public sealed class EscPosRenderer : IRenderer
                         command.LengthInBytes,
                         GetDescription(command)));
                     FlushLine(state, lineBuffer, currentItems, canvasWidthInDots);
-                    state.CurrentY += feedLines.Lines * (GetFontHeight(state.FontNumber) * state.ScaleY + state.LineSpacing);
+                    var lineAdvance = GetFontHeight(state.FontNumber) * state.ScaleY + state.LineSpacing;
+                    state.CurrentY += feedLines.Lines * lineAdvance;
+                    break;
+
+                case EscPosSetQrModuleSize qrModuleSize:
+                    state.QrModuleSizeInDots = qrModuleSize.ModuleSize;
+                    currentItems.Add(new DebugInfo(
+                        "setQrModuleSize",
+                        new Dictionary<string, string>
+                        {
+                            ["ModuleSize"] = qrModuleSize.ModuleSize.ToString()
+                        },
+                        command.RawBytes,
+                        command.LengthInBytes,
+                        GetDescription(command)));
                     break;
 
                 case EscPosPrintAndFeedDots feedDots:
@@ -537,21 +554,28 @@ public sealed class EscPosRenderer : IRenderer
         state.CurrentY += barcode.Height + state.LineSpacing;
     }
 
-    private static void AddImageElement(EscPosPrintQrCode qrCode, RenderState state, List<BaseElement> items)
+    private static void AddImageElement(
+        EscPosPrintQrCode qrCode,
+        RenderState state,
+        List<BaseElement> items,
+        int canvasWidthInDots)
     {
+        var quietZoneInDots = CalculateQrQuietZoneInDots(state.QrModuleSizeInDots);
+        var x = CalculateJustifiedX(canvasWidthInDots, qrCode.Width, state.Justification);
+
         items.Add(new ImageElement(
             new LayoutMedia(
                 qrCode.Media.ContentType,
                 ToMediaSize(qrCode.Media.Length),
                 qrCode.Media.Url,
                 qrCode.Media.Sha256Checksum),
-            0,
-            state.CurrentY,
+            x,
+            state.CurrentY + quietZoneInDots,
             qrCode.Width,
             qrCode.Height,
             Rotation.None));
 
-        state.CurrentY += qrCode.Height + state.LineSpacing;
+        state.CurrentY += qrCode.Height + quietZoneInDots * 2 + state.LineSpacing;
     }
 
     private static void ApplyHorizontalTab(RenderState state, LineBufferState lineBuffer, List<BaseElement> items)
@@ -717,6 +741,11 @@ public sealed class EscPosRenderer : IRenderer
         };
     }
 
+    private static int CalculateQrQuietZoneInDots(int moduleSizeInDots)
+    {
+        return Math.Max(2, moduleSizeInDots) * DefaultQrQuietZoneInModules;
+    }
+
     private static Encoding GetEncodingFromCodePage(string codePage)
     {
         try
@@ -746,6 +775,7 @@ public sealed class EscPosRenderer : IRenderer
         public bool IsUpsideDown { get; set; }
         public bool IsReverse { get; set; }
         public int CurrentY { get; set; }
+        public int QrModuleSizeInDots { get; set; } = DefaultQrModuleSizeInDots;
         public int[]? HorizontalTabStops { get; set; }
         public Encoding CurrentEncoding { get; set; } = Encoding.GetEncoding(437);
 
@@ -766,6 +796,7 @@ public sealed class EscPosRenderer : IRenderer
             IsUpsideDown = false;
             IsReverse = false;
             HorizontalTabStops = null;
+            QrModuleSizeInDots = DefaultQrModuleSizeInDots;
             CurrentEncoding = Encoding.GetEncoding(437);
             // ESC @ does not reset the print position (CurrentY), only printer settings
         }

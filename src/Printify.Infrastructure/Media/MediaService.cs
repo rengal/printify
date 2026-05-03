@@ -20,7 +20,6 @@ namespace Printify.Infrastructure.Media;
 public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBarcodeService
 {
     private const int DefaultQrModuleSizeInDots = 4;
-    private const int DefaultQrQuietZoneInModules = 4;
 
     /// <inheritdoc />
     public MediaUpload ConvertToMediaUpload(MonochromeBitmap bitmap, string format = "image/png")
@@ -78,7 +77,7 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
 
         using var image = writer.Write(upload.Data);
         ConvertWhiteToTransparent(image);
-        using var aligned = AlignToPrinter(image, printerWidth, options.Justification);
+        using var aligned = EscPosRasterImageFitter.FitToPrinterWidth(image, printerWidth, options.Justification);
         var uploadMedia = EncodeMediaUpload(aligned);
 
         return new EscPosRasterImageUpload(aligned.Width, aligned.Height, uploadMedia);
@@ -93,7 +92,7 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         var qrOptions = new QrEasyOptions
         {
             ModuleSize = moduleSize,
-            QuietZone = DefaultQrQuietZoneInModules,
+            QuietZone = 0,
             ErrorCorrectionLevel = MapQrErrorCorrection(options.ErrorCorrectionLevel),
             TextEncoding = QrTextEncoding.Utf8,
             IncludeEci = true,
@@ -104,10 +103,10 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         var pixels = QrEasy.RenderPixels(data, out var width, out var height, out var stride, qrOptions);
         using var image = CreateSkiaBitmapFromRgbaPixels(pixels, width, height, stride);
         var printerWidth = options.PrinterWidthInDots.GetValueOrDefault(width);
-        using var aligned = AlignToPrinter(image, printerWidth, options.Justification);
-        var uploadMedia = EncodeMediaUpload(aligned);
+        using var clipped = EscPosRasterImageFitter.ClipToPrinterWidth(image, printerWidth, options.Justification);
+        var uploadMedia = EncodeMediaUpload(clipped);
 
-        return new EscPosRasterImageUpload(aligned.Width, aligned.Height, uploadMedia);
+        return new EscPosRasterImageUpload(clipped.Width, clipped.Height, uploadMedia);
     }
 
     public MediaUpload GenerateEplBarcodeMedia(string type, string data, int width, int height, char hri)
@@ -150,27 +149,6 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         using var image = SKImage.FromBitmap(bitmap);
         using var data = image.Encode(SKEncodedImageFormat.Png, 100);
         return data.ToArray();
-    }
-
-    private static SKBitmap AlignToPrinter(SKBitmap source, int printerWidth, EscPosTextJustification? justification)
-    {
-        if (printerWidth <= source.Width || justification is null)
-        {
-            return source.Copy();
-        }
-
-        var offset = justification switch
-        {
-            EscPosTextJustification.Center => (printerWidth - source.Width) / 2,
-            EscPosTextJustification.Right => printerWidth - source.Width,
-            _ => 0
-        };
-
-        var canvas = new SKBitmap(printerWidth, source.Height, SKColorType.Bgra8888, SKAlphaType.Premul);
-        using var context = new SKCanvas(canvas);
-        context.Clear(SKColors.Transparent);
-        context.DrawBitmap(source, new SKPoint(offset, 0));
-        return canvas;
     }
 
     /// <summary>

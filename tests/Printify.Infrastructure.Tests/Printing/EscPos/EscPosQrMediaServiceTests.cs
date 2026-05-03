@@ -9,8 +9,6 @@ namespace Printify.Infrastructure.Tests.Printing.EscPos;
 
 public sealed class EscPosQrMediaServiceTests
 {
-    private const int QuietZoneInModules = 4;
-
     public static TheoryData<string, int, EscPosQrErrorCorrectionLevel> QrSizeCases => new()
     {
         { "A", 2, EscPosQrErrorCorrectionLevel.Low },
@@ -75,6 +73,59 @@ public sealed class EscPosQrMediaServiceTests
         Assert.Equal(result.Height, bitmap.Height);
     }
 
+    [Theory]
+    [InlineData(EscPosTextJustification.Left)]
+    [InlineData(EscPosTextJustification.Center)]
+    [InlineData(EscPosTextJustification.Right)]
+    public void GenerateQrMedia_ClipsToPrinterWidth_WhenQrImageIsWiderThanPrinter(
+        EscPosTextJustification justification)
+    {
+        const int printerWidthInDots = 120;
+        var service = new MediaService();
+        var options = new QrRenderOptions(
+            new string('X', 300),
+            EscPosQrModel.Model2,
+            ModuleSizeInDots: 8,
+            ErrorCorrectionLevel: EscPosQrErrorCorrectionLevel.High,
+            justification,
+            printerWidthInDots);
+
+        var result = service.GenerateQrMedia(options);
+        using var bitmap = SKBitmap.Decode(result.Media.Content.ToArray());
+
+        Assert.Equal(printerWidthInDots, result.Width);
+        Assert.NotNull(bitmap);
+        Assert.Equal(result.Width, bitmap.Width);
+        Assert.Equal(result.Height, bitmap.Height);
+    }
+
+    [Theory]
+    [InlineData(EscPosTextJustification.Center)]
+    [InlineData(EscPosTextJustification.Right)]
+    public void GenerateQrMedia_DoesNotPadToPrinterWidth_WhenQrImageIsNarrowerThanPrinter(
+        EscPosTextJustification justification)
+    {
+        const string data = "A";
+        const int moduleSizeInDots = 4;
+        var service = new MediaService();
+        var options = new QrRenderOptions(
+            data,
+            EscPosQrModel.Model2,
+            moduleSizeInDots,
+            EscPosQrErrorCorrectionLevel.Low,
+            justification,
+            PrinterWidthInDots: 512);
+
+        var result = service.GenerateQrMedia(options);
+        var expectedSide = CalculateExpectedSideInDots(
+            data,
+            moduleSizeInDots,
+            EscPosQrErrorCorrectionLevel.Low);
+
+        Assert.Equal(expectedSide, result.Width);
+        Assert.Equal(expectedSide, result.Height);
+    }
+
     private static int CalculateExpectedSideInDots(
         string data,
         int moduleSizeInDots,
@@ -89,8 +140,8 @@ public sealed class EscPosQrMediaServiceTests
 
         var qrCode = QrCode.Encode(data, options);
 
-        // ESC/POS QR layout includes the encoded modules plus the configured quiet zone on all four sides.
-        return (qrCode.Size + QuietZoneInModules * 2) * moduleSizeInDots;
+        // QR media is a pure symbol; ESC/POS quiet-zone spacing is applied later by the renderer.
+        return qrCode.Size * moduleSizeInDots;
     }
 
     private static QrErrorCorrectionLevel MapErrorCorrection(EscPosQrErrorCorrectionLevel level)
