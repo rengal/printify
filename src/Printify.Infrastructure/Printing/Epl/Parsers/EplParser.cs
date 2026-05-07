@@ -15,6 +15,8 @@ namespace Printify.Infrastructure.Printing.Epl.Parsers;
 /// </summary>
 public sealed class EplParser : Parser<EplDeviceContext, EplCommandTrieProvider>
 {
+    private const int GraphicCommandParameterCount = 4;
+
     private readonly record struct InitialParserContext(
         EplCommandTrieProvider TrieProvider,
         ParserState<EplDeviceContext> State);
@@ -159,6 +161,28 @@ public sealed class EplParser : Parser<EplDeviceContext, EplCommandTrieProvider>
         return false;
     }
 
+    protected override bool TryGetImageMarkedRightEdge(Command element, out int rightEdge)
+    {
+        rightEdge = 0;
+
+        if (element is not EplBaseRasterImage img ||
+            !TryReadGraphicPayload(element.RawBytes, out var payloadOffset, out var bytesPerRow, out var height))
+        {
+            return false;
+        }
+
+        var dataLength = bytesPerRow * height;
+        if (element.RawBytes.Length < payloadOffset + dataLength)
+        {
+            return false;
+        }
+
+        // EPL GW payloads are inverted during media conversion, so unset raw bits are printed black dots.
+        var payload = element.RawBytes.AsSpan(payloadOffset, dataLength);
+        rightEdge = FindMarkedRightEdge(payload, bytesPerRow, height, img.X);
+        return true;
+    }
+
     protected override bool IsPrintableCommand(Command element)
     {
         return element is EplScalableText
@@ -198,5 +222,94 @@ public sealed class EplParser : Parser<EplDeviceContext, EplCommandTrieProvider>
     protected override bool IsErrorCommand(Command element)
     {
         return element is EplParseError or EplPrinterError;
+    }
+
+    private static bool TryReadGraphicPayload(
+        byte[] rawBytes,
+        out int payloadOffset,
+        out int bytesPerRow,
+        out int height)
+    {
+        payloadOffset = 0;
+        bytesPerRow = 0;
+        height = 0;
+
+        var commaCount = 0;
+        var headerEndIndex = -1;
+        for (var i = 0; i < rawBytes.Length; i++)
+        {
+            if (rawBytes[i] != ',')
+            {
+                continue;
+            }
+
+            commaCount++;
+            if (commaCount == GraphicCommandParameterCount)
+            {
+                headerEndIndex = i;
+                break;
+            }
+        }
+
+        if (headerEndIndex < 0)
+        {
+            return false;
+        }
+
+        var header = System.Text.Encoding.ASCII.GetString(rawBytes.AsSpan(0, headerEndIndex));
+        var parts = header[2..].Split(',');
+        if (parts.Length < GraphicCommandParameterCount ||
+            !TryParseInvariantInt(parts[2], out bytesPerRow) ||
+            !TryParseInvariantInt(parts[3], out height))
+        {
+            return false;
+        }
+
+        payloadOffset = headerEndIndex + 1;
+        return bytesPerRow > 0 && height > 0;
+    }
+
+    private static bool TryParseInvariantInt(string value, out int result)
+    {
+        return int.TryParse(
+            value.Trim(),
+            System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out result);
+    }
+
+    private static int FindMarkedRightEdge(ReadOnlySpan<byte> rasterData, int bytesPerRow, int height, int x)
+    {
+        var rightEdge = x;
+
+        for (var row = 0; row < height; row++)
+        {
+            var rowOffset = row * bytesPerRow;
+            for (var byteIndex = bytesPerRow - 1; byteIndex >= 0; byteIndex--)
+            {
+                var value = rasterData[rowOffset + byteIndex];
+                if (value == 0xFF)
+                {
+                    continue;
+                }
+
+                for (var bitPosition = 7; bitPosition >= 0; bitPosition--)
+                {
+                    var mask = 1 << (7 - bitPosition);
+                    if ((value & mask) != 0)
+                    {
+                        continue;
+                    }
+
+                    // The right boundary is exclusive, so add one to the marked pixel coordinate.
+                    rightEdge = Math.Max(rightEdge, x + (byteIndex * 8) + bitPosition + 1);
+                    break;
+                }
+
+                break;
+            }
+        }
+
+        return rightEdge;
     }
 }

@@ -988,7 +988,8 @@ public static class EscPosScenarioData
                 ]
            ]),
 
-        CreateOversizeRasterScenario()
+        CreateOversizeRasterScenario(),
+        CreateOversizeRasterWithBlackOverflowScenario()
     ];
 
     /// <summary>
@@ -1011,11 +1012,8 @@ public static class EscPosScenarioData
         var upload = CreateExpectedRasterMedia(widthInDots, heightInDots, bitmap);
         var media = Media.CreateDefaultPng(upload.Content.Length);
 
-        // Image is 576 dots wide, which exceeds the default printer canvas of 512 dots.
-        // The parser emits a printerError element before the image when a printer context is present.
-        // expectedRequestCommands has no error (used by the no-context Infrastructure parser test).
-        // expectedPersistedCommands includes the error (used by the web integration test with printer context).
-        var dimensionError = new EscPosCommands.EscPosPrinterError($"Image exceeds printer width: right edge at {widthInDots} px exceeds {EscPosSpecs.DefaultCanvasWidth} dots") { LengthInBytes = 0 };
+        // The byte-aligned width exceeds the printer, but all overflow pixels are transparent padding.
+        // The parser must not emit a dimension error when no black dots cross the printable boundary.
 
         return new EscPosScenario(
             id: 210001,
@@ -1028,12 +1026,65 @@ public static class EscPosScenarioData
             ],
             expectedRequestCommands:
             [
-                new EscPosCommands.EscPosRasterImageUpload(widthInDots, heightInDots, upload) { LengthInBytes = lengthInBytes }
+                new EscPosCommands.EscPosRasterImageUpload(widthInDots, heightInDots, upload)
+                {
+                    LengthInBytes = lengthInBytes
+                }
+            ],
+            expectedPersistedCommands:
+            [
+                new EscPosCommands.EscPosRasterImage(widthInDots, heightInDots, media) { LengthInBytes = lengthInBytes }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("rasterImage", lengthInBytes: lengthInBytes),
+                    ViewImage(0, 0, widthInDots, heightInDots, media, lengthInBytes)
+                ]
+            ]);
+    }
+
+    private static EscPosScenario CreateOversizeRasterWithBlackOverflowScenario()
+    {
+        const int widthInDots = 520;
+        const int heightInDots = 1;
+        const int lengthInBytes = 73;
+        var bitmap = new byte[65];
+        bitmap[64] = 0x80;
+        var upload = CreateExpectedRasterMedia(widthInDots, heightInDots, bitmap);
+        var media = Media.CreateDefaultPng(upload.Content.Length);
+        var rightEdge = EscPosSpecs.DefaultCanvasWidth + 1;
+
+        // The first bit in the byte after the 512-dot boundary is black, so this is real overflow.
+        var dimensionError = new EscPosCommands.EscPosPrinterError(
+            $"Image exceeds printer width: right edge at {rightEdge} px exceeds {EscPosSpecs.DefaultCanvasWidth} dots")
+        {
+            LengthInBytes = 0
+        };
+
+        return new EscPosScenario(
+            id: 210002,
+            input:
+            [
+                Gs, (byte)'v', 0x30, 0x00,
+                0x41, 0x00, // width: 65 bytes = 520 dots
+                0x01, 0x00, // height: 1 row
+                .. bitmap
+            ],
+            expectedRequestCommands:
+            [
+                new EscPosCommands.EscPosRasterImageUpload(widthInDots, heightInDots, upload)
+                {
+                    LengthInBytes = lengthInBytes
+                }
             ],
             expectedPersistedCommands:
             [
                 dimensionError,
-                new EscPosCommands.EscPosRasterImage(widthInDots, heightInDots, media) { LengthInBytes = lengthInBytes }
+                new EscPosCommands.EscPosRasterImage(widthInDots, heightInDots, media)
+                {
+                    LengthInBytes = lengthInBytes
+                }
             ],
             expectedCanvasElements:
             [

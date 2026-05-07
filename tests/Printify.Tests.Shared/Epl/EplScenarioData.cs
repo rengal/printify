@@ -698,6 +698,112 @@ public static class EplScenarioData
                     DebugElement("print", lengthInBytes: 3, parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
                     CanvasImageElement(10, 80, 8, 2, DomainMedia.CreateDefaultPng(93), lengthInBytes: 15)
                 ]
+            ]),
+
+        // GW: byte-aligned width crosses the 432-dot boundary, but the overflow bit is transparent.
+        new(
+            id: 3105,
+            input:
+            [
+                .."GW425,0,1,1,"u8.ToArray(),
+                0xFF,
+                0x0A,
+                .."P1\n"u8.ToArray()
+            ],
+            expectedRequestCommands:
+            [
+                new EplRasterImageUpload(425, 0, 8, 1, CreateExpectedRasterMedia(8, 1, [0xFF]))
+                {
+                    LengthInBytes = 14
+                },
+                new EplPrint(1) { LengthInBytes = 3 }
+            ],
+            expectedPersistedCommands:
+            [
+                new EplRasterImage(
+                    425,
+                    0,
+                    8,
+                    1,
+                    DomainMedia.CreateDefaultPng(CreateExpectedRasterMedia(8, 1, [0xFF]).Content.Length))
+                {
+                    LengthInBytes = 14
+                },
+                new EplPrint(1) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("rasterImage", lengthInBytes: 14),
+                    DebugElement(
+                        "print",
+                        lengthInBytes: 3,
+                        parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
+                    CanvasImageElement(
+                        425,
+                        0,
+                        8,
+                        1,
+                        DomainMedia.CreateDefaultPng(CreateExpectedRasterMedia(8, 1, [0xFF]).Content.Length),
+                        lengthInBytes: 14)
+                ]
+            ]),
+
+        // GW: the last local bit is black after EPL inversion and lands at x=432, outside 0..431.
+        new(
+            id: 3106,
+            input:
+            [
+                .."GW425,0,1,1,"u8.ToArray(),
+                0xFE,
+                0x0A,
+                .."P1\n"u8.ToArray()
+            ],
+            expectedRequestCommands:
+            [
+                new EplRasterImageUpload(425, 0, 8, 1, CreateExpectedRasterMedia(8, 1, [0xFE]))
+                {
+                    LengthInBytes = 14
+                },
+                new EplPrint(1) { LengthInBytes = 3 }
+            ],
+            expectedPersistedCommands:
+            [
+                new EplPrinterError("Image exceeds printer width: right edge at 433 px exceeds 432 dots")
+                {
+                    LengthInBytes = 0
+                },
+                new EplRasterImage(
+                    425,
+                    0,
+                    8,
+                    1,
+                    DomainMedia.CreateDefaultPng(CreateExpectedRasterMedia(8, 1, [0xFE]).Content.Length))
+                {
+                    LengthInBytes = 14
+                },
+                new EplPrint(1) { LengthInBytes = 3 }
+            ],
+            expectedCanvasElements:
+            [
+                [
+                    DebugElement("printerError", lengthInBytes: 0, parameters: new Dictionary<string, string>
+                    {
+                        ["Message"] = "Image exceeds printer width: right edge at 433 px exceeds 432 dots"
+                    }),
+                    DebugElement("rasterImage", lengthInBytes: 14),
+                    DebugElement(
+                        "print",
+                        lengthInBytes: 3,
+                        parameters: new Dictionary<string, string> { ["Copies"] = "1" }),
+                    CanvasImageElement(
+                        425,
+                        0,
+                        8,
+                        1,
+                        DomainMedia.CreateDefaultPng(CreateExpectedRasterMedia(8, 1, [0xFE]).Content.Length),
+                        lengthInBytes: 14)
+                ]
             ])
     ];
 

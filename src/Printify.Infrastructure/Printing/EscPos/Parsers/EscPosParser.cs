@@ -19,6 +19,7 @@ namespace Printify.Infrastructure.Printing.EscPos.Parsers;
 public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrieProvider>
 {
     private static readonly Encoding DefaultCodePage = Encoding.GetEncoding(437); // OEM-US (DOS)
+    private const int RasterImageHeaderLength = 8;
     private const string MissingCodePageErrorCode = "ESCPOS_PARSER_ERROR";
     private const string MissingCodePageErrorMessage = "Text contains non-ASCII bytes, but no code page was set.";
     private bool missingCodePageWarningEmitted;
@@ -361,6 +362,30 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         return false;
     }
 
+    protected override bool TryGetImageMarkedRightEdge(Command element, out int rightEdge)
+    {
+        rightEdge = 0;
+
+        if (element is not EscPosBaseRasterImage || element.RawBytes.Length < RasterImageHeaderLength)
+        {
+            return false;
+        }
+
+        var rawBytes = element.RawBytes.AsSpan();
+        var bytesPerRow = rawBytes[4] | (rawBytes[5] << 8);
+        var height = rawBytes[6] | (rawBytes[7] << 8);
+        var dataLength = bytesPerRow * height;
+
+        if (bytesPerRow <= 0 || height <= 0 || rawBytes.Length < RasterImageHeaderLength + dataLength)
+        {
+            return false;
+        }
+
+        // ESC/POS raster payloads use set bits as printed black dots.
+        rightEdge = FindMarkedRightEdge(rawBytes[RasterImageHeaderLength..], bytesPerRow, height, x: 0);
+        return true;
+    }
+
     protected override bool IsPrintableCommand(Command element)
     {
         return element is EscPosAppendText
@@ -397,6 +422,41 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
     protected override bool IsErrorCommand(Command element)
     {
         return element is EscPosParseError or EscPosPrinterError;
+    }
+
+    private static int FindMarkedRightEdge(ReadOnlySpan<byte> rasterData, int bytesPerRow, int height, int x)
+    {
+        var rightEdge = x;
+
+        for (var row = 0; row < height; row++)
+        {
+            var rowOffset = row * bytesPerRow;
+            for (var byteIndex = bytesPerRow - 1; byteIndex >= 0; byteIndex--)
+            {
+                var value = rasterData[rowOffset + byteIndex];
+                if (value == 0)
+                {
+                    continue;
+                }
+
+                for (var bitPosition = 7; bitPosition >= 0; bitPosition--)
+                {
+                    var mask = 1 << (7 - bitPosition);
+                    if ((value & mask) == 0)
+                    {
+                        continue;
+                    }
+
+                    // The right boundary is exclusive, so add one to the marked pixel coordinate.
+                    rightEdge = Math.Max(rightEdge, x + (byteIndex * 8) + bitPosition + 1);
+                    break;
+                }
+
+                break;
+            }
+        }
+
+        return rightEdge;
     }
 
     private void EmitMissingCodePageWarningIfNeeded(byte value)

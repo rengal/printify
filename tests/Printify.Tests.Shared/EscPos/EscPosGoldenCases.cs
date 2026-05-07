@@ -239,9 +239,9 @@ public static class EscPosGoldenCases
                         new CanvasImageElementDto(
                             ToViewMediaDto(Media.CreateDefaultPng(2)),
                             0,
-                            0,
-                            512,
-                            225) { LengthInBytes = 8 },
+                            28,
+                            175,
+                            175) { LengthInBytes = 8 },
                         new CanvasDebugElementDto("flushLineBufferAndFeed") { LengthInBytes = 1 },
                         new CanvasDebugElementDto("pagecut", PagecutParameters(EscPosCommands.EscPosPagecutMode.Partial, 0)) { LengthInBytes = 4 }
                     ]),

@@ -23,7 +23,7 @@ public static class EplGoldenCases
                     IReadOnlyList<CanvasElementDto> expectedCanvasElements)>
             {
                 // Image at (1,0) with size 432×890 exceeds the default canvas of 432×310:
-                // right edge 1+432=433 > 432 (width) and bottom edge 890 > 310 (height).
+                // Right-side padding bits are transparent; only bottom edge 890 > 310 is real overflow.
                 // The parser emits a printerError before the image when printer context is present.
                 // expectedRequestElement has no error (no printer context during raw parse check).
                 // expectedFinalizedElements includes the error (web test runs with printer context).
@@ -43,7 +43,12 @@ public static class EplGoldenCases
                         new EplCommands.EplClearBuffer { LengthInBytes = 2 },
                         new EplCommands.EplSetLabelWidth(432) { LengthInBytes = 5 },
                         new EplCommands.EplSetLabelHeight(982, 26) { LengthInBytes = 8 },
-                        new EplCommands.EplPrinterError($"Image exceeds printer canvas: 432\u00d7890 px at (1,0) overflows {EplSpecs.DefaultCanvasWidth}\u00d7{EplSpecs.DefaultCanvasHeight} dots (width and height)") { LengthInBytes = 0 },
+                        new EplCommands.EplPrinterError(
+                            $"Image exceeds printer height: bottom edge at 890 px exceeds " +
+                            $"{EplSpecs.DefaultCanvasHeight} dots")
+                        {
+                            LengthInBytes = 0
+                        },
                         new EplCommands.EplRasterImage(1, 0, 432, 890, Media.CreateDefaultPng(16514)) { LengthInBytes = 48074 },
                         new EplCommands.EplPrint(1) { LengthInBytes = 3 }
                     ],
@@ -53,7 +58,14 @@ public static class EplGoldenCases
                         new CanvasDebugElementDto("clearBuffer") { LengthInBytes = 2 },
                         new CanvasDebugElementDto("setLabelWidth", new Dictionary<string, string> { ["Width"] = "432" }) { LengthInBytes = 5 },
                         new CanvasDebugElementDto("setLabelHeight", new Dictionary<string, string> { ["Height"] = "982", ["SecondParameter"] = "26" }) { LengthInBytes = 8 },
-                        new CanvasDebugElementDto("printerError", new Dictionary<string, string> { ["Message"] = $"Image exceeds printer canvas: 432\u00d7890 px at (1,0) overflows {EplSpecs.DefaultCanvasWidth}\u00d7{EplSpecs.DefaultCanvasHeight} dots (width and height)" }) { LengthInBytes = 0 },
+                        new CanvasDebugElementDto("printerError", new Dictionary<string, string>
+                        {
+                            ["Message"] = $"Image exceeds printer height: bottom edge at 890 px exceeds " +
+                                $"{EplSpecs.DefaultCanvasHeight} dots"
+                        })
+                        {
+                            LengthInBytes = 0
+                        },
                         new CanvasDebugElementDto("rasterImage") { LengthInBytes = 48074 },
                         new CanvasDebugElementDto("print", new Dictionary<string, string> { ["Copies"] = "1" }) { LengthInBytes = 3 },
                         new CanvasImageElementDto(

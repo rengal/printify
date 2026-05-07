@@ -414,14 +414,34 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
             var bottomEdge = imgY + imgHeight;
             var canvasWidth = settings.WidthInDots;
             var canvasHeight = settings.HeightInDots;
+            var markedRightEdge = rightEdge;
+
+            if (rightEdge > canvasWidth &&
+                TryGetImageMarkedRightEdge(element, out var detectedMarkedRightEdge))
+            {
+                // Byte-aligned raster commands can include transparent padding beyond the intended image width.
+                markedRightEdge = detectedMarkedRightEdge;
+            }
+
+            var exceedsWidth = markedRightEdge > canvasWidth;
+            var exceedsHeight = canvasHeight is not null && bottomEdge > canvasHeight;
 
             string? dimensionError = null;
-            if (rightEdge > canvasWidth && (canvasHeight is null || bottomEdge > canvasHeight))
-                dimensionError = $"Image exceeds printer canvas: {imgWidth}×{imgHeight} px at ({imgX},{imgY}) overflows {canvasWidth}×{canvasHeight} dots (width and height)";
-            else if (rightEdge > canvasWidth)
-                dimensionError = $"Image exceeds printer width: right edge at {rightEdge} px exceeds {canvasWidth} dots";
-            else if (canvasHeight is not null && bottomEdge > canvasHeight)
-                dimensionError = $"Image exceeds printer height: bottom edge at {bottomEdge} px exceeds {canvasHeight} dots";
+            if (exceedsWidth && exceedsHeight)
+            {
+                dimensionError = $"Image exceeds printer canvas: {imgWidth}×{imgHeight} px at " +
+                    $"({imgX},{imgY}) overflows {canvasWidth}×{canvasHeight} dots (width and height)";
+            }
+            else if (exceedsWidth)
+            {
+                dimensionError = $"Image exceeds printer width: right edge at {markedRightEdge} px exceeds " +
+                    $"{canvasWidth} dots";
+            }
+            else if (exceedsHeight)
+            {
+                dimensionError = $"Image exceeds printer height: bottom edge at {bottomEdge} px exceeds " +
+                    $"{canvasHeight} dots";
+            }
 
             if (dimensionError is not null)
             {
@@ -499,6 +519,16 @@ public abstract class Parser<TDeviceContext, TCommandTrieProvider>
     protected virtual bool TryGetImageDimensions(Command element, out int x, out int y, out int width, out int height)
     {
         x = y = width = height = 0;
+        return false;
+    }
+
+    /// <summary>
+    /// Derived classes can return the last marked dot plus one for byte-aligned raster payloads.
+    /// This keeps transparent padding bits from being treated as printable overflow.
+    /// </summary>
+    protected virtual bool TryGetImageMarkedRightEdge(Command element, out int rightEdge)
+    {
+        rightEdge = 0;
         return false;
     }
 
