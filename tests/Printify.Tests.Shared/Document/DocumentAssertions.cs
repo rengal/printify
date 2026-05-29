@@ -150,8 +150,8 @@ public static class DocumentAssertions
                     Assert.False(string.IsNullOrWhiteSpace(actualEplBarcode.Media.Sha256Checksum));
                     Assert.False(string.IsNullOrWhiteSpace(actualEplBarcode.Media.Url));
                     break;
-                case EscPosRasterImageUpload expectedRasterImageUpload:
-                    var actualRasterImageUpload = Assert.IsType<EscPosRasterImageUpload>(actualElement);
+                case EscPosRasterImageUploadGs7630 expectedRasterImageUpload:
+                    var actualRasterImageUpload = Assert.IsType<EscPosRasterImageUploadGs7630>(actualElement);
                     Assert.Equal(expectedRasterImageUpload.Width, actualRasterImageUpload.Width);
                     Assert.Equal(expectedRasterImageUpload.Height, actualRasterImageUpload.Height);
                     Assert.Equal(expectedRasterImageUpload.Media.ContentType, actualRasterImageUpload.Media.ContentType);
@@ -167,8 +167,28 @@ public static class DocumentAssertions
                             expectedRasterImageUpload.Height);
                     }
                     break;
+                case EscPosRasterImageStore expectedRasterImageStore:
+                    var actualRasterImageStore = Assert.IsAssignableFrom<EscPosRasterImageStore>(
+                        actualElement);
+                    Assert.Equal(expectedRasterImageStore.Width, actualRasterImageStore.Width);
+                    Assert.Equal(expectedRasterImageStore.Height, actualRasterImageStore.Height);
+                    Assert.Equal(
+                        expectedRasterImageStore.Media.ContentType,
+                        actualRasterImageStore.Media.ContentType);
+                    Assert.True(actualRasterImageStore.Media.Content.Length > 0);
+
+                    if (expectedRasterImageStore.Media.Content.Length > 0)
+                    {
+                        AssertImagePixelsMatch(
+                            expectedRasterImageStore.Media.Content.ToArray(),
+                            actualRasterImageStore.Media.Content.ToArray(),
+                            expectedRasterImageStore.Width,
+                            expectedRasterImageStore.Height);
+                    }
+                    break;
                 case EscPosRasterImage expectedRasterImage:
-                    var actualRasterImage = Assert.IsType<EscPosRasterImage>(actualElement);
+                    var actualRasterImage = Assert.IsAssignableFrom<EscPosRasterImage>(actualElement);
+                    Assert.Equal(expectedRasterImage.GetType(), actualRasterImage.GetType());
                     Assert.Equal(expectedRasterImage.Width, actualRasterImage.Width);
                     Assert.Equal(expectedRasterImage.Height, actualRasterImage.Height);
                     Assert.Equal(expectedRasterImage.Media.ContentType, actualRasterImage.Media.ContentType);

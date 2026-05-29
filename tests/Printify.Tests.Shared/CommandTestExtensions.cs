@@ -1,4 +1,4 @@
-using DomainCommand = Printify.Domain.Printing.Command;
+﻿using DomainCommand = Printify.Domain.Printing.Command;
 using Printify.Infrastructure.Printing.Epl.Commands;
 using Printify.Infrastructure.Printing.EscPos.Commands;
 
@@ -66,8 +66,11 @@ public static class CommandTestExtensions
         var uploadCommandTypes = new HashSet<string>
         {
             nameof(EscPosPrintBarcodeUpload),
+            nameof(EscPosRasterImageStoreGs284C),
+            nameof(EscPosRasterImageStoreGs384C),
+            nameof(EscPosRasterImagePrintUploadGs284C),
             nameof(EscPosPrintQrCodeUpload),
-            nameof(EscPosRasterImageUpload)
+            nameof(EscPosRasterImageUploadGs7630)
         };
 
         var missingTypes = allCommandTypes

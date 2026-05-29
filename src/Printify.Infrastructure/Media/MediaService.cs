@@ -48,7 +48,7 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         return new MediaUpload("image/png", content);
     }
 
-    public EscPosRasterImageUpload GenerateEscPosBarcodeMedia(
+    public RenderedImageMedia GenerateEscPosBarcodeMedia(
         EscPosPrintBarcodeUpload upload,
         BarcodeRenderOptions options)
     {
@@ -80,10 +80,10 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         using var aligned = EscPosRasterImageFitter.FitToPrinterWidth(image, printerWidth, options.Justification);
         var uploadMedia = EncodeMediaUpload(aligned);
 
-        return new EscPosRasterImageUpload(aligned.Width, aligned.Height, uploadMedia);
+        return new RenderedImageMedia(aligned.Width, aligned.Height, uploadMedia);
     }
 
-    public EscPosRasterImageUpload GenerateQrMedia(QrRenderOptions options)
+    public RenderedImageMedia GenerateQrMedia(QrRenderOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -106,7 +106,7 @@ public sealed class MediaService : IMediaService, IEscPosBarcodeService, IEplBar
         using var clipped = EscPosRasterImageFitter.ClipToPrinterWidth(image, printerWidth, options.Justification);
         var uploadMedia = EncodeMediaUpload(clipped);
 
-        return new EscPosRasterImageUpload(clipped.Width, clipped.Height, uploadMedia);
+        return new RenderedImageMedia(clipped.Width, clipped.Height, uploadMedia);
     }
 
     public MediaUpload GenerateEplBarcodeMedia(string type, string data, int width, int height, char hri)

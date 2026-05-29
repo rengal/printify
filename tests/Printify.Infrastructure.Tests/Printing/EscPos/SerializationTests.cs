@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Printify.Infrastructure.Mapping.Protocols.EscPos;
 using Printify.Infrastructure.Persistence.Entities.Documents.EscPos;
 using Printify.Infrastructure.Printing.EscPos.Commands;
+using DomainMedia = Printify.Domain.Media.Media;
 
 namespace Printify.Infrastructure.Tests.Printing.EscPos;
 
@@ -38,4 +39,54 @@ public sealed class SerializationTests
         Assert.Equal(command.Code, roundtrip.Code);
         Assert.Equal(command.Message, roundtrip.Message);
     }
+
+    [Theory]
+    [MemberData(nameof(RasterImageCases))]
+    public void RasterImageVariants_Roundtrip_WithMapper(
+        EscPosRasterImage command,
+        Type expectedPayloadType,
+        Type expectedDomainType)
+    {
+        var payload = CommandMapper.ToCommandPayload(command);
+
+        Assert.IsType(expectedPayloadType, payload);
+
+        var roundtrip = Assert.IsAssignableFrom<EscPosRasterImage>(CommandMapper.ToDomain(payload, command.Media));
+        Assert.Equal(expectedDomainType, roundtrip.GetType());
+        Assert.Equal(command.Width, roundtrip.Width);
+        Assert.Equal(command.Height, roundtrip.Height);
+        Assert.Equal(command.Media.Id, roundtrip.Media.Id);
+    }
+
+    [Fact]
+    public void LegacyRasterImagePayload_MapsToGs7630()
+    {
+        var media = DomainMedia.CreateDefaultPng(length: 10);
+        var payload = new RasterImageElementPayload(Width: 8, Height: 2, media.Id);
+
+        var command = Assert.IsType<EscPosRasterImageGs7630>(CommandMapper.ToDomain(payload, media));
+
+        Assert.Equal(payload.Width, command.Width);
+        Assert.Equal(payload.Height, command.Height);
+        Assert.Equal(payload.MediaId, command.Media.Id);
+    }
+
+    public static TheoryData<EscPosRasterImage, Type, Type> RasterImageCases => new()
+    {
+        {
+            new EscPosRasterImageGs7630(8, 2, DomainMedia.CreateDefaultPng(length: 10)),
+            typeof(RasterImageGs7630ElementPayload),
+            typeof(EscPosRasterImageGs7630)
+        },
+        {
+            new EscPosRasterImageGs284C(8, 2, DomainMedia.CreateDefaultPng(length: 11)),
+            typeof(RasterImageGs284CElementPayload),
+            typeof(EscPosRasterImageGs284C)
+        },
+        {
+            new EscPosRasterImageGs384C(8, 2, DomainMedia.CreateDefaultPng(length: 12)),
+            typeof(RasterImageGs384CElementPayload),
+            typeof(EscPosRasterImageGs384C)
+        }
+    };
 }

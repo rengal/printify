@@ -41,7 +41,18 @@ public static class CommandMapper
                 qrCode.Width,
                 qrCode.Height,
                 qrCode.Media.Id),
-            EscPosRasterImage image => new RasterImageElementPayload(image.Width, image.Height, image.Media.Id),
+            EscPosRasterImageGs7630 image => new RasterImageGs7630ElementPayload(
+                image.Width,
+                image.Height,
+                image.Media.Id),
+            EscPosRasterImageGs284C image => new RasterImageGs284CElementPayload(
+                image.Width,
+                image.Height,
+                image.Media.Id),
+            EscPosRasterImageGs384C image => new RasterImageGs384CElementPayload(
+                image.Width,
+                image.Height,
+                image.Media.Id),
             EscPosPulse pulse => new PulseElementPayload(pulse.Pin, pulse.OnTimeMs, pulse.OffTimeMs),
             EscPosInitialize => new ResetPrinterElementPayload(),
             EscPosSetBarcodeHeight height => new SetBarcodeHeightElementPayload(height.HeightInDots),
@@ -80,7 +91,12 @@ public static class CommandMapper
                 response.IsCoverOpen,
                 response.IsOffline,
                 (byte)response.RequestType),
-            EscPosRasterImageUpload => throw new NotSupportedException("Raster image persistence is handled separately."),
+            EscPosRasterImageUploadGs7630 => throw new NotSupportedException(
+                "Raster image persistence is handled separately."),
+            EscPosRasterImageStore => throw new NotSupportedException(
+                "Graphics data persistence is handled separately."),
+            EscPosRasterImagePrintUploadGs284C => throw new NotSupportedException(
+                "Graphics data persistence is handled separately."),
             EscPosSetFont setFont => new SetFontElementPayload(setFont.FontNumber),
             EscPosPrintAndFeedLines feedLines => new PrintAndFeedLinesElementPayload(feedLines.Lines),
             EscPosPrintAndFeedDots feedDots => new PrintAndFeedDotsElementPayload(feedDots.Dots),
@@ -156,7 +172,20 @@ public static class CommandMapper
                 response.IsPaperOut,
                 response.IsCoverOpen,
                 response.IsOffline),
-            RasterImageElementPayload raster => new EscPosRasterImage(
+            // Legacy rasterImage rows were created from GS v 0 before persisted raster variants existed.
+            RasterImageElementPayload raster => new EscPosRasterImageGs7630(
+                raster.Width,
+                raster.Height,
+                media),
+            RasterImageGs7630ElementPayload raster => new EscPosRasterImageGs7630(
+                raster.Width,
+                raster.Height,
+                media),
+            RasterImageGs284CElementPayload raster => new EscPosRasterImageGs284C(
+                raster.Width,
+                raster.Height,
+                media),
+            RasterImageGs384CElementPayload raster => new EscPosRasterImageGs384C(
                 raster.Width,
                 raster.Height,
                 media),
@@ -210,6 +239,9 @@ public static class CommandMapper
             EscPosDocumentElementTypeNames.PrintBarcode => JsonSerializer.Deserialize<PrintBarcodeElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.PrintQrCode => JsonSerializer.Deserialize<PrintQrCodeElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.RasterImage => JsonSerializer.Deserialize<RasterImageElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.RasterImageGs7630 => JsonSerializer.Deserialize<RasterImageGs7630ElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.RasterImageGs284C => JsonSerializer.Deserialize<RasterImageGs284CElementPayload>(entity.Payload, SerializerOptions),
+            EscPosDocumentElementTypeNames.RasterImageGs384C => JsonSerializer.Deserialize<RasterImageGs384CElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.Pulse => JsonSerializer.Deserialize<PulseElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.ResetPrinter => JsonSerializer.Deserialize<ResetPrinterElementPayload>(entity.Payload, SerializerOptions),
             EscPosDocumentElementTypeNames.SetBarcodeHeight => JsonSerializer.Deserialize<SetBarcodeHeightElementPayload>(entity.Payload, SerializerOptions),
@@ -300,6 +332,9 @@ public static class CommandMapper
             FlushLineBufferAndFeedElementPayload => EscPosDocumentElementTypeNames.FlushLineBufferAndFeed,
             LegacyCarriageReturnElementPayload => EscPosDocumentElementTypeNames.LegacyCarriageReturn,
             RasterImageElementPayload => EscPosDocumentElementTypeNames.RasterImage,
+            RasterImageGs7630ElementPayload => EscPosDocumentElementTypeNames.RasterImageGs7630,
+            RasterImageGs284CElementPayload => EscPosDocumentElementTypeNames.RasterImageGs284C,
+            RasterImageGs384CElementPayload => EscPosDocumentElementTypeNames.RasterImageGs384C,
             StatusRequestElementPayload => EscPosDocumentElementTypeNames.StatusRequest,
             StatusResponseElementPayload => EscPosDocumentElementTypeNames.StatusResponse,
             SetFontElementPayload => EscPosDocumentElementTypeNames.SetFont,

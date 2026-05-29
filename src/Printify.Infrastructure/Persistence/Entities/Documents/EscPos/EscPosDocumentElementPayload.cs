@@ -56,6 +56,21 @@ public sealed record RasterImageElementPayload(
     int Height,
     Guid MediaId) : EscPosDocumentElementPayload;
 
+public sealed record RasterImageGs7630ElementPayload(
+    int Width,
+    int Height,
+    Guid MediaId) : EscPosDocumentElementPayload;
+
+public sealed record RasterImageGs284CElementPayload(
+    int Width,
+    int Height,
+    Guid MediaId) : EscPosDocumentElementPayload;
+
+public sealed record RasterImageGs384CElementPayload(
+    int Width,
+    int Height,
+    Guid MediaId) : EscPosDocumentElementPayload;
+
 public sealed record PulseElementPayload(
     int Pin,
     int OnTimeMs,

@@ -1,4 +1,4 @@
-using Printify.Application.Interfaces;
+﻿using Printify.Application.Interfaces;
 using Printify.Domain.Printing;
 using Printify.Domain.Media;
 using Printify.Infrastructure.Printing.Common;
@@ -190,10 +190,120 @@ public sealed class RasterBitImagePrintDescriptor(IMediaService mediaService) : 
         var media = mediaService.ConvertToMediaUpload(bitmap);
 
         // Create RasterImageContent element
-        var element = new EscPosRasterImageUpload(widthInDots, heightInDots, media);
+        var element = new EscPosRasterImageUploadGs7630(widthInDots, heightInDots, media);
 
         // Return matched result with the raster image element
         return MatchResult.Matched(element);
+    }
+}
+
+/// <summary>
+/// Command: GS ( L pL pH ... - graphics data store/print workflow.
+/// ASCII: GS ( L.
+/// HEX: 1D 28 4C pL pH ...
+/// </summary>
+public sealed class GraphicsDataShortDescriptor(IMediaService mediaService) : ICommandDescriptor
+{
+    private const int HeaderLength = 5;
+
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1D, 0x28, 0x4C };
+
+    public int MinLength => HeaderLength;
+
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    {
+        var parameterLength = buffer[3] | (buffer[4] << 8);
+        return HeaderLength + parameterLength;
+    }
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        var parameterLength = buffer[3] | (buffer[4] << 8);
+        var payload = buffer.Slice(HeaderLength, parameterLength);
+        return GraphicsDataParser.Parse(payload, mediaService, isLongForm: false);
+    }
+}
+
+/// <summary>
+/// Command: GS 8 L p1 p2 p3 p4 ... - long graphics data store workflow.
+/// ASCII: GS 8 L.
+/// HEX: 1D 38 4C p1 p2 p3 p4 ...
+/// </summary>
+public sealed class GraphicsDataLongDescriptor(IMediaService mediaService) : ICommandDescriptor
+{
+    private const int HeaderLength = 7;
+
+    public ReadOnlyMemory<byte> Prefix { get; } = new byte[] { 0x1D, 0x38, 0x4C };
+
+    public int MinLength => HeaderLength;
+
+    public int? TryGetExactLength(ReadOnlySpan<byte> buffer)
+    {
+        var parameterLength = buffer[3]
+            | (buffer[4] << 8)
+            | (buffer[5] << 16)
+            | (buffer[6] << 24);
+
+        return HeaderLength + parameterLength;
+    }
+
+    public MatchResult TryParse(ReadOnlySpan<byte> buffer)
+    {
+        var parameterLength = buffer[3]
+            | (buffer[4] << 8)
+            | (buffer[5] << 16)
+            | (buffer[6] << 24);
+
+        var payload = buffer.Slice(HeaderLength, parameterLength);
+        return GraphicsDataParser.Parse(payload, mediaService, isLongForm: true);
+    }
+}
+
+internal static class GraphicsDataParser
+{
+    private const int StorePayloadHeaderLength = 10;
+
+    public static MatchResult Parse(ReadOnlySpan<byte> payload, IMediaService mediaService, bool isLongForm)
+    {
+        if (payload is [0x30, 0x32])
+        {
+            return MatchResult.Matched(new EscPosRasterImagePrintUploadGs284C());
+        }
+
+        if (payload.Length < StorePayloadHeaderLength)
+        {
+            return MatchResult.Matched(CreateError("GS ( L graphics data command is too short."));
+        }
+
+        if (payload[0] != 0x30 || payload[1] != 0x70 || payload[2] != 0x30)
+        {
+            return MatchResult.Matched(CreateError(
+                $"Unsupported GS ( L graphics function: m=0x{payload[0]:X2}, fn=0x{payload[1]:X2}."));
+        }
+
+        var widthInDots = payload[6] | (payload[7] << 8);
+        var heightInDots = payload[8] | (payload[9] << 8);
+        var bytesPerRow = (widthInDots + 7) / 8;
+        var imageDataLength = bytesPerRow * heightInDots;
+        var imageData = payload[StorePayloadHeaderLength..];
+
+        if (widthInDots <= 0 || heightInDots <= 0 || imageData.Length != imageDataLength)
+        {
+            return MatchResult.Matched(CreateError(
+                "GS ( L graphics data size does not match image dimensions."));
+        }
+
+        // GS ( L stores single-color raster data with the same bit order as GS v 0.
+        var bitmap = new MonochromeBitmap(widthInDots, heightInDots, imageData.ToArray());
+        var media = mediaService.ConvertToMediaUpload(bitmap);
+        return isLongForm
+            ? MatchResult.Matched(new EscPosRasterImageStoreGs384C(widthInDots, heightInDots, media))
+            : MatchResult.Matched(new EscPosRasterImageStoreGs284C(widthInDots, heightInDots, media));
+    }
+
+    private static EscPosParseError CreateError(string message)
+    {
+        return new EscPosParseError("ESCPOS_PARSER_ERROR", message);
     }
 }
 

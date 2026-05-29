@@ -154,11 +154,52 @@ public sealed record EscPosPrintLogo(int LogoId) : EscPosCommand;
 /// <param name="Width">Image width in printer dots.</param>
 /// <param name="Height">Image height in printer dots.</param>
 /// <param name="Media">Raster image media payload, including raw bytes and associated metadata.</param>
-public sealed record EscPosRasterImageUpload(
+public sealed record EscPosRasterImageUploadGs7630(
     int Width,
     int Height,
     MediaUpload Media)
     : EscPosBaseRasterImage(Width, Height);
+
+/// <summary>
+/// Raster graphics data stored by GS ( L or GS 8 L before a later print command emits it.
+/// </summary>
+/// <param name="Width">Image width in printer dots.</param>
+/// <param name="Height">Image height in printer dots.</param>
+/// <param name="Media">Raster image media payload, including raw bytes and associated metadata.</param>
+public abstract record EscPosRasterImageStore(
+    int Width,
+    int Height,
+    MediaUpload Media)
+    : EscPosBaseRasterImage(Width, Height);
+
+/// <summary>
+/// Raster graphics data stored by GS ( L before a later print command emits it.
+/// </summary>
+/// <param name="Width">Image width in printer dots.</param>
+/// <param name="Height">Image height in printer dots.</param>
+/// <param name="Media">Raster image media payload, including raw bytes and associated metadata.</param>
+public sealed record EscPosRasterImageStoreGs284C(
+    int Width,
+    int Height,
+    MediaUpload Media)
+    : EscPosRasterImageStore(Width, Height, Media);
+
+/// <summary>
+/// Raster graphics data stored by GS 8 L before a later print command emits it.
+/// </summary>
+/// <param name="Width">Image width in printer dots.</param>
+/// <param name="Height">Image height in printer dots.</param>
+/// <param name="Media">Raster image media payload, including raw bytes and associated metadata.</param>
+public sealed record EscPosRasterImageStoreGs384C(
+    int Width,
+    int Height,
+    MediaUpload Media)
+    : EscPosRasterImageStore(Width, Height, Media);
+
+/// <summary>
+/// Prints the graphics data previously stored by GS ( L or GS 8 L.
+/// </summary>
+public sealed record EscPosRasterImagePrintUploadGs284C : EscPosCommand;
 
 /// <summary>
 /// Raster image that references persisted media content.
@@ -166,11 +207,47 @@ public sealed record EscPosRasterImageUpload(
 /// <param name="Width">Image width in printer dots.</param>
 /// <param name="Height">Image height in printer dots.</param>
 /// <param name="Media">Persisted media descriptor with accessible URL.</param>
-public sealed record EscPosRasterImage(
+public abstract record EscPosRasterImage(
     int Width,
     int Height,
     DomainMedia Media)
     : EscPosBaseRasterImage(Width, Height);
+
+/// <summary>
+/// Persisted raster image produced from GS v 0.
+/// </summary>
+/// <param name="Width">Image width in printer dots.</param>
+/// <param name="Height">Image height in printer dots.</param>
+/// <param name="Media">Persisted media descriptor with accessible URL.</param>
+public sealed record EscPosRasterImageGs7630(
+    int Width,
+    int Height,
+    DomainMedia Media)
+    : EscPosRasterImage(Width, Height, Media);
+
+/// <summary>
+/// Persisted raster image produced from GS ( L.
+/// </summary>
+/// <param name="Width">Image width in printer dots.</param>
+/// <param name="Height">Image height in printer dots.</param>
+/// <param name="Media">Persisted media descriptor with accessible URL.</param>
+public sealed record EscPosRasterImageGs284C(
+    int Width,
+    int Height,
+    DomainMedia Media)
+    : EscPosRasterImage(Width, Height, Media);
+
+/// <summary>
+/// Persisted raster image produced from GS 8 L.
+/// </summary>
+/// <param name="Width">Image width in printer dots.</param>
+/// <param name="Height">Image height in printer dots.</param>
+/// <param name="Media">Persisted media descriptor with accessible URL.</param>
+public sealed record EscPosRasterImageGs384C(
+    int Width,
+    int Height,
+    DomainMedia Media)
+    : EscPosRasterImage(Width, Height, Media);
 
 /// <summary>
 /// Base type for raster images with shared geometry across content or descriptors.

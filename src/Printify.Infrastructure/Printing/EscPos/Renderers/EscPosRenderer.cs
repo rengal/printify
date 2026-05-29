@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Printify.Application.Exceptions;
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents;
@@ -80,7 +80,7 @@ public sealed class EscPosRenderer : IRenderer
                 case EscPosRasterImage raster:
                     ClearLineBufferWithError(lineBuffer, currentItems, "raster image command");
                     currentItems.Add(new DebugInfo(
-                        "rasterImage",
+                        GetRasterImageElementName(raster),
                         new Dictionary<string, string>(),
                         command.RawBytes,
                         command.LengthInBytes,
@@ -88,7 +88,9 @@ public sealed class EscPosRenderer : IRenderer
                     AddImageElement(raster, state, currentItems);
                     break;
 
-                case EscPosRasterImageUpload:
+                case EscPosRasterImageUploadGs7630:
+                case EscPosRasterImageStore:
+                case EscPosRasterImagePrintUploadGs284C:
                 case EscPosPrintBarcodeUpload:
                 case EscPosPrintQrCodeUpload:
                     throw new InvalidOperationException("Upload requests must not be emitted");
@@ -535,6 +537,17 @@ public sealed class EscPosRenderer : IRenderer
             Rotation.None));
 
         state.CurrentY += escPosRaster.Height + state.LineSpacing;
+    }
+
+    private static string GetRasterImageElementName(EscPosRasterImage raster)
+    {
+        return raster switch
+        {
+            EscPosRasterImageGs7630 => "rasterImageGs7630",
+            EscPosRasterImageGs284C => "rasterImageGs284C",
+            EscPosRasterImageGs384C => "rasterImageGs384C",
+            _ => "rasterImage"
+        };
     }
 
     private static void AddImageElement(EscPosPrintBarcode barcode, RenderState state, List<BaseElement> items)

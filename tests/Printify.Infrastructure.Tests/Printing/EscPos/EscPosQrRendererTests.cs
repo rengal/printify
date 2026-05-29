@@ -21,7 +21,7 @@ public sealed class EscPosQrRendererTests
         [
             new EscPosSetQrModuleSize(moduleSizeInDots),
             new EscPosPrintQrCode(Data: "QR", Width: 100, Height: 100, Media: qrMedia),
-            new EscPosRasterImage(Width: 10, Height: 10, Media: imageMedia)
+            new EscPosRasterImageGs7630(Width: 10, Height: 10, Media: imageMedia)
         ]);
 
         var renderer = new EscPosRenderer();

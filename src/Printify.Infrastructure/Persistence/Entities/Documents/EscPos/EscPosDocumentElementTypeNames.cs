@@ -41,6 +41,9 @@ internal static class EscPosDocumentElementTypeNames
     public const string FlushLineBufferAndFeed = "flushLineBufferAndFeed";
     public const string LegacyCarriageReturn = "legacyCarriageReturn";
     public const string RasterImage = "rasterImage";
+    public const string RasterImageGs7630 = "rasterImageGs7630";
+    public const string RasterImageGs284C = "rasterImageGs284C";
+    public const string RasterImageGs384C = "rasterImageGs384C";
     public const string StatusRequest = "statusRequest";
     public const string StatusResponse = "statusResponse";
     public const string SetFont = "setFont";

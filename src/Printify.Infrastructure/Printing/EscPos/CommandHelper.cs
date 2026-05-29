@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -171,6 +171,13 @@ public static class EscPosCommandHelper
             EscPosPrintQrCodeUpload => Lines(
                 "GS ( k - QR Code: Print the symbol data in the symbol storage area",
                 "fn=0x51"),
+            EscPosRasterImageStore store => Lines(
+                "GS ( L / GS 8 L - Store raster graphics data",
+                $"Width={store.Width} (dots)",
+                $"Height={store.Height} (dots)"),
+            EscPosRasterImagePrintUploadGs284C => Lines(
+                "GS ( L - Print stored raster graphics data",
+                "fn=0x32"),
             EscPosPrintQrCode qr => Lines(
                 "GS ( k - QR Code: Print the symbol data in the symbol storage area",
                 "fn=0x51",
@@ -196,7 +203,7 @@ public static class EscPosCommandHelper
                 "CR - Carriage return (legacy compatibility)",
                 "Ignored by the printer"),
             EscPosRasterImage raster => BuildRasterImageDescription(raster.Width, raster.Height),
-            EscPosRasterImageUpload upload => BuildRasterImageDescription(upload.Width, upload.Height),
+            EscPosRasterImageUploadGs7630 upload => BuildRasterImageDescription(upload.Width, upload.Height),
             EscPosCutPaper pagecut => BuildPagecutDescription(pagecut),
             _ => Lines(
                 $"Unknown command ({command.GetType().Name})",

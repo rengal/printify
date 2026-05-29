@@ -82,8 +82,13 @@ public sealed class EscPosCommandHelperTests
             new EscPosPrintQrCodeUpload(),
 
             // Graphics commands
-            new EscPosRasterImage(100, 100, CreateTestMedia()),
-            new EscPosRasterImageUpload(200, 200, CreateTestMediaUpload()),
+            new EscPosRasterImageGs7630(100, 100, CreateTestMedia()),
+            new EscPosRasterImageGs284C(100, 100, CreateTestMedia()),
+            new EscPosRasterImageGs384C(100, 100, CreateTestMedia()),
+            new EscPosRasterImageUploadGs7630(200, 200, CreateTestMediaUpload()),
+            new EscPosRasterImageStoreGs284C(200, 200, CreateTestMediaUpload()),
+            new EscPosRasterImageStoreGs384C(200, 200, CreateTestMediaUpload()),
+            new EscPosRasterImagePrintUploadGs284C(),
 
             // Logo commands
             new EscPosPrintLogo(1),

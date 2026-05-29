@@ -86,7 +86,9 @@ public sealed class EscPosRendererCoverageTests
             // Note: PrintQrCodeUpload is excluded because it's an upload command not meant to be rendered
 
             // Graphics commands
-            new EscPosRasterImage(100, 100, CreateTestMedia()),
+            new EscPosRasterImageGs7630(100, 100, CreateTestMedia()),
+            new EscPosRasterImageGs284C(100, 100, CreateTestMedia()),
+            new EscPosRasterImageGs384C(100, 100, CreateTestMedia()),
             // Note: RasterImageUpload is excluded because it's an upload command not meant to be rendered
 
             // Logo commands
@@ -195,7 +197,9 @@ public sealed class EscPosRendererCoverageTests
             // Note: PrintQrCodeUpload is excluded because it's an upload command not meant to be rendered
 
             // Graphics commands
-            new EscPosRasterImage(100, 100, CreateTestMedia()),
+            new EscPosRasterImageGs7630(100, 100, CreateTestMedia()),
+            new EscPosRasterImageGs284C(100, 100, CreateTestMedia()),
+            new EscPosRasterImageGs384C(100, 100, CreateTestMedia()),
             // Note: RasterImageUpload is excluded because it's an upload command not meant to be rendered
 
             // Logo commands

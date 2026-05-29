@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Printify.Application.Interfaces;
@@ -358,6 +358,15 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
             return true;
         }
 
+        if (element is EscPosRasterImageStore rasterImageStore)
+        {
+            x = 0;
+            y = 0;
+            width = rasterImageStore.Width;
+            height = rasterImageStore.Height;
+            return true;
+        }
+
         x = y = width = height = 0;
         return false;
     }
@@ -366,31 +375,22 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
     {
         rightEdge = 0;
 
-        if (element is not EscPosBaseRasterImage || element.RawBytes.Length < RasterImageHeaderLength)
-        {
-            return false;
-        }
-
-        var rawBytes = element.RawBytes.AsSpan();
-        var bytesPerRow = rawBytes[4] | (rawBytes[5] << 8);
-        var height = rawBytes[6] | (rawBytes[7] << 8);
-        var dataLength = bytesPerRow * height;
-
-        if (bytesPerRow <= 0 || height <= 0 || rawBytes.Length < RasterImageHeaderLength + dataLength)
+        if (!TryGetRasterPayload(element, out var rasterData, out var bytesPerRow, out var height))
         {
             return false;
         }
 
         // ESC/POS raster payloads use set bits as printed black dots.
-        rightEdge = FindMarkedRightEdge(rawBytes[RasterImageHeaderLength..], bytesPerRow, height, x: 0);
+        rightEdge = FindMarkedRightEdge(rasterData, bytesPerRow, height, x: 0);
         return true;
     }
 
     protected override bool IsPrintableCommand(Command element)
     {
         return element is EscPosAppendText
-            or EscPosRasterImageUpload
+            or EscPosRasterImageUploadGs7630
             or EscPosRasterImage
+            or EscPosRasterImagePrintUploadGs284C
             or EscPosPrintBarcodeUpload
             or EscPosPrintBarcode
             or EscPosPrintQrCodeUpload
@@ -457,6 +457,54 @@ public sealed class EscPosParser : Parser<EscPosDeviceContext, EscPosCommandTrie
         }
 
         return rightEdge;
+    }
+
+    private static bool TryGetRasterPayload(
+        Command element,
+        out ReadOnlySpan<byte> rasterData,
+        out int bytesPerRow,
+        out int height)
+    {
+        rasterData = default;
+        bytesPerRow = 0;
+        height = 0;
+
+        var rawBytes = element.RawBytes.AsSpan();
+        if (element is EscPosBaseRasterImage && rawBytes.Length >= RasterImageHeaderLength)
+        {
+            bytesPerRow = rawBytes[4] | (rawBytes[5] << 8);
+            height = rawBytes[6] | (rawBytes[7] << 8);
+            var dataLength = bytesPerRow * height;
+            if (bytesPerRow <= 0 || height <= 0 || rawBytes.Length < RasterImageHeaderLength + dataLength)
+            {
+                return false;
+            }
+
+            rasterData = rawBytes[RasterImageHeaderLength..(RasterImageHeaderLength + dataLength)];
+            return true;
+        }
+
+        if (element is not EscPosRasterImageStore rasterImageStore)
+        {
+            return false;
+        }
+
+        var payloadOffset = rawBytes.Length >= 3 && rawBytes[0] == 0x1D && rawBytes[1] == 0x28 && rawBytes[2] == 0x4C
+            ? 5
+            : 7;
+        const int imageDataOffsetInPayload = 10;
+        var imageDataOffset = payloadOffset + imageDataOffsetInPayload;
+        bytesPerRow = (rasterImageStore.Width + 7) / 8;
+        height = rasterImageStore.Height;
+        var imageDataLength = bytesPerRow * height;
+
+        if (bytesPerRow <= 0 || height <= 0 || rawBytes.Length < imageDataOffset + imageDataLength)
+        {
+            return false;
+        }
+
+        rasterData = rawBytes[imageDataOffset..(imageDataOffset + imageDataLength)];
+        return true;
     }
 
     private void EmitMissingCodePageWarningIfNeeded(byte value)

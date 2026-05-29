@@ -21,6 +21,8 @@ public sealed class EscPosCommandTrieProvider : CommandTrieProvider<ICommandDesc
         new BelDescriptor(),
         new GetPrinterStatusDescriptor(),
         new FlushLineBufferAndFeedDescriptor(),
+        new GraphicsDataLongDescriptor(RasterMediaService),
+        new GraphicsDataShortDescriptor(RasterMediaService),
         new PrintAndFeedLinesDescriptor(),
         new PrintAndFeedDotsDescriptor(),
         new LegacyCarriageReturnDescriptor(),
