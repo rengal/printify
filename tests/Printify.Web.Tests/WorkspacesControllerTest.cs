@@ -106,8 +106,8 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
 
         await AuthHelper.Login(client, workspaceResponse.Token);
 
-        // Try to update with invalid retention days (0, below minimum)
-        var updateRequest = new UpdateWorkspaceRequestDto(null, 0, null, null);
+        // Try to update with invalid retention days (-1, below minimum)
+        var updateRequest = new UpdateWorkspaceRequestDto(null, -1, null, null);
         var updateResponse = await client.PatchAsJsonAsync("/api/workspaces", updateRequest);
         Assert.Equal(HttpStatusCode.BadRequest, updateResponse.StatusCode);
 
@@ -325,8 +325,8 @@ public sealed class WorkspacesControllerTest(WebApplicationFactory<Program> fact
 
         await AuthHelper.Login(client, workspaceResponse.Token);
 
-        // Update with minimum valid retention days (1)
-        var updateRequest = new UpdateWorkspaceRequestDto(null, 1, null, null);
+        // Update with minimum valid retention days (0 keeps documents forever)
+        var updateRequest = new UpdateWorkspaceRequestDto(null, 0, null, null);
         var updateResponse = await client.PatchAsJsonAsync("/api/workspaces", updateRequest);
         updateResponse.EnsureSuccessStatusCode();
     }

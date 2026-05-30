@@ -385,12 +385,12 @@ async function handleSave() {
         return;
     }
 
-    if (isNaN(retentionDays) || retentionDays < 1 || retentionDays > 365) {
+    if (isNaN(retentionDays) || retentionDays < 0 || retentionDays > 365) {
         currentOverlay.retentionDaysInput.classList.add('invalid');
         currentOverlay.retentionDaysError.classList.add('show');
         currentOverlay.retentionDaysInput.focus();
         if (callbacks.showToast) {
-            callbacks.showToast('Document retention days must be between 1 and 365', true);
+            callbacks.showToast('Document retention days must be between 0 and 365', true);
         }
         return;
     }

@@ -20,6 +20,7 @@ using Printify.Infrastructure.Printing.EscPos;
 using Printify.Infrastructure.Printing.EscPos.Renderers;
 using Printify.Infrastructure.Printing.Finalization;
 using Printify.Infrastructure.Printing.Factories;
+using Printify.Infrastructure.Retention;
 using Printify.Infrastructure.Repositories;
 using Printify.Infrastructure.Security;
 using Printify.Web.Infrastructure;
@@ -36,6 +37,7 @@ public static class ServiceCollectionExtensions
         // Configuration
         services.Configure<ListenerOptions>(configuration.GetSection("Listener"));
         services.Configure<Storage>(configuration.GetSection("Storage"));
+        services.Configure<DocumentCleanupOptions>(configuration.GetSection("DocumentCleanup"));
         services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
         services.Configure<RepositoryOptions>(configuration.GetSection("Repository"));
 
@@ -61,6 +63,7 @@ public static class ServiceCollectionExtensions
 
         // Services
         services.AddSingleton<IGreetingService, GreetingService>();
+        services.AddSingleton<DocumentRetentionCleanupService>();
 
         // Database
         services.AddDbContext<PrintifyDbContext>((serviceProvider, options) =>
@@ -114,6 +117,7 @@ public static class ServiceCollectionExtensions
 
         services.AddHostedService(provider =>
             (PrinterBufferCoordinator)provider.GetRequiredService<IPrinterBufferCoordinator>());
+        services.AddHostedService<DocumentRetentionCleanupHostedService>();
         services.AddHostedService<PrinterListenerBootstrapper>();
 
         return services;

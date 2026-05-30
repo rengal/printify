@@ -58,11 +58,11 @@
                             <div class="field">
                                 <label class="label" for="retention-days-input">Keep documents for</label>
                                 <div class="input-with-suffix">
-                                    <input class="input" id="retention-days-input" data-retention-days-input type="number" min="1" max="365" value="30" />
+                                    <input class="input" id="retention-days-input" data-retention-days-input type="number" min="0" max="365" value="30" />
                                     <span class="input-suffix">days</span>
                                 </div>
-                                <div class="field-hint">Documents older than this will be automatically deleted (1-365 days)</div>
-                                <div class="field-error" data-retention-days-error>Document retention days must be between 1 and 365</div>
+                                <div class="field-hint">Documents older than this will be automatically deleted (0 keeps forever)</div>
+                                <div class="field-error" data-retention-days-error>Document retention days must be between 0 and 365</div>
                             </div>
 
                             <div class="info-box">

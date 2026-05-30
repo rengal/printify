@@ -107,9 +107,9 @@ public sealed class WorkspacesController(
         // Validate DocumentRetentionDays range if provided
         if (request.DocumentRetentionDays.HasValue)
         {
-            if (request.DocumentRetentionDays.Value < 1 || request.DocumentRetentionDays.Value > 365)
+            if (request.DocumentRetentionDays.Value < 0 || request.DocumentRetentionDays.Value > 365)
             {
-                return BadRequest(new { error = "DocumentRetentionDays must be between 1 and 365" });
+                return BadRequest(new { error = "DocumentRetentionDays must be between 0 and 365" });
             }
         }
 
