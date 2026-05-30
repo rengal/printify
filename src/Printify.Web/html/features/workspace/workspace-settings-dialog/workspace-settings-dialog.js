@@ -107,6 +107,9 @@ async function show() {
     currentOverlay.whitelistConnections = modalOverlay.querySelector('[data-whitelist-connections]');
     currentOverlay.whitelistRefresh = modalOverlay.querySelector('[data-whitelist-refresh]');
     currentOverlay.connectionsMinutes = modalOverlay.querySelector('[data-connections-minutes]');
+    currentOverlay.adminStatisticsTab = modalOverlay.querySelector('[data-admin-statistics-tab]');
+    currentOverlay.adminStatisticsContent = modalOverlay.querySelector('[data-admin-statistics-content]');
+    currentOverlay.adminWorkspaceRows = modalOverlay.querySelector('[data-admin-workspace-rows]');
 
     // Whitelist event listeners
     currentOverlay.whitelistEnabled.addEventListener('change', () => {
@@ -315,6 +318,113 @@ function addIpToWhitelist(ip) {
     loadRecentConnections();
 }
 
+function setAdminStatisticsVisible(isVisible) {
+    if (currentOverlay.adminStatisticsTab) {
+        currentOverlay.adminStatisticsTab.hidden = !isVisible;
+    }
+
+    if (currentOverlay.adminStatisticsContent) {
+        currentOverlay.adminStatisticsContent.hidden = !isVisible;
+    }
+}
+
+async function loadAdminStatistics() {
+    try {
+        const statistics = await callbacks.apiRequest('/api/workspaces/admin-statistics');
+        renderAdminStatistics(statistics);
+    } catch (err) {
+        console.error('Failed to load admin statistics:', err);
+        if (currentOverlay.adminWorkspaceRows) {
+            currentOverlay.adminWorkspaceRows.innerHTML =
+                '<tr><td colspan="9" class="admin-workspaces-empty">Failed to load admin statistics</td></tr>';
+        }
+    }
+}
+
+function renderAdminStatistics(statistics) {
+    setText('[data-admin-total-workspaces]', formatNumber(statistics.totalWorkspaces));
+    setText('[data-admin-active-workspaces-24h]', formatNumber(statistics.activeWorkspacesLast24h));
+    setText('[data-admin-active-workspaces-7d]', formatNumber(statistics.activeWorkspacesLast7d));
+    setText('[data-admin-total-printers]', formatNumber(statistics.totalPrinters));
+    setText('[data-admin-total-documents]', formatNumber(statistics.totalDocuments));
+    setText('[data-admin-total-media]', formatNumber(statistics.totalMedia));
+    setText('[data-admin-total-media-bytes]', formatBytes(statistics.totalMediaBytes));
+    setText(
+        '[data-admin-documents-window]',
+        `${formatNumber(statistics.documentsLast24h)} / ${formatNumber(statistics.documentsLast7d)}`);
+    setText(
+        '[data-admin-media-window]',
+        `${formatNumber(statistics.mediaLast24h)} / ${formatNumber(statistics.mediaLast7d)}`);
+
+    const lastDocumentEl = currentOverlay.querySelector('[data-admin-last-document]');
+    if (lastDocumentEl) {
+        lastDocumentEl.innerHTML = statistics.lastDocumentAt
+            ? formatDateTimeWithRelative(new Date(statistics.lastDocumentAt))
+            : 'Never';
+    }
+
+    renderAdminWorkspaceRows(statistics.workspaces ?? []);
+}
+
+function renderAdminWorkspaceRows(rows) {
+    if (!currentOverlay.adminWorkspaceRows) {
+        return;
+    }
+
+    if (rows.length === 0) {
+        currentOverlay.adminWorkspaceRows.innerHTML =
+            '<tr><td colspan="9" class="admin-workspaces-empty">No workspace statistics</td></tr>';
+        return;
+    }
+
+    currentOverlay.adminWorkspaceRows.innerHTML = rows
+        .map(row => `<tr>
+            <td><span class="admin-workspace-name" title="${escapeHtml(row.workspaceName)}">${escapeHtml(row.workspaceName)}</span></td>
+            <td>${escapeHtml(row.role)}</td>
+            <td class="numeric">${formatNumber(row.printerCount)}</td>
+            <td class="numeric">${formatNumber(row.documentCount)}</td>
+            <td class="numeric">${formatNumber(row.mediaCount)}</td>
+            <td class="numeric">${formatBytes(row.mediaBytes)}</td>
+            <td class="numeric">${formatNumber(row.documentsLast24h)}</td>
+            <td>${formatRetention(row.documentRetentionDays)}</td>
+            <td>${row.lastDocumentAt ? formatRelativeTime(new Date(row.lastDocumentAt)) : 'Never'}</td>
+        </tr>`)
+        .join('');
+}
+
+function setText(selector, value) {
+    const element = currentOverlay.querySelector(selector);
+    if (element) {
+        element.textContent = value;
+    }
+}
+
+function formatNumber(value) {
+    return Number(value ?? 0).toLocaleString();
+}
+
+function formatBytes(value) {
+    const bytes = Number(value ?? 0);
+    if (bytes < 1024) {
+        return `${bytes} B`;
+    }
+
+    const units = ['KB', 'MB', 'GB', 'TB'];
+    let size = bytes / 1024;
+    let unitIndex = 0;
+
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+    }
+
+    return `${size.toFixed(size >= 10 ? 1 : 2)} ${units[unitIndex]}`;
+}
+
+function formatRetention(days) {
+    return Number(days) === 0 ? 'Forever' : `${formatNumber(days)}d`;
+}
+
 async function loadSettings() {
     try {
         // Fetch workspace settings and summary in parallel
@@ -325,6 +435,7 @@ async function loadSettings() {
 
         currentSettings = {
             name: workspace.name,
+            role: workspace.role,
             createdAt: workspace.createdAt,
             documentRetentionDays: workspace.documentRetentionDays,
             tcpWhitelistEnabled: workspace.tcpWhitelistEnabled,
@@ -355,6 +466,12 @@ async function loadSettings() {
             lastDocumentEl.innerHTML = summary.lastDocumentAt
                 ? formatDateTimeWithRelative(new Date(summary.lastDocumentAt))
                 : 'Never';
+        }
+
+        const isAdmin = currentSettings.role === 'Admin';
+        setAdminStatisticsVisible(isAdmin);
+        if (isAdmin) {
+            await loadAdminStatistics();
         }
 
         // Reset save button
@@ -420,6 +537,7 @@ async function handleSave() {
         // Update local state
         currentSettings = {
             name: updated.name,
+            role: updated.role,
             createdAt: updated.createdAt,
             documentRetentionDays: updated.documentRetentionDays,
             tcpWhitelistEnabled: updated.tcpWhitelistEnabled,

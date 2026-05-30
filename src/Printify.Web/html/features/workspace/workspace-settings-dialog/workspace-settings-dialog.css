@@ -6,7 +6,7 @@
 
 /* Larger modal for settings dialog */
 .workspace-settings-dialog {
-    max-width: 800px;
+    max-width: 980px;
 }
 
 /* Custom header (not using default modal-header) */
@@ -116,6 +116,10 @@
     max-width: 500px;
 }
 
+.admin-statistics-section {
+    max-width: none;
+}
+
 .settings-section h3 {
     margin: 0 0 20px 0;
     font-size: 16px;
@@ -212,10 +216,69 @@
     color: var(--text);
 }
 
+.admin-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 /* Special styling for Last Document Received to show date + relative time */
-[data-stat-last-document] {
+[data-stat-last-document],
+[data-admin-last-document] {
     font-size: 16px !important;
     line-height: 1.4;
+}
+
+.admin-workspaces-table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-top: 20px;
+    max-height: 260px;
+    overflow: auto;
+}
+
+.admin-workspaces-table {
+    border-collapse: collapse;
+    font-size: 12px;
+    min-width: 860px;
+    width: 100%;
+}
+
+.admin-workspaces-table th,
+.admin-workspaces-table td {
+    border-bottom: 1px solid var(--border);
+    padding: 8px 10px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.admin-workspaces-table th {
+    background: var(--bg-elev);
+    color: var(--muted);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.admin-workspaces-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.admin-workspaces-table td.numeric {
+    text-align: right;
+}
+
+.admin-workspace-name {
+    color: var(--text);
+    display: block;
+    font-weight: 600;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-workspaces-empty {
+    color: var(--muted);
+    text-align: center !important;
 }
 
 /* Footer */

@@ -31,6 +31,10 @@
                         <img class="themed-icon" src="assets/icons/bar-chart-2.svg" width="18" height="18" alt="">
                         Usage & Statistics
                     </button>
+                    <button class="workspace-settings-nav-item" data-tab="admin" data-admin-statistics-tab hidden>
+                        <img class="themed-icon" src="assets/icons/shield.svg" width="18" height="18" alt="">
+                        Admin
+                    </button>
                     <div class="workspace-settings-nav-divider"></div>
                     <button class="workspace-settings-nav-item danger" data-tab="danger">
                         <img class="themed-icon" src="assets/icons/trash-2.svg" width="18" height="18" alt="">
@@ -97,6 +101,78 @@
                             <div class="field" style="margin-top: 20px;">
                                 <label class="label">Created at</label>
                                 <div class="read-only-value" data-workspace-created-at></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Statistics Tab -->
+                    <div class="workspace-settings-tab-content" data-content="admin" data-admin-statistics-content hidden>
+                        <div class="settings-section admin-statistics-section">
+                            <h3>Admin Statistics</h3>
+                            <div class="stats-grid admin-stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-label">Total Workspaces</div>
+                                    <div class="stat-value" data-admin-total-workspaces>0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Active Workspaces (24h)</div>
+                                    <div class="stat-value" data-admin-active-workspaces-24h>0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Active Workspaces (7d)</div>
+                                    <div class="stat-value" data-admin-active-workspaces-7d>0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Total Printers</div>
+                                    <div class="stat-value" data-admin-total-printers>0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Total Documents</div>
+                                    <div class="stat-value" data-admin-total-documents>0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Total Media</div>
+                                    <div class="stat-value" data-admin-total-media>0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Media Size</div>
+                                    <div class="stat-value" data-admin-total-media-bytes>0 B</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Documents (24h / 7d)</div>
+                                    <div class="stat-value" data-admin-documents-window>0 / 0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Media (24h / 7d)</div>
+                                    <div class="stat-value" data-admin-media-window>0 / 0</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Last Document</div>
+                                    <div class="stat-value" data-admin-last-document>Never</div>
+                                </div>
+                            </div>
+
+                            <div class="admin-workspaces-table-wrap">
+                                <table class="admin-workspaces-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Workspace</th>
+                                            <th>Role</th>
+                                            <th>Printers</th>
+                                            <th>Docs</th>
+                                            <th>Media</th>
+                                            <th>Media size</th>
+                                            <th>24h docs</th>
+                                            <th>Retention</th>
+                                            <th>Last document</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody data-admin-workspace-rows>
+                                        <tr>
+                                            <td colspan="9" class="admin-workspaces-empty">No workspace statistics</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

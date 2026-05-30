@@ -5,6 +5,7 @@ using Printify.Application.Features.Auth.GetCurrentWorkspace;
 using Printify.Application.Features.Workspaces.CreateWorkspace;
 using Printify.Application.Features.Workspaces.DeleteWorkspace;
 using Printify.Application.Features.Workspaces.GetGreeting;
+using Printify.Application.Features.Workspaces.GetAdminWorkspaceStatistics;
 using Printify.Application.Features.Workspaces.GetWorkspaceSummary;
 using Printify.Application.Features.Workspaces.UpdateWorkspace;
 using Printify.Application.Printing;
@@ -78,6 +79,20 @@ public sealed class WorkspacesController(
         var summaryDto = summary.ToDto();
 
         return Ok(summaryDto);
+    }
+
+    [Authorize]
+    [HttpGet("admin-statistics")]
+    public async Task<ActionResult<AdminWorkspaceStatisticsDto>> GetAdminStatistics(CancellationToken ct)
+    {
+        var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
+        var query = new GetAdminWorkspaceStatisticsQuery(httpContext);
+
+        var statistics = await mediator
+            .RequestAsync<GetAdminWorkspaceStatisticsQuery, AdminWorkspaceStatistics>(query, ct)
+            .ConfigureAwait(false);
+
+        return Ok(statistics.ToDto());
     }
 
     [AllowAnonymous]

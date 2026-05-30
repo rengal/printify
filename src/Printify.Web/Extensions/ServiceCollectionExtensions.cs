@@ -95,6 +95,7 @@ public static class ServiceCollectionExtensions
 
         // Repositories
         services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
+        services.AddScoped<IAdminWorkspaceStatisticsRepository, AdminWorkspaceStatisticsRepository>();
         services.AddScoped<IPrinterRepository, PrinterRepository>();
         services.AddScoped<IPrintJobRepository, PrintJobRepository>();
         services.AddScoped<IDocumentRepository, DocumentRepository>();
