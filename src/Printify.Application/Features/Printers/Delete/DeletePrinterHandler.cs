@@ -1,6 +1,7 @@
 using Mediator.Net.Contracts;
 using Mediator.Net.Context;
 using Printify.Application.Exceptions;
+using Printify.Application.Features.Printers;
 using Printify.Application.Interfaces;
 using Printify.Application.Mediation;
 using Printify.Application.Printing;
@@ -19,12 +20,9 @@ public sealed class DeletePrinterHandler(
         var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
-        var printer = await printerRepository
-            .GetByIdAsync(request.PrinterId, request.Context.WorkspaceId, ct)
+        var printer = await PrinterAccess
+            .GetWritablePrinterAsync(printerRepository, request.Context, request.PrinterId, ct)
             .ConfigureAwait(false);
-
-        if (printer is null)
-            throw new PrinterNotFoundException(request.PrinterId);
 
         var operationalFlags = await printerRepository.GetOperationalFlagsAsync(printer.Id, ct).ConfigureAwait(false);
         // Default to Stopped to avoid keeping listeners alive for deleted printers without operational flags.

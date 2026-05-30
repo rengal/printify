@@ -1,6 +1,7 @@
 using Mediator.Net.Context;
 using Mediator.Net.Contracts;
 using Printify.Application.Exceptions;
+using Printify.Application.Features.Printers;
 using Printify.Application.Interfaces;
 using Printify.Domain.Documents;
 
@@ -8,6 +9,7 @@ namespace Printify.Application.Features.Printers.Documents.Canvas;
 
 public sealed class GetPrinterCanvasDocumentHandler(
     IPrinterRepository printerRepository,
+    IWorkspaceRepository workspaceRepository,
     IDocumentRepository documentRepository,
     IRendererFactory rendererFactory)
     : IRequestHandler<GetPrinterCanvasDocumentQuery, RenderedDocument?>
@@ -20,9 +22,11 @@ public sealed class GetPrinterCanvasDocumentHandler(
         var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
-        var printer = await printerRepository.GetByIdAsync(
+        var printer = await PrinterAccess.GetReadablePrinterAsync(
+            printerRepository,
+            workspaceRepository,
+            request.Context,
             request.PrinterId,
-            request.Context.WorkspaceId,
             cancellationToken).ConfigureAwait(false);
 
         if (printer is null)

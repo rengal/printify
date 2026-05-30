@@ -9,5 +9,6 @@ public sealed record PrinterDetailsSnapshot(
     Printer Printer,
     PrinterSettings Settings,
     PrinterOperationalFlags? OperationalFlags,
-    PrinterRuntimeStatus? RuntimeStatus) : IResponse;
+    PrinterRuntimeStatus? RuntimeStatus,
+    string? OwnerWorkspaceName = null) : IResponse;
 

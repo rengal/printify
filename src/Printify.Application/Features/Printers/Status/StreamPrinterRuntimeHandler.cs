@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Mediator.Net.Contracts;
 using Mediator.Net.Context;
 using Printify.Application.Exceptions;
+using Printify.Application.Features.Printers;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
@@ -10,6 +11,7 @@ namespace Printify.Application.Features.Printers.Status;
 
 public sealed class StreamPrinterRuntimeHandler(
     IPrinterRepository printerRepository,
+    IWorkspaceRepository workspaceRepository,
     IPrinterRuntimeStatusStore runtimeStatusStore,
     IPrinterStatusStream statusStream)
     : IRequestHandler<StreamPrinterRuntimeQuery, PrinterRuntimeStreamResult>
@@ -22,20 +24,15 @@ public sealed class StreamPrinterRuntimeHandler(
         var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.Context.WorkspaceId is null)
-        {
-            throw new BadRequestException("Workspace identifier must be provided.");
-        }
-
-        var printer = await printerRepository
-            .GetByIdAsync(request.PrinterId, request.Context.WorkspaceId, cancellationToken)
+        var printer = await PrinterAccess
+            .GetReadablePrinterAsync(printerRepository, workspaceRepository, request.Context, request.PrinterId, cancellationToken)
             .ConfigureAwait(false);
         if (printer is null)
         {
             throw new PrinterNotFoundException(request.PrinterId);
         }
 
-        var workspaceId = request.Context.WorkspaceId.Value;
+        var workspaceId = printer.OwnerWorkspaceId;
         // Subscribe eagerly so the channel is registered before the response headers are flushed.
         // Use CancellationToken.None here — the controller applies client-disconnect cancellation
         // via WithCancellation() when it iterates the result.
@@ -120,4 +117,3 @@ public sealed class StreamPrinterRuntimeHandler(
         };
     }
 }
-

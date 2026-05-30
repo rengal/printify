@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Mime;
 using System.Text.Json;
 using FluentValidation;
@@ -40,6 +40,7 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         {
             // 400-series errors represent invalid client input.
             AuthenticationFailedException => HttpStatusCode.Unauthorized,
+            ForbiddenException => HttpStatusCode.Forbidden,
             PrinterNotFoundException => HttpStatusCode.NotFound,
             BadRequestException => HttpStatusCode.BadRequest,
             ArgumentException => HttpStatusCode.BadRequest,

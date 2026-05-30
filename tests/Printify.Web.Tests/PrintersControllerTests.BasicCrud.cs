@@ -2,6 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Printify.Domain.Workspaces;
+using Printify.Infrastructure.Persistence;
 using Printify.TestServices;
 using Printify.TestServices.Printing;
 using Printify.Web.Contracts.Printers.Requests;
@@ -125,7 +128,7 @@ public sealed partial class PrintersControllerTests
     }
 
     [Fact]
-    public async Task DeletePrinter_WithDifferentUser_ReturnsNotFound()
+    public async Task DeletePrinter_WithDifferentWorkspace_ReturnsForbidden()
     {
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var client = environment.Client;
@@ -142,6 +145,46 @@ public sealed partial class PrintersControllerTests
         await AuthHelper.CreateWorkspaceAndLogin(environment);
 
         var deleteResponse = await client.DeleteAsync($"/api/printers/{printerId}");
-        Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, deleteResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task AdminWorkspace_CanReadForeignPrinterButCannotMutateIt()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var client = environment.Client;
+
+        await AuthHelper.CreateWorkspaceAndLogin(environment);
+
+        var foreignPrinterId = Guid.NewGuid();
+        var createRequest = new CreatePrinterRequestDto(
+            new PrinterRequestDto(foreignPrinterId, "Foreign Printer"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, true, 1024, 4096));
+        var createResponse = await client.PostAsJsonAsync("/api/printers", createRequest);
+        createResponse.EnsureSuccessStatusCode();
+
+        var (adminWorkspaceId, _) = await AuthHelper.CreateWorkspaceAndLoginReturningToken(environment);
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+            var adminWorkspace = await dbContext.Workspaces.FindAsync(adminWorkspaceId);
+            Assert.NotNull(adminWorkspace);
+            adminWorkspace.Role = WorkspaceRole.Admin.ToString();
+            await dbContext.SaveChangesAsync();
+        }
+
+        var getResponse = await client.GetAsync($"/api/printers/{foreignPrinterId}");
+        getResponse.EnsureSuccessStatusCode();
+        var printer = await getResponse.Content.ReadFromJsonAsync<PrinterResponseDto>();
+        Assert.NotNull(printer);
+        Assert.Equal(foreignPrinterId, printer.Printer.Id);
+        Assert.Equal("Foreign Printer", printer.Printer.DisplayName);
+        Assert.NotEqual(adminWorkspaceId, printer.Printer.OwnerWorkspaceId);
+        Assert.False(string.IsNullOrWhiteSpace(printer.Printer.OwnerWorkspaceName));
+
+        var pinResponse = await client.PostAsJsonAsync(
+            $"/api/printers/{foreignPrinterId}/pin",
+            new PinPrinterRequestDto(true));
+        Assert.Equal(HttpStatusCode.Forbidden, pinResponse.StatusCode);
     }
 }

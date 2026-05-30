@@ -53,6 +53,7 @@ public sealed class WorkspaceRepository(PrintifyDbContext dbContext) : IWorkspac
         }
 
         entity.Name = workspace.Name;
+        entity.Role = workspace.Role.ToString();
         entity.DocumentRetentionDays = workspace.DocumentRetentionDays;
         entity.TcpWhitelistEnabled = workspace.TcpWhitelistEnabled;
         entity.TcpWhitelistEntries = workspace.TcpWhitelistEntries;

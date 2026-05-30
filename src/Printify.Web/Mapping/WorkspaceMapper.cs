@@ -20,6 +20,7 @@ internal static class WorkspaceMapper
             workspace.Id,
             workspace.Name,
             workspace.CreatedAt,
+            workspace.Role.ToString(),
             workspace.DocumentRetentionDays,
             workspace.TcpWhitelistEnabled,
             workspace.TcpWhitelistEntries);

@@ -6,4 +6,5 @@ namespace Printify.Domain.Printers;
 /// </summary>
 public sealed record PrinterSidebarSnapshot(
     Printer Printer,
-    PrinterRuntimeStatus? RuntimeStatus = null);
+    PrinterRuntimeStatus? RuntimeStatus = null,
+    string? OwnerWorkspaceName = null);

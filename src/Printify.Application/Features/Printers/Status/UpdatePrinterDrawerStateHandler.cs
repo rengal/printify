@@ -1,7 +1,7 @@
 using Mediator.Net.Contracts;
 using Mediator.Net.Context;
-using Microsoft.Extensions.Logging;
 using Printify.Application.Exceptions;
+using Printify.Application.Features.Printers;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
@@ -11,8 +11,7 @@ namespace Printify.Application.Features.Printers.Status;
 public sealed class UpdatePrinterDrawerStateHandler(
     IPrinterRepository printerRepository,
     IPrinterRuntimeStatusStore runtimeStatusStore,
-    IPrinterStatusStream statusStream,
-    ILogger<UpdatePrinterDrawerStateHandler> logger)
+    IPrinterStatusStream statusStream)
     : IRequestHandler<UpdatePrinterDrawerStateCommand, PrinterRuntimeStatus>
 {
     public async Task<PrinterRuntimeStatus> Handle(
@@ -23,27 +22,14 @@ public sealed class UpdatePrinterDrawerStateHandler(
         var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.Context.WorkspaceId is null)
-        {
-            throw new BadRequestException("Workspace identifier must be provided.");
-        }
-
         if (request.Drawer1State is null && request.Drawer2State is null)
         {
             throw new BadRequestException("At least one drawer state must be provided.");
         }
 
-        var printer = await printerRepository
-            .GetByIdAsync(request.PrinterId, request.Context.WorkspaceId, cancellationToken)
+        var printer = await PrinterAccess
+            .GetWritablePrinterAsync(printerRepository, request.Context, request.PrinterId, cancellationToken)
             .ConfigureAwait(false);
-        if (printer is null)
-        {
-            logger.LogWarning(
-                "Printer {PrinterId} not found for workspace {WorkspaceId} when updating drawer state",
-                request.PrinterId,
-                request.Context.WorkspaceId);
-            throw new PrinterNotFoundException(request.PrinterId);
-        }
 
         var drawer1State = ParseDrawerState(request.Drawer1State);
         var drawer2State = ParseDrawerState(request.Drawer2State);

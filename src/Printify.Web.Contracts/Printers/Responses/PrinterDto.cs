@@ -7,12 +7,16 @@ namespace Printify.Web.Contracts.Printers.Responses;
 /// </summary>
 /// <param name="Id">Database-generated identifier.</param>
 /// <param name="DisplayName">Friendly name shown in UI.</param>
+/// <param name="OwnerWorkspaceId">Identifier of the workspace that owns the printer.</param>
+/// <param name="OwnerWorkspaceName">Display name of the workspace that owns the printer.</param>
 /// <param name="IsPinned">Indicates whether the printer is pinned for quick access.</param>
 /// <param name="LastViewedDocumentId">Identifier of the last viewed document.</param>
 /// <param name="LastDocumentReceivedAt">Timestamp of the most recently persisted document for this printer.</param>
 public sealed record PrinterDto(
     Guid Id,
     string DisplayName,
+    Guid OwnerWorkspaceId,
+    string? OwnerWorkspaceName,
     bool IsPinned,
     Guid? LastViewedDocumentId,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.Never)]

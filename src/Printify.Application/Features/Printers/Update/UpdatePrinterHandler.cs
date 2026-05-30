@@ -1,6 +1,7 @@
 using Mediator.Net.Contracts;
 using Mediator.Net.Context;
 using Printify.Application.Exceptions;
+using Printify.Application.Features.Printers;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
@@ -22,20 +23,9 @@ public sealed class UpdatePrinterHandler(
         var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.Context.WorkspaceId is null)
-        {
-            throw new BadRequestException("Workspace identifier must be provided.");
-        }
-
-        var printer = await printerRepository.GetByIdAsync(
-            request.PrinterId,
-            request.Context.WorkspaceId,
-            cancellationToken).ConfigureAwait(false);
-
-        if (printer is null)
-        {
-            throw new PrinterNotFoundException(request.PrinterId);
-        }
+        var printer = await PrinterAccess
+            .GetWritablePrinterAsync(printerRepository, request.Context, request.PrinterId, cancellationToken)
+            .ConfigureAwait(false);
 
         var settings = await printerRepository.GetSettingsAsync(printer.Id, cancellationToken)
             .ConfigureAwait(false);
@@ -94,7 +84,8 @@ public sealed class UpdatePrinterHandler(
         }
 
         var runtimeStatus = runtimeStatusStore.Get(updated.Id);
-        return new PrinterDetailsSnapshot(updated, updatedSettings, flags, runtimeStatus);
+        var ownerWorkspace = await workspaceRepository.GetByIdAsync(updated.OwnerWorkspaceId, cancellationToken)
+            .ConfigureAwait(false);
+        return new PrinterDetailsSnapshot(updated, updatedSettings, flags, runtimeStatus, ownerWorkspace?.Name);
     }
 }
-

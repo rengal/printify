@@ -2,6 +2,7 @@ using Mediator.Net.Contracts;
 using Mediator.Net.Context;
 using Microsoft.Extensions.Logging;
 using Printify.Application.Exceptions;
+using Printify.Application.Features.Printers;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
@@ -25,27 +26,14 @@ public sealed class UpdatePrinterOperationalFlagsHandler(
         var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.Context.WorkspaceId is null)
-        {
-            throw new BadRequestException("Workspace identifier must be provided.");
-        }
-
         if (!HasUpdates(request))
         {
             throw new BadRequestException("At least one operational flag must be provided.");
         }
 
-        var printer = await printerRepository
-            .GetByIdAsync(request.PrinterId, request.Context.WorkspaceId, cancellationToken)
+        var printer = await PrinterAccess
+            .GetWritablePrinterAsync(printerRepository, request.Context, request.PrinterId, cancellationToken)
             .ConfigureAwait(false);
-        if (printer is null)
-        {
-            logger.LogWarning(
-                "Printer {PrinterId} not found for workspace {WorkspaceId} when updating operational flags",
-                request.PrinterId,
-                request.Context.WorkspaceId);
-            throw new PrinterNotFoundException(request.PrinterId);
-        }
 
         var existing = await printerRepository.GetOperationalFlagsAsync(printer.Id, cancellationToken)
             .ConfigureAwait(false);
@@ -78,7 +66,7 @@ public sealed class UpdatePrinterOperationalFlagsHandler(
                             ex,
                             "Failed to start listener for printer {PrinterId} in workspace {WorkspaceId}",
                             request.PrinterId,
-                            request.Context.WorkspaceId);
+                            printer.OwnerWorkspaceId);
                         throw new PrinterListenerStartFailedException("Printer failed to start.");
                     }
                 }

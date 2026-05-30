@@ -44,6 +44,7 @@ public sealed class UpdateWorkspaceHandler(
         var updated = workspace with
         {
             Name = request.Name ?? workspace.Name,
+            Role = workspace.Role,
             DocumentRetentionDays = request.DocumentRetentionDays ?? workspace.DocumentRetentionDays,
             TcpWhitelistEnabled = request.TcpWhitelistEnabled ?? workspace.TcpWhitelistEnabled,
             TcpWhitelistEntries = request.TcpWhitelistEntries ?? workspace.TcpWhitelistEntries

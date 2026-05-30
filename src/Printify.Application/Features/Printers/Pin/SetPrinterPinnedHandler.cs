@@ -1,6 +1,7 @@
 using Mediator.Net.Contracts;
 using Mediator.Net.Context;
 using Printify.Application.Exceptions;
+using Printify.Application.Features.Printers;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
@@ -9,6 +10,7 @@ namespace Printify.Application.Features.Printers.Pin;
 
 public sealed class SetPrinterPinnedHandler(
     IPrinterRepository printerRepository,
+    IWorkspaceRepository workspaceRepository,
     IPrinterStatusStream statusStream,
     IPrinterRuntimeStatusStore runtimeStatusStore)
     : IRequestHandler<SetPrinterPinnedCommand, PrinterDetailsSnapshot>
@@ -19,19 +21,9 @@ public sealed class SetPrinterPinnedHandler(
         var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.Context.WorkspaceId is null)
-        {
-            throw new BadRequestException("Workspace identifier must be provided.");
-        }
-
-        var printer = await printerRepository
-            .GetByIdAsync(request.PrinterId, request.Context.WorkspaceId, cancellationToken)
+        var printer = await PrinterAccess
+            .GetWritablePrinterAsync(printerRepository, request.Context, request.PrinterId, cancellationToken)
             .ConfigureAwait(false);
-
-        if (printer is null)
-        {
-            throw new PrinterNotFoundException(request.PrinterId);
-        }
 
         await printerRepository
             .SetPinnedAsync(request.PrinterId, request.IsPinned, cancellationToken)
@@ -53,7 +45,9 @@ public sealed class SetPrinterPinnedHandler(
             throw new InvalidOperationException($"Settings for printer {updated.Id} are missing.");
         }
         var runtimeStatus = runtimeStatusStore.Get(updated.Id);
-        return new PrinterDetailsSnapshot(updated, settings, flags, runtimeStatus);
+        var ownerWorkspace = await workspaceRepository.GetByIdAsync(updated.OwnerWorkspaceId, cancellationToken)
+            .ConfigureAwait(false);
+        return new PrinterDetailsSnapshot(updated, settings, flags, runtimeStatus, ownerWorkspace?.Name);
     }
 }
 

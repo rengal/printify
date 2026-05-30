@@ -5,5 +5,6 @@ namespace Printify.Application.Printing;
 public interface IPrinterStatusStream
 {
     IAsyncEnumerable<PrinterStatusUpdate> Subscribe(Guid workspaceId, CancellationToken ct);
+    IAsyncEnumerable<PrinterStatusUpdate> SubscribeAll(CancellationToken ct);
     void Publish(Guid workspaceId, PrinterStatusUpdate update);
 }

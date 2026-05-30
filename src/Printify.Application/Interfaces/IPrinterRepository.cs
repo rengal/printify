@@ -8,7 +8,16 @@ public interface IPrinterRepository
     ValueTask<Printer?> GetByIdAsync(Guid id, Guid? workspaceId, CancellationToken ct);
     ValueTask<IReadOnlyList<Printer>> ListAllAsync(CancellationToken ct);
     ValueTask<IReadOnlyList<Printer>> ListOwnedAsync(Guid? workspaceId, CancellationToken ct);
-    ValueTask<IReadOnlyList<PrinterSidebarSnapshot>> ListForSidebarAsync(Guid workspaceId, CancellationToken ct);
+    ValueTask<IReadOnlyList<PrinterSidebarSnapshot>> ListForSidebarAsync(
+        Guid workspaceId,
+        bool includeAllWorkspaces,
+        CancellationToken ct);
+    ValueTask<IReadOnlyDictionary<Guid, PrinterSettings>> ListSettingsByPrinterIdsAsync(
+        IReadOnlyCollection<Guid> printerIds,
+        CancellationToken ct);
+    ValueTask<IReadOnlyDictionary<Guid, PrinterOperationalFlags>> ListOperationalFlagsByPrinterIdsAsync(
+        IReadOnlyCollection<Guid> printerIds,
+        CancellationToken ct);
     ValueTask AddAsync(Printer printer, PrinterSettings settings, CancellationToken ct);
     Task UpdateAsync(Printer printer, PrinterSettings settings, CancellationToken ct);
     Task DeleteAsync(Printer printer, CancellationToken ct);

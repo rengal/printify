@@ -327,6 +327,11 @@ namespace Printify.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("name");
 
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("role");
+
                     b.Property<bool>("TcpWhitelistEnabled")
                         .HasColumnType("INTEGER")
                         .HasColumnName("tcp_whitelist_enabled");

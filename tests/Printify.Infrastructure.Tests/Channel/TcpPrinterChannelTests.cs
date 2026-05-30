@@ -38,7 +38,7 @@ public sealed class TcpPrinterChannelTests
             LastDocumentReceivedAt: null);
 
         var workspaceId = printer.OwnerWorkspaceId;
-        var testWorkspace = new Workspace(workspaceId, "test", "token", DateTimeOffset.UtcNow, "127.0.0.1", 30, TcpWhitelistEnabled: false, TcpWhitelistEntries: string.Empty, IsDeleted: false);
+        var testWorkspace = new Workspace(workspaceId, "test", "token", DateTimeOffset.UtcNow, "127.0.0.1", WorkspaceRole.Normal, 30, TcpWhitelistEnabled: false, TcpWhitelistEntries: string.Empty, IsDeleted: false);
         await using var listener = new TcpPrinterListener(printer, settings, () => testWorkspace, new TcpConnectionLog(), NullLogger<TcpPrinterListener>.Instance);
         await listener.StartAsync(CancellationToken.None);
 
@@ -105,7 +105,7 @@ public sealed class TcpPrinterChannelTests
             LastDocumentReceivedAt: null);
 
         var workspaceId = printer.OwnerWorkspaceId;
-        var testWorkspace = new Workspace(workspaceId, "test", "token", DateTimeOffset.UtcNow, "127.0.0.1", 30, TcpWhitelistEnabled: false, TcpWhitelistEntries: string.Empty, IsDeleted: false);
+        var testWorkspace = new Workspace(workspaceId, "test", "token", DateTimeOffset.UtcNow, "127.0.0.1", WorkspaceRole.Normal, 30, TcpWhitelistEnabled: false, TcpWhitelistEntries: string.Empty, IsDeleted: false);
         await using var listener = new TcpPrinterListener(printer, settings, () => testWorkspace, new TcpConnectionLog(), NullLogger<TcpPrinterListener>.Instance);
         await listener.StartAsync(CancellationToken.None);
 

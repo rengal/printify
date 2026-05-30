@@ -36,7 +36,13 @@ public sealed class CreatePrinterHandler(
                 throw new InvalidOperationException($"Settings for printer {existing.Id} are missing.");
             }
             var existingRuntime = runtimeStatusStore.Get(existing.Id);
-            return new PrinterDetailsSnapshot(existing, existingSettings, existingFlags, existingRuntime);
+            var existingWorkspace = await workspaceRepository.GetByIdAsync(existing.OwnerWorkspaceId, ct).ConfigureAwait(false);
+            return new PrinterDetailsSnapshot(
+                existing,
+                existingSettings,
+                existingFlags,
+                existingRuntime,
+                existingWorkspace?.Name);
         }
 
         if (request.Context.WorkspaceId is null)
@@ -104,7 +110,7 @@ public sealed class CreatePrinterHandler(
         }, ct);
 
 
-        return new PrinterDetailsSnapshot(printer, settings, flags, runtimeStatus);
+        return new PrinterDetailsSnapshot(printer, settings, flags, runtimeStatus, creatorWorkspace.Name);
     }
 }
 

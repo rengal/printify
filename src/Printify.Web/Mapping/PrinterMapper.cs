@@ -17,7 +17,7 @@ internal static class PrinterMapper
     {
         ArgumentNullException.ThrowIfNull(printer);
         return new PrinterResponseDto(
-            ToPrinterDto(printer),
+            ToPrinterDto(printer, ownerWorkspaceName: null),
             ToSettingsDto(settings, publicHost),
             ToOperationalFlagsDto(operationalFlags),
             ToRuntimeStatusDto(runtimeStatus));
@@ -27,16 +27,39 @@ internal static class PrinterMapper
     {
         ArgumentNullException.ThrowIfNull(snapshot);
 
-        return snapshot.Printer.ToResponseDto(snapshot.Settings, snapshot.OperationalFlags, snapshot.RuntimeStatus, publicHost);
+        return snapshot.Printer.ToResponseDto(
+            snapshot.Settings,
+            snapshot.OperationalFlags,
+            snapshot.RuntimeStatus,
+            publicHost,
+            snapshot.OwnerWorkspaceName);
     }
 
-    internal static PrinterDto ToPrinterDto(this Printer printer)
+    internal static PrinterResponseDto ToResponseDto(
+        this Printer printer,
+        PrinterSettings settings,
+        PrinterOperationalFlags? operationalFlags,
+        PrinterRuntimeStatus? runtimeStatus,
+        string publicHost,
+        string? ownerWorkspaceName)
+    {
+        ArgumentNullException.ThrowIfNull(printer);
+        return new PrinterResponseDto(
+            ToPrinterDto(printer, ownerWorkspaceName),
+            ToSettingsDto(settings, publicHost),
+            ToOperationalFlagsDto(operationalFlags),
+            ToRuntimeStatusDto(runtimeStatus));
+    }
+
+    internal static PrinterDto ToPrinterDto(this Printer printer, string? ownerWorkspaceName = null)
     {
         ArgumentNullException.ThrowIfNull(printer);
 
         return new PrinterDto(
             printer.Id,
             printer.DisplayName,
+            printer.OwnerWorkspaceId,
+            ownerWorkspaceName,
             printer.IsPinned,
             printer.LastViewedDocumentId,
             printer.LastDocumentReceivedAt);
@@ -148,7 +171,7 @@ internal static class PrinterMapper
         ArgumentNullException.ThrowIfNull(snapshot);
 
         return new PrinterSidebarSnapshotDto(
-            ToPrinterDto(snapshot.Printer),
+            ToPrinterDto(snapshot.Printer, snapshot.OwnerWorkspaceName),
             ToRuntimeStatusDto(snapshot.RuntimeStatus));
     }
 

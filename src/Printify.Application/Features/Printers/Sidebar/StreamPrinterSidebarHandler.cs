@@ -1,15 +1,17 @@
 using System.Runtime.CompilerServices;
 using Mediator.Net.Contracts;
 using Mediator.Net.Context;
-using Printify.Application.Exceptions;
+using Printify.Application.Features.Printers;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
+using Printify.Domain.Workspaces;
 
 namespace Printify.Application.Features.Printers.Sidebar;
 
 public sealed class StreamPrinterSidebarHandler(
     IPrinterRepository printerRepository,
+    IWorkspaceRepository workspaceRepository,
     IPrinterRuntimeStatusStore runtimeStatusStore,
     IPrinterStatusStream statusStream)
     : IRequestHandler<StreamPrinterSidebarQuery, PrinterSidebarStreamResult>
@@ -22,24 +24,24 @@ public sealed class StreamPrinterSidebarHandler(
         var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.Context.WorkspaceId is null)
-        {
-            throw new BadRequestException("Workspace identifier must be provided.");
-        }
-
-        var workspaceId = request.Context.WorkspaceId.Value;
+        var workspaceId = PrinterAccess.RequireWorkspaceId(request.Context);
+        var workspace = await workspaceRepository.GetByIdAsync(workspaceId, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Workspace {workspaceId} not found.");
         // Subscribe eagerly so the channel is registered before the response headers are flushed.
         // Use CancellationToken.None here — the controller applies client-disconnect cancellation
         // via WithCancellation() when it iterates the result. The handler's cancellationToken is
         // scoped to the request dispatch and may fire before streaming completes.
-        var subscription = statusStream.Subscribe(workspaceId, CancellationToken.None);
-        var updates = ReadUpdatesAsync(workspaceId, subscription, CancellationToken.None);
+        var subscription = workspace.Role == WorkspaceRole.Admin
+            ? statusStream.SubscribeAll(CancellationToken.None)
+            : statusStream.Subscribe(workspaceId, CancellationToken.None);
+        var updates = ReadUpdatesAsync(workspaceId, workspace.Role == WorkspaceRole.Admin, subscription, CancellationToken.None);
 
         return new PrinterSidebarStreamResult("sidebar", updates);
     }
 
     private async IAsyncEnumerable<PrinterSidebarSnapshot> ReadUpdatesAsync(
         Guid workspaceId,
+        bool includeAllWorkspaces,
         IAsyncEnumerable<PrinterStatusUpdate> subscription,
         [EnumeratorCancellation] CancellationToken ct)
     {
@@ -55,7 +57,7 @@ public sealed class StreamPrinterSidebarHandler(
             }
 
             var printer = update.Printer ?? await printerRepository
-                .GetByIdAsync(update.PrinterId, workspaceId, ct)
+                .GetByIdAsync(update.PrinterId, includeAllWorkspaces ? null : workspaceId, ct)
                 .ConfigureAwait(false);
             if (printer is null)
             {
@@ -63,12 +65,14 @@ public sealed class StreamPrinterSidebarHandler(
             }
 
             var currentStatus = runtimeStatusStore.Get(printer.Id);
+            var ownerWorkspace = await workspaceRepository.GetByIdAsync(printer.OwnerWorkspaceId, ct)
+                .ConfigureAwait(false);
 
             // Get or create baseline for this printer.
             // Use null RuntimeStatus on first encounter so the first update always passes through.
             if (!baselines.TryGetValue(printer.Id, out var baseline))
             {
-                baseline = new PrinterSidebarSnapshot(printer, null);
+                baseline = new PrinterSidebarSnapshot(printer, null, ownerWorkspace?.Name);
             }
 
             // Check for printer changes (sidebar only shows name and pin status)
@@ -89,9 +93,9 @@ public sealed class StreamPrinterSidebarHandler(
             }
 
             // Update baseline with current state
-            baselines[printer.Id] = new PrinterSidebarSnapshot(printer, currentStatus);
+            baselines[printer.Id] = new PrinterSidebarSnapshot(printer, currentStatus, ownerWorkspace?.Name);
 
-            yield return new PrinterSidebarSnapshot(printer, runtimeUpdate);
+            yield return new PrinterSidebarSnapshot(printer, runtimeUpdate, ownerWorkspace?.Name);
         }
     }
 

@@ -1,6 +1,7 @@
 using Mediator.Net.Contracts;
 using Mediator.Net.Context;
 using Printify.Application.Exceptions;
+using Printify.Application.Features.Printers;
 using Printify.Application.Interfaces;
 using Printify.Application.Mediation;
 using Printify.Application.Printing;
@@ -22,14 +23,9 @@ public sealed class ClearPrinterDocumentsHandler(
         ArgumentNullException.ThrowIfNull(request);
 
         // Ensure the printer belongs to the current workspace before deleting documents.
-        var printer = await printerRepository.GetByIdAsync(
-            request.PrinterId,
-            request.Context.WorkspaceId,
-            cancellationToken).ConfigureAwait(false);
-
-        // Stop when the printer is missing or outside the current workspace.
-        if (printer is null)
-            throw new PrinterNotFoundException(request.PrinterId);
+        var printer = await PrinterAccess
+            .GetWritablePrinterAsync(printerRepository, request.Context, request.PrinterId, cancellationToken)
+            .ConfigureAwait(false);
 
         // Delete all persisted documents tied to the printer in a single operation.
         await documentRepository.ClearByPrinterIdAsync(request.PrinterId, cancellationToken).ConfigureAwait(false);

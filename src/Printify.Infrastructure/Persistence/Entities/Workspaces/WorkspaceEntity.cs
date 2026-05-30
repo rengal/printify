@@ -17,6 +17,9 @@ public sealed class WorkspaceEntity : BaseEntity
     [Column("created_from_ip")]
     public string CreatedFromIp { get; set; } = string.Empty;
 
+    [Column("role")]
+    public string Role { get; set; } = "Normal";
+
     [Column("document_retention_days")]
     public int DocumentRetentionDays { get; set; } = 30; // Default: 30 days
 

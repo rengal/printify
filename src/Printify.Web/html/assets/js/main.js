@@ -3,8 +3,10 @@
         // API + Workspace State
         const apiBase = '';
         let workspaceToken = null;
+        let workspaceId = null;
         let workspaceName = null;
         let workspaceCreatedAt = null;
+        let workspaceRole = 'Normal';
         let accessToken = null;
         let workspaceTcpWhitelistEnabled = false;
 
@@ -131,6 +133,9 @@
             return {
                 id: dto.printer.id,
                 name: dto.printer.displayName,
+                ownerWorkspaceId: dto.printer.ownerWorkspaceId,
+                ownerWorkspaceName: dto.printer.ownerWorkspaceName || null,
+                isForeign: Boolean(workspaceId && dto.printer.ownerWorkspaceId && dto.printer.ownerWorkspaceId !== workspaceId),
                 protocol: dto.settings.protocol,
                 width: dto.settings.widthInDots,
                 height: dto.settings.heightInDots,
@@ -162,6 +167,18 @@
 
         function getPrinterById(id) {
             return printers.find(p => p.id === id) || null;
+        }
+
+        function isForeignPrinter(printerId) {
+            return getPrinterById(printerId)?.isForeign === true;
+        }
+
+        function canMutatePrinter(printerId) {
+            if (!isForeignPrinter(printerId)) {
+                return true;
+            }
+
+            return false;
         }
 
         function getTcpWhitelistEnabled() {
@@ -311,43 +328,10 @@
 
         // Render Functions
         function renderSidebar() {
-            const pinnedList = document.getElementById('pinnedList');
-            const otherList = document.getElementById('otherList');
-
-            const pinnedPrinters = printers.filter(p => p.pinned).sort((a, b) => a.pinOrder - b.pinOrder);
-            const otherPrinters = printers.filter(p => !p.pinned).sort((a, b) => a.name.localeCompare(b.name));
-
-
-            pinnedList.innerHTML = pinnedPrinters.map(p => renderPrinterItem(p, true)).join('');
-            otherList.innerHTML = otherPrinters.map(p => renderPrinterItem(p, false)).join('');
-        }
-
-        function renderPrinterItem(p, isPinned) {
-            const isStopped = p.runtimeStatus === 'stopped';
-
-            // Pin icon (if pinned) + name + red alert icon (if stopped)
-            let pinIcon = '';
-            if (isPinned) {
-                pinIcon = '<svg class="pin-icon pin-icon-filled" width="12" height="12" viewBox="0 0 24 24" fill="#10b981" stroke="#10b981" stroke-width="2"><path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7-6.3-4.6-6.3 4.6 2.3-7-6-4.6h7.6z"/></svg> ';
-            }
-
-            let statusIcon = '';
-            if (isStopped) {
-                statusIcon = '<img class="stopped-icon" src="assets/icons/alert-triangle.svg" width="18" height="18" alt="Printer is stopped" title="Printer is stopped">';
-            }
-
-            return `
-            <div class="list-item ${selectedPrinterId === p.id ? 'active' : ''} ${isStopped ? 'has-status-icon' : ''}" onclick="selectPrinter('${p.id}')">
-              <span class="list-item-name">${pinIcon}${escapeHtml(p.name)}</span>${statusIcon}
-              <button class="list-item-gear" onclick="event.stopPropagation(); toggleOperationsForPrinter('${p.id}')" title="Toggle operations">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="1"></circle>
-                  <circle cx="12" cy="5" r="1"></circle>
-                  <circle cx="12" cy="19" r="1"></circle>
-                </svg>
-              </button>
-            </div>
-          `;
+            window.Sidebar?.render({
+                printers,
+                selectedPrinterId
+            });
         }
 
         async function selectPrinter(id) {
@@ -361,7 +345,7 @@
 
                 // Load operations panel and documents panel in parallel
                 const opsPromise = (window.OperationsPanel && accessToken)
-                    ? OperationsPanel.loadPanel(id, accessToken, document.getElementById('operationsPanel'))
+                    ? OperationsPanel.loadPanel(id, accessToken, document.getElementById('operationsPanel'), { readOnly: printer.isForeign })
                         .then(() => {
                             console.debug(`[selectPrinter] loadPanel: ${(performance.now() - t0).toFixed(0)}ms`);
                             OperationsPanel.restoreDangerZoneState();
@@ -814,6 +798,7 @@
         async function togglePin(printerId) {
             const printer = printers.find(p => p.id === printerId);
             if (!printer) return;
+            if (!canMutatePrinter(printerId)) return;
 
             try {
                 await apiRequest(`/api/printers/${printerId}/pin`, {
@@ -831,6 +816,7 @@
         async function deletePrinter(printerId) {
             const printer = printers.find(p => p.id === printerId);
             if (!printer) return;
+            if (!canMutatePrinter(printerId)) return;
 
             const docCount = window.DocumentsPanel?.getDocCount(printerId) ?? 0;
             let message = `Are you sure you want to delete "<strong>${escapeHtml(printer.name)}</strong>"?`;
@@ -867,6 +853,7 @@
         async function setPrinterStatus(printerId, targetStatus) {
             const printer = printers.find(p => p.id === printerId);
             if (!printer) return;
+            if (!canMutatePrinter(printerId)) return;
 
             try {
                 await apiRequest(`/api/printers/${printerId}/operational-flags`, {
@@ -895,6 +882,7 @@
         async function toggleOperationalFlag(printerId, flagName, value) {
             const printer = getPrinterById(printerId);
             if (!printer) return;
+            if (!canMutatePrinter(printerId)) return;
 
             try {
                 const body = {};
@@ -915,6 +903,7 @@
         async function setDrawerState(printerId, drawerName, state) {
             const printer = getPrinterById(printerId);
             if (!printer) return;
+            if (!canMutatePrinter(printerId)) return;
 
             try {
                 const body = {};
@@ -957,6 +946,7 @@
 
         function importDocument(printerId) {
             if (!printerId) return;
+            if (!canMutatePrinter(printerId)) return;
             if (window.ImportDocumentDialog) {
                 ImportDocumentDialog.show(printerId);
             }
@@ -965,6 +955,7 @@
         async function clearDocuments(printerId) {
             const printer = printers.find(p => p.id === printerId);
             if (!printer) return;
+            if (!canMutatePrinter(printerId)) return;
 
             const docCount = window.DocumentsPanel?.getDocCount(printerId) ?? 0;
             let message;
@@ -1015,6 +1006,7 @@
         function editPrinter(printerId) {
             const printer = printers.find(p => p.id === printerId);
             if (!printer) return;
+            if (!canMutatePrinter(printerId)) return;
 
             if (window.PrinterDialogue) {
                 PrinterDialogue.showEdit(printer);
@@ -1054,7 +1046,9 @@
                 accessToken = loginResponse.accessToken;
                 updateWorkspaceToken(token); // This will invalidate cache if token changed
                 const workspace = loginResponse.workspace;
+                workspaceId = workspace?.id ?? null;
                 workspaceName = workspace?.name || null;
+                workspaceRole = workspace?.role || 'Normal';
                 workspaceCreatedAt = workspace?.createdAt ? new Date(workspace.createdAt) : new Date();
                 workspaceTcpWhitelistEnabled = workspace?.tcpWhitelistEnabled === true;
 
@@ -1073,7 +1067,9 @@
                 try {
                     const workspace = await apiRequest('/api/workspaces');
                     if (workspace && workspace.name) {
+                        workspaceId = workspace.id ?? null;
                         workspaceName = workspace.name;
+                        workspaceRole = workspace.role || 'Normal';
                         workspaceTcpWhitelistEnabled = workspace.tcpWhitelistEnabled === true;
                         localStorage.setItem('workspaceName', workspaceName);
                         window.WorkspaceMenu?.updateDisplay(workspaceToken, workspaceName);
@@ -1101,7 +1097,9 @@
                 // ignore logout errors
             }
             workspaceToken = null;
+            workspaceId = null;
             workspaceName = null;
+            workspaceRole = 'Normal';
             accessToken = null;
             workspaceTcpWhitelistEnabled = false;
             printers = [];
@@ -1317,6 +1315,11 @@
             if (payload.printer?.isPinned !== undefined) {
                 updated.pinned = payload.printer.isPinned;
             }
+            if (payload.printer?.lastDocumentReceivedAt !== undefined) {
+                updated.lastDocumentAt = payload.printer.lastDocumentReceivedAt
+                    ? new Date(payload.printer.lastDocumentReceivedAt)
+                    : null;
+            }
 
             const runtime = payload.runtimeStatus;
             if (runtime?.state) {
@@ -1396,7 +1399,9 @@
                 showToast: (msg, isError) => showToast(msg, isError),
                 onWorkspaceCreated: (token, name) => {
                     updateWorkspaceToken(token);
+                    workspaceId = null;
                     workspaceName = name;
+                    workspaceRole = 'Normal';
                     workspaceTcpWhitelistEnabled = false;
                     WorkspaceMenu.updateDisplay(token, workspaceName);
                     renderSidebar();
@@ -1493,7 +1498,9 @@
                 try {
                     const workspaceInfo = await apiRequest('/api/workspaces');
                     if (workspaceInfo && workspaceInfo.name) {
+                        workspaceId = workspaceInfo.id ?? null;
                         workspaceName = workspaceInfo.name;
+                        workspaceRole = workspaceInfo.role || 'Normal';
                         workspaceTcpWhitelistEnabled = workspaceInfo.tcpWhitelistEnabled === true;
                         localStorage.setItem('workspaceName', workspaceName);
                         WorkspaceMenu.updateDisplay(workspaceToken, workspaceName);

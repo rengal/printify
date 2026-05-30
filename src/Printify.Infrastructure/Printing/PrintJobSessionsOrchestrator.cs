@@ -98,6 +98,13 @@ public sealed class PrintJobSessionsOrchestrator(
                     finalizedDocument.Timestamp,
                     ct)
                 .ConfigureAwait(false);
+            // Notify sidebar subscribers so admin cross-workspace ordering can follow the latest document time.
+            statusStream.Publish(
+                channel.Printer.OwnerWorkspaceId,
+                new PrinterStatusUpdate(
+                    channel.Printer.Id,
+                    DateTimeOffset.UtcNow,
+                    Printer: channel.Printer with { LastDocumentReceivedAt = finalizedDocument.Timestamp }));
             // Update cash drawers status, if needed
             var drawerUpdate = await TryUpdateDrawerStateFromElementsAsync(
                 channel.Printer,

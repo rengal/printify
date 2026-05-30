@@ -15,6 +15,12 @@ internal class AuthHelper
 {
     public static async Task CreateWorkspaceAndLogin(TestServiceContext.ControllerTestContext environment)
     {
+        await CreateWorkspaceAndLoginReturningToken(environment);
+    }
+
+    public static async Task<(Guid WorkspaceId, string Token)> CreateWorkspaceAndLoginReturningToken(
+        TestServiceContext.ControllerTestContext environment)
+    {
         var client = environment.Client;
 
         var workspaceName = "workspace_" + Guid.NewGuid().ToString("N");
@@ -40,6 +46,8 @@ internal class AuthHelper
 
         // Set jwt access token for further requests
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        return (workspaceId, token);
     }
 
     public static async Task Login(HttpClient client, string token)

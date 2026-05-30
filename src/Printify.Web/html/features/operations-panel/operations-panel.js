@@ -238,7 +238,7 @@ export function isPanelReady(printerId) {
  * @param {string} accessToken - Access token for API calls
  * @returns {Promise<Element>} The panel element to attach to DOM
  */
-export async function loadPanel(printerId, accessToken, targetContainer) {
+export async function loadPanel(printerId, accessToken, targetContainer, options = {}) {
     // 1. Load template if not already loaded
     if (!template) {
         await loadTemplate();
@@ -267,9 +267,39 @@ export async function loadPanel(printerId, accessToken, targetContainer) {
 
     // 8. Apply all data (full update)
     applyData(cachedElements, data, printerId);
+    applyReadOnlyState(panelElement, cachedElements, options.readOnly === true);
 
     // 9. Return element (already in DOM)
     return panelElement;
+}
+
+function applyReadOnlyState(panelElement, elements, isReadOnly) {
+    panelElement.classList.toggle('readonly', isReadOnly);
+
+    const writeControls = [
+        elements.startStopBtn,
+        elements.editBtn,
+        elements.pinBtn,
+        elements.flagCoverOpen,
+        elements.flagPaperOut,
+        elements.flagOffline,
+        elements.flagError,
+        elements.drawer1Btn,
+        elements.drawer2Btn,
+        elements.importDocumentBtn,
+        elements.dangerHeader,
+        elements.dangerContent?.querySelector('[data-action="clear-documents"]'),
+        elements.dangerContent?.querySelector('[data-action="delete-printer"]')
+    ];
+
+    for (const control of writeControls) {
+        if (!control) {
+            continue;
+        }
+
+        control.disabled = isReadOnly;
+        control.title = '';
+    }
 }
 
 /**

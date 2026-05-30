@@ -19,7 +19,11 @@ namespace Printify.Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public sealed class WorkspacesController(IMediator mediator, HttpContextExtensions httpExtensions, ITcpConnectionLog connectionLog) : ControllerBase
+public sealed class WorkspacesController(
+    IMediator mediator,
+    HttpContextExtensions httpExtensions,
+    ITcpConnectionLog connectionLog)
+    : ControllerBase
 {
     [HttpPost]
     public async Task<ActionResult<WorkspaceDto>> CreateWorkspace(
@@ -31,7 +35,8 @@ public sealed class WorkspacesController(IMediator mediator, HttpContextExtensio
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var command = request.ToCommand(httpContext);
 
-        var workspace = await mediator.RequestAsync<CreateWorkspaceCommand, Workspace>(command, ct).ConfigureAwait(false);
+        var workspace = await mediator.RequestAsync<CreateWorkspaceCommand, Workspace>(command, ct)
+            .ConfigureAwait(false);
         var workspaceDto = workspace.ToResponseDto();
 
         return Ok(workspaceDto);
@@ -43,12 +48,19 @@ public sealed class WorkspacesController(IMediator mediator, HttpContextExtensio
     {
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var command = new GetCurrentWorkspaceCommand(httpContext);
-        var workspace = await mediator.RequestAsync<GetCurrentWorkspaceCommand, Workspace>(command, ct).ConfigureAwait(false);
+        var workspace = await mediator.RequestAsync<GetCurrentWorkspaceCommand, Workspace>(command, ct)
+            .ConfigureAwait(false);
 
-        // Record this web connection so the whitelist UI can distinguish browser vs TCP traffic.
-        if (httpContext.WorkspaceId.HasValue && !string.IsNullOrEmpty(httpContext.IpAddress))
+        // Admin workspaces can inspect foreign printers; do not let admin browser traffic pollute IP whitelist hints.
+        if (workspace.Role != WorkspaceRole.Admin
+            && httpContext.WorkspaceId.HasValue
+            && !string.IsNullOrEmpty(httpContext.IpAddress))
         {
-            connectionLog.Record(httpContext.WorkspaceId.Value, httpContext.IpAddress, allowed: true, ConnectionType.Web);
+            connectionLog.Record(
+                httpContext.WorkspaceId.Value,
+                httpContext.IpAddress,
+                allowed: true,
+                ConnectionType.Web);
         }
 
         return Ok(workspace.ToDto());
@@ -61,7 +73,8 @@ public sealed class WorkspacesController(IMediator mediator, HttpContextExtensio
         var httpContext = await httpExtensions.CaptureRequestContext(HttpContext);
         var query = new GetWorkspaceSummaryQuery(httpContext);
 
-        var summary = await mediator.RequestAsync<GetWorkspaceSummaryQuery, WorkspaceSummary>(query, ct).ConfigureAwait(false);
+        var summary = await mediator.RequestAsync<GetWorkspaceSummaryQuery, WorkspaceSummary>(query, ct)
+            .ConfigureAwait(false);
         var summaryDto = summary.ToDto();
 
         return Ok(summaryDto);
@@ -100,8 +113,14 @@ public sealed class WorkspacesController(IMediator mediator, HttpContextExtensio
             }
         }
 
-        var command = new UpdateWorkspaceCommand(httpContext, request.Name, request.DocumentRetentionDays, request.TcpWhitelistEnabled, request.TcpWhitelistEntries);
-        var workspace = await mediator.RequestAsync<UpdateWorkspaceCommand, Workspace>(command, ct).ConfigureAwait(false);
+        var command = new UpdateWorkspaceCommand(
+            httpContext,
+            request.Name,
+            request.DocumentRetentionDays,
+            request.TcpWhitelistEnabled,
+            request.TcpWhitelistEntries);
+        var workspace = await mediator.RequestAsync<UpdateWorkspaceCommand, Workspace>(command, ct)
+            .ConfigureAwait(false);
 
         return Ok(workspace.ToDto());
     }
@@ -120,11 +139,18 @@ public sealed class WorkspacesController(IMediator mediator, HttpContextExtensio
 
     [Authorize]
     [HttpGet("connections")]
-    public ActionResult<IReadOnlyList<TcpConnectionEntryDto>> GetRecentConnections([FromQuery] int? minutes)
+    public async Task<ActionResult<IReadOnlyList<TcpConnectionEntryDto>>> GetRecentConnections(
+        [FromQuery] int? minutes,
+        CancellationToken ct)
     {
         var ctx = httpExtensions.GetRequestContext(HttpContext);
         if (ctx.WorkspaceId is null)
             return Unauthorized();
+
+        var workspace = await mediator.RequestAsync<GetCurrentWorkspaceCommand, Workspace>(
+                new GetCurrentWorkspaceCommand(ctx),
+                ct)
+            .ConfigureAwait(false);
 
         var window = minutes is > 0 and <= 1440
             ? TimeSpan.FromMinutes(minutes.Value)
@@ -134,9 +160,9 @@ public sealed class WorkspacesController(IMediator mediator, HttpContextExtensio
 
         // For Web connections keep only the latest entry per IP (deduplicate repeated polls).
         // For TCP connections keep all entries (each attempt is meaningful).
-        // Internal monitoring IPs are excluded from the list.
+        // Admin browser traffic is not a useful whitelist hint because admins can inspect foreign workspaces.
         var dtos = entries
-            .Where(e => !(e.ConnectionType == ConnectionType.Web && e.ClientIp == "89.22.54.160"))
+            .Where(e => workspace.Role != WorkspaceRole.Admin || e.ConnectionType != ConnectionType.Web)
             .OrderByDescending(e => e.ConnectedAt)
             .GroupBy(e => (e.ConnectionType, e.ClientIp))
             .SelectMany(g => g.Key.ConnectionType == ConnectionType.Web ? g.Take(1) : g)

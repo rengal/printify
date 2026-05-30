@@ -31,6 +31,7 @@ public sealed class CreateWorkspaceHandler(IWorkspaceRepository workspaceReposit
             token,
             DateTimeOffset.UtcNow,
             request.Context.IpAddress,
+            WorkspaceRole.Normal,
             30, // Default document retention days: 30
             TcpWhitelistEnabled: true,
             TcpWhitelistEntries: request.Context.IpAddress,

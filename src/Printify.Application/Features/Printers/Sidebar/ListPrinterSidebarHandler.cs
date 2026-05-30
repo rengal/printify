@@ -1,14 +1,16 @@
 using Mediator.Net.Contracts;
 using Mediator.Net.Context;
-using Printify.Application.Exceptions;
+using Printify.Application.Features.Printers;
 using Printify.Application.Interfaces;
 using Printify.Application.Printing;
 using Printify.Domain.Printers;
+using Printify.Domain.Workspaces;
 
 namespace Printify.Application.Features.Printers.Sidebar;
 
 public sealed class ListPrinterSidebarHandler(
     IPrinterRepository printerRepository,
+    IWorkspaceRepository workspaceRepository,
     IPrinterRuntimeStatusStore runtimeStatusStore)
     : IRequestHandler<ListPrinterSidebarQuery, PrinterSidebarListResponse>
 {
@@ -20,13 +22,12 @@ public sealed class ListPrinterSidebarHandler(
         var request = context.Message;
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.Context.WorkspaceId is null)
-        {
-            throw new BadRequestException("Workspace identifier must be provided.");
-        }
+        var workspaceId = PrinterAccess.RequireWorkspaceId(request.Context);
+        var workspace = await workspaceRepository.GetByIdAsync(workspaceId, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Workspace {workspaceId} not found.");
 
         var snapshots = await printerRepository
-            .ListForSidebarAsync(request.Context.WorkspaceId.Value, cancellationToken)
+            .ListForSidebarAsync(workspaceId, workspace.Role == WorkspaceRole.Admin, cancellationToken)
             .ConfigureAwait(false);
 
         if (snapshots.Count == 0)

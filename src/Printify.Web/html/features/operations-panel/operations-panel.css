@@ -83,6 +83,18 @@
     font-size: 15px;
 }
 
+.operations-panel.readonly [data-action="start-stop"],
+.operations-panel.readonly [data-action="edit"],
+.operations-panel.readonly [data-action="toggle-pin"],
+.operations-panel.readonly [data-action="inject-document"],
+.operations-panel.readonly [data-action="toggle-drawer"],
+.operations-panel.readonly [data-action="clear-documents"],
+.operations-panel.readonly [data-action="delete-printer"],
+.operations-panel.readonly [data-flag] {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
 .info-row {
     display: flex;
     align-items: center;

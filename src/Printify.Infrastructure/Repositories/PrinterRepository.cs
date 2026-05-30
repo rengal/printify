@@ -55,11 +55,15 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
             .ConfigureAwait(false);
     }
 
-    public async ValueTask<IReadOnlyList<PrinterSidebarSnapshot>> ListForSidebarAsync(Guid workspaceId, CancellationToken ct)
+    public async ValueTask<IReadOnlyList<PrinterSidebarSnapshot>> ListForSidebarAsync(
+        Guid workspaceId,
+        bool includeAllWorkspaces,
+        CancellationToken ct)
     {
         var printers = await dbContext.Printers
             .AsNoTracking()
-            .Where(p => !p.IsDeleted && p.OwnerWorkspaceId == workspaceId)
+            .Where(p => !p.IsDeleted)
+            .Where(p => includeAllWorkspaces || p.OwnerWorkspaceId == workspaceId)
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
@@ -68,10 +72,72 @@ public sealed class PrinterRepository(PrintifyDbContext dbContext) : IPrinterRep
             return [];
         }
 
-        return printers
-            .Select(printer =>
-                new PrinterSidebarSnapshot(printer.ToDomain()))
+        var ownedPrinters = printers
+            .Where(printer => printer.OwnerWorkspaceId == workspaceId);
+        var foreignPrinters = printers
+            .Where(printer => printer.OwnerWorkspaceId != workspaceId)
+            .OrderByDescending(printer => printer.LastDocumentReceivedAt.HasValue)
+            .ThenByDescending(printer => printer.LastDocumentReceivedAt)
+            .ThenBy(printer => printer.DisplayName);
+
+        var workspaceIds = printers
+            .Select(printer => printer.OwnerWorkspaceId)
+            .Distinct()
             .ToList();
+        var workspaceNames = await dbContext.Workspaces
+            .AsNoTracking()
+            .Where(workspace => workspaceIds.Contains(workspace.Id))
+            .ToDictionaryAsync(workspace => workspace.Id, workspace => workspace.Name, ct)
+            .ConfigureAwait(false);
+
+        return ownedPrinters
+            .Concat(foreignPrinters)
+            .Select(printer =>
+                new PrinterSidebarSnapshot(
+                    printer.ToDomain(),
+                    OwnerWorkspaceName: workspaceNames.GetValueOrDefault(printer.OwnerWorkspaceId)))
+            .ToList();
+    }
+
+    public async ValueTask<IReadOnlyDictionary<Guid, PrinterSettings>> ListSettingsByPrinterIdsAsync(
+        IReadOnlyCollection<Guid> printerIds,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(printerIds);
+        if (printerIds.Count == 0)
+        {
+            return new Dictionary<Guid, PrinterSettings>();
+        }
+
+        var printers = await dbContext.Printers
+            .AsNoTracking()
+            .Where(printer => printerIds.Contains(printer.Id) && !printer.IsDeleted)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        return printers
+            .ToDictionary(printer => printer.Id, printer => printer.ToSettings());
+    }
+
+    public async ValueTask<IReadOnlyDictionary<Guid, PrinterOperationalFlags>> ListOperationalFlagsByPrinterIdsAsync(
+        IReadOnlyCollection<Guid> printerIds,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(printerIds);
+        if (printerIds.Count == 0)
+        {
+            return new Dictionary<Guid, PrinterOperationalFlags>();
+        }
+
+        var statuses = await dbContext.PrinterOperationalFlags
+            .AsNoTracking()
+            .Where(status => printerIds.Contains(status.PrinterId))
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        return statuses
+            .Select(status => status.ToDomain())
+            .ToDictionary(status => status.PrinterId);
     }
 
     public async ValueTask AddAsync(Printer printer, PrinterSettings settings, CancellationToken ct)
