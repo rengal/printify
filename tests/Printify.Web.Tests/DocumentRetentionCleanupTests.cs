@@ -1,13 +1,20 @@
+using System.Net;
+using System.Net.Http.Json;
+
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+
 using Printify.Domain.Config;
+using Printify.Domain.Workspaces;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Persistence.Entities.Documents;
 using Printify.Infrastructure.Persistence.Entities.Printers;
 using Printify.Infrastructure.Persistence.Entities.Workspaces;
 using Printify.Infrastructure.Retention;
 using Printify.TestServices;
+using Printify.Web.Contracts.Workspaces.Requests;
+using Printify.Web.Contracts.Workspaces.Responses;
 
 namespace Printify.Web.Tests;
 
@@ -72,6 +79,10 @@ public sealed class DocumentRetentionCleanupTests(WebApplicationFactory<Program>
         {
             var cleanup = scope.ServiceProvider.GetRequiredService<DocumentRetentionCleanupService>();
 
+            var summary = await cleanup.GetSummaryAsync(now, retainedWorkspaceId, CancellationToken.None);
+            Assert.Equal(1, summary.ExpiredDocuments);
+            Assert.Equal(1, summary.RetentionMediaFiles);
+
             var result = await cleanup.RunOnceAsync(now, CancellationToken.None);
 
             Assert.Equal(1, result.DeletedDocuments);
@@ -98,6 +109,126 @@ public sealed class DocumentRetentionCleanupTests(WebApplicationFactory<Program>
         Assert.True(File.Exists(ToFullMediaPath(environment, sharedMediaPath)));
         Assert.False(File.Exists(ToFullMediaPath(environment, expiredOnlyMediaPath)));
         Assert.True(File.Exists(ToFullMediaPath(environment, foreverMediaPath)));
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_WithMaxDocuments_DeletesOnlyRequestedDocuments()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var now = DateTimeOffset.UtcNow;
+        var workspaceId = Guid.NewGuid();
+        var printerId = Guid.NewGuid();
+        var firstExpiredDocumentId = Guid.NewGuid();
+        var secondExpiredDocumentId = Guid.NewGuid();
+
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+
+            dbContext.Workspaces.Add(CreateWorkspace(workspaceId, "limited", documentRetentionDays: 1));
+            dbContext.Printers.Add(CreatePrinter(printerId, workspaceId, port: 45103));
+            dbContext.Documents.AddRange(
+                CreateDocument(firstExpiredDocumentId, printerId, now.AddDays(-3)),
+                CreateDocument(secondExpiredDocumentId, printerId, now.AddDays(-2)));
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        await using (var scope = environment.CreateScope())
+        {
+            var cleanup = scope.ServiceProvider.GetRequiredService<DocumentRetentionCleanupService>();
+
+            var result = await cleanup.RunOnceAsync(
+                now,
+                workspaceId,
+                maxDocuments: 1,
+                cancellationToken: CancellationToken.None);
+
+            Assert.Equal(1, result.DeletedDocuments);
+            Assert.Equal(0, result.DeletedMedia);
+        }
+
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+
+            Assert.Null(await dbContext.Documents.FindAsync(firstExpiredDocumentId));
+            Assert.NotNull(await dbContext.Documents.FindAsync(secondExpiredDocumentId));
+        }
+    }
+
+    [Fact]
+    public async Task RetentionCleanupEndpoints_ForNormalWorkspace_ReturnForbidden()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        await AuthHelper.CreateWorkspaceAndLogin(environment);
+
+        var summaryResponse = await environment.Client.GetAsync("/api/workspaces/retention/cleanup-summary");
+        var runResponse = await environment.Client.PostAsJsonAsync(
+            "/api/workspaces/retention/cleanup",
+            new RunDocumentRetentionCleanupRequestDto(10));
+
+        Assert.Equal(HttpStatusCode.Forbidden, summaryResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, runResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task RunRetentionCleanupEndpoint_ForAdminWorkspace_DeletesUnreferencedMediaFile()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var now = DateTimeOffset.UtcNow;
+        var (workspaceId, _) = await AuthHelper.CreateWorkspaceAndLoginReturningToken(environment);
+        var printerId = Guid.NewGuid();
+        var documentId = Guid.NewGuid();
+        var mediaId = Guid.NewGuid();
+        string mediaPath;
+
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+            var storage = scope.ServiceProvider.GetRequiredService<IOptions<Storage>>().Value;
+            var workspace = await dbContext.Workspaces.FindAsync(workspaceId);
+            Assert.NotNull(workspace);
+
+            // Only admins can run manual retention; use one-day retention so the seeded document is expired.
+            workspace.Role = WorkspaceRole.Admin.ToString();
+            workspace.DocumentRetentionDays = 1;
+
+            mediaPath = CreateMediaFile(storage.MediaRootPath, mediaId);
+            dbContext.Printers.Add(CreatePrinter(printerId, workspaceId, port: 45104));
+            dbContext.DocumentMedia.Add(CreateMedia(mediaId, workspaceId, mediaPath));
+            dbContext.Documents.Add(CreateDocument(documentId, printerId, now.AddDays(-2)));
+            dbContext.Set<DocumentElementEntity>().Add(CreateElement(documentId, sequence: 0, mediaId));
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        var summaryResponse = await environment.Client.GetAsync("/api/workspaces/retention/cleanup-summary");
+        summaryResponse.EnsureSuccessStatusCode();
+        var summary = await summaryResponse.Content.ReadFromJsonAsync<DocumentRetentionCleanupSummaryDto>();
+        Assert.NotNull(summary);
+        Assert.Equal(1, summary.ExpiredDocuments);
+        Assert.Equal(1, summary.RetentionMediaFiles);
+
+        var runResponse = await environment.Client.PostAsJsonAsync(
+            "/api/workspaces/retention/cleanup",
+            new RunDocumentRetentionCleanupRequestDto(10));
+        runResponse.EnsureSuccessStatusCode();
+        var result = await runResponse.Content.ReadFromJsonAsync<DocumentRetentionCleanupResultDto>();
+        Assert.NotNull(result);
+        Assert.Equal(1, result.DeletedDocuments);
+        Assert.Equal(1, result.DeletedMedia);
+
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+
+            Assert.Null(await dbContext.Documents.FindAsync(documentId));
+            Assert.Null(await dbContext.DocumentMedia.FindAsync(mediaId));
+            Assert.Empty(dbContext.Set<DocumentElementEntity>().Where(element => element.DocumentId == documentId));
+        }
+
+        Assert.False(File.Exists(ToFullMediaPath(environment, mediaPath)));
     }
 
     private static WorkspaceEntity CreateWorkspace(Guid id, string name, int documentRetentionDays)

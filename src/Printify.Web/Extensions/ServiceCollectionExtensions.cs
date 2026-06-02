@@ -118,7 +118,6 @@ public static class ServiceCollectionExtensions
 
         services.AddHostedService(provider =>
             (PrinterBufferCoordinator)provider.GetRequiredService<IPrinterBufferCoordinator>());
-        services.AddHostedService<DocumentRetentionCleanupHostedService>();
         services.AddHostedService<PrinterListenerBootstrapper>();
 
         return services;

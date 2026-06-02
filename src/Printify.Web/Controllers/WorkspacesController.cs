@@ -10,7 +10,9 @@ using Printify.Application.Features.Workspaces.GetWorkspaceSummary;
 using Printify.Application.Features.Workspaces.UpdateWorkspace;
 using Printify.Application.Printing;
 using Printify.Application.Services;
+using Printify.Domain.Requests;
 using Printify.Domain.Workspaces;
+using Printify.Infrastructure.Retention;
 using Printify.Web.Contracts.Workspaces.Requests;
 using Printify.Web.Contracts.Workspaces.Responses;
 using Printify.Web.Infrastructure;
@@ -23,6 +25,7 @@ namespace Printify.Web.Controllers;
 public sealed class WorkspacesController(
     IMediator mediator,
     HttpContextExtensions httpExtensions,
+    DocumentRetentionCleanupService retentionCleanupService,
     ITcpConnectionLog connectionLog)
     : ControllerBase
 {
@@ -141,6 +144,65 @@ public sealed class WorkspacesController(
     }
 
     [Authorize]
+    [HttpGet("retention/cleanup-summary")]
+    public async Task<ActionResult<DocumentRetentionCleanupSummaryDto>> GetRetentionCleanupSummary(CancellationToken ct)
+    {
+        var httpContext = httpExtensions.GetRequestContext(HttpContext);
+        var workspace = await GetCurrentWorkspaceAsync(httpContext, ct).ConfigureAwait(false);
+        if (workspace is null)
+        {
+            return Unauthorized();
+        }
+
+        if (workspace.Role != WorkspaceRole.Admin)
+        {
+            return Forbid();
+        }
+
+        var summary = await retentionCleanupService
+            .GetSummaryAsync(DateTimeOffset.UtcNow, workspace.Id, ct)
+            .ConfigureAwait(false);
+
+        return Ok(new DocumentRetentionCleanupSummaryDto(
+            summary.ExpiredDocuments,
+            summary.RetentionMediaFiles));
+    }
+
+    [Authorize]
+    [HttpPost("retention/cleanup")]
+    public async Task<ActionResult<DocumentRetentionCleanupResultDto>> RunRetentionCleanup(
+        [FromBody] RunDocumentRetentionCleanupRequestDto request,
+        CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        var httpContext = httpExtensions.GetRequestContext(HttpContext);
+        var workspace = await GetCurrentWorkspaceAsync(httpContext, ct).ConfigureAwait(false);
+        if (workspace is null)
+        {
+            return Unauthorized();
+        }
+
+        if (workspace.Role != WorkspaceRole.Admin)
+        {
+            return Forbid();
+        }
+
+        if (request.MaxDocuments <= 0)
+        {
+            return BadRequest(new { error = "MaxDocuments must be greater than 0" });
+        }
+
+        var result = await retentionCleanupService
+            .RunOnceAsync(DateTimeOffset.UtcNow, workspace.Id, request.MaxDocuments, ct)
+            .ConfigureAwait(false);
+
+        return Ok(new DocumentRetentionCleanupResultDto(
+            result.DeletedDocuments,
+            result.DeletedMedia));
+    }
+
+    [Authorize]
     [HttpDelete]
     public async Task<ActionResult> DeleteWorkspace(CancellationToken ct)
     {
@@ -186,5 +248,20 @@ public sealed class WorkspacesController(
             .ToList();
 
         return Ok(dtos);
+    }
+
+    private async Task<Workspace?> GetCurrentWorkspaceAsync(
+        RequestContext requestContext,
+        CancellationToken ct)
+    {
+        if (requestContext.WorkspaceId is null)
+        {
+            return null;
+        }
+
+        return await mediator.RequestAsync<GetCurrentWorkspaceCommand, Workspace>(
+                new GetCurrentWorkspaceCommand(requestContext),
+                ct)
+            .ConfigureAwait(false);
     }
 }

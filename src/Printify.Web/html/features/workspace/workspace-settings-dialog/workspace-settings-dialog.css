@@ -190,6 +190,24 @@
     margin-top: 2px;
 }
 
+.retention-cleanup-panel {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    padding: 16px;
+}
+
+.retention-cleanup-summary {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.retention-cleanup-limit-input {
+    max-width: 180px;
+}
+
 /* Stats grid */
 .stats-grid {
     display: grid;

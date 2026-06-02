@@ -24,15 +24,27 @@ public sealed class DocumentRetentionCleanupService(
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
+        return await RunOnceAsync(now, workspaceId: null, maxDocuments: null, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<DocumentRetentionCleanupResult> RunOnceAsync(
+        DateTimeOffset now,
+        Guid? workspaceId,
+        int? maxDocuments,
+        CancellationToken cancellationToken)
+    {
         var totalDocuments = 0;
         var totalMedia = 0;
         var maxBatches = NormalizePositive(cleanupOptions.Value.MaxBatchesPerRun, DefaultMaxBatchesPerRun);
+        var remainingDocuments = maxDocuments;
 
-        for (var batch = 0; batch < maxBatches; batch++)
+        for (var batch = 0; batch < maxBatches && remainingDocuments != 0; batch++)
         {
-            var result = await DeleteExpiredBatchAsync(now, cancellationToken).ConfigureAwait(false);
+            var result = await DeleteExpiredBatchAsync(now, workspaceId, remainingDocuments, cancellationToken)
+                .ConfigureAwait(false);
             totalDocuments += result.DeletedDocuments;
             totalMedia += result.DeletedMedia;
+            remainingDocuments -= result.DeletedDocuments;
 
             if (result.DeletedDocuments == 0)
             {
@@ -51,25 +63,44 @@ public sealed class DocumentRetentionCleanupService(
         return new DocumentRetentionCleanupResult(totalDocuments, totalMedia);
     }
 
-    private async Task<DocumentRetentionCleanupResult> DeleteExpiredBatchAsync(
+    public async Task<DocumentRetentionCleanupSummary> GetSummaryAsync(
         DateTimeOffset now,
+        Guid workspaceId,
         CancellationToken cancellationToken)
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
-        var batchSize = NormalizePositive(cleanupOptions.Value.BatchSize, DefaultBatchSize);
-        var nowUnixMs = now.ToUnixTimeMilliseconds();
+        var expiredDocumentIds = CreateExpiredDocumentIdQuery(dbContext, now, workspaceId);
 
-        // Retention is owned by the workspace; zero means documents are kept forever.
-        var expiredDocuments = await (
-                from document in dbContext.Documents
-                join printer in dbContext.Printers on document.PrinterId equals printer.Id
-                join workspace in dbContext.Workspaces on printer.OwnerWorkspaceId equals workspace.Id
-                where !workspace.IsDeleted
-                    && workspace.DocumentRetentionDays > 0
-                    && document.CreatedAtUnixMs < nowUnixMs - (workspace.DocumentRetentionDays * DayInMs)
-                orderby document.CreatedAtUnixMs
-                select new ExpiredDocument(document.Id, document.PrinterId))
+        var expiredDocuments = await expiredDocumentIds.CountAsync(cancellationToken).ConfigureAwait(false);
+        if (expiredDocuments == 0)
+        {
+            return new DocumentRetentionCleanupSummary(0, 0);
+        }
+
+        var retentionMediaFiles = await CountRetentionMediaFilesAsync(
+                dbContext,
+                expiredDocumentIds,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return new DocumentRetentionCleanupSummary(expiredDocuments, retentionMediaFiles);
+    }
+
+    private async Task<DocumentRetentionCleanupResult> DeleteExpiredBatchAsync(
+        DateTimeOffset now,
+        Guid? workspaceId,
+        int? maxDocuments,
+        CancellationToken cancellationToken)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+        var configuredBatchSize = NormalizePositive(cleanupOptions.Value.BatchSize, DefaultBatchSize);
+        var batchSize = maxDocuments.HasValue
+            ? Math.Min(configuredBatchSize, maxDocuments.Value)
+            : configuredBatchSize;
+
+        var expiredDocuments = await CreateExpiredDocumentQuery(dbContext, now, workspaceId)
             .Take(batchSize)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -117,6 +148,7 @@ public sealed class DocumentRetentionCleanupService(
                 ? []
                 : await dbContext.DocumentMedia
                     .Where(media => candidateMediaIds.Contains(media.Id))
+                    // A media file is removable only after no remaining document element references it.
                     .Where(media => !dbContext.Set<DocumentElementEntity>()
                         .Any(element => element.MediaId == media.Id))
                     .Select(media => new MediaFile(media.Id, media.FileName))
@@ -144,6 +176,61 @@ public sealed class DocumentRetentionCleanupService(
         }
 
         return new DocumentRetentionCleanupResult(deletedDocuments, mediaFilesToDelete.Count);
+    }
+
+    private static IQueryable<ExpiredDocument> CreateExpiredDocumentQuery(
+        PrintifyDbContext dbContext,
+        DateTimeOffset now,
+        Guid? workspaceId)
+    {
+        var nowUnixMs = now.ToUnixTimeMilliseconds();
+
+        // Retention is owned by the workspace; zero means documents are kept forever.
+        return
+            from document in dbContext.Documents
+            join printer in dbContext.Printers on document.PrinterId equals printer.Id
+            join workspace in dbContext.Workspaces on printer.OwnerWorkspaceId equals workspace.Id
+            where !workspace.IsDeleted
+                && workspace.DocumentRetentionDays > 0
+                && (!workspaceId.HasValue || workspace.Id == workspaceId.Value)
+                && document.CreatedAtUnixMs < nowUnixMs - (workspace.DocumentRetentionDays * DayInMs)
+            orderby document.CreatedAtUnixMs
+            select new ExpiredDocument(document.Id, document.PrinterId);
+    }
+
+    private static IQueryable<Guid> CreateExpiredDocumentIdQuery(
+        PrintifyDbContext dbContext,
+        DateTimeOffset now,
+        Guid? workspaceId)
+    {
+        var nowUnixMs = now.ToUnixTimeMilliseconds();
+
+        // This shape stays fully SQL-translatable for Contains subqueries used by media reference checks.
+        return
+            from document in dbContext.Documents
+            join printer in dbContext.Printers on document.PrinterId equals printer.Id
+            join workspace in dbContext.Workspaces on printer.OwnerWorkspaceId equals workspace.Id
+            where !workspace.IsDeleted
+                && workspace.DocumentRetentionDays > 0
+                && (!workspaceId.HasValue || workspace.Id == workspaceId.Value)
+                && document.CreatedAtUnixMs < nowUnixMs - (workspace.DocumentRetentionDays * DayInMs)
+            select document.Id;
+    }
+
+    private static async Task<int> CountRetentionMediaFilesAsync(
+        PrintifyDbContext dbContext,
+        IQueryable<Guid> expiredDocumentIds,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.DocumentMedia
+            // The media file must be referenced by at least one document that retention would delete.
+            .Where(media => dbContext.Set<DocumentElementEntity>()
+                .Any(element => element.MediaId == media.Id && expiredDocumentIds.Contains(element.DocumentId)))
+            // The media file must not be referenced by any document that retention would keep.
+            .Where(media => !dbContext.Set<DocumentElementEntity>()
+                .Any(element => element.MediaId == media.Id && !expiredDocumentIds.Contains(element.DocumentId)))
+            .CountAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private void DeleteMediaFile(string fileName)

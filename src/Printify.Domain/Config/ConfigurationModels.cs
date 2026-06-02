@@ -22,12 +22,6 @@ public sealed class Storage
 
 public sealed class DocumentCleanupOptions
 {
-    public bool Enabled { get; init; } = true;
-
-    public int IntervalMinutes { get; init; } = 60;
-
-    public int StartupDelaySeconds { get; init; } = 60;
-
     public int BatchSize { get; init; } = 500;
 
     public int MaxBatchesPerRun { get; init; } = 20;

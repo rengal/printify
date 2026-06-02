@@ -65,8 +65,34 @@
                                     <input class="input" id="retention-days-input" data-retention-days-input type="number" min="0" max="365" value="30" />
                                     <span class="input-suffix">days</span>
                                 </div>
-                                <div class="field-hint">Documents older than this will be automatically deleted (0 keeps forever)</div>
+                                <div class="field-hint">Manual cleanup deletes documents older than this (0 keeps forever)</div>
                                 <div class="field-error" data-retention-days-error>Document retention days must be between 0 and 365</div>
+                            </div>
+
+                            <div class="retention-cleanup-panel" data-retention-cleanup-panel hidden>
+                                <div class="retention-cleanup-summary" data-retention-cleanup-summary>
+                                    0 documents retention 0 media files
+                                </div>
+                                <div class="field">
+                                    <label class="label" for="retention-cleanup-limit-input">Documents to delete</label>
+                                    <input
+                                        class="input retention-cleanup-limit-input"
+                                        id="retention-cleanup-limit-input"
+                                        data-retention-cleanup-limit-input
+                                        type="number"
+                                        min="1"
+                                        max="100000"
+                                        value="500"
+                                    />
+                                    <div class="field-hint">Limits how many documents are deleted in one pass.</div>
+                                    <div class="field-error" data-retention-cleanup-limit-error>
+                                        Documents to delete must be greater than 0
+                                    </div>
+                                </div>
+                                <button class="btn btn-secondary" data-retention-cleanup-run>
+                                    <img class="themed-icon" src="assets/icons/trash-2.svg" width="16" height="16" alt="">
+                                    Run Retention Cleanup
+                                </button>
                             </div>
 
                             <div class="info-box">

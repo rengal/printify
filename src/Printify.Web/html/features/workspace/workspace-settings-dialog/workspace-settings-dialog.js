@@ -99,6 +99,11 @@ async function show() {
     currentOverlay.nameInput = modalOverlay.querySelector('[data-workspace-name-input]');
     currentOverlay.retentionDaysInput = modalOverlay.querySelector('[data-retention-days-input]');
     currentOverlay.retentionDaysError = modalOverlay.querySelector('[data-retention-days-error]');
+    currentOverlay.retentionCleanupPanel = modalOverlay.querySelector('[data-retention-cleanup-panel]');
+    currentOverlay.retentionCleanupSummary = modalOverlay.querySelector('[data-retention-cleanup-summary]');
+    currentOverlay.retentionCleanupLimitInput = modalOverlay.querySelector('[data-retention-cleanup-limit-input]');
+    currentOverlay.retentionCleanupLimitError = modalOverlay.querySelector('[data-retention-cleanup-limit-error]');
+    currentOverlay.retentionCleanupRun = modalOverlay.querySelector('[data-retention-cleanup-run]');
     currentOverlay.createdAt = modalOverlay.querySelector('[data-workspace-created-at]');
     currentOverlay.saveBtn = saveBtn;
     currentOverlay.whitelistEnabled = modalOverlay.querySelector('[data-whitelist-enabled]');
@@ -119,6 +124,11 @@ async function show() {
     currentOverlay.whitelistEntries.addEventListener('input', markChanged);
     currentOverlay.whitelistRefresh.addEventListener('click', loadRecentConnections);
     currentOverlay.connectionsMinutes?.addEventListener('change', loadRecentConnections);
+    currentOverlay.retentionCleanupRun?.addEventListener('click', handleRunRetentionCleanup);
+    currentOverlay.retentionCleanupLimitInput?.addEventListener('input', () => {
+        currentOverlay.retentionCleanupLimitError?.classList.remove('show');
+        currentOverlay.retentionCleanupLimitInput?.classList.remove('invalid');
+    });
 
     // Auto-load connections when connections tab is opened
     modalOverlay.querySelectorAll('.workspace-settings-nav-item').forEach(item => {
@@ -425,6 +435,25 @@ function formatRetention(days) {
     return Number(days) === 0 ? 'Forever' : `${formatNumber(days)}d`;
 }
 
+async function loadRetentionCleanupSummary() {
+    if (!currentOverlay.retentionCleanupSummary) {
+        return;
+    }
+
+    try {
+        const summary = await callbacks.apiRequest('/api/workspaces/retention/cleanup-summary');
+        renderRetentionCleanupSummary(summary);
+    } catch (err) {
+        currentOverlay.retentionCleanupSummary.textContent = 'Failed to load retention summary';
+    }
+}
+
+function renderRetentionCleanupSummary(summary) {
+    const documents = formatNumber(summary?.expiredDocuments ?? 0);
+    const mediaFiles = formatNumber(summary?.retentionMediaFiles ?? 0);
+    currentOverlay.retentionCleanupSummary.textContent = `${documents} documents retention ${mediaFiles} media files`;
+}
+
 async function loadSettings() {
     try {
         // Fetch workspace settings and summary in parallel
@@ -469,6 +498,14 @@ async function loadSettings() {
         }
 
         const isAdmin = currentSettings.role === 'Admin';
+        if (currentOverlay.retentionCleanupPanel) {
+            currentOverlay.retentionCleanupPanel.hidden = !isAdmin;
+        }
+
+        if (isAdmin) {
+            await loadRetentionCleanupSummary();
+        }
+
         setAdminStatisticsVisible(isAdmin);
         if (isAdmin) {
             await loadAdminStatistics();
@@ -483,6 +520,38 @@ async function loadSettings() {
             callbacks.showToast('Failed to load workspace settings', true);
         }
         close();
+    }
+}
+
+async function handleRunRetentionCleanup() {
+    const maxDocuments = parseInt(currentOverlay.retentionCleanupLimitInput?.value, 10);
+    if (isNaN(maxDocuments) || maxDocuments <= 0) {
+        currentOverlay.retentionCleanupLimitInput?.classList.add('invalid');
+        currentOverlay.retentionCleanupLimitError?.classList.add('show');
+        currentOverlay.retentionCleanupLimitInput?.focus();
+        callbacks.showToast?.('Documents to delete must be greater than 0', true);
+        return;
+    }
+
+    try {
+        currentOverlay.retentionCleanupRun.disabled = true;
+        const result = await callbacks.apiRequest('/api/workspaces/retention/cleanup', {
+            method: 'POST',
+            body: JSON.stringify({ maxDocuments })
+        });
+
+        callbacks.showToast?.(
+            `Retention cleanup deleted ${formatNumber(result.deletedDocuments)} documents and ` +
+            `${formatNumber(result.deletedMedia)} media files`);
+
+        await loadRetentionCleanupSummary();
+    } catch (err) {
+        console.error('Failed to run retention cleanup:', err);
+        callbacks.showToast?.(err.message || 'Failed to run retention cleanup', true);
+    } finally {
+        if (currentOverlay?.retentionCleanupRun) {
+            currentOverlay.retentionCleanupRun.disabled = false;
+        }
     }
 }
 
