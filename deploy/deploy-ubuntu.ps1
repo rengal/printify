@@ -6,7 +6,11 @@ param(
 
     [switch]$SkipRestore,
 
-    [switch]$WhatIf
+    [switch]$WhatIf,
+
+    # Selects the deployment target non-interactively (1-4); prompts when omitted.
+    [ValidateSet("1", "2", "3", "4")]
+    [string]$Target
 )
 
 Set-StrictMode -Version Latest
@@ -50,7 +54,7 @@ function Get-DeploymentTarget {
     Write-Host "4. $NewHost2ServerHost (fresh server, installs .NET runtime)"
 
     while ($true) {
-        $selection = Read-Host "Enter 1, 2, 3 or 4"
+        $selection = if ($Target) { $Target } else { Read-Host "Enter 1, 2, 3 or 4" }
         switch ($selection) {
             "1" {
                 return @{
