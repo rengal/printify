@@ -219,6 +219,108 @@ public sealed class DocumentRetentionCleanupTests(WebApplicationFactory<Program>
     }
 
     [Fact]
+    public async Task RunOnceAsync_DeletesOrphanDocumentsWhosePrinterIsGone()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var now = DateTimeOffset.UtcNow;
+        var workspaceId = Guid.NewGuid();
+        var printerId = Guid.NewGuid();
+        var liveDocumentId = Guid.NewGuid();
+        // This document references a printer id that is never inserted, mimicking historical hard-deletes.
+        var orphanDocumentId = Guid.NewGuid();
+        var orphanPrinterId = Guid.NewGuid();
+
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+
+            // Keep-forever workspace so only the orphan is eligible for deletion (no override, recent doc).
+            dbContext.Workspaces.Add(CreateWorkspace(workspaceId, "forever", documentRetentionDays: 0));
+            dbContext.Printers.Add(CreatePrinter(printerId, workspaceId, port: 45108));
+            dbContext.Documents.AddRange(
+                CreateDocument(liveDocumentId, printerId, now.AddMinutes(-1)),
+                CreateDocument(orphanDocumentId, orphanPrinterId, now.AddMinutes(-1)));
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        await using (var scope = environment.CreateScope())
+        {
+            var cleanup = scope.ServiceProvider.GetRequiredService<DocumentRetentionCleanupService>();
+
+            var summary = await cleanup.GetSummaryAsync(
+                now,
+                workspaceId: null,
+                retentionDaysOverride: null,
+                CancellationToken.None);
+            Assert.Equal(1, summary.ExpiredDocuments);
+
+            var result = await cleanup.RunOnceAsync(
+                now,
+                workspaceId: null,
+                maxDocuments: null,
+                retentionDaysOverride: null,
+                CancellationToken.None);
+            Assert.Equal(1, result.DeletedDocuments);
+        }
+
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+
+            Assert.Null(await dbContext.Documents.FindAsync(orphanDocumentId));
+            Assert.NotNull(await dbContext.Documents.FindAsync(liveDocumentId));
+        }
+    }
+
+    [Fact]
+    public async Task DeleteByPrinterAsync_RemovesDocumentsAndUnreferencedMedia()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var now = DateTimeOffset.UtcNow;
+        var workspaceId = Guid.NewGuid();
+        var printerId = Guid.NewGuid();
+        var documentId = Guid.NewGuid();
+        var mediaId = Guid.NewGuid();
+        string mediaPath;
+
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+            var storage = scope.ServiceProvider.GetRequiredService<IOptions<Storage>>().Value;
+
+            mediaPath = CreateMediaFile(storage.MediaRootPath, mediaId);
+
+            dbContext.Workspaces.Add(CreateWorkspace(workspaceId, "forever", documentRetentionDays: 0));
+            dbContext.Printers.Add(CreatePrinter(printerId, workspaceId, port: 45109));
+            dbContext.DocumentMedia.Add(CreateMedia(mediaId, workspaceId, mediaPath));
+            dbContext.Documents.Add(CreateDocument(documentId, printerId, now));
+            dbContext.Set<DocumentElementEntity>().Add(CreateElement(documentId, sequence: 0, mediaId));
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        await using (var scope = environment.CreateScope())
+        {
+            var cleanup = scope.ServiceProvider.GetRequiredService<DocumentRetentionCleanupService>();
+            var result = await cleanup.DeleteByPrinterAsync(printerId, CancellationToken.None);
+
+            Assert.Equal(1, result.DeletedDocuments);
+            Assert.Equal(1, result.DeletedMedia);
+        }
+
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+
+            Assert.Null(await dbContext.Documents.FindAsync(documentId));
+            Assert.Null(await dbContext.DocumentMedia.FindAsync(mediaId));
+        }
+
+        Assert.False(File.Exists(ToFullMediaPath(environment, mediaPath)));
+    }
+
+    [Fact]
     public async Task RunOnceAsync_WithZeroDayOverride_DeletesAllDocuments()
     {
         await using var environment = TestServiceContext.CreateForControllerTest(factory);

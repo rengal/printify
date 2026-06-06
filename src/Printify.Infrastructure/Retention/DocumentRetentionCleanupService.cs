@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Printify.Application.Interfaces;
 using Printify.Domain.Config;
 using Printify.Infrastructure.Persistence;
 using Printify.Infrastructure.Persistence.Entities.Documents;
@@ -13,6 +14,7 @@ public sealed class DocumentRetentionCleanupService(
     IOptions<DocumentCleanupOptions> cleanupOptions,
     IOptions<Storage> storageOptions,
     ILogger<DocumentRetentionCleanupService> logger)
+    : IPrinterDocumentCleaner
 {
     private const long DayInMs = 24L * 60L * 60L * 1000L;
     private const int DefaultBatchSize = 500;
@@ -122,6 +124,57 @@ public sealed class DocumentRetentionCleanupService(
             .Distinct()
             .ToArray();
 
+        return await DeleteDocumentsAndMediaAsync(
+                dbContext,
+                expiredDocumentIds,
+                affectedPrinterIds,
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    async Task IPrinterDocumentCleaner.DeleteByPrinterAsync(Guid printerId, CancellationToken cancellationToken)
+    {
+        await DeleteByPrinterAsync(printerId, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Deletes all documents (and their now-orphaned media files) belonging to a single printer.
+    /// Used when clearing a printer's history or deleting the printer, so no orphan rows or files remain.
+    /// </summary>
+    public async Task<DocumentRetentionCleanupResult> DeleteByPrinterAsync(
+        Guid printerId,
+        CancellationToken cancellationToken)
+    {
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+
+        var documentIds = await dbContext.Documents
+            .Where(document => document.PrinterId == printerId)
+            .Select(document => document.Id)
+            .ToArrayAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (documentIds.Length == 0)
+        {
+            return new DocumentRetentionCleanupResult(0, 0);
+        }
+
+        return await DeleteDocumentsAndMediaAsync(
+                dbContext,
+                documentIds,
+                affectedPrinterIds: [printerId],
+                cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    // Deletes the given documents in a transaction, removes media no longer referenced by any element,
+    // refreshes denormalized printer metadata, then deletes the freed media files from disk.
+    private async Task<DocumentRetentionCleanupResult> DeleteDocumentsAndMediaAsync(
+        PrintifyDbContext dbContext,
+        Guid[] documentIds,
+        Guid[] affectedPrinterIds,
+        CancellationToken cancellationToken)
+    {
         List<MediaFile> mediaFilesToDelete;
         int deletedDocuments;
 
@@ -131,14 +184,14 @@ public sealed class DocumentRetentionCleanupService(
         {
             // Collect candidate media before deleting documents; orphan media is rechecked after cascades.
             var candidateMediaIds = await dbContext.Set<DocumentElementEntity>()
-                .Where(element => expiredDocumentIds.Contains(element.DocumentId) && element.MediaId.HasValue)
+                .Where(element => documentIds.Contains(element.DocumentId) && element.MediaId.HasValue)
                 .Select(element => element.MediaId!.Value)
                 .Distinct()
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
 
             deletedDocuments = await dbContext.Documents
-                .Where(document => expiredDocumentIds.Contains(document.Id))
+                .Where(document => documentIds.Contains(document.Id))
                 .ExecuteDeleteAsync(cancellationToken)
                 .ConfigureAwait(false);
 
@@ -188,23 +241,9 @@ public sealed class DocumentRetentionCleanupService(
         Guid? workspaceId,
         int? retentionDaysOverride)
     {
-        var nowUnixMs = now.ToUnixTimeMilliseconds();
-        var overrideCutoffUnixMs = ResolveOverrideCutoffUnixMs(nowUnixMs, retentionDaysOverride);
-
-        // An admin override applies a single cutoff to every workspace (including those that keep
-        // documents forever); without it, retention is owned by the workspace and zero means keep forever.
-        return
-            from document in dbContext.Documents
-            join printer in dbContext.Printers on document.PrinterId equals printer.Id
-            join workspace in dbContext.Workspaces on printer.OwnerWorkspaceId equals workspace.Id
-            where !workspace.IsDeleted
-                && (!workspaceId.HasValue || workspace.Id == workspaceId.Value)
-                && (overrideCutoffUnixMs.HasValue
-                    ? document.CreatedAtUnixMs < overrideCutoffUnixMs.Value
-                    : workspace.DocumentRetentionDays > 0
-                        && document.CreatedAtUnixMs < nowUnixMs - (workspace.DocumentRetentionDays * DayInMs))
-            orderby document.CreatedAtUnixMs
-            select new ExpiredDocument(document.Id, document.PrinterId);
+        return CreateExpiredDocumentBaseQuery(dbContext, now, workspaceId, retentionDaysOverride)
+            .OrderBy(document => document.CreatedAtUnixMs)
+            .Select(document => new ExpiredDocument(document.Id, document.PrinterId));
     }
 
     private static IQueryable<Guid> CreateExpiredDocumentIdQuery(
@@ -213,21 +252,41 @@ public sealed class DocumentRetentionCleanupService(
         Guid? workspaceId,
         int? retentionDaysOverride)
     {
+        // This shape stays fully SQL-translatable for Contains subqueries used by media reference checks.
+        return CreateExpiredDocumentBaseQuery(dbContext, now, workspaceId, retentionDaysOverride)
+            .Select(document => document.Id);
+    }
+
+    private static IQueryable<DocumentEntity> CreateExpiredDocumentBaseQuery(
+        PrintifyDbContext dbContext,
+        DateTimeOffset now,
+        Guid? workspaceId,
+        int? retentionDaysOverride)
+    {
         var nowUnixMs = now.ToUnixTimeMilliseconds();
         var overrideCutoffUnixMs = ResolveOverrideCutoffUnixMs(nowUnixMs, retentionDaysOverride);
 
-        // This shape stays fully SQL-translatable for Contains subqueries used by media reference checks.
+        // A document is expired when its owning workspace's retention applies, OR when it is orphaned
+        // (no existing printer) — orphans are garbage that the INNER-JOIN form could never reach.
+        // An admin override applies a single cutoff to every workspace (including keep-forever ones);
+        // without it, retention is owned by the workspace and zero days means keep forever.
         return
             from document in dbContext.Documents
-            join printer in dbContext.Printers on document.PrinterId equals printer.Id
-            join workspace in dbContext.Workspaces on printer.OwnerWorkspaceId equals workspace.Id
-            where !workspace.IsDeleted
-                && (!workspaceId.HasValue || workspace.Id == workspaceId.Value)
-                && (overrideCutoffUnixMs.HasValue
-                    ? document.CreatedAtUnixMs < overrideCutoffUnixMs.Value
-                    : workspace.DocumentRetentionDays > 0
-                        && document.CreatedAtUnixMs < nowUnixMs - (workspace.DocumentRetentionDays * DayInMs))
-            select document.Id;
+            join printer in dbContext.Printers on document.PrinterId equals printer.Id into printerGroup
+            from printer in printerGroup.DefaultIfEmpty()
+            join workspace in dbContext.Workspaces on printer.OwnerWorkspaceId equals workspace.Id into workspaceGroup
+            from workspace in workspaceGroup.DefaultIfEmpty()
+            where
+                // Orphaned document: the referenced printer no longer exists.
+                printer == null
+                // Or a normal document whose workspace is in scope and past its retention cutoff.
+                || (!workspace.IsDeleted
+                    && (!workspaceId.HasValue || workspace.Id == workspaceId.Value)
+                    && (overrideCutoffUnixMs.HasValue
+                        ? document.CreatedAtUnixMs < overrideCutoffUnixMs.Value
+                        : workspace.DocumentRetentionDays > 0
+                            && document.CreatedAtUnixMs < nowUnixMs - (workspace.DocumentRetentionDays * DayInMs)))
+            select document;
     }
 
     // Translates an admin "max retention days" override into an absolute cutoff timestamp.

@@ -64,6 +64,7 @@ public static class ServiceCollectionExtensions
         // Services
         services.AddSingleton<IGreetingService, GreetingService>();
         services.AddSingleton<DocumentRetentionCleanupService>();
+        services.AddSingleton<IPrinterDocumentCleaner>(sp => sp.GetRequiredService<DocumentRetentionCleanupService>());
 
         // Database
         services.AddDbContext<PrintifyDbContext>((serviceProvider, options) =>

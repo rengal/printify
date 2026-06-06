@@ -11,7 +11,7 @@ namespace Printify.Application.Features.Printers.Documents.Clear;
 
 public sealed class ClearPrinterDocumentsHandler(
     IPrinterRepository printerRepository,
-    IDocumentRepository documentRepository,
+    IPrinterDocumentCleaner documentCleaner,
     IPrinterStatusStream statusStream)
     : IRequestHandler<ClearPrinterDocumentsCommand, Unit>
 {
@@ -27,10 +27,9 @@ public sealed class ClearPrinterDocumentsHandler(
             .GetWritablePrinterAsync(printerRepository, request.Context, request.PrinterId, cancellationToken)
             .ConfigureAwait(false);
 
-        // Delete all persisted documents tied to the printer in a single operation.
-        await documentRepository.ClearByPrinterIdAsync(request.PrinterId, cancellationToken).ConfigureAwait(false);
-        // Reset last document metadata so UI does not show deleted documents as the most recent.
-        await printerRepository.ClearLastDocumentReceivedAtAsync(request.PrinterId, cancellationToken).ConfigureAwait(false);
+        // Delete the printer's documents along with their now-orphaned media rows/files; this also
+        // resets the printer's last-document metadata so the UI stops showing deleted documents.
+        await documentCleaner.DeleteByPrinterAsync(request.PrinterId, cancellationToken).ConfigureAwait(false);
         // Reload printer to obtain updated metadata for SSE publishing.
         var refreshedPrinter = await printerRepository
             .GetByIdAsync(request.PrinterId, request.Context.WorkspaceId, cancellationToken)

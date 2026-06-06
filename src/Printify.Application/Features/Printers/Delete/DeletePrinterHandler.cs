@@ -11,6 +11,7 @@ namespace Printify.Application.Features.Printers.Delete;
 
 public sealed class DeletePrinterHandler(
     IPrinterRepository printerRepository,
+    IPrinterDocumentCleaner documentCleaner,
     IPrinterListenerOrchestrator listenerOrchestrator)
     : IRequestHandler<DeletePrinterCommand, Unit>
 {
@@ -28,6 +29,8 @@ public sealed class DeletePrinterHandler(
         // Default to Stopped to avoid keeping listeners alive for deleted printers without operational flags.
         var targetState = operationalFlags?.TargetState ?? PrinterTargetState.Stopped;
         await listenerOrchestrator.RemoveListenerAsync(printer, targetState, ct).ConfigureAwait(false);
+        // Remove the printer's documents and media first so deleting the printer leaves no orphan data.
+        await documentCleaner.DeleteByPrinterAsync(printer.Id, ct).ConfigureAwait(false);
         await printerRepository.DeleteAsync(printer, ct).ConfigureAwait(false);
 
         return Unit.Value;
