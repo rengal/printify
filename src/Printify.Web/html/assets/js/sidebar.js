@@ -12,8 +12,10 @@
         const printers = options?.printers ?? [];
         const selectedPrinterId = options?.selectedPrinterId ?? null;
         const ownPrinters = printers.filter(printer => !printer.isForeign);
+        // The "recently active" list only makes sense for printers that actually have a last document;
+        // after a retention cleanup the rest would otherwise show up as empty entries.
         const foreignPrinters = printers
-            .filter(printer => printer.isForeign)
+            .filter(printer => printer.isForeign && printer.lastDocumentAt)
             .sort(compareForeignPrinters);
 
         const pinnedPrinters = ownPrinters
