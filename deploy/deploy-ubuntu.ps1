@@ -15,14 +15,22 @@ $ErrorActionPreference = "Stop"
 # Deployment constants (no runtime input required).
 $LocalServerHost = "virtual-printer.resto.lan"
 $GlobalServerHost = "virtual-printer.online"
+$NewHostServerHost = "31.76.96.105"
+$NewHost2ServerHost = "166.1.160.233"
 $LocalSshUser = "resto"
 $GlobalSshUser = "root"
+$NewHostSshUser = "root"
+$NewHost2SshUser = "root"
 $LocalServiceUser = "resto"
 $GlobalServiceUser = "root"
+$NewHostServiceUser = "root"
+$NewHost2ServiceUser = "root"
 $SshPort = 22
 $ProjectPath = "src/Printify.Web/Printify.Web.csproj"
 $LocalSettingsPath = "src/Printify.Web/appsettings.local.Production.json"
 $GlobalSettingsPath = "src/Printify.Web/appsettings.global.Production.json"
+$NewHostSettingsPath = "src/Printify.Web/appsettings.newhost.Production.json"
+$NewHost2SettingsPath = "src/Printify.Web/appsettings.newhost2.Production.json"
 $Configuration = "Release"
 $RuntimeIdentifier = "linux-x64"
 $SelfContained = "false"
@@ -38,9 +46,11 @@ function Get-DeploymentTarget {
     Write-Host "Select deployment target:"
     Write-Host "1. $LocalServerHost"
     Write-Host "2. $GlobalServerHost"
+    Write-Host "3. $NewHostServerHost (fresh server, installs .NET runtime)"
+    Write-Host "4. $NewHost2ServerHost (fresh server, installs .NET runtime)"
 
     while ($true) {
-        $selection = Read-Host "Enter 1 or 2"
+        $selection = Read-Host "Enter 1, 2, 3 or 4"
         switch ($selection) {
             "1" {
                 return @{
@@ -49,6 +59,7 @@ function Get-DeploymentTarget {
                     ServiceUser = $LocalServiceUser
                     SettingsPath = $LocalSettingsPath
                     RequiresPrivilegedPort = $true
+                    InstallRuntime = $false
                 }
             }
             "2" {
@@ -58,10 +69,31 @@ function Get-DeploymentTarget {
                     ServiceUser = $GlobalServiceUser
                     SettingsPath = $GlobalSettingsPath
                     RequiresPrivilegedPort = $false
+                    InstallRuntime = $false
+                }
+            }
+            "3" {
+                return @{
+                    ServerHost = $NewHostServerHost
+                    SshUser = $NewHostSshUser
+                    ServiceUser = $NewHostServiceUser
+                    SettingsPath = $NewHostSettingsPath
+                    RequiresPrivilegedPort = $false
+                    InstallRuntime = $true
+                }
+            }
+            "4" {
+                return @{
+                    ServerHost = $NewHost2ServerHost
+                    SshUser = $NewHost2SshUser
+                    ServiceUser = $NewHost2ServiceUser
+                    SettingsPath = $NewHost2SettingsPath
+                    RequiresPrivilegedPort = $false
+                    InstallRuntime = $true
                 }
             }
             default {
-                Write-Host "Invalid selection. Enter 1 or 2."
+                Write-Host "Invalid selection. Enter 1, 2, 3 or 4."
             }
         }
     }
@@ -127,6 +159,7 @@ $User = $deploymentTarget.SshUser
 $ServiceRunUser = $deploymentTarget.ServiceUser
 $SelectedSettingsPath = $deploymentTarget.SettingsPath
 $RequiresPrivilegedPort = [bool]$deploymentTarget.RequiresPrivilegedPort
+$InstallRuntime = [bool]$deploymentTarget.InstallRuntime
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $projectFullPath = Join-Path $root $ProjectPath
@@ -308,6 +341,7 @@ Invoke-Logged -Message "Deploying on remote server and restarting service" -Acti
     $preserveSettings = if ($PreserveProductionSettings -and -not $SkipArtifactDeploy) { "1" } else { "0" }
     $skipArtifact = if ($SkipArtifactDeploy) { "1" } else { "0" }
     $requiresPrivilegedPort = if ($RequiresPrivilegedPort) { "1" } else { "0" }
+    $installRuntime = if ($InstallRuntime) { "1" } else { "0" }
     $useRootMode = if ($User -eq "root") { "1" } else { "0" }
 
     # Env vars exported before running the remote script.
@@ -320,6 +354,7 @@ Invoke-Logged -Message "Deploying on remote server and restarting service" -Acti
                   "export SKIP_ARTIFACT_DEPLOY='$skipArtifact'; " +
                   "export PRESERVE_SETTINGS='$preserveSettings'; " +
                   "export REQUIRES_PRIVILEGED_PORT='$requiresPrivilegedPort'; " +
+                  "export INSTALL_RUNTIME='$installRuntime'; " +
                   "export ROOT_MODE='$useRootMode';"
 
     if ($WhatIf) {
@@ -341,8 +376,11 @@ Invoke-Logged -Message "Deploying on remote server and restarting service" -Acti
     $scpArgs += @("-P", "$SshPort", $lfScriptPath, "${sshTarget}:$remoteScriptPath")
     Invoke-Native -FilePath "scp" -Arguments $scpArgs
 
-    # Execute the script on the remote.
-    $sshRunArgs = @("-T") + $sshArgs + $sshTarget + "$envExports bash $remoteScriptPath; rm -f $remoteScriptPath"
+    # Execute the script on the remote. Capture the script's exit code first,
+    # always clean up the uploaded script, then propagate the original code so
+    # a failed deploy does not get masked by the cleanup command's success.
+    $remoteCommand = "$envExports bash $remoteScriptPath; rc=`$?; rm -f $remoteScriptPath; exit `$rc"
+    $sshRunArgs = @("-T") + $sshArgs + $sshTarget + $remoteCommand
     Invoke-Native -FilePath "ssh" -Arguments $sshRunArgs
 }
 
