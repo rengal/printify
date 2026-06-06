@@ -79,7 +79,11 @@ public sealed class DocumentRetentionCleanupTests(WebApplicationFactory<Program>
         {
             var cleanup = scope.ServiceProvider.GetRequiredService<DocumentRetentionCleanupService>();
 
-            var summary = await cleanup.GetSummaryAsync(now, retainedWorkspaceId, CancellationToken.None);
+            var summary = await cleanup.GetSummaryAsync(
+                now,
+                retainedWorkspaceId,
+                retentionDaysOverride: null,
+                CancellationToken.None);
             Assert.Equal(1, summary.ExpiredDocuments);
             Assert.Equal(1, summary.RetentionMediaFiles);
 
@@ -144,6 +148,7 @@ public sealed class DocumentRetentionCleanupTests(WebApplicationFactory<Program>
                 now,
                 workspaceId,
                 maxDocuments: 1,
+                retentionDaysOverride: null,
                 cancellationToken: CancellationToken.None);
 
             Assert.Equal(1, result.DeletedDocuments);
@@ -160,6 +165,104 @@ public sealed class DocumentRetentionCleanupTests(WebApplicationFactory<Program>
     }
 
     [Fact]
+    public async Task RunOnceAsync_WithRetentionOverride_DeletesAcrossWorkspacesIncludingKeepForever()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var now = DateTimeOffset.UtcNow;
+        var foreverWorkspaceId = Guid.NewGuid();
+        var foreverPrinterId = Guid.NewGuid();
+        var oldDocumentId = Guid.NewGuid();
+        var recentDocumentId = Guid.NewGuid();
+
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+
+            // documentRetentionDays: 0 means the workspace would normally keep documents forever.
+            dbContext.Workspaces.Add(CreateWorkspace(foreverWorkspaceId, "forever", documentRetentionDays: 0));
+            dbContext.Printers.Add(CreatePrinter(foreverPrinterId, foreverWorkspaceId, port: 45106));
+            dbContext.Documents.AddRange(
+                CreateDocument(oldDocumentId, foreverPrinterId, now.AddDays(-10)),
+                CreateDocument(recentDocumentId, foreverPrinterId, now.AddDays(-1)));
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        await using (var scope = environment.CreateScope())
+        {
+            var cleanup = scope.ServiceProvider.GetRequiredService<DocumentRetentionCleanupService>();
+
+            // A 7-day override deletes documents older than 7 days even in a keep-forever workspace.
+            var summary = await cleanup.GetSummaryAsync(
+                now,
+                workspaceId: null,
+                retentionDaysOverride: 7,
+                CancellationToken.None);
+            Assert.Equal(1, summary.ExpiredDocuments);
+
+            var result = await cleanup.RunOnceAsync(
+                now,
+                workspaceId: null,
+                maxDocuments: null,
+                retentionDaysOverride: 7,
+                CancellationToken.None);
+            Assert.Equal(1, result.DeletedDocuments);
+        }
+
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+
+            Assert.Null(await dbContext.Documents.FindAsync(oldDocumentId));
+            Assert.NotNull(await dbContext.Documents.FindAsync(recentDocumentId));
+        }
+    }
+
+    [Fact]
+    public async Task RunOnceAsync_WithZeroDayOverride_DeletesAllDocuments()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var now = DateTimeOffset.UtcNow;
+        var foreverWorkspaceId = Guid.NewGuid();
+        var foreverPrinterId = Guid.NewGuid();
+        var oldDocumentId = Guid.NewGuid();
+        var freshDocumentId = Guid.NewGuid();
+
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+
+            dbContext.Workspaces.Add(CreateWorkspace(foreverWorkspaceId, "forever", documentRetentionDays: 0));
+            dbContext.Printers.Add(CreatePrinter(foreverPrinterId, foreverWorkspaceId, port: 45107));
+            dbContext.Documents.AddRange(
+                CreateDocument(oldDocumentId, foreverPrinterId, now.AddDays(-10)),
+                CreateDocument(freshDocumentId, foreverPrinterId, now.AddMinutes(-1)));
+
+            await dbContext.SaveChangesAsync();
+        }
+
+        await using (var scope = environment.CreateScope())
+        {
+            var cleanup = scope.ServiceProvider.GetRequiredService<DocumentRetentionCleanupService>();
+
+            var result = await cleanup.RunOnceAsync(
+                now,
+                workspaceId: null,
+                maxDocuments: null,
+                retentionDaysOverride: 0,
+                CancellationToken.None);
+            Assert.Equal(2, result.DeletedDocuments);
+        }
+
+        await using (var scope = environment.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
+
+            Assert.Empty(dbContext.Documents);
+        }
+    }
+
+    [Fact]
     public async Task RetentionCleanupEndpoints_ForNormalWorkspace_ReturnForbidden()
     {
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
@@ -168,7 +271,7 @@ public sealed class DocumentRetentionCleanupTests(WebApplicationFactory<Program>
         var summaryResponse = await environment.Client.GetAsync("/api/workspaces/retention/cleanup-summary");
         var runResponse = await environment.Client.PostAsJsonAsync(
             "/api/workspaces/retention/cleanup",
-            new RunDocumentRetentionCleanupRequestDto(10));
+            new RunDocumentRetentionCleanupRequestDto(10, RetentionDaysOverride: null));
 
         Assert.Equal(HttpStatusCode.Forbidden, summaryResponse.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, runResponse.StatusCode);
@@ -230,7 +333,7 @@ public sealed class DocumentRetentionCleanupTests(WebApplicationFactory<Program>
 
         var runResponse = await environment.Client.PostAsJsonAsync(
             "/api/workspaces/retention/cleanup",
-            new RunDocumentRetentionCleanupRequestDto(10));
+            new RunDocumentRetentionCleanupRequestDto(10, RetentionDaysOverride: null));
         runResponse.EnsureSuccessStatusCode();
         var result = await runResponse.Content.ReadFromJsonAsync<DocumentRetentionCleanupResultDto>();
         Assert.NotNull(result);

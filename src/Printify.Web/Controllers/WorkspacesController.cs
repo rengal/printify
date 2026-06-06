@@ -145,7 +145,9 @@ public sealed class WorkspacesController(
 
     [Authorize]
     [HttpGet("retention/cleanup-summary")]
-    public async Task<ActionResult<DocumentRetentionCleanupSummaryDto>> GetRetentionCleanupSummary(CancellationToken ct)
+    public async Task<ActionResult<DocumentRetentionCleanupSummaryDto>> GetRetentionCleanupSummary(
+        [FromQuery] int? retentionDaysOverride,
+        CancellationToken ct)
     {
         var httpContext = httpExtensions.GetRequestContext(HttpContext);
         var workspace = await GetCurrentWorkspaceAsync(httpContext, ct).ConfigureAwait(false);
@@ -159,8 +161,13 @@ public sealed class WorkspacesController(
             return Forbid();
         }
 
+        if (!IsValidRetentionDaysOverride(retentionDaysOverride))
+        {
+            return BadRequest(new { error = "RetentionDaysOverride must be between 0 and 365" });
+        }
+
         var summary = await retentionCleanupService
-            .GetSummaryAsync(DateTimeOffset.UtcNow, workspaceId: null, cancellationToken: ct)
+            .GetSummaryAsync(DateTimeOffset.UtcNow, workspaceId: null, retentionDaysOverride, ct)
             .ConfigureAwait(false);
 
         return Ok(new DocumentRetentionCleanupSummaryDto(
@@ -193,11 +200,17 @@ public sealed class WorkspacesController(
             return BadRequest(new { error = "MaxDocuments must be greater than 0" });
         }
 
+        if (!IsValidRetentionDaysOverride(request.RetentionDaysOverride))
+        {
+            return BadRequest(new { error = "RetentionDaysOverride must be between 0 and 365" });
+        }
+
         var result = await retentionCleanupService
             .RunOnceAsync(
                 DateTimeOffset.UtcNow,
                 workspaceId: null,
                 maxDocuments: request.MaxDocuments,
+                retentionDaysOverride: request.RetentionDaysOverride,
                 cancellationToken: ct)
             .ConfigureAwait(false);
 
@@ -267,5 +280,11 @@ public sealed class WorkspacesController(
                 new GetCurrentWorkspaceCommand(requestContext),
                 ct)
             .ConfigureAwait(false);
+    }
+
+    private static bool IsValidRetentionDaysOverride(int? retentionDaysOverride)
+    {
+        return !retentionDaysOverride.HasValue
+            || (retentionDaysOverride.Value >= 0 && retentionDaysOverride.Value <= 365);
     }
 }

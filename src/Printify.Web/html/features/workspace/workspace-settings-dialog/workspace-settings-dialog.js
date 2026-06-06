@@ -103,6 +103,8 @@ async function show() {
     currentOverlay.retentionCleanupSummary = modalOverlay.querySelector('[data-retention-cleanup-summary]');
     currentOverlay.retentionCleanupLimitInput = modalOverlay.querySelector('[data-retention-cleanup-limit-input]');
     currentOverlay.retentionCleanupLimitError = modalOverlay.querySelector('[data-retention-cleanup-limit-error]');
+    currentOverlay.retentionCleanupDaysInput = modalOverlay.querySelector('[data-retention-cleanup-days-input]');
+    currentOverlay.retentionCleanupDaysError = modalOverlay.querySelector('[data-retention-cleanup-days-error]');
     currentOverlay.retentionCleanupRun = modalOverlay.querySelector('[data-retention-cleanup-run]');
     currentOverlay.createdAt = modalOverlay.querySelector('[data-workspace-created-at]');
     currentOverlay.saveBtn = saveBtn;
@@ -128,6 +130,12 @@ async function show() {
     currentOverlay.retentionCleanupLimitInput?.addEventListener('input', () => {
         currentOverlay.retentionCleanupLimitError?.classList.remove('show');
         currentOverlay.retentionCleanupLimitInput?.classList.remove('invalid');
+    });
+    currentOverlay.retentionCleanupDaysInput?.addEventListener('input', () => {
+        currentOverlay.retentionCleanupDaysError?.classList.remove('show');
+        currentOverlay.retentionCleanupDaysInput?.classList.remove('invalid');
+        // Keep the deletion preview in sync with the override the admin is typing.
+        scheduleRetentionCleanupSummaryReload();
     });
 
     // Auto-load connections when connections tab is opened
@@ -449,13 +457,52 @@ function formatRetention(days) {
     return Number(days) === 0 ? 'Forever' : `${formatNumber(days)}d`;
 }
 
+// Reads the optional admin retention-days override. Returns:
+//   { valid: true, value: number|null }  — null means "no override" (empty input)
+//   { valid: false }                      — present but out of the 0..365 range
+function readRetentionDaysOverride() {
+    const raw = currentOverlay.retentionCleanupDaysInput?.value?.trim();
+    if (!raw) {
+        return { valid: true, value: null };
+    }
+
+    const days = parseInt(raw, 10);
+    if (isNaN(days) || days < 0 || days > 365) {
+        return { valid: false };
+    }
+
+    return { valid: true, value: days };
+}
+
+let retentionCleanupSummaryReloadTimer = null;
+
+function scheduleRetentionCleanupSummaryReload() {
+    if (retentionCleanupSummaryReloadTimer) {
+        clearTimeout(retentionCleanupSummaryReloadTimer);
+    }
+    retentionCleanupSummaryReloadTimer = setTimeout(loadRetentionCleanupSummary, 300);
+}
+
 async function loadRetentionCleanupSummary() {
     if (!currentOverlay.retentionCleanupSummary) {
         return;
     }
 
+    const override = readRetentionDaysOverride();
+    if (!override.valid) {
+        // An invalid override would make the preview misleading, so flag it instead of querying.
+        currentOverlay.retentionCleanupDaysError?.classList.add('show');
+        currentOverlay.retentionCleanupDaysInput?.classList.add('invalid');
+        currentOverlay.retentionCleanupSummary.textContent = 'Enter a valid override (0-365) to preview';
+        return;
+    }
+
+    const query = override.value === null
+        ? ''
+        : `?retentionDaysOverride=${override.value}`;
+
     try {
-        const summary = await callbacks.apiRequest('/api/workspaces/retention/cleanup-summary');
+        const summary = await callbacks.apiRequest(`/api/workspaces/retention/cleanup-summary${query}`);
         renderRetentionCleanupSummary(summary);
     } catch (err) {
         currentOverlay.retentionCleanupSummary.textContent = 'Failed to load retention summary';
@@ -545,11 +592,25 @@ async function handleRunRetentionCleanup() {
         return;
     }
 
+    const override = readRetentionDaysOverride();
+    if (!override.valid) {
+        currentOverlay.retentionCleanupDaysInput?.classList.add('invalid');
+        currentOverlay.retentionCleanupDaysError?.classList.add('show');
+        currentOverlay.retentionCleanupDaysInput?.focus();
+        callbacks.showToast?.('Max retention days must be between 0 and 365', true);
+        return;
+    }
+
+    if (override.value === 0 &&
+        !confirm('Override is 0 days — this deletes ALL documents in every workspace. Continue?')) {
+        return;
+    }
+
     try {
         currentOverlay.retentionCleanupRun.disabled = true;
         const result = await callbacks.apiRequest('/api/workspaces/retention/cleanup', {
             method: 'POST',
-            body: JSON.stringify({ maxDocuments })
+            body: JSON.stringify({ maxDocuments, retentionDaysOverride: override.value })
         });
 
         callbacks.showToast?.(

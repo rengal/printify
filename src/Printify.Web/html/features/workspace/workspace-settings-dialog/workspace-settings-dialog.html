@@ -115,6 +115,22 @@
                                     0 documents retention 0 media files
                                 </div>
                                 <div class="field">
+                                    <label class="label" for="retention-cleanup-days-input">Max retention days (override)</label>
+                                    <input
+                                        class="input retention-cleanup-days-input"
+                                        id="retention-cleanup-days-input"
+                                        data-retention-cleanup-days-input
+                                        type="number"
+                                        min="0"
+                                        max="365"
+                                        placeholder="Use each workspace setting"
+                                    />
+                                    <div class="field-hint">Overrides every workspace: deletes documents older than this many days. 0 deletes all documents. Leave empty to use each workspace's own setting.</div>
+                                    <div class="field-error" data-retention-cleanup-days-error>
+                                        Max retention days must be between 0 and 365
+                                    </div>
+                                </div>
+                                <div class="field">
                                     <label class="label" for="retention-cleanup-limit-input">Documents to delete</label>
                                     <input
                                         class="input retention-cleanup-limit-input"
