@@ -2,8 +2,8 @@
     function render(options) {
         const pinnedList = document.getElementById('pinnedList');
         const otherList = document.getElementById('otherList');
-        const foreignList = document.getElementById('foreignList');
-        const foreignDivider = document.getElementById('foreignPrinterDivider');
+        const recentlyActiveList = document.getElementById('recentlyActiveList');
+        const recentlyActiveDivider = document.getElementById('recentlyActiveDivider');
 
         if (!pinnedList || !otherList) {
             return;
@@ -12,11 +12,11 @@
         const printers = options?.printers ?? [];
         const selectedPrinterId = options?.selectedPrinterId ?? null;
         const ownPrinters = printers.filter(printer => !printer.isForeign);
-        // The "recently active" list only makes sense for printers that actually have a last document;
-        // after a retention cleanup the rest would otherwise show up as empty entries.
-        const foreignPrinters = printers
-            .filter(printer => printer.isForeign && printer.lastDocumentAt)
-            .sort(compareForeignPrinters);
+        // The "recently active" list shows any printer (own or from another workspace) that has a last
+        // document, newest first. Printers without one are skipped so the list never shows empty entries.
+        const recentlyActivePrinters = printers
+            .filter(printer => printer.lastDocumentAt)
+            .sort(compareByLastDocument);
 
         const pinnedPrinters = ownPrinters
             .filter(printer => printer.pinned)
@@ -34,9 +34,9 @@
             selectedPrinterId,
             false)).join('');
 
-        if (foreignList && foreignDivider) {
-            foreignDivider.style.display = foreignPrinters.length > 0 ? 'flex' : 'none';
-            foreignList.innerHTML = foreignPrinters.map(printer => renderPrinterItem(
+        if (recentlyActiveList && recentlyActiveDivider) {
+            recentlyActiveDivider.style.display = recentlyActivePrinters.length > 0 ? 'flex' : 'none';
+            recentlyActiveList.innerHTML = recentlyActivePrinters.map(printer => renderPrinterItem(
                 printer,
                 selectedPrinterId,
                 false)).join('');
@@ -72,20 +72,9 @@
           `;
     }
 
-    function compareForeignPrinters(a, b) {
-        if (a.lastDocumentAt && b.lastDocumentAt) {
-            return b.lastDocumentAt - a.lastDocumentAt;
-        }
-
-        if (a.lastDocumentAt) {
-            return -1;
-        }
-
-        if (b.lastDocumentAt) {
-            return 1;
-        }
-
-        return a.name.localeCompare(b.name);
+    function compareByLastDocument(a, b) {
+        // Both printers are guaranteed to have a last document here; newest first, name as tie-breaker.
+        return (b.lastDocumentAt - a.lastDocumentAt) || a.name.localeCompare(b.name);
     }
 
     function escapeHtml(value) {

@@ -48,8 +48,8 @@
 .container.sidebar-minimized .list-item-new span,
 .container.sidebar-minimized #pinnedList,
 .container.sidebar-minimized #otherList,
-.container.sidebar-minimized #foreignPrinterDivider,
-.container.sidebar-minimized #foreignList {
+.container.sidebar-minimized #recentlyActiveDivider,
+.container.sidebar-minimized #recentlyActiveList {
     display: none;
 }
 
