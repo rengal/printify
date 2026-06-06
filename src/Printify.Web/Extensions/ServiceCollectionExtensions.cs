@@ -75,9 +75,13 @@ public static class ServiceCollectionExtensions
             var dbRoot = ResolvePath(storageOptions.DatabasePath, "db");
             var filePath = Path.Combine(dbRoot, "printify.db");
             Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-            var connectionString = $"Data Source={filePath};Cache=Shared";
+            // The database runs in WAL mode, where Microsoft.Data.Sqlite recommends against shared cache.
+            // Private cache + WAL lets readers (printers, SSE) run concurrently with retention writes.
+            var connectionString = $"Data Source={filePath}";
 
             options.UseSqlite(connectionString);
+            // Sets busy_timeout/WAL on every connection so a long retention write does not hang readers.
+            options.AddInterceptors(new SqlitePragmaConnectionInterceptor());
         });
 
         services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
