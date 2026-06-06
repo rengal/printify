@@ -336,6 +336,20 @@ function setAdminStatisticsVisible(isVisible) {
     if (currentOverlay.adminStatisticsContent) {
         currentOverlay.adminStatisticsContent.hidden = !isVisible;
     }
+
+    if (!isVisible && currentOverlay.adminStatisticsTab?.classList.contains('active')) {
+        activateTab('general');
+    }
+}
+
+function activateTab(tabName) {
+    currentOverlay.querySelectorAll('.workspace-settings-nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.tab === tabName);
+    });
+
+    currentOverlay.querySelectorAll('.workspace-settings-tab-content').forEach(content => {
+        content.classList.toggle('active', content.dataset.content === tabName);
+    });
 }
 
 async function loadAdminStatistics() {
@@ -498,16 +512,14 @@ async function loadSettings() {
         }
 
         const isAdmin = currentSettings.role === 'Admin';
+        setAdminStatisticsVisible(isAdmin);
+
         if (currentOverlay.retentionCleanupPanel) {
             currentOverlay.retentionCleanupPanel.hidden = !isAdmin;
         }
 
         if (isAdmin) {
             await loadRetentionCleanupSummary();
-        }
-
-        setAdminStatisticsVisible(isAdmin);
-        if (isAdmin) {
             await loadAdminStatistics();
         }
 
@@ -545,6 +557,7 @@ async function handleRunRetentionCleanup() {
             `${formatNumber(result.deletedMedia)} media files`);
 
         await loadRetentionCleanupSummary();
+        await loadAdminStatistics();
     } catch (err) {
         console.error('Failed to run retention cleanup:', err);
         callbacks.showToast?.(err.message || 'Failed to run retention cleanup', true);

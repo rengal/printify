@@ -65,7 +65,7 @@ public sealed class DocumentRetentionCleanupService(
 
     public async Task<DocumentRetentionCleanupSummary> GetSummaryAsync(
         DateTimeOffset now,
-        Guid workspaceId,
+        Guid? workspaceId,
         CancellationToken cancellationToken)
     {
         await using var scope = scopeFactory.CreateAsyncScope();

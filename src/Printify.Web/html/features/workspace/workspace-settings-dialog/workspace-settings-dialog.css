@@ -9,6 +9,10 @@
     max-width: 980px;
 }
 
+.workspace-settings-dialog [hidden] {
+    display: none !important;
+}
+
 /* Custom header (not using default modal-header) */
 .workspace-settings-header {
     display: flex;
@@ -195,6 +199,13 @@
     border-radius: 8px;
     margin-bottom: 16px;
     padding: 16px;
+}
+
+.retention-cleanup-panel h4 {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
 }
 
 .retention-cleanup-summary {

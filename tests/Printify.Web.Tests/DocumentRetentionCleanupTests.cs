@@ -99,7 +99,9 @@ public sealed class DocumentRetentionCleanupTests(WebApplicationFactory<Program>
 
             var retainedPrinter = await dbContext.Printers.FindAsync(retainedPrinterId);
             Assert.NotNull(retainedPrinter);
-            Assert.Equal(now.ToUnixTimeMilliseconds(), retainedPrinter.LastDocumentReceivedAt?.ToUnixTimeMilliseconds());
+            Assert.Equal(
+                now.ToUnixTimeMilliseconds(),
+                retainedPrinter.LastDocumentReceivedAt?.ToUnixTimeMilliseconds());
 
             Assert.NotNull(await dbContext.DocumentMedia.FindAsync(sharedMediaId));
             Assert.Null(await dbContext.DocumentMedia.FindAsync(expiredOnlyMediaId));
@@ -177,28 +179,44 @@ public sealed class DocumentRetentionCleanupTests(WebApplicationFactory<Program>
     {
         await using var environment = TestServiceContext.CreateForControllerTest(factory);
         var now = DateTimeOffset.UtcNow;
-        var (workspaceId, _) = await AuthHelper.CreateWorkspaceAndLoginReturningToken(environment);
-        var printerId = Guid.NewGuid();
-        var documentId = Guid.NewGuid();
-        var mediaId = Guid.NewGuid();
-        string mediaPath;
+        var (adminWorkspaceId, _) = await AuthHelper.CreateWorkspaceAndLoginReturningToken(environment);
+        var normalWorkspaceId = Guid.NewGuid();
+        var adminPrinterId = Guid.NewGuid();
+        var normalPrinterId = Guid.NewGuid();
+        var adminDocumentId = Guid.NewGuid();
+        var normalDocumentId = Guid.NewGuid();
+        var adminMediaId = Guid.NewGuid();
+        var normalMediaId = Guid.NewGuid();
+        string adminMediaPath;
+        string normalMediaPath;
 
         await using (var scope = environment.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
             var storage = scope.ServiceProvider.GetRequiredService<IOptions<Storage>>().Value;
-            var workspace = await dbContext.Workspaces.FindAsync(workspaceId);
-            Assert.NotNull(workspace);
+            var adminWorkspace = await dbContext.Workspaces.FindAsync(adminWorkspaceId);
+            Assert.NotNull(adminWorkspace);
 
             // Only admins can run manual retention; use one-day retention so the seeded document is expired.
-            workspace.Role = WorkspaceRole.Admin.ToString();
-            workspace.DocumentRetentionDays = 1;
+            adminWorkspace.Role = WorkspaceRole.Admin.ToString();
+            adminWorkspace.DocumentRetentionDays = 1;
 
-            mediaPath = CreateMediaFile(storage.MediaRootPath, mediaId);
-            dbContext.Printers.Add(CreatePrinter(printerId, workspaceId, port: 45104));
-            dbContext.DocumentMedia.Add(CreateMedia(mediaId, workspaceId, mediaPath));
-            dbContext.Documents.Add(CreateDocument(documentId, printerId, now.AddDays(-2)));
-            dbContext.Set<DocumentElementEntity>().Add(CreateElement(documentId, sequence: 0, mediaId));
+            adminMediaPath = CreateMediaFile(storage.MediaRootPath, adminMediaId);
+            normalMediaPath = CreateMediaFile(storage.MediaRootPath, normalMediaId);
+
+            dbContext.Workspaces.Add(CreateWorkspace(normalWorkspaceId, "normal-retained", documentRetentionDays: 1));
+            dbContext.Printers.AddRange(
+                CreatePrinter(adminPrinterId, adminWorkspaceId, port: 45104),
+                CreatePrinter(normalPrinterId, normalWorkspaceId, port: 45105));
+            dbContext.DocumentMedia.AddRange(
+                CreateMedia(adminMediaId, adminWorkspaceId, adminMediaPath),
+                CreateMedia(normalMediaId, normalWorkspaceId, normalMediaPath));
+            dbContext.Documents.AddRange(
+                CreateDocument(adminDocumentId, adminPrinterId, now.AddDays(-2)),
+                CreateDocument(normalDocumentId, normalPrinterId, now.AddDays(-2)));
+            dbContext.Set<DocumentElementEntity>().AddRange(
+                CreateElement(adminDocumentId, sequence: 0, adminMediaId),
+                CreateElement(normalDocumentId, sequence: 0, normalMediaId));
 
             await dbContext.SaveChangesAsync();
         }
@@ -207,8 +225,8 @@ public sealed class DocumentRetentionCleanupTests(WebApplicationFactory<Program>
         summaryResponse.EnsureSuccessStatusCode();
         var summary = await summaryResponse.Content.ReadFromJsonAsync<DocumentRetentionCleanupSummaryDto>();
         Assert.NotNull(summary);
-        Assert.Equal(1, summary.ExpiredDocuments);
-        Assert.Equal(1, summary.RetentionMediaFiles);
+        Assert.Equal(2, summary.ExpiredDocuments);
+        Assert.Equal(2, summary.RetentionMediaFiles);
 
         var runResponse = await environment.Client.PostAsJsonAsync(
             "/api/workspaces/retention/cleanup",
@@ -216,19 +234,25 @@ public sealed class DocumentRetentionCleanupTests(WebApplicationFactory<Program>
         runResponse.EnsureSuccessStatusCode();
         var result = await runResponse.Content.ReadFromJsonAsync<DocumentRetentionCleanupResultDto>();
         Assert.NotNull(result);
-        Assert.Equal(1, result.DeletedDocuments);
-        Assert.Equal(1, result.DeletedMedia);
+        Assert.Equal(2, result.DeletedDocuments);
+        Assert.Equal(2, result.DeletedMedia);
 
         await using (var scope = environment.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
 
-            Assert.Null(await dbContext.Documents.FindAsync(documentId));
-            Assert.Null(await dbContext.DocumentMedia.FindAsync(mediaId));
-            Assert.Empty(dbContext.Set<DocumentElementEntity>().Where(element => element.DocumentId == documentId));
+            Assert.Null(await dbContext.Documents.FindAsync(adminDocumentId));
+            Assert.Null(await dbContext.Documents.FindAsync(normalDocumentId));
+            Assert.Null(await dbContext.DocumentMedia.FindAsync(adminMediaId));
+            Assert.Null(await dbContext.DocumentMedia.FindAsync(normalMediaId));
+            Assert.Empty(dbContext.Set<DocumentElementEntity>()
+                .Where(element => element.DocumentId == adminDocumentId));
+            Assert.Empty(dbContext.Set<DocumentElementEntity>()
+                .Where(element => element.DocumentId == normalDocumentId));
         }
 
-        Assert.False(File.Exists(ToFullMediaPath(environment, mediaPath)));
+        Assert.False(File.Exists(ToFullMediaPath(environment, adminMediaPath)));
+        Assert.False(File.Exists(ToFullMediaPath(environment, normalMediaPath)));
     }
 
     private static WorkspaceEntity CreateWorkspace(Guid id, string name, int documentRetentionDays)

@@ -160,7 +160,7 @@ public sealed class WorkspacesController(
         }
 
         var summary = await retentionCleanupService
-            .GetSummaryAsync(DateTimeOffset.UtcNow, workspace.Id, ct)
+            .GetSummaryAsync(DateTimeOffset.UtcNow, workspaceId: null, cancellationToken: ct)
             .ConfigureAwait(false);
 
         return Ok(new DocumentRetentionCleanupSummaryDto(
@@ -194,7 +194,11 @@ public sealed class WorkspacesController(
         }
 
         var result = await retentionCleanupService
-            .RunOnceAsync(DateTimeOffset.UtcNow, workspace.Id, request.MaxDocuments, ct)
+            .RunOnceAsync(
+                DateTimeOffset.UtcNow,
+                workspaceId: null,
+                maxDocuments: request.MaxDocuments,
+                cancellationToken: ct)
             .ConfigureAwait(false);
 
         return Ok(new DocumentRetentionCleanupResultDto(
