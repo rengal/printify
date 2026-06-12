@@ -8,8 +8,8 @@ param(
 
     [switch]$WhatIf,
 
-    # Selects the deployment target non-interactively (1-4); prompts when omitted.
-    [ValidateSet("1", "2", "3", "4")]
+    # Selects the deployment target non-interactively (1-5); prompts when omitted.
+    [ValidateSet("1", "2", "3", "4", "5")]
     [string]$Target
 )
 
@@ -21,20 +21,25 @@ $LocalServerHost = "virtual-printer.resto.lan"
 $GlobalServerHost = "virtual-printer.online"
 $NewHostServerHost = "31.76.96.105"
 $NewHost2ServerHost = "166.1.160.233"
+$NewHost3ServerHost = "31.76.75.231"
 $LocalSshUser = "resto"
 $GlobalSshUser = "root"
 $NewHostSshUser = "root"
 $NewHost2SshUser = "root"
+$NewHost3SshUser = "root"
 $LocalServiceUser = "resto"
 $GlobalServiceUser = "root"
 $NewHostServiceUser = "root"
 $NewHost2ServiceUser = "root"
+$NewHost3ServiceUser = "root"
 $SshPort = 22
 $ProjectPath = "src/Printify.Web/Printify.Web.csproj"
 $LocalSettingsPath = "src/Printify.Web/appsettings.local.Production.json"
 $GlobalSettingsPath = "src/Printify.Web/appsettings.global.Production.json"
 $NewHostSettingsPath = "src/Printify.Web/appsettings.newhost.Production.json"
 $NewHost2SettingsPath = "src/Printify.Web/appsettings.newhost2.Production.json"
+# Host 3 is the new home for virtual-printer.online, so it reuses the same domain settings/JWT secret.
+$NewHost3SettingsPath = "src/Printify.Web/appsettings.newhost2.Production.json"
 $Configuration = "Release"
 $RuntimeIdentifier = "linux-x64"
 $SelfContained = "false"
@@ -52,9 +57,10 @@ function Get-DeploymentTarget {
     Write-Host "2. $GlobalServerHost"
     Write-Host "3. $NewHostServerHost (fresh server, installs .NET runtime)"
     Write-Host "4. $NewHost2ServerHost (fresh server, installs .NET runtime)"
+    Write-Host "5. $NewHost3ServerHost (fresh server, installs .NET runtime)"
 
     while ($true) {
-        $selection = if ($Target) { $Target } else { Read-Host "Enter 1, 2, 3 or 4" }
+        $selection = if ($Target) { $Target } else { Read-Host "Enter 1, 2, 3, 4 or 5" }
         switch ($selection) {
             "1" {
                 return @{
@@ -96,8 +102,18 @@ function Get-DeploymentTarget {
                     InstallRuntime = $true
                 }
             }
+            "5" {
+                return @{
+                    ServerHost = $NewHost3ServerHost
+                    SshUser = $NewHost3SshUser
+                    ServiceUser = $NewHost3ServiceUser
+                    SettingsPath = $NewHost3SettingsPath
+                    RequiresPrivilegedPort = $false
+                    InstallRuntime = $true
+                }
+            }
             default {
-                Write-Host "Invalid selection. Enter 1, 2, 3 or 4."
+                Write-Host "Invalid selection. Enter 1, 2, 3, 4 or 5."
             }
         }
     }
