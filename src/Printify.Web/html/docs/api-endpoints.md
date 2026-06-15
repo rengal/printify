@@ -1,9 +1,10 @@
-# Printify Web API — contract reference (for autotests)
+# Printify Web API — endpoint reference
 
-Developer-facing contract for the Printify Web API and the canonical reference for
-integration/autotests. A served mirror is rendered in the app at **`/docs/api-endpoints`**
-(source: `src/Printify.Web/html/docs/api-endpoints.md`, linked from the workspace menu →
-Help) — keep the two in sync.
+The HTTP/REST contract for the Printify Web API: endpoints, request/response shapes,
+the error format, and the end-to-end print-and-verify flow.
+
+> This page is the served copy. The canonical source is **`doc/api-endpoints.md`** in
+> the repository (used by integration/autotests) — keep the two in sync.
 
 > **Scope — two protocols.** Managing workspaces, printers and reading documents is
 > **HTTP/REST** (this document + Swagger). **Printing itself is raw TCP**: a client

@@ -121,10 +121,6 @@ function buildMenuHtml(hasToken) {
             <img class="themed-icon menu-item-icon" src="assets/icons/book.svg" alt="">
             Getting Started
           </div>
-          <div class="menu-item" data-action="open-swagger">
-            <img class="themed-icon menu-item-icon" src="assets/icons/code.svg" alt="">
-            API Reference (Swagger)
-          </div>
           <div class="menu-item" data-action="open-docs" data-doc="faq">
             <img class="themed-icon menu-item-icon" src="assets/icons/help-circle.svg" alt="">
             FAQ & Troubleshooting
@@ -144,6 +140,15 @@ function buildMenuHtml(hasToken) {
           <div class="menu-item" data-action="open-docs" data-doc="licenses">
             <img class="themed-icon menu-item-icon" src="assets/icons/file-minus.svg" alt="">
             Third-Party Licenses
+          </div>
+          <div class="menu-divider"></div>
+          <div class="menu-item" data-action="open-swagger">
+            <img class="themed-icon menu-item-icon" src="assets/icons/code.svg" alt="">
+            API Reference (Swagger)
+          </div>
+          <div class="menu-item" data-action="open-docs" data-doc="api-endpoints">
+            <img class="themed-icon menu-item-icon" src="assets/icons/file-text.svg" alt="">
+            API Endpoints
           </div>
         </div>
       </div>
@@ -184,10 +189,6 @@ function buildMenuHtml(hasToken) {
             <img class="themed-icon menu-item-icon" src="assets/icons/book.svg" alt="">
             Getting Started
           </div>
-          <div class="menu-item" data-action="open-swagger">
-            <img class="themed-icon menu-item-icon" src="assets/icons/code.svg" alt="">
-            API Reference (Swagger)
-          </div>
           <div class="menu-item" data-action="open-docs" data-doc="faq">
             <img class="themed-icon menu-item-icon" src="assets/icons/help-circle.svg" alt="">
             FAQ & Troubleshooting
@@ -207,6 +208,15 @@ function buildMenuHtml(hasToken) {
           <div class="menu-item" data-action="open-docs" data-doc="licenses">
             <img class="themed-icon menu-item-icon" src="assets/icons/file-minus.svg" alt="">
             Third-Party Licenses
+          </div>
+          <div class="menu-divider"></div>
+          <div class="menu-item" data-action="open-swagger">
+            <img class="themed-icon menu-item-icon" src="assets/icons/code.svg" alt="">
+            API Reference (Swagger)
+          </div>
+          <div class="menu-item" data-action="open-docs" data-doc="api-endpoints">
+            <img class="themed-icon menu-item-icon" src="assets/icons/file-text.svg" alt="">
+            API Endpoints
           </div>
         </div>
       </div>
