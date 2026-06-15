@@ -121,6 +121,10 @@ function buildMenuHtml(hasToken) {
             <img class="themed-icon menu-item-icon" src="assets/icons/book.svg" alt="">
             Getting Started
           </div>
+          <div class="menu-item" data-action="open-swagger">
+            <img class="themed-icon menu-item-icon" src="assets/icons/code.svg" alt="">
+            API Reference (Swagger)
+          </div>
           <div class="menu-item" data-action="open-docs" data-doc="faq">
             <img class="themed-icon menu-item-icon" src="assets/icons/help-circle.svg" alt="">
             FAQ & Troubleshooting
@@ -180,6 +184,10 @@ function buildMenuHtml(hasToken) {
             <img class="themed-icon menu-item-icon" src="assets/icons/book.svg" alt="">
             Getting Started
           </div>
+          <div class="menu-item" data-action="open-swagger">
+            <img class="themed-icon menu-item-icon" src="assets/icons/code.svg" alt="">
+            API Reference (Swagger)
+          </div>
           <div class="menu-item" data-action="open-docs" data-doc="faq">
             <img class="themed-icon menu-item-icon" src="assets/icons/help-circle.svg" alt="">
             FAQ & Troubleshooting
@@ -235,6 +243,11 @@ function setupMenuListeners(menu) {
                 if (doc && callbacks.onOpenDocs) {
                     window.open(`/docs/${doc}`, '_blank');
                 }
+                break;
+
+            case 'open-swagger':
+                // Interactive OpenAPI reference, served on the same port (see OpenApiExtensions).
+                window.open('/swagger', '_blank');
                 break;
 
             case 'toggle-help':
