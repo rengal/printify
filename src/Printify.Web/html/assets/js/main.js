@@ -85,8 +85,39 @@
                 : {};
         }
 
+        // Single-flight silent re-login. The access token (JWT) can stop validating
+        // mid-session — it expires (~24h) or the server's signing key was rotated.
+        // The workspace token stays valid (it is independent of the JWT secret), so we
+        // can transparently exchange it for a fresh access token instead of bouncing
+        // the user to the login screen. Concurrent 401s share one re-login.
+        let refreshInFlight = null;
+        async function refreshAccessToken() {
+            if (!workspaceToken) return false;
+            if (refreshInFlight) return refreshInFlight;
+            refreshInFlight = (async () => {
+                try {
+                    const resp = await fetch(`${apiBase}/api/auth/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: workspaceToken })
+                    });
+                    if (!resp.ok) return false;
+                    const data = await resp.json().catch(() => null);
+                    if (!data?.accessToken) return false;
+                    accessToken = data.accessToken;
+                    localStorage.setItem('accessToken', accessToken);
+                    return true;
+                } catch {
+                    return false;
+                } finally {
+                    refreshInFlight = null;
+                }
+            })();
+            return refreshInFlight;
+        }
+
         async function apiRequest(path, options = {}) {
-            const { isTokenLogin = false, ...fetchOptions } = options;
+            const { isTokenLogin = false, isRetry = false, ...fetchOptions } = options;
 
             const headers = {
                 'Content-Type': 'application/json',
@@ -100,6 +131,16 @@
             });
 
             if (!response.ok) {
+                // 401 = the access token expired or was invalidated (e.g. key rotation).
+                // Try a one-shot silent re-login with the stored workspace token and
+                // replay the request, so a rotation/expiry is invisible to the user.
+                if (response.status === 401 && workspaceToken && !isTokenLogin && !isRetry) {
+                    const refreshed = await refreshAccessToken();
+                    if (refreshed) {
+                        return apiRequest(path, { ...options, isRetry: true });
+                    }
+                }
+
                 // Handle 401/403 - authentication/authorization failures
                 if (response.status === 401 || response.status === 403) {
                     console.error(`Auth failed (${response.status}) for ${path}, isTokenLogin: ${isTokenLogin}`);
