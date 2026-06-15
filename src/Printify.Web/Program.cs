@@ -81,14 +81,13 @@ using (var scope = app.Services.CreateScope())
     db.Database.Migrate();
 }
 
-// Swagger/OpenAPI for the HTTP surface. Kept out of Production so the live
-// service does not expose the schema; available to integration tests and local runs.
+// Swagger/OpenAPI for the HTTP surface — enabled in every environment, including
+// Production, so the "API Reference (Swagger)" link works on the live site. The API
+// is developer-facing and the same surface is also published at /docs/api-endpoints,
+// so exposing the schema is intentional.
 // swagger.json: /swagger/v1/swagger.json — UI: /swagger
-if (!app.Environment.IsProduction())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseForwardedHeaders();
 app.UseAuthentication();
