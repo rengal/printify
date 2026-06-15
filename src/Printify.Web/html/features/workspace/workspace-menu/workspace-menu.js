@@ -121,10 +121,6 @@ function buildMenuHtml(hasToken) {
             <img class="themed-icon menu-item-icon" src="assets/icons/book.svg" alt="">
             Getting Started
           </div>
-          <div class="menu-item" data-action="open-swagger">
-            <img class="themed-icon menu-item-icon" src="assets/icons/code.svg" alt="">
-            API Reference (Swagger)
-          </div>
           <div class="menu-item" data-action="open-docs" data-doc="faq">
             <img class="themed-icon menu-item-icon" src="assets/icons/help-circle.svg" alt="">
             FAQ & Troubleshooting
@@ -164,6 +160,11 @@ function buildMenuHtml(hasToken) {
         <img class="themed-icon menu-item-icon" src="assets/icons/log-out.svg" alt="">
         Exit Workspace
       </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" data-action="open-swagger">
+        <img class="themed-icon menu-item-icon" src="assets/icons/code.svg" alt="">
+        API Reference (Swagger)
+      </div>
     `;
     } else {
         return `
@@ -183,10 +184,6 @@ function buildMenuHtml(hasToken) {
           <div class="menu-item" data-action="open-docs" data-doc="guide">
             <img class="themed-icon menu-item-icon" src="assets/icons/book.svg" alt="">
             Getting Started
-          </div>
-          <div class="menu-item" data-action="open-swagger">
-            <img class="themed-icon menu-item-icon" src="assets/icons/code.svg" alt="">
-            API Reference (Swagger)
           </div>
           <div class="menu-item" data-action="open-docs" data-doc="faq">
             <img class="themed-icon menu-item-icon" src="assets/icons/help-circle.svg" alt="">
@@ -218,6 +215,11 @@ function buildMenuHtml(hasToken) {
       <div class="menu-item" data-action="show-workspace-dialog" data-mode="access">
         <img class="themed-icon menu-item-icon" src="assets/icons/log-in.svg" alt="">
         Access Workspace
+      </div>
+      <div class="menu-divider"></div>
+      <div class="menu-item" data-action="open-swagger">
+        <img class="themed-icon menu-item-icon" src="assets/icons/code.svg" alt="">
+        API Reference (Swagger)
       </div>
     `;
     }
