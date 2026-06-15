@@ -187,4 +187,40 @@ public sealed partial class PrintersControllerTests
             new PinPrinterRequestDto(true));
         Assert.Equal(HttpStatusCode.Forbidden, pinResponse.StatusCode);
     }
+
+    [Fact]
+    public async Task ListPrinters_NormalWorkspace_ReturnsOnlyOwnPrinters()
+    {
+        await using var environment = TestServiceContext.CreateForControllerTest(factory);
+        var client = environment.Client;
+
+        // Workspace A (Normal) creates a printer.
+        var (workspaceAId, _) = await AuthHelper.CreateWorkspaceAndLoginReturningToken(environment);
+        var printerAId = Guid.NewGuid();
+        var createA = new CreatePrinterRequestDto(
+            new PrinterRequestDto(printerAId, "Printer A"),
+            new PrinterSettingsRequestDto("EscPos", 512, null, false, null, null));
+        (await client.PostAsJsonAsync("/api/printers", createA)).EnsureSuccessStatusCode();
+
+        // Workspace B (a separate Normal workspace) creates its own printer; the
+        // helper re-points the client's bearer token to B.
+        var (workspaceBId, _) = await AuthHelper.CreateWorkspaceAndLoginReturningToken(environment);
+        var printerBId = Guid.NewGuid();
+        var createB = new CreatePrinterRequestDto(
+            new PrinterRequestDto(printerBId, "Printer B"),
+            new PrinterSettingsRequestDto("EscPos", 384, null, false, null, null));
+        (await client.PostAsJsonAsync("/api/printers", createB)).EnsureSuccessStatusCode();
+
+        // As B (Normal), GET /api/printers must return ONLY B's own printer — never A's.
+        var listResponse = await client.GetAsync("/api/printers");
+        listResponse.EnsureSuccessStatusCode();
+        var printers = await listResponse.Content.ReadFromJsonAsync<PrinterResponseDto[]>();
+        Assert.NotNull(printers);
+
+        Assert.All(printers, p => Assert.Equal(workspaceBId, p.Printer.OwnerWorkspaceId));
+        Assert.Contains(printers, p => p.Printer.Id == printerBId);
+        Assert.DoesNotContain(printers, p => p.Printer.Id == printerAId);
+        Assert.NotEqual(workspaceAId, workspaceBId);
+        Assert.Single(printers);
+    }
 }
