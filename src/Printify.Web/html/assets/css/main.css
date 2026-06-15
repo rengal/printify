@@ -421,7 +421,14 @@
     padding: 6px;
     position: absolute;
     left: calc(100% + 8px);
-    top: 0;
+    /* The workspace menu sits near the bottom of the screen, so anchor the flyout to
+       the bottom and let it grow upward; cap the height and scroll if it still cannot
+       fit, so the last items never run off-screen. */
+    bottom: 0;
+    top: auto;
+    max-height: min(80vh, 460px);
+    overflow-y: auto;
+    overflow-x: hidden;
     min-width: 260px;
     background: var(--bg-elev);
     border: 1px solid var(--border);

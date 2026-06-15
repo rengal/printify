@@ -90,9 +90,13 @@
         // The workspace token stays valid (it is independent of the JWT secret), so we
         // can transparently exchange it for a fresh access token instead of bouncing
         // the user to the login screen. Concurrent 401s share one re-login.
+        // Returns 'ok' (refreshed), 'invalid' (the workspace token itself is rejected
+        // — caller should log out), or 'unavailable' (server unreachable / 5xx — a
+        // transient failure such as a deploy restart; caller must KEEP the session so a
+        // still-valid workspace token is not wiped).
         let refreshInFlight = null;
         async function refreshAccessToken() {
-            if (!workspaceToken) return false;
+            if (!workspaceToken) return 'invalid';
             if (refreshInFlight) return refreshInFlight;
             refreshInFlight = (async () => {
                 try {
@@ -101,14 +105,22 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ token: workspaceToken })
                     });
-                    if (!resp.ok) return false;
-                    const data = await resp.json().catch(() => null);
-                    if (!data?.accessToken) return false;
-                    accessToken = data.accessToken;
-                    localStorage.setItem('accessToken', accessToken);
-                    return true;
+                    if (resp.ok) {
+                        const data = await resp.json().catch(() => null);
+                        if (data?.accessToken) {
+                            accessToken = data.accessToken;
+                            localStorage.setItem('accessToken', accessToken);
+                            return 'ok';
+                        }
+                        return 'unavailable';
+                    }
+                    // The workspace token was actively rejected by the server.
+                    if (resp.status === 401 || resp.status === 403 || resp.status === 404) {
+                        return 'invalid';
+                    }
+                    return 'unavailable'; // 5xx and friends — transient.
                 } catch {
-                    return false;
+                    return 'unavailable'; // network error — server restarting / offline.
                 } finally {
                     refreshInFlight = null;
                 }
@@ -135,13 +147,21 @@
                 // Try a one-shot silent re-login with the stored workspace token and
                 // replay the request, so a rotation/expiry is invisible to the user.
                 if (response.status === 401 && workspaceToken && !isTokenLogin && !isRetry) {
-                    const refreshed = await refreshAccessToken();
-                    if (refreshed) {
+                    const result = await refreshAccessToken();
+                    if (result === 'ok') {
                         return apiRequest(path, { ...options, isRetry: true });
                     }
+                    if (result === 'invalid') {
+                        // Workspace token genuinely no longer valid — real logout.
+                        logOut();
+                    }
+                    // 'unavailable' → transient (server restarting / 5xx / offline):
+                    // keep the session so a deploy does not wipe a still-valid token.
+                    const text = await response.text().catch(() => '');
+                    throw new Error(text || `Request failed: ${response.status}`);
                 }
 
-                // Handle 401/403 - authentication/authorization failures
+                // 403, or a 401 that already survived a refresh+retry (fresh token rejected).
                 if (response.status === 401 || response.status === 403) {
                     console.error(`Auth failed (${response.status}) for ${path}, isTokenLogin: ${isTokenLogin}`);
 
@@ -1549,8 +1569,11 @@
                     startStatusStream();
                     loadPrinters();
                 } catch (error) {
+                    // apiRequest already logs out when the workspace token is genuinely
+                    // invalid. Reaching here otherwise is a transient failure (server
+                    // restarting / offline) — keep the saved session and recover on the
+                    // next request or reload rather than wiping the workspace token.
                     console.error('Auth verification failed on startup:', error);
-                    logOut();
                 }
             })();
         } else {
