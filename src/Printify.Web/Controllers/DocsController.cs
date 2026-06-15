@@ -4,6 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace Printify.Web.Controllers;
 
 [ApiController]
+// Serves rendered HTML documentation pages, not the JSON API — keep it out of the
+// OpenAPI spec (its multiple [HttpGet] routes also collide under Swagger's path rules).
+[ApiExplorerSettings(IgnoreApi = true)]
 public class DocsController : ControllerBase
 {
     private readonly IWebHostEnvironment _environment;

@@ -20,6 +20,7 @@ builder.Services.AddControllers()
 builder.Services.AddServices(builder.Configuration);
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
+builder.Services.AddOpenApiDocumentation();
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
@@ -78,6 +79,15 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<PrintifyDbContext>();
     db.Database.Migrate();
+}
+
+// Swagger/OpenAPI for the HTTP surface. Kept out of Production so the live
+// service does not expose the schema; available to integration tests and local runs.
+// swagger.json: /swagger/v1/swagger.json — UI: /swagger
+if (!app.Environment.IsProduction())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseForwardedHeaders();
